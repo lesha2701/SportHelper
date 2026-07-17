@@ -1,0 +1,70 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 20px;
+  min-height: 60vh;
+  text-align: center;
+}
+
+.icon {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.description {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  max-width: 280px;
+}
+
+.retryButton {
+  margin-top: 8px;
+  padding: 10px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.retryButton:active {
+  opacity: 0.8;
+}
+
+.skeletonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 260px;
+}
+
+.skeletonLine {
+  height: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}

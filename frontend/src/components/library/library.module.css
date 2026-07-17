@@ -1,0 +1,64 @@
+.exerciseVideo {
+  width: 100%;
+  border-radius: var(--radius-md);
+  background: #000;
+  margin: 8px 0;
+}
+
+.exercisePhoto {
+  width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  margin: 8px 0;
+}
+
+.sectionTitle {
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.planExerciseRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.planExerciseRow:last-child {
+  border-bottom: none;
+}
+
+.planExerciseName {
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.planExerciseMeta {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.removeButton {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pickerRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}

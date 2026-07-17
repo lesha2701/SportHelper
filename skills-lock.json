@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "planning-with-files": {
+      "source": "othmanadi/planning-with-files",
+      "sourceType": "github",
+      "skillPath": "skills/planning-with-files/SKILL.md",
+      "computedHash": "72648cc18bae1764ced7f3b802988568cfb584d34654db9b7f00b44d4dd1f51f"
+    }
+  }
+}

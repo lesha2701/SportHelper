@@ -1,0 +1,219 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  padding-bottom: 32px;
+}
+
+.teamLogo {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: var(--color-surface-alt);
+  margin-bottom: 8px;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.searchInput {
+  font: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.addButton {
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.teamCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  text-align: left;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.teamCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.teamName {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+  flex: 1;
+}
+
+.chevron {
+  font-size: 20px;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.teamMeta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(79, 70, 229, 0.1);
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.badgeWarning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+
+.tab {
+  flex: 1;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.tabActive {
+  flex: 1;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--color-surface-alt);
+  flex-shrink: 0;
+}
+
+.memberInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.memberName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memberMeta {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.iconButton {
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.inviteBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.inviteLink {
+  font-size: 13px;
+  word-break: break-all;
+  color: var(--color-link);
+}
+
+.inviteExpiry {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
