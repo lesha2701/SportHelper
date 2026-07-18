@@ -48,8 +48,10 @@ export function PlayerProfileForm({ initial, onSubmit, onCancel }: PlayerProfile
   return (
     <form className={styles.screen} onSubmit={handleSubmit}>
       <div className={styles.card}>
-        <h1 className={styles.title}>Профиль игрока</h1>
+        <h1 className={styles.pageHeading}>Профиль игрока</h1>
         <p className={styles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
+
+        <span className={styles.fieldSectionLabel}>Основное</span>
 
         <label className={styles.field}>
           <span className={styles.label}>
@@ -63,6 +65,8 @@ export function PlayerProfileForm({ initial, onSubmit, onCancel }: PlayerProfile
             maxLength={100}
           />
         </label>
+
+        <span className={styles.fieldSectionLabel}>Физические данные</span>
 
         <div className={styles.fieldGrid}>
           <label className={styles.field}>
@@ -119,6 +123,8 @@ export function PlayerProfileForm({ initial, onSubmit, onCancel }: PlayerProfile
           </label>
         </div>
 
+        <span className={styles.fieldSectionLabel}>Спорт</span>
+
         <label className={styles.field}>
           <span className={styles.label}>
             Вид спорта<span className={styles.requiredMark}>*</span>
@@ -147,6 +153,8 @@ export function PlayerProfileForm({ initial, onSubmit, onCancel }: PlayerProfile
             maxLength={50}
           />
         </label>
+
+        <span className={styles.fieldSectionLabel}>Цели и ограничения</span>
 
         <label className={styles.field}>
           <span className={styles.label}>Цели</span>

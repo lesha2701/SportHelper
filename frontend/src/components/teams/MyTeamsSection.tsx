@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { listMyTeams } from "../../api/teams";
 import { ApiError } from "../../api/client";
 import { TEAM_ROLE_LABELS, type Team } from "../../types/team";
+import { Icon } from "../shared/Icon";
+import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import profileStyles from "../profile/profile.module.css";
 import teamStyles from "./teams.module.css";
 
@@ -30,18 +32,29 @@ export function MyTeamsSection({ token, onOpenTeam }: { token: string; onOpenTea
       )}
       {teams.map((team) => (
         <button key={team.id} type="button" className={teamStyles.teamCard} onClick={() => onOpenTeam(team.id)}>
-          <div className={teamStyles.teamCardTop}>
-            <h3 className={teamStyles.teamName}>{team.name}</h3>
-            {team.status === "without_coach" && (
-              <span className={`${teamStyles.badge} ${teamStyles.badgeWarning}`}>Без тренера</span>
-            )}
-            <span className={teamStyles.chevron} aria-hidden="true">
-              ›
-            </span>
+          <div className={teamStyles.teamCardRow}>
+            <div className={teamStyles.teamAvatar}>
+              {team.logoFileId ? (
+                <AuthenticatedImage token={token} fileId={team.logoFileId} alt="" className={teamStyles.teamAvatarImg} />
+              ) : (
+                team.name.charAt(0).toUpperCase()
+              )}
+            </div>
+            <div className={teamStyles.teamNameCol}>
+              <div className={teamStyles.teamCardTop}>
+                <h3 className={teamStyles.teamName}>{team.name}</h3>
+                {team.status === "without_coach" && (
+                  <span className={`${teamStyles.badge} ${teamStyles.badgeWarning}`}>Без тренера</span>
+                )}
+                <span className={teamStyles.chevron} aria-hidden="true">
+                  <Icon name="chevron-right" size={18} />
+                </span>
+              </div>
+              <p className={teamStyles.teamMeta}>
+                {team.sport} · {team.myRole && TEAM_ROLE_LABELS[team.myRole]}
+              </p>
+            </div>
           </div>
-          <p className={teamStyles.teamMeta}>
-            {team.sport} · {team.myRole && TEAM_ROLE_LABELS[team.myRole]}
-          </p>
         </button>
       ))}
     </div>

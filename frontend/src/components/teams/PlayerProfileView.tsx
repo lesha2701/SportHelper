@@ -3,6 +3,7 @@ import { getMemberPlayerProfile } from "../../api/teams";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { PlayerStatsScreen } from "../stats/PlayerStatsScreen";
+import { Icon } from "../shared/Icon";
 import { SKILL_LEVEL_LABELS } from "../../types/profile";
 import type { PlayerProfile } from "../../types/profile";
 import profileStyles from "../profile/profile.module.css";
@@ -48,7 +49,8 @@ export function PlayerProfileView({
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <button type="button" className={styles.iconButton} onClick={onBack}>
-          ← Назад
+          <Icon name="chevron-left" size={16} />
+          Назад
         </button>
         <button type="button" className={styles.iconButton} onClick={() => setShowStats(true)}>
           Статистика
@@ -67,8 +69,38 @@ export function PlayerProfileView({
 
       {state.status === "ready" && (
         <div className={profileStyles.card}>
-          <h1 className={profileStyles.title}>{state.profile.fullName}</h1>
-          <p className={profileStyles.subtitle}>Профиль игрока</p>
+          <div className={styles.teamCardRow}>
+            <div className={styles.teamAvatar}>{displayName.trim().charAt(0).toUpperCase() || "?"}</div>
+            <div className={styles.teamNameCol}>
+              <h1 className={profileStyles.title}>{state.profile.fullName}</h1>
+              <p className={profileStyles.subtitle} style={{ margin: 0 }}>
+                Профиль игрока
+              </p>
+            </div>
+          </div>
+
+          {(state.profile.age !== null || state.profile.heightCm !== null || state.profile.weightKg !== null) && (
+            <div className={styles.statGrid}>
+              {state.profile.age !== null && (
+                <div className={styles.statTile}>
+                  <span className={styles.statValue}>{state.profile.age}</span>
+                  <span className={styles.statLabel}>Возраст</span>
+                </div>
+              )}
+              {state.profile.heightCm !== null && (
+                <div className={styles.statTile}>
+                  <span className={styles.statValue}>{state.profile.heightCm} см</span>
+                  <span className={styles.statLabel}>Рост</span>
+                </div>
+              )}
+              {state.profile.weightKg !== null && (
+                <div className={styles.statTile}>
+                  <span className={styles.statValue}>{state.profile.weightKg} кг</span>
+                  <span className={styles.statLabel}>Вес</span>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className={profileStyles.row}>
             <span className={profileStyles.rowLabel}>Вид спорта</span>
@@ -84,24 +116,6 @@ export function PlayerProfileView({
             <div className={profileStyles.row}>
               <span className={profileStyles.rowLabel}>Уровень</span>
               <span className={profileStyles.rowValue}>{SKILL_LEVEL_LABELS[state.profile.level]}</span>
-            </div>
-          )}
-          {state.profile.age !== null && (
-            <div className={profileStyles.row}>
-              <span className={profileStyles.rowLabel}>Возраст</span>
-              <span className={profileStyles.rowValue}>{state.profile.age}</span>
-            </div>
-          )}
-          {state.profile.heightCm !== null && (
-            <div className={profileStyles.row}>
-              <span className={profileStyles.rowLabel}>Рост</span>
-              <span className={profileStyles.rowValue}>{state.profile.heightCm} см</span>
-            </div>
-          )}
-          {state.profile.weightKg !== null && (
-            <div className={profileStyles.row}>
-              <span className={profileStyles.rowLabel}>Вес</span>
-              <span className={profileStyles.rowValue}>{state.profile.weightKg} кг</span>
             </div>
           )}
           {state.profile.goals && (

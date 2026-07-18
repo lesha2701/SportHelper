@@ -1,5 +1,7 @@
 import { useAuth } from "../../context/AuthContext";
 import { NotificationSettings } from "./NotificationSettings";
+import { ThemeToggle } from "./ThemeToggle";
+import { Icon } from "../shared/Icon";
 import { SKILL_LEVEL_LABELS, type ActiveMode, type ProfileMe } from "../../types/profile";
 import styles from "./profile.module.css";
 
@@ -10,6 +12,7 @@ interface ProfileSummaryProps {
   onSwitchMode: (mode: ActiveMode) => void;
   onCreateOther: (mode: ActiveMode) => void;
   onOpenMyStats: () => void;
+  onOpenHelp: () => void;
 }
 
 function Avatar({ photoUrl, fallbackName }: { photoUrl: string | null; fallbackName: string }) {
@@ -19,7 +22,7 @@ function Avatar({ photoUrl, fallbackName }: { photoUrl: string | null; fallbackN
   return <div className={styles.avatarPlaceholder}>{fallbackName.trim().charAt(0).toUpperCase() || "?"}</div>;
 }
 
-export function ProfileSummary({ token, profile, onEdit, onSwitchMode, onCreateOther, onOpenMyStats }: ProfileSummaryProps) {
+export function ProfileSummary({ token, profile, onEdit, onSwitchMode, onCreateOther, onOpenMyStats, onOpenHelp }: ProfileSummaryProps) {
   const { state: authState } = useAuth();
   const photoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
   const mode: ActiveMode = profile.activeMode ?? (profile.player ? "player" : "coach");
@@ -128,11 +131,21 @@ export function ProfileSummary({ token, profile, onEdit, onSwitchMode, onCreateO
 
       <div className={styles.card}>
         <button type="button" className={styles.buttonPrimary} onClick={onOpenMyStats}>
+          <Icon name="award" size={17} />
           Моя статистика
         </button>
       </div>
 
+      <ThemeToggle />
+
       <NotificationSettings token={token} />
+
+      <div className={styles.card}>
+        <button type="button" className={styles.buttonSecondary} onClick={onOpenHelp}>
+          <Icon name="book" size={17} />
+          Помощь
+        </button>
+      </div>
 
       <div className={styles.card}>
         {profile.player && profile.coach && (

@@ -6,6 +6,7 @@ import { ApiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { StateScreen } from "../StateScreen";
 import { ConfirmModal } from "../shared/ConfirmModal";
+import { Icon } from "../shared/Icon";
 import { MetricForm } from "./MetricForm";
 import { MATCH_RESULT_LABELS } from "../../types/match";
 import type { Metric } from "../../types/metric";
@@ -98,12 +99,35 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <button type="button" className={styles.iconButton} onClick={onBack}>
-          ← Назад
+          <Icon name="chevron-left" size={16} />
+          Назад
         </button>
       </div>
 
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.title}>Статистика</h1>
+        <h1 className={profileStyles.pageHeading}>Статистика</h1>
+
+        <div className={styles.statGrid}>
+          <div className={styles.statTile}>
+            <span className={styles.statValue}>{formatRate(stats.attendanceRate)}</span>
+            <span className={styles.statLabel}>Посещаемость</span>
+          </div>
+          <div className={styles.statTile}>
+            <span className={styles.statValue}>{stats.activityStreak}</span>
+            <span className={styles.statLabel}>Серия подряд</span>
+          </div>
+          <div className={styles.statTile}>
+            <span className={styles.statValue}>
+              {stats.tasksCompleted}/{stats.tasksTotal}
+            </span>
+            <span className={styles.statLabel}>Заданий выполнено</span>
+          </div>
+          <div className={styles.statTile}>
+            <span className={styles.statValue}>{Math.round(stats.trainingMinutes / 60)} ч</span>
+            <span className={styles.statLabel}>Тренировочное время</span>
+          </div>
+        </div>
+
         <div className={profileStyles.row}>
           <span className={profileStyles.rowLabel}>Тренировок посещено</span>
           <span className={profileStyles.rowValue}>
@@ -111,26 +135,8 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
           </span>
         </div>
         <div className={profileStyles.row}>
-          <span className={profileStyles.rowLabel}>Посещаемость</span>
-          <span className={profileStyles.rowValue}>{formatRate(stats.attendanceRate)}</span>
-        </div>
-        <div className={profileStyles.row}>
-          <span className={profileStyles.rowLabel}>Серия посещений подряд</span>
-          <span className={profileStyles.rowValue}>{stats.activityStreak}</span>
-        </div>
-        <div className={profileStyles.row}>
           <span className={profileStyles.rowLabel}>Личных тренировок</span>
           <span className={profileStyles.rowValue}>{stats.personalTrainingsCount}</span>
-        </div>
-        <div className={profileStyles.row}>
-          <span className={profileStyles.rowLabel}>Тренировочное время</span>
-          <span className={profileStyles.rowValue}>{Math.round(stats.trainingMinutes / 60)} ч</span>
-        </div>
-        <div className={profileStyles.row}>
-          <span className={profileStyles.rowLabel}>Задания выполнено</span>
-          <span className={profileStyles.rowValue}>
-            {stats.tasksCompleted} / {stats.tasksTotal}
-          </span>
         </div>
         {stats.tasksOverdue > 0 && (
           <div className={profileStyles.row}>

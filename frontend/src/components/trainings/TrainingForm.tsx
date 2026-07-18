@@ -5,10 +5,12 @@ import { listMembers } from "../../api/teams";
 import { createPersonalTrainingDraft, type PersonalTrainingStyle } from "../../api/ai";
 import { ApiError } from "../../api/client";
 import { ConfirmModal } from "../shared/ConfirmModal";
+import { Icon } from "../shared/Icon";
 import type { Plan } from "../../types/plan";
 import type { TeamMember } from "../../types/team";
 import type { Training, TrainingUpdateInput } from "../../types/training";
 import profileStyles from "../profile/profile.module.css";
+import styles from "./training.module.css";
 
 interface TrainingFormProps {
   token: string;
@@ -49,7 +51,12 @@ function addMonthsToIsoDate(iso: string, months: number): string {
   return `${yy}-${mm}-${dd}`;
 }
 
-function buildPersonalTrainingDescription(style: PersonalTrainingStyle, rows: ExerciseRow[], notes: string): string {
+function buildPersonalTrainingDescription(
+  style: PersonalTrainingStyle,
+  rows: ExerciseRow[],
+  notes: string,
+  circuit?: { rounds: string; restSeconds: string },
+): string {
   const lines = rows
     .filter((r) => r.exercise.trim())
     .map((r, i) => {
@@ -60,6 +67,9 @@ function buildPersonalTrainingDescription(style: PersonalTrainingStyle, rows: Ex
       return `${i + 1}. ${r.exercise.trim()}${r.durationSeconds ? ` — ${r.durationSeconds} сек` : ""}`;
     });
   let text = lines.join("\n");
+  if (style === "circuit" && circuit && (Number(circuit.rounds) > 0 || Number(circuit.restSeconds) > 0)) {
+    text += (text ? "\n\n" : "") + `Кругов: ${Number(circuit.rounds) || 1} · Отдых между подходами и кругами: ${Number(circuit.restSeconds) || 0} сек`;
+  }
   if (notes.trim()) {
     text += (text ? "\n\n" : "") + `Пометки: ${notes.trim()}`;
   }
@@ -94,6 +104,8 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
   const [trainingStyle, setTrainingStyle] = useState<PersonalTrainingStyle>("reps");
   const [exerciseRows, setExerciseRows] = useState<ExerciseRow[]>([newRow()]);
   const [notes, setNotes] = useState("");
+  const [circuitRounds, setCircuitRounds] = useState("3");
+  const [circuitRestSeconds, setCircuitRestSeconds] = useState("60");
 
   const [showAiPanel, setShowAiPanel] = useState(false);
   const [aiStyle, setAiStyle] = useState<PersonalTrainingStyle>("reps");
@@ -207,7 +219,9 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
         start_time: `${startTime}:00`,
         duration_minutes: Number(durationMinutes),
         location: location.trim() || null,
-        description: isPersonalCreate ? buildPersonalTrainingDescription(trainingStyle, exerciseRows, notes) || null : description.trim() || null,
+        description: isPersonalCreate
+          ? buildPersonalTrainingDescription(trainingStyle, exerciseRows, notes, { rounds: circuitRounds, restSeconds: circuitRestSeconds }) || null
+          : description.trim() || null,
         plan_id: mode === "team" ? planId || null : null,
         reminder_minutes_before: reminderMinutesBefore ? Number(reminderMinutesBefore) : null,
         repeat_weekly_until: repeatWeeklyUntil,
@@ -229,14 +243,15 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
   return (
     <form className={profileStyles.screen} onSubmit={handleSubmit}>
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.title}>
+        <h1 className={profileStyles.pageHeading}>
           {isEdit ? "Редактировать тренировку" : mode === "team" ? "Новая тренировка команды" : "Новая личная тренировка"}
         </h1>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         {isPersonalCreate && !showAiPanel && (
           <button type="button" className={profileStyles.buttonSecondary} onClick={() => setShowAiPanel(true)}>
-            ✨ Предложить тренировку (ИИ)
+            <Icon name="sparkles" size={16} />
+            Предложить тренировку (ИИ)
           </button>
         )}
 
@@ -363,63 +378,96 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
               </label>
             </div>
 
-            {exerciseRows.map((row) => (
-              <div key={row.key} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
-                <input
-                  className={profileStyles.input}
-                  style={{ flex: 2 }}
-                  placeholder="Упражнение"
-                  value={row.exercise}
-                  onChange={(e) => updateRow(row.key, { exercise: e.target.value })}
-                  maxLength={150}
-                />
-                {trainingStyle === "reps" ? (
-                  <>
-                    <input
-                      className={profileStyles.input}
-                      style={{ flex: 1 }}
-                      type="number"
-                      min={0}
-                      placeholder="Повторения"
-                      value={row.reps}
-                      onChange={(e) => updateRow(row.key, { reps: e.target.value })}
-                    />
-                    <input
-                      className={profileStyles.input}
-                      style={{ flex: 1 }}
-                      type="number"
-                      min={0}
-                      placeholder="Подходы"
-                      value={row.sets}
-                      onChange={(e) => updateRow(row.key, { sets: e.target.value })}
-                    />
-                  </>
-                ) : (
+            {exerciseRows.map((row, index) => (
+              <div key={row.key} className={styles.exerciseRow}>
+                <div className={styles.exerciseRowTop}>
                   <input
-                    className={profileStyles.input}
-                    style={{ flex: 1 }}
-                    type="number"
-                    min={0}
-                    placeholder="Секунд"
-                    value={row.durationSeconds}
-                    onChange={(e) => updateRow(row.key, { durationSeconds: e.target.value })}
+                    className={`${profileStyles.input} ${styles.exerciseNameInput}`}
+                    placeholder={`Упражнение ${index + 1}`}
+                    value={row.exercise}
+                    onChange={(e) => updateRow(row.key, { exercise: e.target.value })}
+                    maxLength={150}
                   />
+                  <button
+                    type="button"
+                    className={styles.exerciseRemoveButton}
+                    onClick={() => removeRow(row.key)}
+                    disabled={exerciseRows.length === 1}
+                    aria-label="Удалить упражнение"
+                  >
+                    <Icon name="x" size={16} />
+                  </button>
+                </div>
+
+                {trainingStyle === "reps" ? (
+                  <div className={styles.exerciseFieldsRow}>
+                    <label className={styles.exerciseField}>
+                      <span className={styles.exerciseFieldLabel}>Повторения за подход</span>
+                      <input
+                        className={profileStyles.input}
+                        type="number"
+                        min={0}
+                        value={row.reps}
+                        onChange={(e) => updateRow(row.key, { reps: e.target.value })}
+                      />
+                    </label>
+                    <label className={styles.exerciseField}>
+                      <span className={styles.exerciseFieldLabel}>Количество подходов</span>
+                      <input
+                        className={profileStyles.input}
+                        type="number"
+                        min={0}
+                        value={row.sets}
+                        onChange={(e) => updateRow(row.key, { sets: e.target.value })}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div className={styles.exerciseFieldsRowSingle}>
+                    <label className={styles.exerciseField}>
+                      <span className={styles.exerciseFieldLabel}>Длительность упражнения, секунд</span>
+                      <input
+                        className={profileStyles.input}
+                        type="number"
+                        min={0}
+                        value={row.durationSeconds}
+                        onChange={(e) => updateRow(row.key, { durationSeconds: e.target.value })}
+                      />
+                    </label>
+                  </div>
                 )}
-                <button
-                  type="button"
-                  className={profileStyles.buttonSecondary}
-                  style={{ padding: "6px 10px" }}
-                  onClick={() => removeRow(row.key)}
-                  disabled={exerciseRows.length === 1}
-                  aria-label="Удалить упражнение"
-                >
-                  ×
-                </button>
               </div>
             ))}
             <button type="button" className={profileStyles.buttonSecondary} onClick={() => setExerciseRows((rows) => [...rows, newRow()])}>
               + Добавить упражнение
             </button>
+
+            {trainingStyle === "circuit" && (
+              <div className={profileStyles.fieldGrid} style={{ marginTop: 8 }}>
+                <label className={profileStyles.field}>
+                  <span className={profileStyles.label}>Кругов</span>
+                  <input
+                    className={profileStyles.input}
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={circuitRounds}
+                    onChange={(e) => setCircuitRounds(e.target.value)}
+                  />
+                </label>
+                <label className={profileStyles.field}>
+                  <span className={profileStyles.label}>Отдых между подходами и кругами, сек</span>
+                  <input
+                    className={profileStyles.input}
+                    type="number"
+                    min={0}
+                    max={600}
+                    value={circuitRestSeconds}
+                    onChange={(e) => setCircuitRestSeconds(e.target.value)}
+                  />
+                </label>
+              </div>
+            )}
 
             <label className={profileStyles.field} style={{ marginTop: 8 }}>
               <span className={profileStyles.label}>Пометки (необязательно)</span>

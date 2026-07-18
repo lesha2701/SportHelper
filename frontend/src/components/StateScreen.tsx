@@ -1,3 +1,5 @@
+import type { ReactElement } from "react";
+import { EmptyIllustration, ErrorIllustration, ForbiddenIllustration } from "./shared/illustrations";
 import styles from "./StateScreen.module.css";
 
 export type StateKind = "loading" | "error" | "empty" | "forbidden";
@@ -9,11 +11,10 @@ interface StateScreenProps {
   onRetry?: () => void;
 }
 
-const ICONS: Record<StateKind, string> = {
-  loading: "",
-  error: "⚠️",
-  empty: "🗂️",
-  forbidden: "🚫",
+const ILLUSTRATIONS: Record<Exclude<StateKind, "loading">, () => ReactElement> = {
+  error: ErrorIllustration,
+  empty: EmptyIllustration,
+  forbidden: ForbiddenIllustration,
 };
 
 export function StateScreen({ kind, title, description, onRetry }: StateScreenProps) {
@@ -26,7 +27,9 @@ export function StateScreen({ kind, title, description, onRetry }: StateScreenPr
           <div className={styles.skeletonLine} style={{ width: "75%" }} />
         </div>
       ) : (
-        <div className={styles.icon}>{ICONS[kind]}</div>
+        <div className={kind === "error" ? `${styles.iconBadge} ${styles.iconBadgeDanger}` : styles.iconBadge}>
+          {ILLUSTRATIONS[kind]()}
+        </div>
       )}
 
       <h2 className={styles.title}>{title}</h2>

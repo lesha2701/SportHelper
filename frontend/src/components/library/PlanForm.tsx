@@ -4,6 +4,7 @@ import { createTrainingPlanDraft } from "../../api/ai";
 import { ApiError } from "../../api/client";
 import { COMMON_SPORTS } from "../../types/profile";
 import type { Plan, PlanInput } from "../../types/plan";
+import { Icon } from "../shared/Icon";
 import profileStyles from "../profile/profile.module.css";
 
 interface PlanFormProps {
@@ -90,12 +91,13 @@ export function PlanForm({ token, initial, onSaved, onCancel }: PlanFormProps) {
   return (
     <form className={profileStyles.screen} onSubmit={handleSubmit}>
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.title}>{isEdit ? "Настройки плана" : "Новый план тренировки"}</h1>
+        <h1 className={profileStyles.pageHeading}>{isEdit ? "Настройки плана" : "Новый план тренировки"}</h1>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         {!isEdit && !showAiPanel && (
           <button type="button" className={profileStyles.buttonSecondary} onClick={() => setShowAiPanel(true)}>
-            ✨ Заполнить с помощью ИИ
+            <Icon name="sparkles" size={16} />
+            Заполнить с помощью ИИ
           </button>
         )}
 

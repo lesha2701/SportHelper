@@ -12,6 +12,8 @@ import type { TeamMember } from "../../types/team";
 import type { Training } from "../../types/training";
 import type { Task, TaskTargetType } from "../../types/task";
 import type { TaskTemplate } from "../../types/taskTemplate";
+import { Icon } from "../shared/Icon";
+import { DragReorderList } from "../shared/DragReorderList";
 import profileStyles from "../profile/profile.module.css";
 import libraryStyles from "../library/library.module.css";
 
@@ -139,6 +141,10 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
     }
   }, [token, teamId, isEdit]);
 
+  const selectedExercises = exerciseIds
+    .map((id) => exercises.find((e) => e.id === id))
+    .filter((e): e is Exercise => e !== undefined);
+
   const assignableMembers = members.filter((m) => m.role === "player" || m.role === "captain");
   const positions = Array.from(new Set(assignableMembers.map((m) => m.position).filter((p): p is string => !!p)));
 
@@ -202,14 +208,15 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
   return (
     <form className={profileStyles.screen} onSubmit={handleSubmit}>
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.title}>
+        <h1 className={profileStyles.pageHeading}>
           {isEdit ? "Настройки задания" : prefill ? `Новое задание из шаблона «${prefill.title}»` : "Новое задание"}
         </h1>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         {!isEdit && !prefill && !showAiPanel && (
           <button type="button" className={profileStyles.buttonSecondary} onClick={() => setShowAiPanel(true)}>
-            ✨ Заполнить с помощью ИИ
+            <Icon name="sparkles" size={16} />
+            Заполнить с помощью ИИ
           </button>
         )}
 
@@ -277,6 +284,18 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
                 <span>{exercise.name}</span>
               </label>
             ))}
+          </div>
+        )}
+
+        {selectedExercises.length > 1 && (
+          <div className={profileStyles.field}>
+            <span className={profileStyles.label}>Порядок выполнения</span>
+            <DragReorderList
+              items={selectedExercises}
+              keyFn={(e) => e.id}
+              onReorder={(next) => setExerciseIds(next.map((e) => e.id))}
+              renderItem={(e) => <span>{e.name}</span>}
+            />
           </div>
         )}
 

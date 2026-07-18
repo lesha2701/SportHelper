@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { listMyTeams } from "../../api/teams";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
+import { Icon } from "../shared/Icon";
+import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { CreateTeamForm } from "./CreateTeamForm";
 import { TeamDetailScreen } from "./TeamDetailScreen";
 import { TEAM_ROLE_LABELS, type Team } from "../../types/team";
@@ -63,7 +65,8 @@ export function TeamsScreen({ token }: { token: string }) {
       <div className={styles.headerRow}>
         <h1 className={styles.heading}>Команды</h1>
         <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })}>
-          + Создать
+          <Icon name="plus" size={16} />
+          Создать
         </button>
       </div>
 
@@ -81,17 +84,33 @@ export function TeamsScreen({ token }: { token: string }) {
             className={styles.teamCard}
             onClick={() => setView({ screen: "detail", teamId: team.id })}
           >
-            <div className={styles.teamCardTop}>
-              <h2 className={styles.teamName}>{team.name}</h2>
-              {team.status === "without_coach" && <span className={`${styles.badge} ${styles.badgeWarning}`}>Без тренера</span>}
-              <span className={styles.chevron} aria-hidden="true">
-                ›
-              </span>
+            <div className={styles.teamCardRow}>
+              <div className={styles.teamAvatar}>
+                {team.logoFileId ? (
+                  <AuthenticatedImage
+                    token={token}
+                    fileId={team.logoFileId}
+                    alt=""
+                    className={styles.teamAvatarImg}
+                  />
+                ) : (
+                  team.name.charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className={styles.teamNameCol}>
+                <div className={styles.teamCardTop}>
+                  <h2 className={styles.teamName}>{team.name}</h2>
+                  {team.status === "without_coach" && <span className={`${styles.badge} ${styles.badgeWarning}`}>Без тренера</span>}
+                  <span className={styles.chevron} aria-hidden="true">
+                    <Icon name="chevron-right" size={18} />
+                  </span>
+                </div>
+                <p className={styles.teamMeta}>
+                  {team.sport}
+                  {team.ageCategory ? ` · ${team.ageCategory}` : ""} · {team.membersCount} чел.
+                </p>
+              </div>
             </div>
-            <p className={styles.teamMeta}>
-              {team.sport}
-              {team.ageCategory ? ` · ${team.ageCategory}` : ""} · {team.membersCount} чел.
-            </p>
             {team.myRole && <span className={styles.badge}>{TEAM_ROLE_LABELS[team.myRole]}</span>}
           </button>
         ))

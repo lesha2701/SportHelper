@@ -3,14 +3,19 @@
   align-items: center;
   gap: 10px;
   background: var(--color-surface);
+  border: 1px solid var(--color-border);
   box-shadow: var(--shadow-card);
   border-radius: var(--radius-md);
   padding: 10px 12px;
-  border: none;
   width: 100%;
   text-align: left;
   cursor: pointer;
   font: inherit;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.attendanceRow:active {
+  transform: scale(0.99);
 }
 
 .attendanceInfo {
@@ -30,22 +35,216 @@
   white-space: nowrap;
 }
 
-.statusPresent {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 10px;
+.statusPresent,
+.statusAbsent {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 4px 10px;
   border-radius: var(--radius-pill);
-  background: var(--color-success-bg);
-  color: var(--color-success);
   flex-shrink: 0;
 }
 
+.statusPresent {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
 .statusAbsent {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
   background: var(--color-danger-bg);
   color: var(--color-danger);
+}
+
+.exerciseRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+
+.exerciseRowTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exerciseNameInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.exerciseRemoveButton {
   flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.exerciseRemoveButton:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.exerciseRemoveButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.exerciseFieldsRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.exerciseFieldsRowSingle {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.exerciseField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.exerciseFieldLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.checklistItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.checklistItem:last-child {
+  border-bottom: none;
+}
+
+.checklistCheckbox {
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.checklistLabel {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.checklistLabelDone {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text-tertiary);
+  text-decoration: line-through;
+}
+
+.sessionScreen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  padding: 20px;
+  gap: 16px;
+  background: var(--color-bg);
+}
+
+.sessionHeader {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sessionBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.sessionProgress {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.sessionPhaseLabel {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-primary);
+}
+
+.sessionPhaseLabelRest {
+  color: var(--color-accent-blue);
+}
+
+.sessionExerciseName {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--color-text);
+  max-width: 320px;
+}
+
+.sessionTimer {
+  font-family: var(--font-display);
+  font-size: 76px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-text);
+}
+
+.sessionTimerRest {
+  color: var(--color-accent-blue);
+}
+
+.sessionControls {
+  display: flex;
+  gap: 10px;
+}
+
+.sessionDone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
 }

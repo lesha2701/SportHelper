@@ -8,6 +8,7 @@
 
 .card {
   background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   padding: 16px;
@@ -17,10 +18,39 @@
 }
 
 .title {
-  font-size: 17px;
+  font-family: var(--font-display);
+  font-size: 18px;
   font-weight: 700;
   color: var(--color-text);
   margin: 0;
+}
+
+/* For genuinely static/structural top-level screen headers (Onboarding,
+   profile forms, Help) — matches teams.module.css's .heading. Never use
+   this for dynamic content (names, titles from data) — those keep .title
+   in its original case. */
+.pageHeading {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.fieldSectionLabel {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin: 10px 0 -4px;
+}
+
+.fieldSectionLabel:first-child {
+  margin-top: 0;
 }
 
 .headerRow {
@@ -35,6 +65,7 @@
   border-radius: 50%;
   object-fit: cover;
   background: var(--color-surface-alt);
+  border: 2px solid var(--color-border);
   flex-shrink: 0;
 }
 
@@ -42,11 +73,12 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: var(--color-surface-alt);
-  color: var(--color-text-secondary);
+  background: var(--color-primary-glow);
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-display);
   font-size: 24px;
   font-weight: 700;
   flex-shrink: 0;
@@ -63,7 +95,7 @@
   justify-content: space-between;
   gap: 12px;
   font-size: 14px;
-  padding: 8px 0;
+  padding: 9px 0;
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -78,44 +110,65 @@
 .rowValue {
   color: var(--color-text);
   text-align: right;
+  font-weight: 500;
 }
 
 .buttonPrimary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   padding: 13px 16px;
+  font-family: var(--font-display);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   color: var(--color-primary-text);
   background: var(--color-primary);
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
 }
 
 .buttonPrimary:hover:not(:disabled) {
   background: var(--color-primary-hover);
 }
 
+.buttonPrimary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
 .buttonPrimary:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: default;
 }
 
 .buttonSecondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   padding: 13px 16px;
+  font-family: var(--font-display);
   font-size: 15px;
-  font-weight: 600;
-  color: var(--color-primary);
+  font-weight: 700;
+  color: var(--color-text);
   background: var(--color-surface-alt);
-  border: 1px solid transparent;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.buttonSecondary:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .buttonSecondary:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: default;
 }
 
@@ -127,6 +180,7 @@
 
 .label {
   font-size: 13px;
+  font-weight: 500;
   color: var(--color-text-secondary);
 }
 
@@ -146,24 +200,25 @@
 .textarea {
   font: inherit;
   font-size: 16px;
-  padding: 10px 12px;
+  padding: 11px 13px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  background: var(--color-surface);
+  background: var(--color-surface-alt);
   color: var(--color-text);
+  transition: border-color var(--transition-fast);
 }
 
 .input:focus,
 .select:focus,
 .textarea:focus {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--color-primary);
 }
 
 .textarea {
   resize: vertical;
   min-height: 64px;
-  font-family: inherit;
+  font-family: var(--font-body);
 }
 
 .fieldGrid {
@@ -188,4 +243,39 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.themeToggle {
+  display: flex;
+  gap: 2px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-md);
+  padding: 3px;
+}
+
+.themeOption,
+.themeOptionActive {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 8px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.themeOption {
+  color: var(--color-text-secondary);
+  background: transparent;
+}
+
+.themeOptionActive {
+  color: var(--color-primary-text);
+  background: var(--color-primary);
 }

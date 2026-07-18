@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { uploadTeamLogo } from "../../api/teams";
 import { ApiError } from "../../api/client";
+import { FilePicker } from "../shared/FilePicker";
 import profileStyles from "../profile/profile.module.css";
 
 interface LogoSectionProps {
@@ -10,13 +11,10 @@ interface LogoSectionProps {
 }
 
 export function LogoSection({ token, teamId, onUploaded }: LogoSectionProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleFile = async (file: File) => {
     setUploading(true);
     setError(null);
     try {
@@ -32,7 +30,6 @@ export function LogoSection({ token, teamId, onUploaded }: LogoSectionProps) {
       }
     } finally {
       setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
     }
   };
 
@@ -40,14 +37,14 @@ export function LogoSection({ token, teamId, onUploaded }: LogoSectionProps) {
     <div className={profileStyles.card}>
       <h2 className={profileStyles.title}>Логотип команды</h2>
       {error && <p className={profileStyles.error}>{error}</p>}
-      <input
-        ref={inputRef}
-        type="file"
+      <FilePicker
+        icon="image"
+        label={uploading ? "Загрузка…" : "Выбрать логотип"}
+        hint="JPEG, PNG, WEBP или GIF"
         accept="image/jpeg,image/png,image/webp,image/gif"
-        onChange={(e) => void handleFileChange(e)}
+        onSelect={(file) => void handleFile(file)}
         disabled={uploading}
       />
-      {uploading && <p className={profileStyles.subtitle}>Загрузка…</p>}
     </div>
   );
 }

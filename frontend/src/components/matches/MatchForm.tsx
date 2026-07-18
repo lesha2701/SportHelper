@@ -56,7 +56,7 @@ export function MatchForm({ token, teamId, initial, onSaved, onCancel }: MatchFo
   return (
     <form className={profileStyles.screen} onSubmit={handleSubmit}>
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.title}>{isEdit ? "Редактировать матч" : "Новый матч"}</h1>
+        <h1 className={profileStyles.pageHeading}>{isEdit ? "Редактировать матч" : "Новый матч"}</h1>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         <label className={profileStyles.field}>

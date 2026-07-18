@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getReport, reviewReport, submitReport, uploadReportPhoto, uploadReportVideo } from "../../api/reports";
 import { ApiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { StateScreen } from "../StateScreen";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { AuthenticatedVideo } from "../shared/AuthenticatedVideo";
+import { FilePicker } from "../shared/FilePicker";
+import { Icon } from "../shared/Icon";
 import { REPORT_STATUS_LABELS, type Report } from "../../types/report";
 import type { Training } from "../../types/training";
 import profileStyles from "../profile/profile.module.css";
@@ -37,8 +39,6 @@ export function ReportScreen({
   const [coachComment, setCoachComment] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
     setState({ status: "loading" });
@@ -95,9 +95,7 @@ export function ReportScreen({
     }
   };
 
-  const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handlePhotoChange = async (file: File) => {
     setBusy(true);
     setActionError(null);
     try {
@@ -107,13 +105,10 @@ export function ReportScreen({
       setActionError(err instanceof ApiError ? err.message : "Не удалось загрузить фото");
     } finally {
       setBusy(false);
-      if (photoInputRef.current) photoInputRef.current.value = "";
     }
   };
 
-  const handleVideoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleVideoChange = async (file: File) => {
     setBusy(true);
     setActionError(null);
     try {
@@ -123,7 +118,6 @@ export function ReportScreen({
       setActionError(err instanceof ApiError ? err.message : "Не удалось загрузить видео");
     } finally {
       setBusy(false);
-      if (videoInputRef.current) videoInputRef.current.value = "";
     }
   };
 
@@ -131,7 +125,8 @@ export function ReportScreen({
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <button type="button" className={styles.iconButton} onClick={onBack}>
-          ← Назад
+          <Icon name="chevron-left" size={16} />
+          Назад
         </button>
       </div>
 
@@ -168,14 +163,22 @@ export function ReportScreen({
 
           {report && (
             <>
-              <label className={profileStyles.field}>
-                <span className={profileStyles.label}>Фотография (необязательно)</span>
-                <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => void handlePhotoChange(e)} disabled={busy} />
-              </label>
-              <label className={profileStyles.field}>
-                <span className={profileStyles.label}>Видео (необязательно)</span>
-                <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,video/webm" onChange={(e) => void handleVideoChange(e)} disabled={busy} />
-              </label>
+              <FilePicker
+                icon="image"
+                label="Фотография (необязательно)"
+                hint="JPEG, PNG, WEBP или GIF"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onSelect={(file) => void handlePhotoChange(file)}
+                disabled={busy}
+              />
+              <FilePicker
+                icon="video"
+                label="Видео (необязательно)"
+                hint="MP4, MOV или WEBM"
+                accept="video/mp4,video/quicktime,video/webm"
+                onSelect={(file) => void handleVideoChange(file)}
+                disabled={busy}
+              />
             </>
           )}
         </div>

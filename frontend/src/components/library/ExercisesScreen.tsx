@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { listMyExercises } from "../../api/exercises";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
+import { Icon } from "../shared/Icon";
 import { ExerciseForm } from "./ExerciseForm";
 import { ExerciseDetail } from "./ExerciseDetail";
 import type { Exercise } from "../../types/exercise";
@@ -85,7 +86,8 @@ export function ExercisesScreen({ token }: { token: string }) {
       <div className={styles.headerRow}>
         <h1 className={styles.heading}>Упражнения</h1>
         <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })}>
-          + Создать
+          <Icon name="plus" size={16} />
+          Создать
         </button>
       </div>
 
@@ -111,14 +113,21 @@ export function ExercisesScreen({ token }: { token: string }) {
             className={styles.teamCard}
             onClick={() => setView({ screen: "detail", exerciseId: exercise.id })}
           >
-            <div className={styles.teamCardTop}>
-              <h2 className={styles.teamName}>{exercise.name}</h2>
-              {exercise.sharedTeamIds.length > 0 && <span className={styles.badge}>показано {exercise.sharedTeamIds.length}</span>}
-              <span className={styles.chevron} aria-hidden="true">
-                ›
-              </span>
+            <div className={styles.teamCardRow}>
+              <div className={styles.teamAvatar}>
+                <Icon name="dumbbell" size={19} />
+              </div>
+              <div className={styles.teamNameCol}>
+                <div className={styles.teamCardTop}>
+                  <h2 className={styles.teamName}>{exercise.name}</h2>
+                  {exercise.sharedTeamIds.length > 0 && <span className={styles.badge}>показано {exercise.sharedTeamIds.length}</span>}
+                  <span className={styles.chevron} aria-hidden="true">
+                    <Icon name="chevron-right" size={18} />
+                  </span>
+                </div>
+                <p className={styles.teamMeta}>{exercise.sport}</p>
+              </div>
             </div>
-            <p className={styles.teamMeta}>{exercise.sport}</p>
           </button>
         ))
       )}

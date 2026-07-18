@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getAttendance, setAttendanceStatus } from "../../api/trainings";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
+import { Icon } from "../shared/Icon";
 import type { Attendance } from "../../types/training";
 import styles from "../teams/teams.module.css";
 import trainingStyles from "./training.module.css";
@@ -61,7 +62,8 @@ export function AttendanceScreen({
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <button type="button" className={styles.iconButton} onClick={onBack}>
-          ← Назад
+          <Icon name="chevron-left" size={16} />
+          Назад
         </button>
       </div>
 

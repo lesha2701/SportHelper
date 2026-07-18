@@ -4,6 +4,7 @@ import { listMembers } from "../../api/teams";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { ConfirmModal } from "../shared/ConfirmModal";
+import { Icon } from "../shared/Icon";
 import { MATCH_RESULT_LABELS, MATCH_STATUS_LABELS, type Match } from "../../types/match";
 import type { TeamMember } from "../../types/team";
 import profileStyles from "../profile/profile.module.css";
@@ -150,7 +151,8 @@ export function MatchDetail({
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <button type="button" className={styles.iconButton} onClick={onBack}>
-          ← Назад
+          <Icon name="chevron-left" size={16} />
+          Назад
         </button>
       </div>
 
@@ -159,6 +161,20 @@ export function MatchDetail({
           <h1 className={profileStyles.title}>{match.opponentName}</h1>
           <span className={styles.badge}>{MATCH_STATUS_LABELS[match.status]}</span>
         </div>
+
+        {match.result && (
+          <div className={styles.statGrid}>
+            <div className={styles.statTile}>
+              <span className={styles.statValue}>{match.ourScore}</span>
+              <span className={styles.statLabel}>Мы</span>
+            </div>
+            <div className={styles.statTile}>
+              <span className={styles.statValue}>{match.opponentScore}</span>
+              <span className={styles.statLabel}>{match.opponentName}</span>
+            </div>
+          </div>
+        )}
+
         <div className={profileStyles.row}>
           <span className={profileStyles.rowLabel}>Дата и время</span>
           <span className={profileStyles.rowValue}>
@@ -178,9 +194,7 @@ export function MatchDetail({
         {match.result && (
           <div className={profileStyles.row}>
             <span className={profileStyles.rowLabel}>Итог</span>
-            <span className={profileStyles.rowValue}>
-              {match.ourScore}:{match.opponentScore} · {MATCH_RESULT_LABELS[match.result]}
-            </span>
+            <span className={profileStyles.rowValue}>{MATCH_RESULT_LABELS[match.result]}</span>
           </div>
         )}
         {match.comment && (

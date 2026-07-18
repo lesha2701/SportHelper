@@ -40,7 +40,7 @@ export function CoachProfileForm({ initial, onSubmit, onCancel }: CoachProfileFo
   return (
     <form className={styles.screen} onSubmit={handleSubmit}>
       <div className={styles.card}>
-        <h1 className={styles.title}>Профиль тренера</h1>
+        <h1 className={styles.pageHeading}>Профиль тренера</h1>
         <p className={styles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         <label className={styles.field}>

@@ -6,6 +6,7 @@ import { ApiError } from "../../api/client";
 import type { Exercise } from "../../types/exercise";
 import type { Plan } from "../../types/plan";
 import type { TaskTemplate } from "../../types/taskTemplate";
+import { DragReorderList } from "../shared/DragReorderList";
 import profileStyles from "../profile/profile.module.css";
 
 interface TaskTemplateFormProps {
@@ -72,6 +73,10 @@ export function TaskTemplateForm({ token, initial, onSaved, onCancel }: TaskTemp
     setExerciseIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
+  const selectedExercises = exerciseIds
+    .map((id) => exercises.find((e) => e.id === id))
+    .filter((e): e is Exercise => e !== undefined);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -110,7 +115,7 @@ export function TaskTemplateForm({ token, initial, onSaved, onCancel }: TaskTemp
   return (
     <form className={profileStyles.screen} onSubmit={handleSubmit}>
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.title}>{isEdit ? "Настройки шаблона" : "Новый шаблон задания"}</h1>
+        <h1 className={profileStyles.pageHeading}>{isEdit ? "Настройки шаблона" : "Новый шаблон задания"}</h1>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         <label className={profileStyles.field}>
@@ -146,6 +151,18 @@ export function TaskTemplateForm({ token, initial, onSaved, onCancel }: TaskTemp
                 <span>{exercise.name}</span>
               </label>
             ))}
+          </div>
+        )}
+
+        {selectedExercises.length > 1 && (
+          <div className={profileStyles.field}>
+            <span className={profileStyles.label}>Порядок выполнения</span>
+            <DragReorderList
+              items={selectedExercises}
+              keyFn={(e) => e.id}
+              onReorder={(next) => setExerciseIds(next.map((e) => e.id))}
+              renderItem={(e) => <span>{e.name}</span>}
+            />
           </div>
         )}
 

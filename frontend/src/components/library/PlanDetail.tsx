@@ -5,6 +5,7 @@ import { listMyTeams } from "../../api/teams";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { ConfirmModal } from "../shared/ConfirmModal";
+import { Icon } from "../shared/Icon";
 import { PLAN_SECTIONS, PLAN_SECTION_LABELS, type Plan, type PlanSection } from "../../types/plan";
 import type { Exercise } from "../../types/exercise";
 import type { Team } from "../../types/team";
@@ -127,7 +128,8 @@ export function PlanDetail({
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <button type="button" className={styles.iconButton} onClick={onBack}>
-          ← Назад
+          <Icon name="chevron-left" size={16} />
+          Назад
         </button>
       </div>
 
@@ -235,7 +237,7 @@ export function PlanDetail({
                 onClick={() => void toggleShare(team.id, shared)}
                 disabled={busy}
               >
-                {shared ? "✓ " : ""}
+                {shared && <Icon name="check" size={13} />}
                 {team.name}
               </button>
             );

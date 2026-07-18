@@ -50,7 +50,7 @@ export function CreateTeamForm({ token, initial, onCreated, onCancel }: CreateTe
   return (
     <form className={profileStyles.screen} onSubmit={handleSubmit}>
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.title}>{isEdit ? "Настройки команды" : "Новая команда"}</h1>
+        <h1 className={profileStyles.pageHeading}>{isEdit ? "Настройки команды" : "Новая команда"}</h1>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         <label className={profileStyles.field}>

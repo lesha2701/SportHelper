@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { listMyTemplates } from "../../api/taskTemplates";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
+import { Icon } from "../shared/Icon";
 import { TaskTemplateForm } from "./TaskTemplateForm";
 import { TaskTemplateDetail } from "./TaskTemplateDetail";
 import type { TaskTemplate } from "../../types/taskTemplate";
@@ -74,7 +75,8 @@ export function TaskTemplatesScreen({ token }: { token: string }) {
       <div className={styles.headerRow}>
         <h1 className={styles.heading}>Шаблоны заданий</h1>
         <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })}>
-          + Создать
+          <Icon name="plus" size={16} />
+          Создать
         </button>
       </div>
 
@@ -87,13 +89,20 @@ export function TaskTemplatesScreen({ token }: { token: string }) {
       ) : (
         state.templates.map((template) => (
           <button key={template.id} type="button" className={styles.teamCard} onClick={() => setView({ screen: "detail", templateId: template.id })}>
-            <div className={styles.teamCardTop}>
-              <h2 className={styles.teamName}>{template.title}</h2>
-              <span className={styles.chevron} aria-hidden="true">
-                ›
-              </span>
+            <div className={styles.teamCardRow}>
+              <div className={styles.teamAvatar}>
+                <Icon name="flag" size={19} />
+              </div>
+              <div className={styles.teamNameCol}>
+                <div className={styles.teamCardTop}>
+                  <h2 className={styles.teamName}>{template.title}</h2>
+                  <span className={styles.chevron} aria-hidden="true">
+                    <Icon name="chevron-right" size={18} />
+                  </span>
+                </div>
+                {template.description && <p className={styles.teamMeta}>{template.description}</p>}
+              </div>
             </div>
-            {template.description && <p className={styles.teamMeta}>{template.description}</p>}
           </button>
         ))
       )}

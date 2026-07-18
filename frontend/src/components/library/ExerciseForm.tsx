@@ -68,7 +68,7 @@ export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseForm
   return (
     <form className={profileStyles.screen} onSubmit={handleSubmit}>
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.title}>{isEdit ? "Редактировать упражнение" : "Новое упражнение"}</h1>
+        <h1 className={profileStyles.pageHeading}>{isEdit ? "Редактировать упражнение" : "Новое упражнение"}</h1>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         <label className={profileStyles.field}>

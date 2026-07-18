@@ -48,7 +48,7 @@ export function InviteAcceptScreen({
     return (
       <div className={profileStyles.screen}>
         <div className={profileStyles.card}>
-          <h1 className={profileStyles.title}>
+          <h1 className={profileStyles.pageHeading}>
             {state.result === "joined" ? "Вы присоединились к команде!" : "Заявка отправлена"}
           </h1>
           <p className={profileStyles.subtitle}>
@@ -82,7 +82,7 @@ export function InviteAcceptScreen({
     return (
       <div className={profileStyles.screen}>
         <div className={profileStyles.card}>
-          <h1 className={profileStyles.title}>Вы уже в этой команде</h1>
+          <h1 className={profileStyles.pageHeading}>Вы уже в этой команде</h1>
           <button type="button" className={profileStyles.buttonPrimary} onClick={onDone}>
             Готово
           </button>

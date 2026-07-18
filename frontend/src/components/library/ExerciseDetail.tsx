@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   deleteExercise,
   getExercise,
@@ -13,6 +13,8 @@ import { StateScreen } from "../StateScreen";
 import { ConfirmModal } from "../shared/ConfirmModal";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { AuthenticatedVideo } from "../shared/AuthenticatedVideo";
+import { FilePicker } from "../shared/FilePicker";
+import { Icon } from "../shared/Icon";
 import { SKILL_LEVEL_LABELS } from "../../types/profile";
 import type { Exercise } from "../../types/exercise";
 import type { Team } from "../../types/team";
@@ -45,8 +47,6 @@ export function ExerciseDetail({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
     setState({ status: "loading" });
@@ -76,9 +76,7 @@ export function ExerciseDetail({
 
   const { exercise } = state;
 
-  const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handlePhotoChange = async (file: File) => {
     setBusy(true);
     setActionError(null);
     try {
@@ -88,13 +86,10 @@ export function ExerciseDetail({
       setActionError(err instanceof ApiError ? err.message : "Не удалось загрузить фото");
     } finally {
       setBusy(false);
-      if (photoInputRef.current) photoInputRef.current.value = "";
     }
   };
 
-  const handleVideoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleVideoChange = async (file: File) => {
     setBusy(true);
     setActionError(null);
     try {
@@ -104,7 +99,6 @@ export function ExerciseDetail({
       setActionError(err instanceof ApiError ? err.message : "Не удалось загрузить видео");
     } finally {
       setBusy(false);
-      if (videoInputRef.current) videoInputRef.current.value = "";
     }
   };
 
@@ -140,7 +134,8 @@ export function ExerciseDetail({
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <button type="button" className={styles.iconButton} onClick={onBack}>
-          ← Назад
+          <Icon name="chevron-left" size={16} />
+          Назад
         </button>
       </div>
 
@@ -231,14 +226,22 @@ export function ExerciseDetail({
         <div className={profileStyles.card}>
           <h2 className={profileStyles.title}>Медиа</h2>
           {actionError && <p className={profileStyles.error}>{actionError}</p>}
-          <label className={profileStyles.field}>
-            <span className={profileStyles.label}>Фотография</span>
-            <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => void handlePhotoChange(e)} disabled={busy} />
-          </label>
-          <label className={profileStyles.field}>
-            <span className={profileStyles.label}>Видео</span>
-            <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,video/webm" onChange={(e) => void handleVideoChange(e)} disabled={busy} />
-          </label>
+          <FilePicker
+            icon="image"
+            label="Выбрать фотографию"
+            hint="JPEG, PNG, WEBP или GIF"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onSelect={(file) => void handlePhotoChange(file)}
+            disabled={busy}
+          />
+          <FilePicker
+            icon="video"
+            label="Выбрать видео"
+            hint="MP4, MOV или WEBM"
+            accept="video/mp4,video/quicktime,video/webm"
+            onSelect={(file) => void handleVideoChange(file)}
+            disabled={busy}
+          />
         </div>
       )}
 
@@ -257,7 +260,7 @@ export function ExerciseDetail({
                 onClick={() => void toggleShare(team.id, shared)}
                 disabled={busy}
               >
-                {shared ? "✓ " : ""}
+                {shared && <Icon name="check" size={13} />}
                 {team.name}
               </button>
             );

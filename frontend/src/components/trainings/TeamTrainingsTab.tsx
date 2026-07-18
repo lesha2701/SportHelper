@@ -1,13 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { listTeamTrainings } from "../../api/trainings";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
+import { Icon } from "../shared/Icon";
 import { TrainingForm } from "./TrainingForm";
 import { TrainingDetail } from "./TrainingDetail";
 import { TRAINING_STATUS_LABELS, isTrainingOverdue, type Training } from "../../types/training";
 import styles from "../teams/teams.module.css";
 
 type ListState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; trainings: Training[] };
+
+function trainingCardColor(training: Training): string {
+  if (isTrainingOverdue(training)) return "var(--color-danger)";
+  if (training.status === "completed") return "var(--color-success)";
+  if (training.status === "cancelled") return "var(--color-text-tertiary)";
+  return "var(--color-primary)";
+}
 
 type View = { screen: "list" } | { screen: "create" } | { screen: "edit"; training: Training } | { screen: "detail"; trainingId: string };
 
@@ -78,7 +86,8 @@ export function TeamTrainingsTab({ token, teamId, canManage }: { token: string; 
     <>
       {canManage && (
         <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })} style={{ marginBottom: 4 }}>
-          + Запланировать тренировку
+          <Icon name="plus" size={16} />
+          Запланировать тренировку
         </button>
       )}
 
@@ -90,6 +99,7 @@ export function TeamTrainingsTab({ token, teamId, canManage }: { token: string; 
             key={training.id}
             type="button"
             className={styles.teamCard}
+            style={{ "--event-color": trainingCardColor(training) } as CSSProperties}
             onClick={() => setView({ screen: "detail", trainingId: training.id })}
           >
             <div className={styles.teamCardTop}>
@@ -99,7 +109,7 @@ export function TeamTrainingsTab({ token, teamId, canManage }: { token: string; 
               <span className={styles.badge}>{TRAINING_STATUS_LABELS[training.status]}</span>
               {isTrainingOverdue(training) && <span className={`${styles.badge} ${styles.badgeWarning}`}>Просрочена</span>}
               <span className={styles.chevron} aria-hidden="true">
-                ›
+                <Icon name="chevron-right" size={18} />
               </span>
             </div>
             <p className={styles.teamMeta}>

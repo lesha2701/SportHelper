@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   deleteTask,
   getTask,
@@ -14,6 +14,8 @@ import { StateScreen } from "../StateScreen";
 import { ConfirmModal } from "../shared/ConfirmModal";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { AuthenticatedVideo } from "../shared/AuthenticatedVideo";
+import { FilePicker } from "../shared/FilePicker";
+import { Icon } from "../shared/Icon";
 import { TASK_STATUS_LABELS, TASK_TARGET_LABELS, type Task, type TaskAssignment } from "../../types/task";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
@@ -59,9 +61,6 @@ export function TaskDetail({
   const [difficulty, setDifficulty] = useState("");
   const [wellbeing, setWellbeing] = useState("");
   const [coachComment, setCoachComment] = useState("");
-
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
     setState({ status: "loading" });
@@ -137,9 +136,7 @@ export function TaskDetail({
     }
   };
 
-  const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handlePhotoChange = async (file: File) => {
     setBusy(true);
     setActionError(null);
     try {
@@ -149,13 +146,10 @@ export function TaskDetail({
       setActionError(err instanceof ApiError ? err.message : "Не удалось загрузить фото");
     } finally {
       setBusy(false);
-      if (photoInputRef.current) photoInputRef.current.value = "";
     }
   };
 
-  const handleVideoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleVideoChange = async (file: File) => {
     setBusy(true);
     setActionError(null);
     try {
@@ -165,7 +159,6 @@ export function TaskDetail({
       setActionError(err instanceof ApiError ? err.message : "Не удалось загрузить видео");
     } finally {
       setBusy(false);
-      if (videoInputRef.current) videoInputRef.current.value = "";
     }
   };
 
@@ -243,7 +236,8 @@ export function TaskDetail({
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <button type="button" className={styles.iconButton} onClick={onBack}>
-          ← Назад
+          <Icon name="chevron-left" size={16} />
+          Назад
         </button>
       </div>
 
@@ -414,21 +408,35 @@ export function TaskDetail({
               )}
 
               {task.requirePhoto && (
-                <label className={profileStyles.field}>
+                <div className={profileStyles.field}>
                   <span className={profileStyles.label}>
                     Фото<span className={profileStyles.requiredMark}>*</span>
                   </span>
-                  <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => void handlePhotoChange(e)} disabled={busy} />
-                </label>
+                  <FilePicker
+                    icon="image"
+                    label="Выбрать фото"
+                    hint="JPEG, PNG, WEBP или GIF"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onSelect={(file) => void handlePhotoChange(file)}
+                    disabled={busy}
+                  />
+                </div>
               )}
 
               {task.requireVideo && (
-                <label className={profileStyles.field}>
+                <div className={profileStyles.field}>
                   <span className={profileStyles.label}>
                     Видео<span className={profileStyles.requiredMark}>*</span>
                   </span>
-                  <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,video/webm" onChange={(e) => void handleVideoChange(e)} disabled={busy} />
-                </label>
+                  <FilePicker
+                    icon="video"
+                    label="Выбрать видео"
+                    hint="MP4, MOV или WEBM"
+                    accept="video/mp4,video/quicktime,video/webm"
+                    onSelect={(file) => void handleVideoChange(file)}
+                    disabled={busy}
+                  />
+                </div>
               )}
 
               <button type="button" className={profileStyles.buttonPrimary} onClick={() => void handleSubmit()} disabled={busy}>

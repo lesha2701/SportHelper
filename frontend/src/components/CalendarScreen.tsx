@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { getCalendar } from "../api/calendar";
 import { ApiError } from "../api/client";
 import { StateScreen } from "./StateScreen";
-import { CALENDAR_EVENT_ICONS, type CalendarEvent } from "../types/calendar";
+import { Icon } from "./shared/Icon";
+import { CALENDAR_EVENT_ICONS, type CalendarEvent, type CalendarEventType } from "../types/calendar";
 import styles from "./teams/teams.module.css";
 import profileStyles from "./profile/profile.module.css";
 
-type Mode = "list" | "day" | "week";
+type Mode = "list" | "overdue" | "day" | "week";
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; events: CalendarEvent[] };
 
@@ -44,6 +45,9 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
   const [mode, setMode] = useState<Mode>("list");
   const [anchor, setAnchor] = useState(() => new Date());
   const [state, setState] = useState<LoadState>({ status: "loading" });
+  // Independent of `mode` so the "Просрочено" badge count stays accurate
+  // even while viewing День/Неделя, whose fetch only covers a narrow range.
+  const [overdueCount, setOverdueCount] = useState(0);
 
   let dateFrom: string;
   let dateTo: string;
@@ -81,6 +85,19 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
 
   useEffect(load, [load]);
 
+  useEffect(() => {
+    const start = new Date();
+    start.setDate(start.getDate() - 14);
+    const end = new Date();
+    end.setDate(end.getDate() + 60);
+    getCalendar(token, toIso(start), toIso(end))
+      .then((events) => setOverdueCount(events.filter((event) => isEventOverdue(event, toIso(new Date()))).length))
+      .catch(() => {
+        // Best-effort — the badge just omits a count on failure, the
+        // "Просрочено" tab itself still refetches when opened.
+      });
+  }, [token]);
+
   const shift = (days: number) => {
     setAnchor((prev) => {
       const next = new Date(prev);
@@ -92,6 +109,19 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
   const weekStart = startOfWeek(anchor);
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
+
+  const todayIso = toIso(new Date());
+  let visibleEvents: CalendarEvent[] = [];
+  if (state.status === "ready") {
+    const overdue = state.events.filter((event) => isEventOverdue(event, todayIso));
+    if (mode === "overdue") {
+      visibleEvents = [...overdue].sort((a, b) => (a.date === b.date ? (a.time ?? "").localeCompare(b.time ?? "") : a.date.localeCompare(b.date)));
+    } else if (mode === "list") {
+      visibleEvents = state.events.filter((event) => !isEventOverdue(event, todayIso)).sort((a, b) => compareUpcomingFirst(a, b, todayIso));
+    } else {
+      visibleEvents = state.events;
+    }
+  }
 
   return (
     <div className={styles.screen}>
@@ -107,6 +137,9 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
       <div className={styles.tabs}>
         <button type="button" className={mode === "list" ? styles.tabActive : styles.tab} onClick={() => setMode("list")}>
           Список
+        </button>
+        <button type="button" className={mode === "overdue" ? styles.tabActive : styles.tab} onClick={() => setMode("overdue")}>
+          Просрочено{overdueCount > 0 ? ` · ${overdueCount}` : ""}
         </button>
         <button
           type="button"
@@ -130,10 +163,11 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
         </button>
       </div>
 
-      {mode !== "list" && (
+      {(mode === "day" || mode === "week") && (
         <div className={styles.headerRow}>
           <button type="button" className={styles.iconButton} onClick={() => shift(mode === "day" ? -1 : -7)}>
-            ← Назад
+            <Icon name="chevron-left" size={16} />
+            Назад
           </button>
           <span className={profileStyles.subtitle} style={{ margin: 0 }}>
             {mode === "day"
@@ -141,7 +175,8 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
               : `${weekStart.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })} — ${weekEnd.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })}`}
           </span>
           <button type="button" className={styles.iconButton} onClick={() => shift(mode === "day" ? 1 : 7)}>
-            Вперёд →
+            Вперёд
+            <Icon name="chevron-right" size={16} />
           </button>
         </div>
       )}
@@ -151,14 +186,38 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
         <StateScreen kind="error" title="Не удалось загрузить календарь" description={state.message} onRetry={load} />
       )}
 
-      {state.status === "ready" && state.events.length === 0 && (
-        <StateScreen kind="empty" title="Пока ничего нет" description="Здесь появятся тренировки, матчи и дедлайны заданий." />
+      {state.status === "ready" && visibleEvents.length === 0 && (
+        <StateScreen
+          kind="empty"
+          title={mode === "overdue" ? "Просроченных нет" : "Пока ничего нет"}
+          description={
+            mode === "overdue"
+              ? "Все тренировки идут по плану."
+              : "Здесь появятся тренировки, матчи и дедлайны заданий."
+          }
+        />
       )}
 
-      {state.status === "ready" && state.events.length > 0 && <EventList events={state.events} onOpenEvent={onOpenEvent} />}
+      {state.status === "ready" && visibleEvents.length > 0 && <EventList events={visibleEvents} onOpenEvent={onOpenEvent} />}
     </div>
   );
 }
+
+function compareUpcomingFirst(a: CalendarEvent, b: CalendarEvent, todayIso: string): number {
+  const aFuture = a.date >= todayIso;
+  const bFuture = b.date >= todayIso;
+  if (aFuture !== bFuture) return aFuture ? -1 : 1;
+  if (aFuture) {
+    return a.date === b.date ? (a.time ?? "").localeCompare(b.time ?? "") : a.date.localeCompare(b.date);
+  }
+  return a.date === b.date ? (b.time ?? "").localeCompare(a.time ?? "") : b.date.localeCompare(a.date);
+}
+
+const EVENT_COLORS: Record<CalendarEventType, string> = {
+  training: "var(--color-primary)",
+  match: "var(--color-accent-blue)",
+  task_deadline: "var(--color-warning)",
+};
 
 function isEventOverdue(event: CalendarEvent, todayIso: string): boolean {
   return event.type === "training" && event.status === "scheduled" && event.date < todayIso;
@@ -181,21 +240,27 @@ function EventList({ events, onOpenEvent }: { events: CalendarEvent[]; onOpenEve
             {parseIsoDateLocal(date).toLocaleDateString("ru-RU", { weekday: "short", day: "2-digit", month: "long" })}
           </h2>
           {dayEvents.map((event) => {
+            const rowStyle = { "--event-color": EVENT_COLORS[event.type] } as CSSProperties;
             const rowContent = (
               <>
-                <span className={profileStyles.rowLabel}>
-                  {CALENDAR_EVENT_ICONS[event.type]} {event.time ? event.time.slice(0, 5) : ""}
+                <span className={styles.eventIcon}>
+                  <Icon name={CALENDAR_EVENT_ICONS[event.type]} size={14} />
+                  {event.time ? event.time.slice(0, 5) : ""}
                 </span>
                 <span className={profileStyles.rowValue}>
                   {event.title}
                   {event.teamName ? ` · ${event.teamName}` : ""}
-                  {isEventOverdue(event, todayIso) && <span className={`${styles.badge} ${styles.badgeWarning}`}> Просрочена</span>}
+                  {isEventOverdue(event, todayIso) && (
+                    <span className={`${styles.badge} ${styles.badgeWarning}`} style={{ marginLeft: 6 }}>
+                      Просрочена
+                    </span>
+                  )}
                 </span>
               </>
             );
             if (!onOpenEvent) {
               return (
-                <div key={`${event.type}-${event.id}`} className={profileStyles.row}>
+                <div key={`${event.type}-${event.id}`} className={styles.eventRow} style={rowStyle}>
                   {rowContent}
                 </div>
               );
@@ -204,8 +269,8 @@ function EventList({ events, onOpenEvent }: { events: CalendarEvent[]; onOpenEve
               <button
                 key={`${event.type}-${event.id}`}
                 type="button"
-                className={profileStyles.row}
-                style={{ background: "none", border: "none", width: "100%", textAlign: "left", cursor: "pointer", font: "inherit" }}
+                className={styles.eventRow}
+                style={rowStyle}
                 onClick={() => onOpenEvent(event)}
               >
                 {rowContent}

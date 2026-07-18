@@ -1,13 +1,28 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { listTeamMatches } from "../../api/matches";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
+import { Icon } from "../shared/Icon";
 import { MatchForm } from "./MatchForm";
 import { MatchDetail } from "./MatchDetail";
-import { MATCH_RESULT_LABELS, MATCH_STATUS_LABELS, type Match } from "../../types/match";
+import { MATCH_RESULT_LABELS, MATCH_STATUS_LABELS, type Match, type MatchResult } from "../../types/match";
 import styles from "../teams/teams.module.css";
 
 type ListState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; matches: Match[] };
+
+const MATCH_CARD_COLORS: Record<MatchResult | "scheduled" | "cancelled", string> = {
+  win: "var(--color-success)",
+  loss: "var(--color-danger)",
+  draw: "var(--color-warning)",
+  scheduled: "var(--color-primary)",
+  cancelled: "var(--color-text-tertiary)",
+};
+
+function matchCardColor(match: Match): string {
+  if (match.result) return MATCH_CARD_COLORS[match.result];
+  if (match.status === "cancelled") return MATCH_CARD_COLORS.cancelled;
+  return MATCH_CARD_COLORS.scheduled;
+}
 
 type View = { screen: "list" } | { screen: "create" } | { screen: "edit"; match: Match } | { screen: "detail"; matchId: string };
 
@@ -71,7 +86,8 @@ export function TeamMatchesTab({ token, teamId, canManage }: { token: string; te
     <>
       {canManage && (
         <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })} style={{ marginBottom: 4 }}>
-          + Новый матч
+          <Icon name="plus" size={16} />
+          Новый матч
         </button>
       )}
 
@@ -79,12 +95,18 @@ export function TeamMatchesTab({ token, teamId, canManage }: { token: string; te
         <StateScreen kind="empty" title="Пока нет матчей" description={canManage ? "Запланируйте первый матч команды." : "Тренер ещё не запланировал матчи."} />
       ) : (
         state.matches.map((match) => (
-          <button key={match.id} type="button" className={styles.teamCard} onClick={() => setView({ screen: "detail", matchId: match.id })}>
+          <button
+            key={match.id}
+            type="button"
+            className={styles.teamCard}
+            style={{ "--event-color": matchCardColor(match) } as CSSProperties}
+            onClick={() => setView({ screen: "detail", matchId: match.id })}
+          >
             <div className={styles.teamCardTop}>
               <h2 className={styles.teamName}>{match.opponentName}</h2>
               <span className={styles.badge}>{match.result ? MATCH_RESULT_LABELS[match.result] : MATCH_STATUS_LABELS[match.status]}</span>
               <span className={styles.chevron} aria-hidden="true">
-                ›
+                <Icon name="chevron-right" size={18} />
               </span>
             </div>
             <p className={styles.teamMeta}>

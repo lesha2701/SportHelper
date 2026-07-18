@@ -82,21 +82,23 @@ export function TeamStatsTab({ token, teamId }: { token: string; teamId: string 
     <>
       <div className={profileStyles.card}>
         <h2 className={profileStyles.title}>Общее</h2>
-        <div className={profileStyles.row}>
-          <span className={profileStyles.rowLabel}>Игроков в составе</span>
-          <span className={profileStyles.rowValue}>{stats.membersCount}</span>
-        </div>
-        <div className={profileStyles.row}>
-          <span className={profileStyles.rowLabel}>Посещаемость</span>
-          <span className={profileStyles.rowValue}>{formatRate(stats.attendanceRate)}</span>
-        </div>
-        <div className={profileStyles.row}>
-          <span className={profileStyles.rowLabel}>Проведено тренировок</span>
-          <span className={profileStyles.rowValue}>{stats.trainingsCompleted}</span>
-        </div>
-        <div className={profileStyles.row}>
-          <span className={profileStyles.rowLabel}>Из них самостоятельных</span>
-          <span className={profileStyles.rowValue}>{stats.independentTrainings}</span>
+        <div className={styles.statGrid}>
+          <div className={styles.statTile}>
+            <span className={styles.statValue}>{stats.membersCount}</span>
+            <span className={styles.statLabel}>Игроков в составе</span>
+          </div>
+          <div className={styles.statTile}>
+            <span className={styles.statValue}>{formatRate(stats.attendanceRate)}</span>
+            <span className={styles.statLabel}>Посещаемость</span>
+          </div>
+          <div className={styles.statTile}>
+            <span className={styles.statValue}>{stats.trainingsCompleted}</span>
+            <span className={styles.statLabel}>Проведено тренировок</span>
+          </div>
+          <div className={styles.statTile}>
+            <span className={styles.statValue}>{stats.independentTrainings}</span>
+            <span className={styles.statLabel}>Из них самостоятельных</span>
+          </div>
         </div>
       </div>
 
@@ -128,15 +130,27 @@ export function TeamStatsTab({ token, teamId }: { token: string; teamId: string 
 
       <div className={profileStyles.card}>
         <h2 className={profileStyles.title}>Матчи</h2>
-        <div className={profileStyles.row}>
-          <span className={profileStyles.rowLabel}>Сыграно</span>
-          <span className={profileStyles.rowValue}>{stats.matchesPlayed}</span>
-        </div>
-        <div className={profileStyles.row}>
-          <span className={profileStyles.rowLabel}>Победы / Ничьи / Поражения</span>
-          <span className={profileStyles.rowValue}>
-            {stats.matchesWon} / {stats.matchesDrawn} / {stats.matchesLost}
-          </span>
+        <div className={styles.statGrid}>
+          <div className={styles.statTile}>
+            <span className={styles.statValue}>{stats.matchesPlayed}</span>
+            <span className={styles.statLabel}>Сыграно</span>
+          </div>
+          <div className={styles.statTile}>
+            <span className={styles.statValue} style={{ color: "var(--color-success)" }}>
+              {stats.matchesWon}
+            </span>
+            <span className={styles.statLabel}>Победы</span>
+          </div>
+          <div className={styles.statTile}>
+            <span className={styles.statValue}>{stats.matchesDrawn}</span>
+            <span className={styles.statLabel}>Ничьи</span>
+          </div>
+          <div className={styles.statTile}>
+            <span className={styles.statValue} style={{ color: "var(--color-danger)" }}>
+              {stats.matchesLost}
+            </span>
+            <span className={styles.statLabel}>Поражения</span>
+          </div>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useProfile } from "../../context/ProfileContext";
 import { StateScreen } from "../StateScreen";
 import { CoachProfileForm } from "./CoachProfileForm";
+import { HelpScreen } from "./HelpScreen";
 import { Onboarding } from "./Onboarding";
 import { PlayerProfileForm } from "./PlayerProfileForm";
 import { ProfileSummary } from "./ProfileSummary";
@@ -10,6 +11,7 @@ import type { ActiveMode } from "../../types/profile";
 export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenMyStats: () => void }) {
   const { state, retry, savePlayer, saveCoach, switchMode } = useProfile();
   const [editing, setEditing] = useState<ActiveMode | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   if (state.status === "loading") {
     return <StateScreen kind="loading" title="Загрузка профиля…" />;
@@ -17,6 +19,10 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
 
   if (state.status === "error") {
     return <StateScreen kind="error" title="Не удалось загрузить профиль" description={state.message} onRetry={retry} />;
+  }
+
+  if (showHelp) {
+    return <HelpScreen onBack={() => setShowHelp(false)} />;
   }
 
   const { data } = state;
@@ -62,6 +68,7 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
       }}
       onCreateOther={(mode) => setEditing(mode)}
       onOpenMyStats={onOpenMyStats}
+      onOpenHelp={() => setShowHelp(true)}
     />
   );
 }

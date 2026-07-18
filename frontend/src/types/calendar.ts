@@ -1,9 +1,11 @@
+import type { IconName } from "../components/shared/Icon";
+
 export type CalendarEventType = "training" | "match" | "task_deadline";
 
-export const CALENDAR_EVENT_ICONS: Record<CalendarEventType, string> = {
-  training: "🏋️",
-  match: "⚽",
-  task_deadline: "📋",
+export const CALENDAR_EVENT_ICONS: Record<CalendarEventType, IconName> = {
+  training: "dumbbell",
+  match: "ball",
+  task_deadline: "clipboard",
 };
 
 export interface CalendarEvent {

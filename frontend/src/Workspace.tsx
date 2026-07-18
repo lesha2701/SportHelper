@@ -29,16 +29,16 @@ type CoachTab = "teams" | "library" | "calendar" | "profile";
 type PlayerTab = "teams" | "calendar" | "profile";
 
 const COACH_NAV_ITEMS: NavItem<CoachTab>[] = [
-  { key: "teams", label: "Команды", icon: "🏆" },
-  { key: "library", label: "Библиотека", icon: "📚" },
-  { key: "calendar", label: "Календарь", icon: "📅" },
-  { key: "profile", label: "Профиль", icon: "👤" },
+  { key: "teams", label: "Команды", icon: "trophy" },
+  { key: "library", label: "Библиотека", icon: "book" },
+  { key: "calendar", label: "Календарь", icon: "calendar" },
+  { key: "profile", label: "Профиль", icon: "user" },
 ];
 
 const PLAYER_NAV_ITEMS: NavItem<PlayerTab>[] = [
-  { key: "teams", label: "Команды", icon: "🏆" },
-  { key: "calendar", label: "Календарь", icon: "📅" },
-  { key: "profile", label: "Профиль", icon: "👤" },
+  { key: "teams", label: "Команды", icon: "trophy" },
+  { key: "calendar", label: "Календарь", icon: "calendar" },
+  { key: "profile", label: "Профиль", icon: "user" },
 ];
 
 type Overlay =

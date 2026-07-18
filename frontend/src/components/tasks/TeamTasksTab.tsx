@@ -1,17 +1,53 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { listTeamTasks } from "../../api/tasks";
 import { listMyTemplates } from "../../api/taskTemplates";
 import { ApiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { StateScreen } from "../StateScreen";
+import { Icon } from "../shared/Icon";
 import { TaskForm } from "./TaskForm";
 import { TaskDetail } from "./TaskDetail";
-import { TASK_STATUS_LABELS, type Task } from "../../types/task";
+import { TASK_STATUS_LABELS, type Task, type TaskAssignment, type TaskAssignmentStatus } from "../../types/task";
 import type { TaskTemplate } from "../../types/taskTemplate";
 import styles from "../teams/teams.module.css";
 import profileStyles from "../profile/profile.module.css";
 
 type ListState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; tasks: Task[] };
+
+const TASK_STATUS_COLORS: Record<TaskAssignmentStatus, string> = {
+  assigned: "var(--color-text-tertiary)",
+  viewed: "var(--color-text-tertiary)",
+  in_progress: "var(--color-primary)",
+  submitted: "var(--color-accent-blue)",
+  accepted: "var(--color-success)",
+  needs_revision: "var(--color-warning)",
+  overdue: "var(--color-danger)",
+  missed: "var(--color-danger)",
+  cancelled: "var(--color-text-tertiary)",
+};
+
+// Worst-first, so a coach glancing at the team list sees the most urgent
+// assignment state among all players for that task.
+const STATUS_URGENCY: TaskAssignmentStatus[] = [
+  "overdue",
+  "missed",
+  "needs_revision",
+  "in_progress",
+  "submitted",
+  "assigned",
+  "viewed",
+  "accepted",
+  "cancelled",
+];
+
+function taskCardColor(task: Task, mine: TaskAssignment | undefined, canManage: boolean): string {
+  if (!canManage && mine) return TASK_STATUS_COLORS[mine.status];
+  if (canManage) {
+    const worst = STATUS_URGENCY.find((status) => task.assignments.some((a) => a.status === status));
+    if (worst) return TASK_STATUS_COLORS[worst];
+  }
+  return "var(--color-text-tertiary)";
+}
 
 type View =
   | { screen: "list" }
@@ -100,7 +136,8 @@ export function TeamTasksTab({ token, teamId, canManage }: { token: string; team
       {canManage && (
         <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
           <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })}>
-            + Новое задание
+            <Icon name="plus" size={16} />
+            Новое задание
           </button>
           <button type="button" className={styles.iconButton} onClick={() => setView({ screen: "pick-template" })}>
             Из шаблона
@@ -114,12 +151,18 @@ export function TeamTasksTab({ token, teamId, canManage }: { token: string; team
         state.tasks.map((task) => {
           const mine = task.assignments.find((a) => a.userId === myUserId);
           return (
-            <button key={task.id} type="button" className={styles.teamCard} onClick={() => setView({ screen: "detail", taskId: task.id })}>
+            <button
+              key={task.id}
+              type="button"
+              className={styles.teamCard}
+              style={{ "--event-color": taskCardColor(task, mine, canManage) } as CSSProperties}
+              onClick={() => setView({ screen: "detail", taskId: task.id })}
+            >
               <div className={styles.teamCardTop}>
                 <h2 className={styles.teamName}>{task.title}</h2>
                 {!canManage && mine && <span className={styles.badge}>{TASK_STATUS_LABELS[mine.status]}</span>}
                 <span className={styles.chevron} aria-hidden="true">
-                  ›
+                  <Icon name="chevron-right" size={18} />
                 </span>
               </div>
               {canManage && <p className={styles.teamMeta}>Игроков: {task.assignments.length}</p>}
@@ -154,7 +197,8 @@ function TemplatePicker({
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <button type="button" className={styles.iconButton} onClick={onCancel}>
-          ← Назад
+          <Icon name="chevron-left" size={16} />
+          Назад
         </button>
       </div>
 
@@ -167,13 +211,20 @@ function TemplatePicker({
 
       {templates?.map((template) => (
         <button key={template.id} type="button" className={styles.teamCard} onClick={() => onPick(template)}>
-          <div className={styles.teamCardTop}>
-            <h3 className={styles.teamName}>{template.title}</h3>
-            <span className={styles.chevron} aria-hidden="true">
-              ›
-            </span>
+          <div className={styles.teamCardRow}>
+            <div className={styles.teamAvatar}>
+              <Icon name="flag" size={19} />
+            </div>
+            <div className={styles.teamNameCol}>
+              <div className={styles.teamCardTop}>
+                <h3 className={styles.teamName}>{template.title}</h3>
+                <span className={styles.chevron} aria-hidden="true">
+                  <Icon name="chevron-right" size={18} />
+                </span>
+              </div>
+              {template.description && <p className={styles.teamMeta}>{template.description}</p>}
+            </div>
           </div>
-          {template.description && <p className={styles.teamMeta}>{template.description}</p>}
         </button>
       ))}
     </div>

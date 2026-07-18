@@ -3,6 +3,7 @@ import { deleteTemplate, getTemplate } from "../../api/taskTemplates";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { ConfirmModal } from "../shared/ConfirmModal";
+import { Icon } from "../shared/Icon";
 import type { TaskTemplate } from "../../types/taskTemplate";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
@@ -63,7 +64,8 @@ export function TaskTemplateDetail({
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <button type="button" className={styles.iconButton} onClick={onBack}>
-          ← Назад
+          <Icon name="chevron-left" size={16} />
+          Назад
         </button>
       </div>
 

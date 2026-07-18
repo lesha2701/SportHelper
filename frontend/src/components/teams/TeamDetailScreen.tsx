@@ -11,6 +11,7 @@ import { MemberActionsModal } from "./MemberActionsModal";
 import { TransferOwnershipModal } from "./TransferOwnershipModal";
 import { PlayerProfileView } from "./PlayerProfileView";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
+import { Icon } from "../shared/Icon";
 import { TeamTrainingsTab } from "../trainings/TeamTrainingsTab";
 import { TeamTasksTab } from "../tasks/TeamTasksTab";
 import { TeamMatchesTab } from "../matches/TeamMatchesTab";
@@ -109,16 +110,14 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <button type="button" className={styles.iconButton} onClick={onBack}>
-          ← Назад
+          <Icon name="chevron-left" size={16} />
+          Назад
         </button>
       </div>
 
       <div className={styles.tabs}>
         <button type="button" className={tab === "overview" ? styles.tabActive : styles.tab} onClick={() => setTab("overview")}>
           Обзор
-        </button>
-        <button type="button" className={tab === "roster" ? styles.tabActive : styles.tab} onClick={() => setTab("roster")}>
-          Состав
         </button>
         <button type="button" className={tab === "trainings" ? styles.tabActive : styles.tab} onClick={() => setTab("trainings")}>
           Тренировки
@@ -129,16 +128,6 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
         <button type="button" className={tab === "matches" ? styles.tabActive : styles.tab} onClick={() => setTab("matches")}>
           Матчи
         </button>
-        {isCoachStaff && (
-          <button type="button" className={tab === "stats" ? styles.tabActive : styles.tab} onClick={() => setTab("stats")}>
-            Статистика
-          </button>
-        )}
-        {canSeeSettingsTab && (
-          <button type="button" className={tab === "settings" ? styles.tabActive : styles.tab} onClick={() => setTab("settings")}>
-            Настройки
-          </button>
-        )}
       </div>
 
       {tab === "overview" && (
@@ -158,6 +147,17 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
             </div>
             {team.description && <p className={profileStyles.subtitle}>{team.description}</p>}
 
+            <div className={styles.statGrid}>
+              <div className={styles.statTile}>
+                <span className={styles.statValue}>{team.membersCount}</span>
+                <span className={styles.statLabel}>Участников</span>
+              </div>
+              <div className={styles.statTile}>
+                <span className={styles.statValue}>{myRole ? TEAM_ROLE_LABELS[myRole] : "—"}</span>
+                <span className={styles.statLabel}>Ваша роль</span>
+              </div>
+            </div>
+
             <div className={profileStyles.row}>
               <span className={profileStyles.rowLabel}>Вид спорта</span>
               <span className={profileStyles.rowValue}>{team.sport}</span>
@@ -174,15 +174,39 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
                 <span className={profileStyles.rowValue}>{SKILL_LEVEL_LABELS[team.level]}</span>
               </div>
             )}
-            <div className={profileStyles.row}>
-              <span className={profileStyles.rowLabel}>Участников</span>
-              <span className={profileStyles.rowValue}>{team.membersCount} / 50</span>
-            </div>
-            {myRole && (
-              <div className={profileStyles.row}>
-                <span className={profileStyles.rowLabel}>Ваша роль</span>
-                <span className={profileStyles.rowValue}>{TEAM_ROLE_LABELS[myRole]}</span>
-              </div>
+          </div>
+
+          <div className={profileStyles.card}>
+            <button type="button" className={styles.navRow} onClick={() => setTab("roster")}>
+              <span className={styles.navRowIcon}>
+                <Icon name="users" size={17} />
+              </span>
+              <span className={styles.navRowLabel}>Состав</span>
+              <span className={styles.navRowChevron}>
+                <Icon name="chevron-right" size={17} />
+              </span>
+            </button>
+            {isCoachStaff && (
+              <button type="button" className={styles.navRow} onClick={() => setTab("stats")}>
+                <span className={styles.navRowIcon}>
+                  <Icon name="award" size={17} />
+                </span>
+                <span className={styles.navRowLabel}>Статистика</span>
+                <span className={styles.navRowChevron}>
+                  <Icon name="chevron-right" size={17} />
+                </span>
+              </button>
+            )}
+            {canSeeSettingsTab && (
+              <button type="button" className={styles.navRow} onClick={() => setTab("settings")}>
+                <span className={styles.navRowIcon}>
+                  <Icon name="settings" size={17} />
+                </span>
+                <span className={styles.navRowLabel}>Настройки</span>
+                <span className={styles.navRowChevron}>
+                  <Icon name="chevron-right" size={17} />
+                </span>
+              </button>
             )}
           </div>
 

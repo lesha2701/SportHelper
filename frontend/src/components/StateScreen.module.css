@@ -3,21 +3,33 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
   padding: 32px 20px;
   min-height: 60vh;
   text-align: center;
 }
 
-.icon {
-  font-size: 40px;
-  line-height: 1;
+.iconBadge {
+  width: 112px;
+  height: 112px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-alt);
+  color: var(--color-text-tertiary);
+}
+
+.iconBadgeDanger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .title {
   margin: 0;
-  font-size: 17px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
   color: var(--color-text);
 }
 
@@ -31,17 +43,21 @@
 .retryButton {
   margin-top: 8px;
   padding: 10px 24px;
+  font-family: var(--font-display);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   color: var(--color-primary-text);
   background: var(--color-primary);
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
 }
 
 .retryButton:active {
-  opacity: 0.8;
+  transform: scale(0.97);
+  background: var(--color-primary-hover);
 }
 
 .skeletonGroup {
@@ -62,7 +78,7 @@
 @keyframes pulse {
   0%,
   100% {
-    opacity: 0.6;
+    opacity: 0.5;
   }
   50% {
     opacity: 1;
