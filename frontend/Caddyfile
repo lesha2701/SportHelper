@@ -1,0 +1,17 @@
+{$DOMAIN} {
+	encode gzip
+
+	# API requests go to the backend container. Caddy strips nothing here —
+	# the backend's routes already live under /api (see backend/app/main.py).
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	# Everything else is the React SPA — unknown paths fall back to
+	# index.html so client-side routing keeps working on refresh.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
