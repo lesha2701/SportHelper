@@ -25,7 +25,7 @@
 .heading {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -355,6 +355,7 @@
   line-height: 1.15;
   color: var(--color-primary);
   overflow-wrap: break-word;
+  font-variant-numeric: tabular-nums;
 }
 
 .statLabel {
