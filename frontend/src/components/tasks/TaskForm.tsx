@@ -98,6 +98,7 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
   const [aiGoal, setAiGoal] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiFillSignal, setAiFillSignal] = useState(0);
 
   const handleAiGenerate = async () => {
     if (!aiGoal.trim()) {
@@ -126,6 +127,7 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
       setTargetType(draft.targetType);
       if (draft.targetType === "position" && draft.targetPosition) setPosition(draft.targetPosition);
       setShowAiPanel(false);
+      setAiFillSignal((s) => s + 1);
     } catch (err) {
       setAiError(err instanceof ApiError ? err.message : "Не удалось сформировать черновик");
     } finally {
@@ -259,7 +261,7 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
           <textarea className={profileStyles.textarea} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
         </label>
 
-        <CollapsibleSection label="Детали" defaultOpen={isEdit}>
+        <CollapsibleSection label="Детали" defaultOpen={isEdit || seed !== undefined}>
           <label className={profileStyles.field}>
             <span className={profileStyles.label}>Дедлайн</span>
             <input className={profileStyles.input} type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
@@ -279,7 +281,7 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
         </CollapsibleSection>
 
         {exercises.length > 0 && (
-          <CollapsibleSection label="Упражнения" defaultOpen={isEdit}>
+          <CollapsibleSection label="Упражнения" defaultOpen={isEdit || seed !== undefined}>
             <div className={profileStyles.field}>
               <span className={profileStyles.label}>Упражнения</span>
               {exercises.map((exercise) => (
@@ -304,7 +306,7 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
           </CollapsibleSection>
         )}
 
-        <CollapsibleSection label="Формат подтверждения" defaultOpen={isEdit}>
+        <CollapsibleSection label="Формат подтверждения" defaultOpen={isEdit || seed !== undefined} forceOpenKey={aiFillSignal}>
           <div className={profileStyles.field}>
             <span className={profileStyles.label}>Формат подтверждения</span>
             {REQUIREMENT_FIELDS.map((field) => (

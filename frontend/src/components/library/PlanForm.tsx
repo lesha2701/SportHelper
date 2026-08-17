@@ -30,6 +30,7 @@ export function PlanForm({ token, initial, onSaved, onCancel }: PlanFormProps) {
   const [aiGoals, setAiGoals] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiFillSignal, setAiFillSignal] = useState(0);
 
   const handleAiGenerate = async () => {
     if (!aiGoals.trim()) {
@@ -52,6 +53,7 @@ export function PlanForm({ token, initial, onSaved, onCancel }: PlanFormProps) {
       if (draft.equipment) setEquipment(draft.equipment);
       if (draft.comment) setComment(draft.comment);
       setShowAiPanel(false);
+      setAiFillSignal((s) => s + 1);
     } catch (err) {
       if (err instanceof ApiError && err.code === "coach_profile_required") {
         setAiError("Сначала заполните профиль тренера в разделе «Профиль».");
@@ -159,7 +161,7 @@ export function PlanForm({ token, initial, onSaved, onCancel }: PlanFormProps) {
           <textarea className={profileStyles.textarea} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
         </label>
 
-        <CollapsibleSection label="Дополнительно" defaultOpen={isEdit}>
+        <CollapsibleSection label="Дополнительно" defaultOpen={isEdit} forceOpenKey={aiFillSignal}>
           <label className={profileStyles.field}>
             <span className={profileStyles.label}>Длительность, мин</span>
             <input

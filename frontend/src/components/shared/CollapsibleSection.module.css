@@ -44,3 +44,7 @@
   gap: 10px;
   padding: 12px 14px;
 }
+
+.toggle:focus-visible {
+  outline-offset: -2px;
+}
