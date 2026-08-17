@@ -23,6 +23,15 @@ import styles from "./teams.module.css";
 
 type Tab = "overview" | "roster" | "trainings" | "tasks" | "matches" | "stats" | "settings";
 
+const SECTION_TITLES: Record<Exclude<Tab, "overview">, string> = {
+  roster: "Состав",
+  trainings: "Тренировки",
+  tasks: "Задания",
+  matches: "Матчи",
+  stats: "Статистика",
+  settings: "Настройки",
+};
+
 type LoadState =
   | { status: "loading" }
   | { status: "error"; message: string }
@@ -117,6 +126,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
           <Icon name="chevron-left" size={16} />
           Назад
         </button>
+        {tab !== "overview" && <h1 className={styles.heading}>{SECTION_TITLES[tab]}</h1>}
       </div>
 
       {tab === "overview" && (
@@ -171,12 +181,12 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
                 <span className={styles.hubTileIcon}>
                   <Icon name="users" size={20} />
                 </span>
-                <span className={styles.chevron}>
+                <span className={styles.chevron} aria-hidden="true">
                   <Icon name="chevron-right" size={16} />
                 </span>
               </div>
               <span className={styles.hubTileTitle}>Состав</span>
-              <span className={styles.hubTileSubtitle}>{members.length} участников</span>
+              <span className={styles.hubTileSubtitle}>{members.length} чел.</span>
             </button>
 
             <button type="button" className={styles.hubTile} onClick={() => setTab("trainings")}>
@@ -184,7 +194,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
                 <span className={styles.hubTileIcon}>
                   <Icon name="dumbbell" size={20} />
                 </span>
-                <span className={styles.chevron}>
+                <span className={styles.chevron} aria-hidden="true">
                   <Icon name="chevron-right" size={16} />
                 </span>
               </div>
@@ -197,7 +207,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
                 <span className={styles.hubTileIcon}>
                   <Icon name="clipboard" size={20} />
                 </span>
-                <span className={styles.chevron}>
+                <span className={styles.chevron} aria-hidden="true">
                   <Icon name="chevron-right" size={16} />
                 </span>
               </div>
@@ -210,7 +220,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
                 <span className={styles.hubTileIcon}>
                   <Icon name="ball" size={20} />
                 </span>
-                <span className={styles.chevron}>
+                <span className={styles.chevron} aria-hidden="true">
                   <Icon name="chevron-right" size={16} />
                 </span>
               </div>
@@ -224,7 +234,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
                   <span className={styles.hubTileIcon}>
                     <Icon name="award" size={20} />
                   </span>
-                  <span className={styles.chevron}>
+                  <span className={styles.chevron} aria-hidden="true">
                     <Icon name="chevron-right" size={16} />
                   </span>
                 </div>
@@ -239,7 +249,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
                   <span className={styles.hubTileIcon}>
                     <Icon name="settings" size={20} />
                   </span>
-                  <span className={styles.chevron}>
+                  <span className={styles.chevron} aria-hidden="true">
                     <Icon name="chevron-right" size={16} />
                   </span>
                 </div>
