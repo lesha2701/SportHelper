@@ -109,24 +109,13 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
   return (
     <div className={styles.screen}>
       <div className={styles.headerRow}>
-        <button type="button" className={styles.iconButton} onClick={onBack}>
+        <button
+          type="button"
+          className={styles.iconButton}
+          onClick={() => (tab === "overview" ? onBack() : setTab("overview"))}
+        >
           <Icon name="chevron-left" size={16} />
           Назад
-        </button>
-      </div>
-
-      <div className={styles.tabs}>
-        <button type="button" className={tab === "overview" ? styles.tabActive : styles.tab} onClick={() => setTab("overview")}>
-          Обзор
-        </button>
-        <button type="button" className={tab === "trainings" ? styles.tabActive : styles.tab} onClick={() => setTab("trainings")}>
-          Тренировки
-        </button>
-        <button type="button" className={tab === "tasks" ? styles.tabActive : styles.tab} onClick={() => setTab("tasks")}>
-          Задания
-        </button>
-        <button type="button" className={tab === "matches" ? styles.tabActive : styles.tab} onClick={() => setTab("matches")}>
-          Матчи
         </button>
       </div>
 
@@ -176,36 +165,86 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
             )}
           </div>
 
-          <div className={profileStyles.card}>
-            <button type="button" className={styles.navRow} onClick={() => setTab("roster")}>
-              <span className={styles.navRowIcon}>
-                <Icon name="users" size={17} />
-              </span>
-              <span className={styles.navRowLabel}>Состав</span>
-              <span className={styles.navRowChevron}>
-                <Icon name="chevron-right" size={17} />
-              </span>
+          <div className={styles.hubGrid}>
+            <button type="button" className={styles.hubTile} onClick={() => setTab("roster")}>
+              <div className={styles.hubTileTop}>
+                <span className={styles.hubTileIcon}>
+                  <Icon name="users" size={20} />
+                </span>
+                <span className={styles.chevron}>
+                  <Icon name="chevron-right" size={16} />
+                </span>
+              </div>
+              <span className={styles.hubTileTitle}>Состав</span>
+              <span className={styles.hubTileSubtitle}>{members.length} участников</span>
             </button>
+
+            <button type="button" className={styles.hubTile} onClick={() => setTab("trainings")}>
+              <div className={styles.hubTileTop}>
+                <span className={styles.hubTileIcon}>
+                  <Icon name="dumbbell" size={20} />
+                </span>
+                <span className={styles.chevron}>
+                  <Icon name="chevron-right" size={16} />
+                </span>
+              </div>
+              <span className={styles.hubTileTitle}>Тренировки</span>
+              <span className={styles.hubTileSubtitle}>Расписание команды</span>
+            </button>
+
+            <button type="button" className={styles.hubTile} onClick={() => setTab("tasks")}>
+              <div className={styles.hubTileTop}>
+                <span className={styles.hubTileIcon}>
+                  <Icon name="clipboard" size={20} />
+                </span>
+                <span className={styles.chevron}>
+                  <Icon name="chevron-right" size={16} />
+                </span>
+              </div>
+              <span className={styles.hubTileTitle}>Задания</span>
+              <span className={styles.hubTileSubtitle}>Задания игрокам</span>
+            </button>
+
+            <button type="button" className={styles.hubTile} onClick={() => setTab("matches")}>
+              <div className={styles.hubTileTop}>
+                <span className={styles.hubTileIcon}>
+                  <Icon name="ball" size={20} />
+                </span>
+                <span className={styles.chevron}>
+                  <Icon name="chevron-right" size={16} />
+                </span>
+              </div>
+              <span className={styles.hubTileTitle}>Матчи</span>
+              <span className={styles.hubTileSubtitle}>Составы и результаты</span>
+            </button>
+
             {isCoachStaff && (
-              <button type="button" className={styles.navRow} onClick={() => setTab("stats")}>
-                <span className={styles.navRowIcon}>
-                  <Icon name="award" size={17} />
-                </span>
-                <span className={styles.navRowLabel}>Статистика</span>
-                <span className={styles.navRowChevron}>
-                  <Icon name="chevron-right" size={17} />
-                </span>
+              <button type="button" className={styles.hubTile} onClick={() => setTab("stats")}>
+                <div className={styles.hubTileTop}>
+                  <span className={styles.hubTileIcon}>
+                    <Icon name="award" size={20} />
+                  </span>
+                  <span className={styles.chevron}>
+                    <Icon name="chevron-right" size={16} />
+                  </span>
+                </div>
+                <span className={styles.hubTileTitle}>Статистика</span>
+                <span className={styles.hubTileSubtitle}>Показатели команды</span>
               </button>
             )}
+
             {canSeeSettingsTab && (
-              <button type="button" className={styles.navRow} onClick={() => setTab("settings")}>
-                <span className={styles.navRowIcon}>
-                  <Icon name="settings" size={17} />
-                </span>
-                <span className={styles.navRowLabel}>Настройки</span>
-                <span className={styles.navRowChevron}>
-                  <Icon name="chevron-right" size={17} />
-                </span>
+              <button type="button" className={styles.hubTile} onClick={() => setTab("settings")}>
+                <div className={styles.hubTileTop}>
+                  <span className={styles.hubTileIcon}>
+                    <Icon name="settings" size={20} />
+                  </span>
+                  <span className={styles.chevron}>
+                    <Icon name="chevron-right" size={16} />
+                  </span>
+                </div>
+                <span className={styles.hubTileTitle}>Настройки</span>
+                <span className={styles.hubTileSubtitle}>Лого, приглашения, заявки</span>
               </button>
             )}
           </div>
