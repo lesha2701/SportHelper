@@ -1,6 +1,7 @@
 import type { ReactElement, SVGProps } from "react";
 
 export type IconName =
+  | "home"
   | "trophy"
   | "book"
   | "calendar"
@@ -36,6 +37,12 @@ export type IconName =
   | "flag";
 
 const PATHS: Record<IconName, ReactElement> = {
+  home: (
+    <>
+      <path d="M4 11.5 12 4l8 7.5" />
+      <path d="M6 10v9.5a1 1 0 0 0 1 1h3.5v-6h3v6H17a1 1 0 0 0 1-1V10" />
+    </>
+  ),
   trophy: (
     <>
       <path d="M7 4h10v4a5 5 0 0 1-10 0V4Z" />
