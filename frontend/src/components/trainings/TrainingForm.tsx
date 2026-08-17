@@ -6,6 +6,7 @@ import { createPersonalTrainingDraft, type PersonalTrainingStyle } from "../../a
 import { ApiError } from "../../api/client";
 import { ConfirmModal } from "../shared/ConfirmModal";
 import { Icon } from "../shared/Icon";
+import { CollapsibleSection } from "../shared/CollapsibleSection";
 import type { Plan } from "../../types/plan";
 import type { TeamMember } from "../../types/team";
 import type { Training, TrainingUpdateInput } from "../../types/training";
@@ -328,21 +329,19 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
         </label>
 
         {mode === "team" && (
-          <label className={profileStyles.field}>
-            <span className={profileStyles.label}>План тренировки</span>
-            <select className={profileStyles.select} value={planId} onChange={(e) => setPlanId(e.target.value)}>
-              <option value="">Без плана</option>
-              {plans.map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+          <CollapsibleSection label="Настройки команды" defaultOpen={isEdit}>
+            <label className={profileStyles.field}>
+              <span className={profileStyles.label}>План тренировки</span>
+              <select className={profileStyles.select} value={planId} onChange={(e) => setPlanId(e.target.value)}>
+                <option value="">Без плана</option>
+                {plans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-        {mode === "team" && (
-          <>
             <label className={profileStyles.field} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <input type="checkbox" checked={isIndependent} onChange={(e) => setIsIndependent(e.target.checked)} />
               <span className={profileStyles.label}>Самостоятельная тренировка (без тренера)</span>
@@ -361,7 +360,7 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
                 </select>
               </label>
             )}
-          </>
+          </CollapsibleSection>
         )}
 
         {isPersonalCreate ? (
@@ -481,20 +480,22 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
           </label>
         )}
 
-        <label className={profileStyles.field}>
-          <span className={profileStyles.label}>Напомнить за, мин</span>
-          <input
-            className={profileStyles.input}
-            type="number"
-            min={0}
-            max={10080}
-            value={reminderMinutesBefore}
-            onChange={(e) => setReminderMinutesBefore(e.target.value)}
-          />
-        </label>
+        <CollapsibleSection label="Напоминание" defaultOpen={isEdit}>
+          <label className={profileStyles.field}>
+            <span className={profileStyles.label}>Напомнить за, мин</span>
+            <input
+              className={profileStyles.input}
+              type="number"
+              min={0}
+              max={10080}
+              value={reminderMinutesBefore}
+              onChange={(e) => setReminderMinutesBefore(e.target.value)}
+            />
+          </label>
+        </CollapsibleSection>
 
         {!isEdit && (
-          <>
+          <CollapsibleSection label="Повторение">
             <label className={profileStyles.field} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <input type="checkbox" checked={repeatWeekly} onChange={(e) => setRepeatWeekly(e.target.checked)} />
               <span className={profileStyles.label}>Применять для каждой недели</span>
@@ -529,7 +530,7 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
                 )}
               </div>
             )}
-          </>
+          </CollapsibleSection>
         )}
 
         {error && <p className={profileStyles.error}>{error}</p>}
