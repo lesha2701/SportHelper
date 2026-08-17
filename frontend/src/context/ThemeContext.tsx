@@ -6,7 +6,7 @@ const STORAGE_KEY = "tf-theme";
 
 function readInitialTheme(): Theme {
   const attr = document.documentElement.dataset.theme;
-  return attr === "light" ? "light" : "dark";
+  return attr === "dark" ? "dark" : "light";
 }
 
 interface ThemeContextValue {
