@@ -14,6 +14,7 @@ import type { Task, TaskTargetType } from "../../types/task";
 import type { TaskTemplate } from "../../types/taskTemplate";
 import { Icon } from "../shared/Icon";
 import { DragReorderList } from "../shared/DragReorderList";
+import { CollapsibleSection } from "../shared/CollapsibleSection";
 import profileStyles from "../profile/profile.module.css";
 import libraryStyles from "../library/library.module.css";
 
@@ -258,79 +259,85 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
           <textarea className={profileStyles.textarea} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
         </label>
 
-        <label className={profileStyles.field}>
-          <span className={profileStyles.label}>Дедлайн</span>
-          <input className={profileStyles.input} type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-        </label>
+        <CollapsibleSection label="Детали" defaultOpen={isEdit}>
+          <label className={profileStyles.field}>
+            <span className={profileStyles.label}>Дедлайн</span>
+            <input className={profileStyles.input} type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+          </label>
 
-        <label className={profileStyles.field}>
-          <span className={profileStyles.label}>План тренировки</span>
-          <select className={profileStyles.select} value={planId} onChange={(e) => setPlanId(e.target.value)}>
-            <option value="">Без плана</option>
-            {plans.map((plan) => (
-              <option key={plan.id} value={plan.id}>
-                {plan.name}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label className={profileStyles.field}>
+            <span className={profileStyles.label}>План тренировки</span>
+            <select className={profileStyles.select} value={planId} onChange={(e) => setPlanId(e.target.value)}>
+              <option value="">Без плана</option>
+              {plans.map((plan) => (
+                <option key={plan.id} value={plan.id}>
+                  {plan.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </CollapsibleSection>
 
         {exercises.length > 0 && (
+          <CollapsibleSection label="Упражнения" defaultOpen={isEdit}>
+            <div className={profileStyles.field}>
+              <span className={profileStyles.label}>Упражнения</span>
+              {exercises.map((exercise) => (
+                <label key={exercise.id} className={libraryStyles.pickerRow} style={{ flexDirection: "row", alignItems: "center", gap: 8, borderBottom: "none", padding: "4px 0" }}>
+                  <input type="checkbox" checked={exerciseIds.includes(exercise.id)} onChange={() => toggleExercise(exercise.id)} />
+                  <span>{exercise.name}</span>
+                </label>
+              ))}
+            </div>
+
+            {selectedExercises.length > 1 && (
+              <div className={profileStyles.field}>
+                <span className={profileStyles.label}>Порядок выполнения</span>
+                <DragReorderList
+                  items={selectedExercises}
+                  keyFn={(e) => e.id}
+                  onReorder={(next) => setExerciseIds(next.map((e) => e.id))}
+                  renderItem={(e) => <span>{e.name}</span>}
+                />
+              </div>
+            )}
+          </CollapsibleSection>
+        )}
+
+        <CollapsibleSection label="Формат подтверждения" defaultOpen={isEdit}>
           <div className={profileStyles.field}>
-            <span className={profileStyles.label}>Упражнения</span>
-            {exercises.map((exercise) => (
-              <label key={exercise.id} className={libraryStyles.pickerRow} style={{ flexDirection: "row", alignItems: "center", gap: 8, borderBottom: "none", padding: "4px 0" }}>
-                <input type="checkbox" checked={exerciseIds.includes(exercise.id)} onChange={() => toggleExercise(exercise.id)} />
-                <span>{exercise.name}</span>
+            <span className={profileStyles.label}>Формат подтверждения</span>
+            {REQUIREMENT_FIELDS.map((field) => (
+              <label key={field.key} style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, padding: "4px 0" }}>
+                <input
+                  type="checkbox"
+                  checked={requirements[field.key]}
+                  onChange={(e) => setRequirements((prev) => ({ ...prev, [field.key]: e.target.checked }))}
+                />
+                <span>{field.label}</span>
               </label>
             ))}
           </div>
-        )}
 
-        {selectedExercises.length > 1 && (
-          <div className={profileStyles.field}>
-            <span className={profileStyles.label}>Порядок выполнения</span>
-            <DragReorderList
-              items={selectedExercises}
-              keyFn={(e) => e.id}
-              onReorder={(next) => setExerciseIds(next.map((e) => e.id))}
-              renderItem={(e) => <span>{e.name}</span>}
-            />
-          </div>
-        )}
-
-        <div className={profileStyles.field}>
-          <span className={profileStyles.label}>Формат подтверждения</span>
-          {REQUIREMENT_FIELDS.map((field) => (
-            <label key={field.key} style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, padding: "4px 0" }}>
-              <input
-                type="checkbox"
-                checked={requirements[field.key]}
-                onChange={(e) => setRequirements((prev) => ({ ...prev, [field.key]: e.target.checked }))}
-              />
-              <span>{field.label}</span>
-            </label>
-          ))}
-        </div>
-
-        {requirements.requireMetricValue && (
-          <div className={profileStyles.fieldGrid}>
+          {requirements.requireMetricValue && (
+            <div className={profileStyles.fieldGrid}>
+              <label className={profileStyles.field}>
+                <span className={profileStyles.label}>Показатель</span>
+                <input className={profileStyles.input} value={metricName} onChange={(e) => setMetricName(e.target.value)} maxLength={100} placeholder="Точность передач" />
+              </label>
+              <label className={profileStyles.field}>
+                <span className={profileStyles.label}>Единица</span>
+                <input className={profileStyles.input} value={metricUnit} onChange={(e) => setMetricUnit(e.target.value)} maxLength={30} placeholder="%" />
+              </label>
+            </div>
+          )}
+          {requirements.requireMetricValue && (
             <label className={profileStyles.field}>
-              <span className={profileStyles.label}>Показатель</span>
-              <input className={profileStyles.input} value={metricName} onChange={(e) => setMetricName(e.target.value)} maxLength={100} placeholder="Точность передач" />
+              <span className={profileStyles.label}>Целевое значение</span>
+              <input className={profileStyles.input} type="number" value={metricTarget} onChange={(e) => setMetricTarget(e.target.value)} />
             </label>
-            <label className={profileStyles.field}>
-              <span className={profileStyles.label}>Единица</span>
-              <input className={profileStyles.input} value={metricUnit} onChange={(e) => setMetricUnit(e.target.value)} maxLength={30} placeholder="%" />
-            </label>
-          </div>
-        )}
-        {requirements.requireMetricValue && (
-          <label className={profileStyles.field}>
-            <span className={profileStyles.label}>Целевое значение</span>
-            <input className={profileStyles.input} type="number" value={metricTarget} onChange={(e) => setMetricTarget(e.target.value)} />
-          </label>
-        )}
+          )}
+        </CollapsibleSection>
 
         {!isEdit && (
           <>
