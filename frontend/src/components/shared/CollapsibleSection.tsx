@@ -27,16 +27,13 @@ interface CollapsibleSectionProps {
  * happens. */
 export function CollapsibleSection({ label, defaultOpen = false, forceOpenKey, children }: CollapsibleSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
-  const isFirstRender = useRef(true);
+  const prevForceOpenKey = useRef(forceOpenKey);
 
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    if (forceOpenKey !== undefined) {
+    if (forceOpenKey !== undefined && forceOpenKey !== prevForceOpenKey.current) {
       setOpen(true);
     }
+    prevForceOpenKey.current = forceOpenKey;
   }, [forceOpenKey]);
   return (
     <div className={styles.section}>
