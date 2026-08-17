@@ -1,0 +1,177 @@
+/* frontend/src/components/dashboard/dashboard.module.css
+   Shared between CoachDashboard and PlayerDashboard. */
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  padding-bottom: 32px;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--color-graphite-elevated);
+  color: #ffffff;
+}
+
+.heroLabel {
+  position: relative;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.64);
+}
+
+.heroTitle {
+  position: relative;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.nextEventCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  color: var(--color-primary);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: transform var(--transition-fast);
+}
+
+.nextEventCard:active {
+  transform: scale(0.99);
+}
+
+.nextEventText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nextEventLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.nextEventTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.nextEventMeta {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+}
+
+.emptyHint {
+  margin: 0;
+  padding: 12px 4px;
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+}
+
+.kpiRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.teamSwitcher {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.chip,
+.chipActive {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform var(--transition-fast);
+}
+
+.chip {
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+}
+
+.chipActive {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.chip:active,
+.chipActive:active {
+  transform: scale(0.96);
+}
+
+.recommendationCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--color-primary-glow);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-lg);
+  color: var(--color-primary);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.quickAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--color-primary-text);
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
+}
+
+.quickAction:active {
+  transform: scale(0.97);
+  background: var(--color-primary-hover);
+}
