@@ -3,15 +3,11 @@ import { getTeamStats } from "../../api/stats";
 import { getAttendanceAnalysis, getReportAnalysis, getTeamSummary } from "../../api/ai";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
-import type { TeamStats } from "../../types/stats";
+import { formatRate, type TeamStats } from "../../types/stats";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; stats: TeamStats };
-
-function formatRate(rate: number | null): string {
-  return rate === null ? "—" : `${Math.round(rate * 100)}%`;
-}
 
 function AiActionCard({
   title,

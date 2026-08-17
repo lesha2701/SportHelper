@@ -10,7 +10,7 @@ import { Ornament } from "../shared/Ornament";
 import { StatTile } from "../shared/StatTile";
 import { CALENDAR_EVENT_ICONS, type CalendarEvent } from "../../types/calendar";
 import type { Team } from "../../types/team";
-import type { TeamStats } from "../../types/stats";
+import { formatRate, type TeamStats } from "../../types/stats";
 import styles from "./dashboard.module.css";
 import teamStyles from "../teams/teams.module.css";
 
@@ -48,7 +48,7 @@ export function CoachDashboard({
 
   const load = useCallback(() => {
     setState({ status: "loading" });
-    Promise.all([listMyTeams(token), getCalendar(token, isoDatePlusDays(-7), isoDatePlusDays(14))])
+    Promise.all([listMyTeams(token), getCalendar(token, isoDatePlusDays(0), isoDatePlusDays(14))])
       .then(([teams, events]) => {
         const coachTeams = teams.filter((t) => t.myRole && COACH_STAFF_ROLES.has(t.myRole));
         if (coachTeams.length === 0) {
@@ -141,7 +141,7 @@ export function CoachDashboard({
 
       {statsState.status === "ready" && (
         <div className={styles.kpiRow}>
-          <StatTile value={`${statsState.stats.attendanceRate ?? 0}%`} label="Посещаемость" tone="dark" />
+          <StatTile value={formatRate(statsState.stats.attendanceRate)} label="Посещаемость" tone="dark" />
           <StatTile value={statsState.stats.trainingsUpcoming} label="Тренировок впереди" />
           <StatTile value={statsState.stats.tasksOverdue} label="Просрочено заданий" />
           <StatTile

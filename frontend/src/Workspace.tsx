@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ProfileProvider, useProfile } from "./context/ProfileContext";
 import { useAuth } from "./context/AuthContext";
 import { ProfileScreen } from "./components/profile/ProfileScreen";
@@ -112,6 +112,17 @@ function MainContent({ token }: { token: string }) {
   const myUserId = authState.status === "ready" ? authState.user.id : null;
   const [coachTab, setCoachTab] = useState<CoachTab>("dashboard");
   const [playerTab, setPlayerTab] = useState<PlayerTab>("dashboard");
+
+  // A brand-new user (no player or coach profile yet) should land on
+  // Онбординг (via the Профиль tab), not a dashboard full of zeros —
+  // this only fires once, when the profile finishes loading empty;
+  // it never overrides navigation after that.
+  useEffect(() => {
+    if (state.status === "ready" && !state.data.player && !state.data.coach) {
+      setPlayerTab("profile");
+    }
+  }, [state]);
+
   const [overlay, setOverlay] = useState<Overlay>(null);
 
   if (overlay?.kind === "my-stats" && myUserId) {

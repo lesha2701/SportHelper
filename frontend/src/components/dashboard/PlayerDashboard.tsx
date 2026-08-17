@@ -7,7 +7,7 @@ import { Icon } from "../shared/Icon";
 import { Ornament } from "../shared/Ornament";
 import { StatTile } from "../shared/StatTile";
 import { CALENDAR_EVENT_ICONS, type CalendarEvent } from "../../types/calendar";
-import type { PlayerStats } from "../../types/stats";
+import { formatRate, type PlayerStats } from "../../types/stats";
 import styles from "./dashboard.module.css";
 
 function isoDatePlusDays(days: number): string {
@@ -38,7 +38,7 @@ export function PlayerDashboard({
 
   const load = useCallback(() => {
     setState({ status: "loading" });
-    Promise.all([getCalendar(token, isoDatePlusDays(-7), isoDatePlusDays(14)), getPlayerStats(token, userId)])
+    Promise.all([getCalendar(token, isoDatePlusDays(0), isoDatePlusDays(14)), getPlayerStats(token, userId)])
       .then(([events, stats]) => setState({ status: "ready", events, stats }))
       .catch((error: unknown) => {
         const message = error instanceof ApiError ? error.message : "Не удалось загрузить данные";
@@ -86,7 +86,7 @@ export function PlayerDashboard({
       )}
 
       <div className={styles.kpiRow}>
-        <StatTile value={`${stats.attendanceRate ?? 0}%`} label="Посещаемость" tone="dark" />
+        <StatTile value={formatRate(stats.attendanceRate)} label="Посещаемость" tone="dark" />
         <StatTile value={stats.activityStreak} label="Серия посещений" />
         <StatTile value={stats.tasksCompleted} label="Заданий выполнено" />
         <StatTile value={stats.tasksOverdue} label="Просрочено" />

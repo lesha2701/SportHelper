@@ -10,15 +10,11 @@ import { Icon } from "../shared/Icon";
 import { MetricForm } from "./MetricForm";
 import { MATCH_RESULT_LABELS } from "../../types/match";
 import type { Metric } from "../../types/metric";
-import type { PlayerStats } from "../../types/stats";
+import { formatRate, type PlayerStats } from "../../types/stats";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; stats: PlayerStats };
-
-function formatRate(rate: number | null): string {
-  return rate === null ? "—" : `${Math.round(rate * 100)}%`;
-}
 
 function matchResultLabel(match: PlayerStats["matchesHistory"][number]): string {
   if (match.ourScore === null || match.opponentScore === null) return "";
