@@ -1,3 +1,5 @@
+// frontend/src/components/shared/CollapsibleSection.tsx
+
 import { useState, type ReactNode } from "react";
 import { Icon } from "./Icon";
 import styles from "./CollapsibleSection.module.css";
