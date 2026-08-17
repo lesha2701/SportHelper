@@ -49,5 +49,5 @@
   width: 26px;
   height: 3px;
   border-radius: var(--radius-pill);
-  background: linear-gradient(90deg, var(--color-primary), var(--color-accent-blue));
+  background: var(--color-primary);
 }
