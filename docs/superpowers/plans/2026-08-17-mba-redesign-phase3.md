@@ -722,3 +722,70 @@ Open `http://localhost:5175` and confirm, for each of the three forms (create an
 - [ ] **Step 4: Report status**
 
 If every item above passes, Phase 3 is ready for the user's live review. If any item fails, fix it as a follow-up commit on top of this plan's tasks before declaring Phase 3 done.
+
+---
+
+### Task 6: Fix `forceOpenKey`'s StrictMode double-invoke bug
+
+**Context:** added after the final whole-branch review (which ran once Tasks 1-5 and their own fix wave were merged) found that `CollapsibleSection`'s `forceOpenKey` mechanism — added in that fix wave to solve "AI draft/template prefill writes into a collapsed section invisibly" — has a bug specific to React StrictMode (`frontend/src/main.tsx` wraps the app in `<StrictMode>`, so this is live in the dev stand used for review, not just a theoretical concern): StrictMode double-invokes mount effects (setup → cleanup → setup again) on the same component instance, so a `useRef`-backed "have I ever run before" flag gets consumed by the first synthetic invocation and no longer guards the second one — `TaskForm`'s "Формат подтверждения" and `PlanForm`'s "Дополнительно" sections (the only two with `forceOpenKey`) end up forced open on every fresh mount in dev, even with no AI draft and no template, defeating the closed-by-default behavior Tasks 1-5 built.
+
+**Files:**
+- Modify: `frontend/src/components/shared/CollapsibleSection.tsx`
+
+**Interfaces:**
+- No change to `CollapsibleSectionProps` — `forceOpenKey`'s type and meaning (`number | undefined`) stay exactly as introduced. Only the internal guard logic changes. No consumer (`TaskForm.tsx`, `PlanForm.tsx`) needs any change.
+
+- [ ] **Step 1: Replace the "first render" ref-guard with a "previous value" comparison**
+
+The fix wave's version reads:
+
+```tsx
+export function CollapsibleSection({ label, defaultOpen = false, forceOpenKey, children }: CollapsibleSectionProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (forceOpenKey !== undefined) {
+      setOpen(true);
+    }
+  }, [forceOpenKey]);
+```
+
+Replace it with:
+
+```tsx
+export function CollapsibleSection({ label, defaultOpen = false, forceOpenKey, children }: CollapsibleSectionProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  const prevForceOpenKey = useRef(forceOpenKey);
+
+  useEffect(() => {
+    if (forceOpenKey !== undefined && forceOpenKey !== prevForceOpenKey.current) {
+      setOpen(true);
+    }
+    prevForceOpenKey.current = forceOpenKey;
+  }, [forceOpenKey]);
+```
+
+Why this is robust to StrictMode's double-invoke where the old version wasn't: `prevForceOpenKey` is initialized (once, at first render, via `useRef(forceOpenKey)`) to whatever `forceOpenKey` already equals — not to a boolean flag consumed on first use. On mount, no matter how many times the effect runs, `forceOpenKey` and `prevForceOpenKey.current` are still equal (nothing changed the prop between synthetic invocations), so the condition is false every time and `setOpen` never fires. It only fires once a *real* prop change occurs (e.g. `aiFillSignal` actually incrementing after a draft succeeds), at which point `forceOpenKey !== prevForceOpenKey.current` is genuinely true.
+
+Leave the rest of the file (imports, the `CollapsibleSectionProps` interface, the JSX return) exactly as-is — `useRef` is already imported from the fix wave's change to the import line, no import changes needed here.
+
+- [ ] **Step 2: Verify build**
+
+Run: `docker compose -f docker-compose.dev.yml exec frontend npm run build`
+Expected: exits 0.
+
+- [ ] **Step 3: Manual check**
+
+Open `http://localhost:5175` (a StrictMode dev build), as a coach create a new task with no template. Confirm "Формат подтверждения" renders **closed** on first paint (not force-opened by the mount-time double-invoke). Then tap «Заполнить с помощью ИИ», generate a draft, and confirm the section now opens automatically once the draft lands. Repeat the same two checks for a new plan and «Дополнительно».
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add frontend/src/components/shared/CollapsibleSection.tsx
+git commit -m "MBA redesign Phase 3: fix forceOpenKey StrictMode double-invoke bug"
+```
