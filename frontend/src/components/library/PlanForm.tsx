@@ -5,6 +5,7 @@ import { ApiError } from "../../api/client";
 import { COMMON_SPORTS } from "../../types/profile";
 import type { Plan, PlanInput } from "../../types/plan";
 import { Icon } from "../shared/Icon";
+import { CollapsibleSection } from "../shared/CollapsibleSection";
 import profileStyles from "../profile/profile.module.css";
 
 interface PlanFormProps {
@@ -158,27 +159,29 @@ export function PlanForm({ token, initial, onSaved, onCancel }: PlanFormProps) {
           <textarea className={profileStyles.textarea} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
         </label>
 
-        <label className={profileStyles.field}>
-          <span className={profileStyles.label}>Длительность, мин</span>
-          <input
-            className={profileStyles.input}
-            type="number"
-            min={0}
-            max={600}
-            value={durationMinutes}
-            onChange={(e) => setDurationMinutes(e.target.value)}
-          />
-        </label>
+        <CollapsibleSection label="Дополнительно" defaultOpen={isEdit}>
+          <label className={profileStyles.field}>
+            <span className={profileStyles.label}>Длительность, мин</span>
+            <input
+              className={profileStyles.input}
+              type="number"
+              min={0}
+              max={600}
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(e.target.value)}
+            />
+          </label>
 
-        <label className={profileStyles.field}>
-          <span className={profileStyles.label}>Инвентарь</span>
-          <input className={profileStyles.input} value={equipment} onChange={(e) => setEquipment(e.target.value)} maxLength={500} />
-        </label>
+          <label className={profileStyles.field}>
+            <span className={profileStyles.label}>Инвентарь</span>
+            <input className={profileStyles.input} value={equipment} onChange={(e) => setEquipment(e.target.value)} maxLength={500} />
+          </label>
 
-        <label className={profileStyles.field}>
-          <span className={profileStyles.label}>Комментарий</span>
-          <textarea className={profileStyles.textarea} value={comment} onChange={(e) => setComment(e.target.value)} maxLength={1000} />
-        </label>
+          <label className={profileStyles.field}>
+            <span className={profileStyles.label}>Комментарий</span>
+            <textarea className={profileStyles.textarea} value={comment} onChange={(e) => setComment(e.target.value)} maxLength={1000} />
+          </label>
+        </CollapsibleSection>
 
         {error && <p className={profileStyles.error}>{error}</p>}
 
