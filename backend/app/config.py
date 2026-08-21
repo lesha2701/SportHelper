@@ -56,6 +56,12 @@ class Settings(BaseSettings):
 
     admin_telegram_ids: str = Field(default="", alias="ADMIN_TELEGRAM_IDS")
 
+    # Local-development-only shortcut: when true, POST /api/auth/dev-login
+    # logs in as a fixed dev user without a real Telegram initData signature
+    # (see app/api/routes/dev_auth.py). Defaults to off and must stay off
+    # everywhere except a developer's own machine — see docs/dev-notes.md.
+    dev_auth_enabled: bool = Field(default=False, alias="DEV_AUTH_ENABLED")
+
     # Telegram initData is rejected if older than this many seconds.
     telegram_auth_max_age_seconds: int = Field(default=86400, alias="TELEGRAM_AUTH_MAX_AGE_SECONDS")
 

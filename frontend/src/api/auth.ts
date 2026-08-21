@@ -20,6 +20,15 @@ export async function loginWithTelegram(initDataRaw: string): Promise<AuthResult
   return { accessToken: dto.access_token, user: mapUserDto(dto.user) };
 }
 
+/** Dev-only: logs in as a fixed dev user, skipping Telegram entirely. Only
+ * called when import.meta.env.DEV (see AuthContext) — the endpoint itself
+ * only exists on the backend when DEV_AUTH_ENABLED is set, see
+ * docs/dev-notes.md. */
+export async function devLogin(): Promise<AuthResult> {
+  const dto = await apiRequest<AuthResponseDto>("/api/auth/dev-login", { method: "POST" });
+  return { accessToken: dto.access_token, user: mapUserDto(dto.user) };
+}
+
 export async function fetchCurrentUser(token: string): Promise<User> {
   const dto = await apiRequest<UserDto>("/api/auth/me", { token });
   return mapUserDto(dto);

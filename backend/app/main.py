@@ -13,6 +13,7 @@ from app.api.routes import (
     ai,
     auth,
     calendar,
+    dev_auth,
     exercises,
     files,
     health,
@@ -142,6 +143,13 @@ def create_app() -> FastAPI:
         )
 
     app.include_router(auth.router)
+    if settings.dev_auth_enabled:
+        logger.warning(
+            "DEV_AUTH_ENABLED is on — POST /api/auth/dev-login bypasses Telegram "
+            "signature verification. This must never be true outside a developer's "
+            "own machine (see docs/dev-notes.md)."
+        )
+        app.include_router(dev_auth.router)
     app.include_router(health.router)
     app.include_router(profile.router)
     app.include_router(teams.router)
