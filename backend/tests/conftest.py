@@ -460,6 +460,12 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(coach_reviews_module, "get_by_booking", fake_get_by_booking)
 
     async def fake_create_review(conn, *, booking_id, coach_user_id, athlete_user_id, rating, text):
+        if any(r["booking_id"] == booking_id for r in reviews_store.values()):
+            # Mirrors the real repository's asyncpg.UniqueViolationError ->
+            # None behavior for the coach_reviews.booking_id UNIQUE
+            # constraint, so tests can simulate the race where a second
+            # create_review call for the same booking loses.
+            return None
         review_id = uuid4()
         record = {
             "id": review_id,

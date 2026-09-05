@@ -99,3 +99,39 @@ def test_cannot_review_the_same_booking_twice(logged_in_client, login_as, monkey
     second = client.post(f"/api/bookings/{booking['id']}/reviews", headers=athlete_headers, json={"rating": 2, "text": None})
     assert second.status_code == 409
     assert second.json()["error"]["code"] == "already_reviewed"
+
+
+def test_concurrent_reviews_of_same_booking_yield_clean_409(logged_in_client, login_as, monkeypatch) -> None:
+    """Simulates the race between two concurrent review requests for the same
+    booking: both could pass the route's proactive get_by_booking check
+    before either finishes inserting, so the real defense is create_review's
+    try/except asyncpg.UniqueViolationError. Forcing get_by_booking to always
+    report "no review yet" makes the route rely entirely on create_review's
+    race handling for the second call — it must come back as a clean 409
+    already_reviewed, not an unhandled 500."""
+    client, coach_token = logged_in_client
+    coach_id, slot = _list_coach_with_slot(client, coach_token)
+
+    athlete_token = login_as(891006, first_name="Athlete")
+    athlete_headers = {"Authorization": f"Bearer {athlete_token}"}
+    booking = client.post(
+        "/api/bookings",
+        headers=athlete_headers,
+        json={"coach_user_id": coach_id, "starts_at": slot, "format": "online"},
+    ).json()
+
+    import app.repositories.bookings as bookings_module
+    import app.repositories.coach_reviews as coach_reviews_module
+
+    async def fake_get_by_booking_never_reviewed(conn, booking_id):
+        return None
+
+    monkeypatch.setattr(bookings_module, "is_completed", lambda booking: True)
+    monkeypatch.setattr(coach_reviews_module, "get_by_booking", fake_get_by_booking_never_reviewed)
+
+    first = client.post(f"/api/bookings/{booking['id']}/reviews", headers=athlete_headers, json={"rating": 4, "text": None})
+    assert first.status_code == 200, first.text
+
+    second = client.post(f"/api/bookings/{booking['id']}/reviews", headers=athlete_headers, json={"rating": 2, "text": None})
+    assert second.status_code == 409, second.text
+    assert second.json()["error"]["code"] == "already_reviewed"

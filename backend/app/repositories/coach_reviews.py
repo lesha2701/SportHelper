@@ -38,17 +38,21 @@ async def get_by_booking(conn: asyncpg.Connection, booking_id: UUID) -> dict[str
 
 async def create_review(
     conn: asyncpg.Connection, *, booking_id: UUID, coach_user_id: UUID, athlete_user_id: UUID, rating: int, text: str | None
-) -> dict[str, Any]:
-    row = await conn.fetchrow(
-        """
-        INSERT INTO coach_reviews (booking_id, coach_user_id, athlete_user_id, rating, text)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, booking_id, rating, text
-        """,
-        booking_id,
-        coach_user_id,
-        athlete_user_id,
-        rating,
-        text,
-    )
+) -> dict[str, Any] | None:
+    """Returns None if the booking was already reviewed (unique-constraint race)."""
+    try:
+        row = await conn.fetchrow(
+            """
+            INSERT INTO coach_reviews (booking_id, coach_user_id, athlete_user_id, rating, text)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id, booking_id, rating, text
+            """,
+            booking_id,
+            coach_user_id,
+            athlete_user_id,
+            rating,
+            text,
+        )
+    except asyncpg.UniqueViolationError:
+        return None
     return dict(row)

@@ -97,4 +97,6 @@ async def review_booking(
         rating=payload.rating,
         text=payload.text,
     )
+    if review is None:
+        raise APIError("this booking already has a review", code="already_reviewed", status_code=409)
     return ReviewOut(**review)
