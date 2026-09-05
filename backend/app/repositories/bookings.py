@@ -14,6 +14,11 @@ _BOOKING_FIELDS = (
     "b.duration_minutes, b.format, b.price_per_session, b.currency, b.status, b.training_id"
 )
 
+_BOOKING_INSERT_FIELDS = (
+    "id, coach_user_id, athlete_user_id, starts_at, duration_minutes, format, "
+    "price_per_session, currency, status, training_id"
+)
+
 
 async def create_booking(
     conn: asyncpg.Connection,
@@ -47,7 +52,7 @@ async def create_booking(
                     price_per_session, currency, training_id
                 )
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                RETURNING {_BOOKING_FIELDS.replace("cp.full_name AS coach_full_name, ", "")}
+                RETURNING {_BOOKING_INSERT_FIELDS}
                 """,
                 coach_user_id,
                 athlete_user_id,
