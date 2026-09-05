@@ -31,5 +31,24 @@ async def list_recent_for_coach(conn: asyncpg.Connection, coach_user_id: UUID, l
     return [dict(row) for row in rows]
 
 
-async def get_by_booking(conn: asyncpg.Connection, booking_id) -> dict[str, Any] | None:
-    return None  # replaced with a real query in Task 6
+async def get_by_booking(conn: asyncpg.Connection, booking_id: UUID) -> dict[str, Any] | None:
+    row = await conn.fetchrow("SELECT id, booking_id, rating, text FROM coach_reviews WHERE booking_id = $1", booking_id)
+    return dict(row) if row else None
+
+
+async def create_review(
+    conn: asyncpg.Connection, *, booking_id: UUID, coach_user_id: UUID, athlete_user_id: UUID, rating: int, text: str | None
+) -> dict[str, Any]:
+    row = await conn.fetchrow(
+        """
+        INSERT INTO coach_reviews (booking_id, coach_user_id, athlete_user_id, rating, text)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id, booking_id, rating, text
+        """,
+        booking_id,
+        coach_user_id,
+        athlete_user_id,
+        rating,
+        text,
+    )
+    return dict(row)

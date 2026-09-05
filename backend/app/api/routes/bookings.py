@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 import asyncpg
 from fastapi import APIRouter, Depends
 
 from app.api.deps import get_current_user, get_db
-from app.core.exceptions import APIError, NotFoundError
+from app.core.exceptions import APIError, ForbiddenError, NotFoundError
 from app.repositories import bookings as bookings_repo
 from app.repositories import coach_marketplace as marketplace_repo
 from app.repositories import coach_reviews as coach_reviews_repo
-from app.schemas.booking import BookingIn, BookingOut
+from app.schemas.booking import BookingIn, BookingOut, ReviewIn, ReviewOut
 
 router = APIRouter(prefix="/api/bookings", tags=["bookings"])
 
@@ -68,3 +70,31 @@ async def list_my_bookings(
 ) -> list[BookingOut]:
     bookings = await bookings_repo.list_for_athlete(conn, user["id"])
     return [await _to_out(conn, b) for b in bookings]
+
+
+@router.post("/{booking_id}/reviews", response_model=ReviewOut)
+async def review_booking(
+    booking_id: UUID,
+    payload: ReviewIn,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> ReviewOut:
+    booking = await bookings_repo.get_booking(conn, booking_id)
+    if booking is None:
+        raise NotFoundError("booking not found")
+    if booking["athlete_user_id"] != user["id"]:
+        raise ForbiddenError("you can only review your own bookings")
+    if not bookings_repo.is_completed(booking):
+        raise APIError("booking is not completed yet", code="booking_not_completed", status_code=409)
+    if await coach_reviews_repo.get_by_booking(conn, booking_id) is not None:
+        raise APIError("this booking already has a review", code="already_reviewed", status_code=409)
+
+    review = await coach_reviews_repo.create_review(
+        conn,
+        booking_id=booking_id,
+        coach_user_id=booking["coach_user_id"],
+        athlete_user_id=user["id"],
+        rating=payload.rating,
+        text=payload.text,
+    )
+    return ReviewOut(**review)

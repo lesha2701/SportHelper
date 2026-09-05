@@ -459,6 +459,22 @@ def client(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(coach_reviews_module, "get_by_booking", fake_get_by_booking)
 
+    async def fake_create_review(conn, *, booking_id, coach_user_id, athlete_user_id, rating, text):
+        review_id = uuid4()
+        record = {
+            "id": review_id,
+            "booking_id": booking_id,
+            "coach_user_id": coach_user_id,
+            "athlete_user_id": athlete_user_id,
+            "rating": rating,
+            "text": text,
+            "created_at": datetime.now(timezone.utc),
+        }
+        reviews_store[review_id] = record
+        return {"id": review_id, "booking_id": booking_id, "rating": rating, "text": text}
+
+    monkeypatch.setattr(coach_reviews_module, "create_review", fake_create_review)
+
     teams_store: dict = {}
     members_store: dict = {}
     invites_store: dict = {}
