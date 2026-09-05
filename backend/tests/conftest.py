@@ -393,10 +393,15 @@ def client(monkeypatch: pytest.MonkeyPatch):
             for window in windows:
                 if window["weekday"] != day.weekday():
                     continue
-                cursor = datetime.combine(day, window["start_time"])
-                window_end = datetime.combine(day, window["end_time"])
+                # Mirrors the real compute_open_slots (aware-UTC cursor
+                # compared against aware-UTC booked starts_at) — the fake
+                # must build these the same way the real TIMESTAMPTZ column
+                # actually behaves, or a naive/aware mismatch bug here would
+                # be invisible to every test that exercises this fake.
+                cursor = datetime.combine(day, window["start_time"], tzinfo=timezone.utc)
+                window_end = datetime.combine(day, window["end_time"], tzinfo=timezone.utc)
                 while cursor + timedelta(minutes=duration) <= window_end:
-                    if cursor not in booked and cursor > datetime.now():
+                    if cursor not in booked and cursor > datetime.now(timezone.utc):
                         slots.append({"starts_at": cursor, "duration_minutes": duration})
                     cursor += timedelta(minutes=duration)
             day += timedelta(days=1)

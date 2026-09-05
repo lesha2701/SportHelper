@@ -2,7 +2,7 @@
 availability. All queries are parameterized."""
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
@@ -127,7 +127,7 @@ async def list_listed_coaches(
     *,
     sport: str | None = None,
     location: str | None = None,
-    max_price=None,
+    max_price: float | None = None,
     min_rating: float | None = None,
     training_format: str | None = None,
     min_experience_years: int | None = None,
@@ -212,9 +212,13 @@ async def compute_open_slots(
         "SELECT starts_at FROM bookings WHERE coach_user_id = $1 AND status = 'confirmed' "
         "AND starts_at >= $2 AND starts_at < $3",
         coach_user_id,
-        datetime.combine(from_date, time.min),
-        datetime.combine(to_date + timedelta(days=1), time.min),
+        datetime.combine(from_date, time.min, tzinfo=timezone.utc),
+        datetime.combine(to_date + timedelta(days=1), time.min, tzinfo=timezone.utc),
     )
+    # bookings.starts_at is TIMESTAMPTZ, so asyncpg hands back timezone-aware
+    # datetimes here. cursor/window_end below must be built aware-UTC too —
+    # a naive datetime is never `==` to an aware one, so `cursor not in
+    # booked` would silently never match against a real database.
     booked = {row["starts_at"] for row in booked_rows}
 
     slots: list[dict[str, Any]] = []
@@ -223,10 +227,10 @@ async def compute_open_slots(
         for window in windows:
             if window["weekday"] != day.weekday():
                 continue
-            cursor = datetime.combine(day, window["start_time"])
-            window_end = datetime.combine(day, window["end_time"])
+            cursor = datetime.combine(day, window["start_time"], tzinfo=timezone.utc)
+            window_end = datetime.combine(day, window["end_time"], tzinfo=timezone.utc)
             while cursor + timedelta(minutes=duration) <= window_end:
-                if cursor not in booked and cursor > datetime.now():
+                if cursor not in booked and cursor > datetime.now(timezone.utc):
                     slots.append({"starts_at": cursor, "duration_minutes": duration})
                 cursor += timedelta(minutes=duration)
         day += timedelta(days=1)

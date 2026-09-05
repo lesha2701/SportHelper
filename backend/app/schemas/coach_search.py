@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from app.schemas.coach_marketplace import AvailabilityWindowOut
+
 
 class CoachCardOut(BaseModel):
     user_id: UUID
@@ -26,7 +28,7 @@ class CoachCardOut(BaseModel):
 
 class CoachPublicProfileOut(CoachCardOut):
     session_duration_minutes: int | None
-    availability: list[dict]  # {weekday, start_time, end_time} — reuses AvailabilityWindowOut shape
+    availability: list[AvailabilityWindowOut]
     recent_reviews: list["CoachReviewOut"]
 
 

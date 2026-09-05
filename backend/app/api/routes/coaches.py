@@ -48,6 +48,18 @@ async def update_my_marketplace_settings(
 ) -> CoachMarketplaceSettingsOut:
     if await profiles_repo.get_coach_profile(conn, user["id"]) is None:
         raise _require_coach_profile_error()
+    if payload.is_listed:
+        # CoachMarketplaceSettingsIn's validator can only check the fields
+        # on this payload (formats/price/duration); availability lives in a
+        # separate table, so it must be checked here with DB access before
+        # a coach can actually go listed.
+        availability = await marketplace_repo.list_availability(conn, user["id"])
+        if not availability:
+            raise APIError(
+                "set at least one availability window before listing",
+                code="availability_required",
+                status_code=409,
+            )
     updated = await marketplace_repo.upsert_settings(conn, user["id"], **payload.model_dump())
     if updated is None:
         raise _require_coach_profile_error()
@@ -84,7 +96,7 @@ async def replace_my_availability(
 async def list_coaches(
     sport: str | None = None,
     location: str | None = None,
-    max_price=None,
+    max_price: float | None = None,
     min_rating: float | None = None,
     format: str | None = None,
     min_experience_years: int | None = None,
@@ -115,6 +127,9 @@ async def get_coach_public_profile(
     return CoachPublicProfileOut(**profile)
 
 
+_MAX_SLOTS_RANGE_DAYS = 90
+
+
 @router.get("/{coach_user_id}/slots", response_model=list[OpenSlotOut])
 async def get_coach_open_slots(
     coach_user_id: UUID,
@@ -123,5 +138,16 @@ async def get_coach_open_slots(
     user: dict = Depends(get_current_user),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> list[OpenSlotOut]:
+    if to_date < from_date:
+        raise APIError("to_date must not be before from_date", code="invalid_date_range", status_code=400)
+    if (to_date - from_date).days > _MAX_SLOTS_RANGE_DAYS:
+        raise APIError(
+            f"date range must not exceed {_MAX_SLOTS_RANGE_DAYS} days",
+            code="date_range_too_wide",
+            status_code=400,
+        )
+    settings = await marketplace_repo.get_settings(conn, coach_user_id)
+    if settings is None or not settings["is_listed"]:
+        raise NotFoundError("coach not found or not listed")
     slots = await marketplace_repo.compute_open_slots(conn, coach_user_id, from_date, to_date)
     return [OpenSlotOut(**s) for s in slots]

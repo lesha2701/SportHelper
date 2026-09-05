@@ -21,6 +21,11 @@ def test_coach_can_set_and_read_marketplace_settings(logged_in_client) -> None:
     client, token = logged_in_client
     headers = {"Authorization": f"Bearer {token}"}
     _create_coach_profile(client, token)
+    client.put(
+        "/api/coaches/me/availability",
+        headers=headers,
+        json=[{"weekday": 0, "start_time": "10:00:00", "end_time": "12:00:00"}],
+    )
 
     put_resp = client.put("/api/coaches/me/marketplace-settings", headers=headers, json=_settings_payload())
     assert put_resp.status_code == 200, put_resp.text
@@ -98,12 +103,15 @@ from datetime import date, timedelta
 def _list_a_coach(client, token) -> None:
     headers = {"Authorization": f"Bearer {token}"}
     _create_coach_profile(client, token, sport="Баскетбол")
-    client.put("/api/coaches/me/marketplace-settings", headers=headers, json=_settings_payload())
+    # Availability must be set before is_listed=True can be accepted (a
+    # coach with formats/price/duration but zero availability windows
+    # cannot go listed — see test_cannot_list_without_availability).
     client.put(
         "/api/coaches/me/availability",
         headers=headers,
         json=[{"weekday": 0, "start_time": "10:00:00", "end_time": "12:00:00"}],
     )
+    client.put("/api/coaches/me/marketplace-settings", headers=headers, json=_settings_payload())
 
 
 def test_listed_coach_appears_in_public_list_and_profile(logged_in_client) -> None:
@@ -139,14 +147,14 @@ def test_coach_list_filters_by_sport_and_price(logged_in_client, login_as) -> No
     other_headers = {"Authorization": f"Bearer {other_token}"}
     _create_coach_profile(client, other_token, sport="Плавание")
     client.put(
-        "/api/coaches/me/marketplace-settings",
-        headers=other_headers,
-        json=_settings_payload(price_per_session=5000),
-    )
-    client.put(
         "/api/coaches/me/availability",
         headers=other_headers,
         json=[{"weekday": 1, "start_time": "09:00:00", "end_time": "11:00:00"}],
+    )
+    client.put(
+        "/api/coaches/me/marketplace-settings",
+        headers=other_headers,
+        json=_settings_payload(price_per_session=5000),
     )
 
     by_sport = client.get(
@@ -159,6 +167,73 @@ def test_coach_list_filters_by_sport_and_price(logged_in_client, login_as) -> No
         "/api/coaches", params={"max_price": 3000}, headers={"Authorization": f"Bearer {token}"}
     ).json()
     assert all(c["price_per_session"] is None or float(c["price_per_session"]) <= 3000 for c in by_price)
+
+
+def test_cannot_list_without_availability(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token)
+
+    resp = client.put("/api/coaches/me/marketplace-settings", headers=headers, json=_settings_payload())
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == "availability_required"
+
+
+def test_list_coaches_rejects_non_numeric_max_price(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+
+    resp = client.get("/api/coaches", params={"max_price": "abc"}, headers=headers)
+    assert resp.status_code == 422
+
+
+def test_slots_not_found_for_unlisted_coach(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token, sport="Баскетбол")
+    client.put(
+        "/api/coaches/me/availability",
+        headers=headers,
+        json=[{"weekday": 0, "start_time": "10:00:00", "end_time": "12:00:00"}],
+    )
+    me = client.get("/api/auth/me", headers=headers).json()
+
+    resp = client.get(
+        f"/api/coaches/{me['id']}/slots",
+        params={"from_date": date.today().isoformat(), "to_date": date.today().isoformat()},
+        headers=headers,
+    )
+    assert resp.status_code == 404
+
+
+def test_slots_rejects_invalid_date_range(logged_in_client) -> None:
+    client, token = logged_in_client
+    _list_a_coach(client, token)
+    me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"}).json()
+
+    today = date.today()
+    resp = client.get(
+        f"/api/coaches/{me['id']}/slots",
+        params={"from_date": today.isoformat(), "to_date": (today - timedelta(days=1)).isoformat()},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "invalid_date_range"
+
+
+def test_slots_rejects_date_range_too_wide(logged_in_client) -> None:
+    client, token = logged_in_client
+    _list_a_coach(client, token)
+    me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"}).json()
+
+    today = date.today()
+    resp = client.get(
+        f"/api/coaches/{me['id']}/slots",
+        params={"from_date": today.isoformat(), "to_date": (today + timedelta(days=120)).isoformat()},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "date_range_too_wide"
 
 
 def test_open_slots_computed_from_availability(logged_in_client) -> None:
@@ -176,7 +251,10 @@ def test_open_slots_computed_from_availability(logged_in_client) -> None:
         headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 200
+    # starts_at is normalized to aware UTC end-to-end (bookings.starts_at is
+    # a real TIMESTAMPTZ column), so Pydantic serializes it with a "Z" —
+    # verified by running this test and reading the actual failure diff.
     assert resp.json() == [
-        {"starts_at": f"{next_monday.isoformat()}T10:00:00", "duration_minutes": 60},
-        {"starts_at": f"{next_monday.isoformat()}T11:00:00", "duration_minutes": 60},
+        {"starts_at": f"{next_monday.isoformat()}T10:00:00Z", "duration_minutes": 60},
+        {"starts_at": f"{next_monday.isoformat()}T11:00:00Z", "duration_minutes": 60},
     ]

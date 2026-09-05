@@ -1,15 +1,31 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class BookingIn(BaseModel):
     coach_user_id: UUID
     starts_at: datetime
     format: str  # "online" | "offline"
+
+    @model_validator(mode="after")
+    def _normalize_starts_at_to_utc(self) -> "BookingIn":
+        # bookings.starts_at is a real TIMESTAMPTZ column, so the whole
+        # booking pipeline (slot lookup, double-booking guard, INSERT) must
+        # agree on one timezone-aware representation. A naive input is
+        # assumed to already be UTC (this repo's usual "naive means UTC"
+        # convention); an aware input with a different offset is converted.
+        # Without this, two requests for the "same" wall-clock slot but
+        # different UTC offsets would insert two different starts_at values
+        # and slip past the UNIQUE (coach_user_id, starts_at) guard.
+        if self.starts_at.tzinfo is None:
+            self.starts_at = self.starts_at.replace(tzinfo=timezone.utc)
+        else:
+            self.starts_at = self.starts_at.astimezone(timezone.utc)
+        return self
 
 
 class BookingOut(BaseModel):

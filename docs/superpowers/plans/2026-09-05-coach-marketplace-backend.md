@@ -1216,6 +1216,7 @@ EOF
 **Files:**
 - Create: `backend/app/schemas/booking.py`
 - Create: `backend/app/repositories/bookings.py`
+- Modify: `backend/app/repositories/coach_reviews.py` — add a temporary `get_by_booking` stub (Task 4 created this file; Task 6 replaces the stub's body with a real query)
 - Create: `backend/app/api/routes/bookings.py`
 - Modify: `backend/app/main.py` — register `bookings.router`
 - Modify: `backend/tests/conftest.py`

@@ -44,7 +44,12 @@ async def create_booking(
     open_slots = await marketplace_repo.compute_open_slots(
         conn, payload.coach_user_id, payload.starts_at.date(), payload.starts_at.date()
     )
-    if not any(s["starts_at"] == payload.starts_at.replace(tzinfo=None) for s in open_slots):
+    # payload.starts_at is already normalized to aware UTC by BookingIn's
+    # validator, matching compute_open_slots' now-aware-UTC results — no
+    # tzinfo stripping needed (and stripping it here previously let two
+    # differently-offset requests for the same wall-clock time both pass
+    # this check while inserting different starts_at values).
+    if not any(s["starts_at"] == payload.starts_at for s in open_slots):
         raise APIError("slot is not open", code="slot_unavailable", status_code=409)
 
     booking = await bookings_repo.create_booking(
