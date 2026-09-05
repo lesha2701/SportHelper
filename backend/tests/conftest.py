@@ -122,6 +122,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
     import app.repositories.exercises as exercises_module
     import app.repositories.files as files_module
     import app.repositories.plans as plans_module
+    import app.repositories.coach_marketplace as coach_marketplace_module
     import app.repositories.profiles as profiles_module
     import app.repositories.teams as teams_module
     import app.repositories.matches as matches_module
@@ -243,6 +244,31 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(profiles_module, "get_coach_profile", fake_get_coach_profile)
     monkeypatch.setattr(profiles_module, "upsert_player_profile", fake_upsert_player_profile)
     monkeypatch.setattr(profiles_module, "upsert_coach_profile", fake_upsert_coach_profile)
+
+    async def fake_get_marketplace_settings(conn, user_id):
+        profile = coach_store.get(user_id)
+        if profile is None:
+            return None
+        return {
+            "user_id": user_id,
+            "is_listed": profile.get("is_listed", False),
+            "price_per_session": profile.get("price_per_session"),
+            "currency": profile.get("currency", "RUB"),
+            "offers_online": profile.get("offers_online", False),
+            "offers_offline": profile.get("offers_offline", False),
+            "location": profile.get("location"),
+            "session_duration_minutes": profile.get("session_duration_minutes"),
+        }
+
+    async def fake_upsert_marketplace_settings(conn, user_id, **fields):
+        profile = coach_store.get(user_id)
+        if profile is None:
+            return None
+        profile.update(fields)
+        return await fake_get_marketplace_settings(conn, user_id)
+
+    monkeypatch.setattr(coach_marketplace_module, "get_settings", fake_get_marketplace_settings)
+    monkeypatch.setattr(coach_marketplace_module, "upsert_settings", fake_upsert_marketplace_settings)
 
     def _find_user_by_id(user_id):
         for user in users_store.values():
