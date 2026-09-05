@@ -88,6 +88,7 @@ async def list_coaches(
     min_rating: float | None = None,
     format: str | None = None,
     min_experience_years: int | None = None,
+    user: dict = Depends(get_current_user),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> list[CoachCardOut]:
     cards = await marketplace_repo.list_listed_coaches(
@@ -105,6 +106,7 @@ async def list_coaches(
 @router.get("/{coach_user_id}", response_model=CoachPublicProfileOut)
 async def get_coach_public_profile(
     coach_user_id: UUID,
+    user: dict = Depends(get_current_user),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> CoachPublicProfileOut:
     profile = await marketplace_repo.get_public_profile(conn, coach_user_id)
@@ -118,6 +120,7 @@ async def get_coach_open_slots(
     coach_user_id: UUID,
     from_date: date,
     to_date: date,
+    user: dict = Depends(get_current_user),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> list[OpenSlotOut]:
     slots = await marketplace_repo.compute_open_slots(conn, coach_user_id, from_date, to_date)
