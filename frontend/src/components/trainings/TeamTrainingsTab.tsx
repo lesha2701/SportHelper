@@ -94,29 +94,31 @@ export function TeamTrainingsTab({ token, teamId, canManage }: { token: string; 
       {state.trainings.length === 0 ? (
         <StateScreen kind="empty" title="Пока нет тренировок" description="Запланируйте первую тренировку команды." />
       ) : (
-        state.trainings.map((training) => (
-          <button
-            key={training.id}
-            type="button"
-            className={styles.teamCard}
-            style={{ "--event-color": trainingCardColor(training) } as CSSProperties}
-            onClick={() => setView({ screen: "detail", trainingId: training.id })}
-          >
-            <div className={styles.teamCardTop}>
-              <h2 className={styles.teamName}>
-                {training.trainingDate} · {training.startTime.slice(0, 5)}
-              </h2>
-              <span className={styles.badge}>{TRAINING_STATUS_LABELS[training.status]}</span>
-              {isTrainingOverdue(training) && <span className={`${styles.badge} ${styles.badgeWarning}`}>Просрочена</span>}
-              <span className={styles.chevron} aria-hidden="true">
-                <Icon name="chevron-right" size={18} />
-              </span>
-            </div>
-            <p className={styles.teamMeta}>
-              {training.durationMinutes} мин{training.location ? ` · ${training.location}` : ""}
-            </p>
-          </button>
-        ))
+        <div className={styles.cardGrid}>
+          {state.trainings.map((training) => (
+            <button
+              key={training.id}
+              type="button"
+              className={styles.teamCard}
+              style={{ "--event-color": trainingCardColor(training) } as CSSProperties}
+              onClick={() => setView({ screen: "detail", trainingId: training.id })}
+            >
+              <div className={styles.teamCardTop}>
+                <h2 className={styles.teamName}>
+                  {training.trainingDate} · {training.startTime.slice(0, 5)}
+                </h2>
+                <span className={styles.badge}>{TRAINING_STATUS_LABELS[training.status]}</span>
+                {isTrainingOverdue(training) && <span className={`${styles.badge} ${styles.badgeWarning}`}>Просрочена</span>}
+                <span className={styles.chevron} aria-hidden="true">
+                  <Icon name="chevron-right" size={18} />
+                </span>
+              </div>
+              <p className={styles.teamMeta}>
+                {training.durationMinutes} мин{training.location ? ` · ${training.location}` : ""}
+              </p>
+            </button>
+          ))}
+        </div>
       )}
     </>
   );

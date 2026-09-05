@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ProfileProvider, useProfile } from "./context/ProfileContext";
 import { useAuth } from "./context/AuthContext";
 import { ProfileScreen } from "./components/profile/ProfileScreen";
@@ -15,7 +15,8 @@ import { MatchDetail } from "./components/matches/MatchDetail";
 import { CalendarScreen } from "./components/CalendarScreen";
 import { PlayerStatsScreen } from "./components/stats/PlayerStatsScreen";
 import { StateScreen } from "./components/StateScreen";
-import { BottomNav, type NavItem } from "./components/nav/BottomNav";
+import type { NavItem } from "./components/nav/BottomNav";
+import { AppShell } from "./components/nav/AppShell";
 import type { Training } from "./types/training";
 import type { CalendarEvent } from "./types/calendar";
 
@@ -125,19 +126,17 @@ function MainContent({ token }: { token: string }) {
 
   const [overlay, setOverlay] = useState<Overlay>(null);
 
+  // Computed once so both the coach and player AppShell branches below
+  // render the same overlay content — desktop keeps the sidebar mounted
+  // around it, mobile (via AppShell's hasOverlay branch) still shows it
+  // full-screen exactly as before.
+  let overlayContent: ReactNode = null;
   if (overlay?.kind === "my-stats" && myUserId) {
-    return <PlayerStatsScreen token={token} userId={myUserId} onBack={() => setOverlay(null)} />;
-  }
-
-  // Opening a team or a personal training from the profile's own lists
-  // takes over the whole screen, same as any other drill-down navigation —
-  // closing it returns to whatever was open before.
-  if (overlay?.kind === "team") {
-    return <TeamDetailScreen token={token} teamId={overlay.teamId} onBack={() => setOverlay(null)} />;
-  }
-
-  if (overlay?.kind === "training-create") {
-    return (
+    overlayContent = <PlayerStatsScreen token={token} userId={myUserId} onBack={() => setOverlay(null)} />;
+  } else if (overlay?.kind === "team") {
+    overlayContent = <TeamDetailScreen token={token} teamId={overlay.teamId} onBack={() => setOverlay(null)} />;
+  } else if (overlay?.kind === "training-create") {
+    overlayContent = (
       <TrainingForm
         token={token}
         mode="personal"
@@ -147,11 +146,9 @@ function MainContent({ token }: { token: string }) {
         onCancel={() => setOverlay(null)}
       />
     );
-  }
-
-  if (overlay?.kind === "training-edit") {
+  } else if (overlay?.kind === "training-edit") {
     const training = overlay.training;
-    return (
+    overlayContent = (
       <TrainingForm
         token={token}
         mode="personal"
@@ -163,10 +160,8 @@ function MainContent({ token }: { token: string }) {
         onDeleted={() => setOverlay(null)}
       />
     );
-  }
-
-  if (overlay?.kind === "training-detail") {
-    return (
+  } else if (overlay?.kind === "training-detail") {
+    overlayContent = (
       <TrainingDetail
         token={token}
         trainingId={overlay.trainingId}
@@ -174,10 +169,8 @@ function MainContent({ token }: { token: string }) {
         onEdit={(training) => setOverlay({ kind: "training-edit", training })}
       />
     );
-  }
-
-  if (overlay?.kind === "match-detail") {
-    return (
+  } else if (overlay?.kind === "match-detail") {
+    overlayContent = (
       <MatchDetail
         token={token}
         matchId={overlay.matchId}
@@ -187,10 +180,8 @@ function MainContent({ token }: { token: string }) {
         onDeleted={() => setOverlay(null)}
       />
     );
-  }
-
-  if (overlay?.kind === "task-detail") {
-    return (
+  } else if (overlay?.kind === "task-detail") {
+    overlayContent = (
       <TaskDetail
         token={token}
         taskId={overlay.taskId}
@@ -202,10 +193,20 @@ function MainContent({ token }: { token: string }) {
     );
   }
 
+  const hasOverlay = overlayContent !== null;
+
   if (state.status === "ready" && state.data.activeMode === "coach") {
     return (
-      <div style={{ display: "flex", flexDirection: "column", height: "100svh", overflow: "hidden" }}>
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <AppShell
+        navItems={COACH_NAV_ITEMS}
+        activeTab={coachTab}
+        onChangeTab={(tab) => {
+          setOverlay(null);
+          setCoachTab(tab);
+        }}
+        hasOverlay={hasOverlay}
+      >
+        {overlayContent ?? (
           <CoachTabContent
             tab={coachTab}
             token={token}
@@ -215,37 +216,49 @@ function MainContent({ token }: { token: string }) {
             onOpenTeam={(teamId) => setOverlay({ kind: "team", teamId })}
             onCreateTraining={() => setOverlay({ kind: "training-create" })}
           />
-        </div>
-        <BottomNav items={COACH_NAV_ITEMS} active={coachTab} onChange={setCoachTab} />
-      </div>
+        )}
+      </AppShell>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100svh", overflow: "hidden" }}>
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-        {playerTab === "dashboard" && myUserId && (
-          <DashboardScreen
-            token={token}
-            userId={myUserId}
-            onOpenEvent={(event) => setOverlay(calendarEventToOverlay(event))}
-            onOpenTeam={(teamId) => setOverlay({ kind: "team", teamId })}
-            onCreateTraining={() => setOverlay({ kind: "training-create" })}
-            onOpenMyStats={() => setOverlay({ kind: "my-stats" })}
-          />
-        )}
-        {playerTab === "teams" && <MyTeamsScreen token={token} onOpenTeam={(teamId) => setOverlay({ kind: "team", teamId })} />}
-        {playerTab === "calendar" && (
-          <CalendarScreen
-            token={token}
-            onOpenEvent={(event) => setOverlay(calendarEventToOverlay(event))}
-            onCreateTraining={() => setOverlay({ kind: "training-create" })}
-          />
-        )}
-        {playerTab === "profile" && <ProfileScreen token={token} onOpenMyStats={() => setOverlay({ kind: "my-stats" })} />}
-      </div>
-      <BottomNav items={PLAYER_NAV_ITEMS} active={playerTab} onChange={setPlayerTab} />
-    </div>
+    <AppShell
+      navItems={PLAYER_NAV_ITEMS}
+      activeTab={playerTab}
+      onChangeTab={(tab) => {
+        setOverlay(null);
+        setPlayerTab(tab);
+      }}
+      hasOverlay={hasOverlay}
+    >
+      {overlayContent ?? (
+        <>
+          {playerTab === "dashboard" && myUserId && (
+            <DashboardScreen
+              token={token}
+              userId={myUserId}
+              onOpenEvent={(event) => setOverlay(calendarEventToOverlay(event))}
+              onOpenTeam={(teamId) => setOverlay({ kind: "team", teamId })}
+              onCreateTraining={() => setOverlay({ kind: "training-create" })}
+              onOpenMyStats={() => setOverlay({ kind: "my-stats" })}
+            />
+          )}
+          {playerTab === "teams" && (
+            <MyTeamsScreen token={token} onOpenTeam={(teamId) => setOverlay({ kind: "team", teamId })} />
+          )}
+          {playerTab === "calendar" && (
+            <CalendarScreen
+              token={token}
+              onOpenEvent={(event) => setOverlay(calendarEventToOverlay(event))}
+              onCreateTraining={() => setOverlay({ kind: "training-create" })}
+            />
+          )}
+          {playerTab === "profile" && (
+            <ProfileScreen token={token} onOpenMyStats={() => setOverlay({ kind: "my-stats" })} />
+          )}
+        </>
+      )}
+    </AppShell>
   );
 }
 

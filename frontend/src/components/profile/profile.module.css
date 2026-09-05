@@ -6,6 +6,18 @@
   padding-bottom: 32px;
 }
 
+/* Every form (training/task/match/exercise/plan/profile/team) and the
+   Profile tab's own summary root this same class — cap it on desktop so
+   text fields and cards don't stretch across the whole sidebar content
+   width (see AppShell's ~1100px content pane). Left-aligned, not
+   centered, to match the dashboard/list screens starting at the same
+   left edge. */
+@media (min-width: 900px) {
+  .screen {
+    max-width: 560px;
+  }
+}
+
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);

@@ -70,6 +70,23 @@
   background: var(--color-primary-hover);
 }
 
+/* Wraps a list of .teamCard buttons (team list, training list) — kept
+   separate from .screen, which also wraps non-list content (overview hub,
+   stat tiles) that must stay a single vertical stack on desktop too. */
+.cardGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .cardGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    align-items: start;
+  }
+}
+
 .teamCard {
   display: flex;
   flex-direction: column;

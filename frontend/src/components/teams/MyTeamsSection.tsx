@@ -30,33 +30,35 @@ export function MyTeamsSection({ token, onOpenTeam }: { token: string; onOpenTea
           Вы пока не состоите ни в одной команде. Попросите тренера прислать ссылку-приглашение.
         </p>
       )}
-      {teams.map((team) => (
-        <button key={team.id} type="button" className={teamStyles.teamCard} onClick={() => onOpenTeam(team.id)}>
-          <div className={teamStyles.teamCardRow}>
-            <div className={teamStyles.teamAvatar}>
-              {team.logoFileId ? (
-                <AuthenticatedImage token={token} fileId={team.logoFileId} alt="" className={teamStyles.teamAvatarImg} />
-              ) : (
-                team.name.charAt(0).toUpperCase()
-              )}
-            </div>
-            <div className={teamStyles.teamNameCol}>
-              <div className={teamStyles.teamCardTop}>
-                <h3 className={teamStyles.teamName}>{team.name}</h3>
-                {team.status === "without_coach" && (
-                  <span className={`${teamStyles.badge} ${teamStyles.badgeWarning}`}>Без тренера</span>
+      <div className={teamStyles.cardGrid}>
+        {teams.map((team) => (
+          <button key={team.id} type="button" className={teamStyles.teamCard} onClick={() => onOpenTeam(team.id)}>
+            <div className={teamStyles.teamCardRow}>
+              <div className={teamStyles.teamAvatar}>
+                {team.logoFileId ? (
+                  <AuthenticatedImage token={token} fileId={team.logoFileId} alt="" className={teamStyles.teamAvatarImg} />
+                ) : (
+                  team.name.charAt(0).toUpperCase()
                 )}
-                <span className={teamStyles.chevron} aria-hidden="true">
-                  <Icon name="chevron-right" size={18} />
-                </span>
               </div>
-              <p className={teamStyles.teamMeta}>
-                {team.sport} · {team.myRole && TEAM_ROLE_LABELS[team.myRole]}
-              </p>
+              <div className={teamStyles.teamNameCol}>
+                <div className={teamStyles.teamCardTop}>
+                  <h3 className={teamStyles.teamName}>{team.name}</h3>
+                  {team.status === "without_coach" && (
+                    <span className={`${teamStyles.badge} ${teamStyles.badgeWarning}`}>Без тренера</span>
+                  )}
+                  <span className={teamStyles.chevron} aria-hidden="true">
+                    <Icon name="chevron-right" size={18} />
+                  </span>
+                </div>
+                <p className={teamStyles.teamMeta}>
+                  {team.sport} · {team.myRole && TEAM_ROLE_LABELS[team.myRole]}
+                </p>
+              </div>
             </div>
-          </div>
-        </button>
-      ))}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

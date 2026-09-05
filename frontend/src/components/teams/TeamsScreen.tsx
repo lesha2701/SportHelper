@@ -77,43 +77,45 @@ export function TeamsScreen({ token }: { token: string }) {
           description="Создайте свою первую команду, чтобы начать."
         />
       ) : (
-        state.teams.map((team) => (
-          <button
-            key={team.id}
-            type="button"
-            className={styles.teamCard}
-            onClick={() => setView({ screen: "detail", teamId: team.id })}
-          >
-            <div className={styles.teamCardRow}>
-              <div className={styles.teamAvatar}>
-                {team.logoFileId ? (
-                  <AuthenticatedImage
-                    token={token}
-                    fileId={team.logoFileId}
-                    alt=""
-                    className={styles.teamAvatarImg}
-                  />
-                ) : (
-                  team.name.charAt(0).toUpperCase()
-                )}
-              </div>
-              <div className={styles.teamNameCol}>
-                <div className={styles.teamCardTop}>
-                  <h2 className={styles.teamName}>{team.name}</h2>
-                  {team.status === "without_coach" && <span className={`${styles.badge} ${styles.badgeWarning}`}>Без тренера</span>}
-                  <span className={styles.chevron} aria-hidden="true">
-                    <Icon name="chevron-right" size={18} />
-                  </span>
+        <div className={styles.cardGrid}>
+          {state.teams.map((team) => (
+            <button
+              key={team.id}
+              type="button"
+              className={styles.teamCard}
+              onClick={() => setView({ screen: "detail", teamId: team.id })}
+            >
+              <div className={styles.teamCardRow}>
+                <div className={styles.teamAvatar}>
+                  {team.logoFileId ? (
+                    <AuthenticatedImage
+                      token={token}
+                      fileId={team.logoFileId}
+                      alt=""
+                      className={styles.teamAvatarImg}
+                    />
+                  ) : (
+                    team.name.charAt(0).toUpperCase()
+                  )}
                 </div>
-                <p className={styles.teamMeta}>
-                  {team.sport}
-                  {team.ageCategory ? ` · ${team.ageCategory}` : ""} · {team.membersCount} чел.
-                </p>
+                <div className={styles.teamNameCol}>
+                  <div className={styles.teamCardTop}>
+                    <h2 className={styles.teamName}>{team.name}</h2>
+                    {team.status === "without_coach" && <span className={`${styles.badge} ${styles.badgeWarning}`}>Без тренера</span>}
+                    <span className={styles.chevron} aria-hidden="true">
+                      <Icon name="chevron-right" size={18} />
+                    </span>
+                  </div>
+                  <p className={styles.teamMeta}>
+                    {team.sport}
+                    {team.ageCategory ? ` · ${team.ageCategory}` : ""} · {team.membersCount} чел.
+                  </p>
+                </div>
               </div>
-            </div>
-            {team.myRole && <span className={styles.badge}>{TEAM_ROLE_LABELS[team.myRole]}</span>}
-          </button>
-        ))
+              {team.myRole && <span className={styles.badge}>{TEAM_ROLE_LABELS[team.myRole]}</span>}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

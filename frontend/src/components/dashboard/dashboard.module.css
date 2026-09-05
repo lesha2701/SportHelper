@@ -175,3 +175,11 @@
   transform: scale(0.97);
   background: var(--color-primary-hover);
 }
+
+/* Sidebar layout (AppShell, see useIsDesktop) already gives this screen a
+   wider column — spread the KPI tiles out instead of stacking two by two. */
+@media (min-width: 900px) {
+  .kpiRow {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
