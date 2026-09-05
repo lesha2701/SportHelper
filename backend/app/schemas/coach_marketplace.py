@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import time
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
@@ -36,3 +37,22 @@ class CoachMarketplaceSettingsOut(BaseModel):
     offers_offline: bool
     location: str | None
     session_duration_minutes: int | None
+
+
+class AvailabilityWindowIn(BaseModel):
+    weekday: int = Field(ge=0, le=6)
+    start_time: time
+    end_time: time
+
+    @model_validator(mode="after")
+    def _validate_range(self) -> "AvailabilityWindowIn":
+        if self.end_time <= self.start_time:
+            raise ValueError("end_time must be after start_time")
+        return self
+
+
+class AvailabilityWindowOut(BaseModel):
+    id: UUID
+    weekday: int
+    start_time: time
+    end_time: time

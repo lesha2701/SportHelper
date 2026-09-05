@@ -270,6 +270,22 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(coach_marketplace_module, "get_settings", fake_get_marketplace_settings)
     monkeypatch.setattr(coach_marketplace_module, "upsert_settings", fake_upsert_marketplace_settings)
 
+    availability_store: dict = {}
+
+    async def fake_list_availability(conn, coach_user_id):
+        return sorted(
+            [dict(w) for w in availability_store.get(coach_user_id, [])],
+            key=lambda w: (w["weekday"], w["start_time"]),
+        )
+
+    async def fake_replace_availability(conn, coach_user_id, windows):
+        stored = [{"id": uuid4(), **w} for w in windows]
+        availability_store[coach_user_id] = stored
+        return stored
+
+    monkeypatch.setattr(coach_marketplace_module, "list_availability", fake_list_availability)
+    monkeypatch.setattr(coach_marketplace_module, "replace_availability", fake_replace_availability)
+
     def _find_user_by_id(user_id):
         for user in users_store.values():
             if user["id"] == user_id:
