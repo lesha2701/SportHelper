@@ -292,6 +292,119 @@ def client(monkeypatch: pytest.MonkeyPatch):
                 return user
         return None
 
+    import app.repositories.coach_reviews as coach_reviews_module
+
+    reviews_store: dict = {}
+
+    async def fake_get_rating_summary(conn, coach_user_id):
+        ratings = [r["rating"] for r in reviews_store.values() if r["coach_user_id"] == coach_user_id]
+        return {"average": (sum(ratings) / len(ratings)) if ratings else None, "count": len(ratings)}
+
+    async def fake_list_recent_for_coach(conn, coach_user_id, limit=10):
+        items = [r for r in reviews_store.values() if r["coach_user_id"] == coach_user_id]
+        items.sort(key=lambda r: r["created_at"], reverse=True)
+        result = []
+        for r in items[:limit]:
+            author = _find_user_by_id(r["athlete_user_id"])
+            result.append(
+                {
+                    "id": r["id"],
+                    "athlete_first_name": author["first_name"] if author else "",
+                    "rating": r["rating"],
+                    "text": r["text"],
+                    "created_at": r["created_at"],
+                }
+            )
+        return result
+
+    monkeypatch.setattr(coach_reviews_module, "get_rating_summary", fake_get_rating_summary)
+    monkeypatch.setattr(coach_reviews_module, "list_recent_for_coach", fake_list_recent_for_coach)
+
+    bookings_store: dict = {}
+
+    async def fake_list_listed_coaches(conn, *, sport=None, location=None, max_price=None, min_rating=None, training_format=None, min_experience_years=None):
+        cards = []
+        for user_id, profile in coach_store.items():
+            if not profile.get("is_listed"):
+                continue
+            if sport and sport.lower() not in profile["sport"].lower():
+                continue
+            if location and (not profile.get("location") or location.lower() not in profile["location"].lower()):
+                continue
+            if max_price is not None and profile.get("price_per_session") is not None and float(profile["price_per_session"]) > float(max_price):
+                continue
+            if min_experience_years is not None and (profile.get("experience_years") or 0) < min_experience_years:
+                continue
+            if training_format == "online" and not profile.get("offers_online"):
+                continue
+            if training_format == "offline" and not profile.get("offers_offline"):
+                continue
+            rating = await fake_get_rating_summary(conn, user_id)
+            if min_rating is not None and (rating["average"] or 0) < min_rating:
+                continue
+            user_row = _find_user_by_id(user_id)
+            next_slot = await fake_compute_open_slots(conn, user_id, date.today(), date.today() + timedelta(days=28))
+            cards.append(
+                {
+                    "user_id": user_id,
+                    "full_name": profile["full_name"],
+                    "photo_url": user_row["photo_url"] if user_row else None,
+                    "sport": profile["sport"],
+                    "specialization": profile.get("specialization"),
+                    "description": profile.get("description"),
+                    "experience_years": profile.get("experience_years"),
+                    "average_rating": rating["average"],
+                    "review_count": rating["count"],
+                    "price_per_session": profile.get("price_per_session"),
+                    "currency": profile.get("currency", "RUB"),
+                    "location": profile.get("location"),
+                    "offers_online": profile.get("offers_online", False),
+                    "offers_offline": profile.get("offers_offline", False),
+                    "next_available_slot": next_slot[0]["starts_at"] if next_slot else None,
+                }
+            )
+        return cards
+
+    async def fake_get_public_profile(conn, coach_user_id):
+        profile = coach_store.get(coach_user_id)
+        if profile is None or not profile.get("is_listed"):
+            return None
+        cards = await fake_list_listed_coaches(conn)
+        card = next((c for c in cards if c["user_id"] == coach_user_id), None)
+        if card is None:
+            return None
+        card = dict(card)
+        card["session_duration_minutes"] = profile.get("session_duration_minutes")
+        card["availability"] = await fake_list_availability(conn, coach_user_id)
+        card["recent_reviews"] = await fake_list_recent_for_coach(conn, coach_user_id)
+        return card
+
+    async def fake_compute_open_slots(conn, coach_user_id, from_date, to_date):
+        profile = coach_store.get(coach_user_id) or {}
+        duration = profile.get("session_duration_minutes")
+        if not duration:
+            return []
+        windows = await fake_list_availability(conn, coach_user_id)
+        booked = {b["starts_at"] for b in bookings_store.values() if b["coach_user_id"] == coach_user_id and b["status"] == "confirmed"}
+        slots = []
+        day = from_date
+        while day <= to_date:
+            for window in windows:
+                if window["weekday"] != day.weekday():
+                    continue
+                cursor = datetime.combine(day, window["start_time"])
+                window_end = datetime.combine(day, window["end_time"])
+                while cursor + timedelta(minutes=duration) <= window_end:
+                    if cursor not in booked and cursor > datetime.now():
+                        slots.append({"starts_at": cursor, "duration_minutes": duration})
+                    cursor += timedelta(minutes=duration)
+            day += timedelta(days=1)
+        return sorted(slots, key=lambda s: s["starts_at"])
+
+    monkeypatch.setattr(coach_marketplace_module, "list_listed_coaches", fake_list_listed_coaches)
+    monkeypatch.setattr(coach_marketplace_module, "get_public_profile", fake_get_public_profile)
+    monkeypatch.setattr(coach_marketplace_module, "compute_open_slots", fake_compute_open_slots)
+
     teams_store: dict = {}
     members_store: dict = {}
     invites_store: dict = {}
