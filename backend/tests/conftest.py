@@ -122,6 +122,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
     import app.repositories.exercises as exercises_module
     import app.repositories.files as files_module
     import app.repositories.plans as plans_module
+    import app.repositories.bookings as bookings_module
     import app.repositories.coach_marketplace as coach_marketplace_module
     import app.repositories.profiles as profiles_module
     import app.repositories.teams as teams_module
@@ -404,6 +405,59 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(coach_marketplace_module, "list_listed_coaches", fake_list_listed_coaches)
     monkeypatch.setattr(coach_marketplace_module, "get_public_profile", fake_get_public_profile)
     monkeypatch.setattr(coach_marketplace_module, "compute_open_slots", fake_compute_open_slots)
+
+    async def fake_create_booking(conn, *, coach_user_id, athlete_user_id, starts_at, duration_minutes, format, price_per_session, currency, location):
+        if any(b["coach_user_id"] == coach_user_id and b["starts_at"] == starts_at and b["status"] == "confirmed" for b in bookings_store.values()):
+            return None
+        # trainings_module.create_training is already faked below (Task 5's
+        # own client-fixture code, present from before this feature existed)
+        # — calling it here goes through that same fake_create_training,
+        # keyed into the same trainings_store, exactly like the real
+        # repository calls the real create_training.
+        training = await trainings_module.create_training(
+            conn,
+            athlete_user_id,
+            type="personal",
+            training_date=starts_at.date(),
+            start_time=starts_at.time(),
+            duration_minutes=duration_minutes,
+            location=location if format == "offline" else "Онлайн",
+            description="Бронирование тренера через маркетплейс",
+        )
+        booking_id = uuid4()
+        record = {
+            "id": booking_id,
+            "coach_user_id": coach_user_id,
+            "coach_full_name": coach_store[coach_user_id]["full_name"],
+            "athlete_user_id": athlete_user_id,
+            "starts_at": starts_at,
+            "duration_minutes": duration_minutes,
+            "format": format,
+            "price_per_session": price_per_session,
+            "currency": currency,
+            "status": "confirmed",
+            "training_id": training["id"],
+        }
+        bookings_store[booking_id] = record
+        return dict(record)
+
+    async def fake_get_booking(conn, booking_id):
+        record = bookings_store.get(booking_id)
+        return dict(record) if record else None
+
+    async def fake_list_for_athlete(conn, athlete_user_id):
+        items = [dict(b) for b in bookings_store.values() if b["athlete_user_id"] == athlete_user_id]
+        return sorted(items, key=lambda b: b["starts_at"], reverse=True)
+
+    monkeypatch.setattr(bookings_module, "create_booking", fake_create_booking)
+    monkeypatch.setattr(bookings_module, "get_booking", fake_get_booking)
+    monkeypatch.setattr(bookings_module, "list_for_athlete", fake_list_for_athlete)
+    # bookings_module.is_completed is a plain function — not faked, runs for real in tests.
+
+    async def fake_get_by_booking(conn, booking_id):
+        return next((dict(r) for r in reviews_store.values() if r["booking_id"] == booking_id), None)
+
+    monkeypatch.setattr(coach_reviews_module, "get_by_booking", fake_get_by_booking)
 
     teams_store: dict = {}
     members_store: dict = {}
@@ -953,6 +1007,15 @@ def client(monkeypatch: pytest.MonkeyPatch):
         record = {
             "id": training_id,
             "created_by": created_by,
+            # Nullable columns with no DB default — mirror what a real INSERT
+            # that omits them returns via RETURNING (NULL), so callers that
+            # only pass a subset of fields (e.g. bookings_repo.create_booking
+            # for a personal training) get a fully-shaped record just like
+            # against real Postgres.
+            "team_id": None,
+            "plan_id": None,
+            "reminder_minutes_before": None,
+            "responsible_user_id": None,
             "status": "scheduled",
             "recurrence_group_id": None,
             "created_at": now,

@@ -29,3 +29,7 @@ async def list_recent_for_coach(conn: asyncpg.Connection, coach_user_id: UUID, l
         limit,
     )
     return [dict(row) for row in rows]
+
+
+async def get_by_booking(conn: asyncpg.Connection, booking_id) -> dict[str, Any] | None:
+    return None  # replaced with a real query in Task 6
