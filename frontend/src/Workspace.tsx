@@ -14,6 +14,7 @@ import { TaskDetail } from "./components/tasks/TaskDetail";
 import { MatchDetail } from "./components/matches/MatchDetail";
 import { CalendarScreen } from "./components/CalendarScreen";
 import { PlayerStatsScreen } from "./components/stats/PlayerStatsScreen";
+import { CoachMarketplaceScreen } from "./components/coaches/CoachMarketplaceScreen";
 import { StateScreen } from "./components/StateScreen";
 import type { NavItem } from "./components/nav/BottomNav";
 import { AppShell } from "./components/nav/AppShell";
@@ -24,18 +25,19 @@ function readInviteToken(): string | null {
   return new URLSearchParams(window.location.search).get("invite");
 }
 
-type CoachTab = "dashboard" | "teams" | "library" | "calendar" | "profile";
+type CoachTab = "dashboard" | "teams" | "library" | "calendar" | "coaches" | "profile";
 // "Тренировки" was merged into "Календарь" and "Задания" now only lives
 // inside each team screen — see the "Доработки после итерации 15" README
 // section for why. "Главная" (dashboard) was added in the MBA redesign,
 // see docs/superpowers/specs/2026-08-17-mba-redesign-design.md.
-type PlayerTab = "dashboard" | "teams" | "calendar" | "profile";
+type PlayerTab = "dashboard" | "teams" | "calendar" | "coaches" | "profile";
 
 const COACH_NAV_ITEMS: NavItem<CoachTab>[] = [
   { key: "dashboard", label: "Главная", icon: "home" },
   { key: "teams", label: "Команды", icon: "trophy" },
   { key: "library", label: "Библиотека", icon: "book" },
   { key: "calendar", label: "Календарь", icon: "calendar" },
+  { key: "coaches", label: "Тренеры", icon: "users" },
   { key: "profile", label: "Профиль", icon: "user" },
 ];
 
@@ -43,6 +45,7 @@ const PLAYER_NAV_ITEMS: NavItem<PlayerTab>[] = [
   { key: "dashboard", label: "Главная", icon: "home" },
   { key: "teams", label: "Команды", icon: "trophy" },
   { key: "calendar", label: "Календарь", icon: "calendar" },
+  { key: "coaches", label: "Тренеры", icon: "users" },
   { key: "profile", label: "Профиль", icon: "user" },
 ];
 
@@ -102,6 +105,8 @@ function CoachTabContent({
       return <LibraryScreen token={token} />;
     case "calendar":
       return <CalendarScreen token={token} />;
+    case "coaches":
+      return <CoachMarketplaceScreen token={token} />;
     case "profile":
       return <ProfileScreen token={token} onOpenMyStats={onOpenMyStats} />;
   }
@@ -253,6 +258,7 @@ function MainContent({ token }: { token: string }) {
               onCreateTraining={() => setOverlay({ kind: "training-create" })}
             />
           )}
+          {playerTab === "coaches" && <CoachMarketplaceScreen token={token} />}
           {playerTab === "profile" && (
             <ProfileScreen token={token} onOpenMyStats={() => setOverlay({ kind: "my-stats" })} />
           )}
