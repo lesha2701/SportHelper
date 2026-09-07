@@ -20,7 +20,7 @@ export function CoachPublicProfileScreen({
   token: string;
   coachUserId: string;
   onBack: () => void;
-  onBook: () => void;
+  onBook: (coach: CoachPublicProfile) => void;
 }) {
   const [state, setState] = useState<{ status: "loading" } | { status: "error"; message: string } | { status: "ready"; profile: CoachPublicProfile }>({
     status: "loading",
@@ -102,7 +102,7 @@ export function CoachPublicProfileScreen({
               )}
 
               <div className={profileStyles.formActions}>
-                <button type="button" className={profileStyles.buttonPrimary} onClick={onBook}>
+                <button type="button" className={profileStyles.buttonPrimary} onClick={() => onBook(profile)}>
                   Записаться
                 </button>
               </div>

@@ -5,11 +5,17 @@ import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
 import { CoachPublicProfileScreen } from "./CoachPublicProfileScreen";
-import type { CoachCard, CoachListFilters } from "../../types/coach";
+import { BookingFlow } from "./BookingFlow";
+import type { CoachCard, CoachListFilters, CoachPublicProfile } from "../../types/coach";
+import type { Booking } from "../../types/booking";
 import teamStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 
-type View = { screen: "list" } | { screen: "profile"; coachUserId: string };
+type View =
+  | { screen: "list" }
+  | { screen: "profile"; coachUserId: string }
+  | { screen: "booking"; coach: CoachPublicProfile }
+  | { screen: "confirmed"; booking: Booking };
 
 type ListState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; coaches: CoachCard[] };
 
@@ -88,8 +94,40 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
         token={token}
         coachUserId={view.coachUserId}
         onBack={() => setView({ screen: "list" })}
-        onBook={() => {}}
+        onBook={(coach) => setView({ screen: "booking", coach })}
       />
+    );
+  }
+
+  if (view.screen === "booking") {
+    return (
+      <BookingFlow
+        token={token}
+        coach={view.coach}
+        onBack={() => setView({ screen: "profile", coachUserId: view.coach.userId })}
+        onBooked={(booking) => setView({ screen: "confirmed", booking })}
+      />
+    );
+  }
+
+  if (view.screen === "confirmed") {
+    return (
+      <div className={teamStyles.screen}>
+        <div className={teamStyles.teamCard}>
+          <div className={styles.successIcon}>
+            <Icon name="check-circle" size={40} />
+          </div>
+          <h2 className={teamStyles.teamName}>Готово!</h2>
+          <p className={teamStyles.teamMeta}>
+            Бронь с {view.booking.coachFullName} на{" "}
+            {new Date(view.booking.startsAt).toLocaleString("ru-RU", { day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" })}{" "}
+            подтверждена и добавлена в ваш календарь.
+          </p>
+          <button type="button" className={teamStyles.addButton} onClick={() => setView({ screen: "list" })}>
+            К списку тренеров
+          </button>
+        </div>
+      </div>
     );
   }
 
