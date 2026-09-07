@@ -58,6 +58,7 @@ export function BookingFlow({
     setSlots(null);
     setSelectedSlot(null);
     setBookError(null);
+    setSlotsError(null);
     getCoachOpenSlots(token, coach.userId, selectedDay, selectedDay)
       .then(setSlots)
       .catch((err: unknown) => setSlotsError(err instanceof ApiError ? err.message : "Не удалось загрузить слоты"));
@@ -129,7 +130,7 @@ export function BookingFlow({
                 className={key === selectedDay ? styles.dateChipActive : styles.dateChip}
                 onClick={() => setSelectedDay(key)}
               >
-                {d.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })}
+                {d.toLocaleDateString("ru-RU", { day: "2-digit", month: "short", timeZone: "UTC" })}
               </button>
             );
           })}

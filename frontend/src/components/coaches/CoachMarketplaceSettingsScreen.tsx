@@ -36,17 +36,22 @@ export function CoachMarketplaceSettingsScreen({ token, onBack }: { token: strin
   const [windows, setWindows] = useState<WindowDraft[]>([]);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [savingAvailability, setSavingAvailability] = useState(false);
+  const [availabilityLoadError, setAvailabilityLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    getMyAvailability(token).then((loaded) =>
-      setWindows(
-        loaded.map((w: AvailabilityWindow) => ({
-          weekday: w.weekday,
-          startTime: w.startTime.slice(0, 5),
-          endTime: w.endTime.slice(0, 5),
-        })),
-      ),
-    );
+    getMyAvailability(token)
+      .then((loaded) =>
+        setWindows(
+          loaded.map((w: AvailabilityWindow) => ({
+            weekday: w.weekday,
+            startTime: w.startTime.slice(0, 5),
+            endTime: w.endTime.slice(0, 5),
+          })),
+        ),
+      )
+      .catch((err: unknown) => {
+        setAvailabilityLoadError(err instanceof ApiError ? err.message : "Не удалось загрузить расписание");
+      });
   }, [token]);
 
   useEffect(() => {
@@ -76,6 +81,10 @@ export function CoachMarketplaceSettingsScreen({ token, onBack }: { token: strin
 
   const handleSave = async () => {
     setError(null);
+    if (isListed && (!(offersOnline || offersOffline) || !price || !duration)) {
+      setError("Укажите цену, формат и длительность тренировки, прежде чем включать листинг.");
+      return;
+    }
     setSaving(true);
     try {
       const settings = await updateMyMarketplaceSettings(token, {
@@ -219,60 +228,69 @@ export function CoachMarketplaceSettingsScreen({ token, onBack }: { token: strin
         <h2 className={profileStyles.title}>Недельное расписание</h2>
         <p className={profileStyles.subtitle}>Когда вы обычно свободны — из этого система нарежет слоты для записи.</p>
 
-        {windows.map((w, i) => (
-          <div className={styles.weekdayRow} key={i}>
-            <select
-              className={styles.weekdaySelect}
-              value={w.weekday}
-              onChange={(e) => setWindows(windows.map((x, j) => (j === i ? { ...x, weekday: Number(e.target.value) } : x)))}
-            >
-              {WEEKDAY_LABELS.map((label, idx) => (
-                <option key={idx} value={idx}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <input
-              className={styles.timeInput}
-              type="time"
-              value={w.startTime}
-              onChange={(e) => setWindows(windows.map((x, j) => (j === i ? { ...x, startTime: e.target.value } : x)))}
-            />
-            <span>—</span>
-            <input
-              className={styles.timeInput}
-              type="time"
-              value={w.endTime}
-              onChange={(e) => setWindows(windows.map((x, j) => (j === i ? { ...x, endTime: e.target.value } : x)))}
-            />
+        {availabilityLoadError ? (
+          <p className={profileStyles.error}>
+            Не удалось загрузить текущее расписание: {availabilityLoadError}. Сохранение отключено, чтобы случайно не стереть
+            существующие окна — обновите страницу и попробуйте снова.
+          </p>
+        ) : (
+          <>
+            {windows.map((w, i) => (
+              <div className={styles.weekdayRow} key={i}>
+                <select
+                  className={styles.weekdaySelect}
+                  value={w.weekday}
+                  onChange={(e) => setWindows(windows.map((x, j) => (j === i ? { ...x, weekday: Number(e.target.value) } : x)))}
+                >
+                  {WEEKDAY_LABELS.map((label, idx) => (
+                    <option key={idx} value={idx}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className={styles.timeInput}
+                  type="time"
+                  value={w.startTime}
+                  onChange={(e) => setWindows(windows.map((x, j) => (j === i ? { ...x, startTime: e.target.value } : x)))}
+                />
+                <span>—</span>
+                <input
+                  className={styles.timeInput}
+                  type="time"
+                  value={w.endTime}
+                  onChange={(e) => setWindows(windows.map((x, j) => (j === i ? { ...x, endTime: e.target.value } : x)))}
+                />
+                <button
+                  type="button"
+                  className={styles.removeRowButton}
+                  onClick={() => setWindows(windows.filter((_, j) => j !== i))}
+                  aria-label="Удалить"
+                >
+                  <Icon name="trash" size={16} />
+                </button>
+              </div>
+            ))}
+
             <button
               type="button"
-              className={styles.removeRowButton}
-              onClick={() => setWindows(windows.filter((_, j) => j !== i))}
-              aria-label="Удалить"
+              className={profileStyles.buttonSecondary}
+              onClick={() => setWindows([...windows, { weekday: 0, startTime: "10:00", endTime: "12:00" }])}
             >
-              <Icon name="trash" size={16} />
+              <Icon name="plus" size={16} />
+              Добавить окно
             </button>
-          </div>
-        ))}
 
-        <button
-          type="button"
-          className={profileStyles.buttonSecondary}
-          onClick={() => setWindows([...windows, { weekday: 0, startTime: "10:00", endTime: "12:00" }])}
-        >
-          <Icon name="plus" size={16} />
-          Добавить окно
-        </button>
-
-        {availabilityError && <p className={profileStyles.error}>{availabilityError}</p>}
+            {availabilityError && <p className={profileStyles.error}>{availabilityError}</p>}
+          </>
+        )}
 
         <div className={profileStyles.formActions}>
           <button
             type="button"
             className={profileStyles.buttonPrimary}
             onClick={() => void handleSaveAvailability()}
-            disabled={savingAvailability}
+            disabled={savingAvailability || !!availabilityLoadError}
           >
             {savingAvailability ? "Сохранение…" : "Сохранить расписание"}
           </button>
