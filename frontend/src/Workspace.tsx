@@ -106,7 +106,7 @@ function CoachTabContent({
     case "calendar":
       return <CalendarScreen token={token} />;
     case "coaches":
-      return <CoachMarketplaceScreen token={token} />;
+      return <CoachMarketplaceScreen token={token} onOpenCoach={() => {}} />;
     case "profile":
       return <ProfileScreen token={token} onOpenMyStats={onOpenMyStats} />;
   }
@@ -258,7 +258,7 @@ function MainContent({ token }: { token: string }) {
               onCreateTraining={() => setOverlay({ kind: "training-create" })}
             />
           )}
-          {playerTab === "coaches" && <CoachMarketplaceScreen token={token} />}
+          {playerTab === "coaches" && <CoachMarketplaceScreen token={token} onOpenCoach={() => {}} />}
           {playerTab === "profile" && (
             <ProfileScreen token={token} onOpenMyStats={() => setOverlay({ kind: "my-stats" })} />
           )}
