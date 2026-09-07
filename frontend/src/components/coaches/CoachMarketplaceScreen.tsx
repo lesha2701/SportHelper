@@ -4,9 +4,12 @@ import { listCoaches } from "../../api/coaches";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
+import { CoachPublicProfileScreen } from "./CoachPublicProfileScreen";
 import type { CoachCard, CoachListFilters } from "../../types/coach";
 import teamStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
+
+type View = { screen: "list" } | { screen: "profile"; coachUserId: string };
 
 type ListState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; coaches: CoachCard[] };
 
@@ -49,7 +52,8 @@ function CoachCardView({ coach, onOpen }: { coach: CoachCard; onOpen: () => void
   );
 }
 
-export function CoachMarketplaceScreen({ token, onOpenCoach }: { token: string; onOpenCoach: (coachUserId: string) => void }) {
+export function CoachMarketplaceScreen({ token }: { token: string }) {
+  const [view, setView] = useState<View>({ screen: "list" });
   const [state, setState] = useState<ListState>({ status: "loading" });
   const [sport, setSport] = useState("");
   const [location, setLocation] = useState("");
@@ -77,6 +81,17 @@ export function CoachMarketplaceScreen({ token, onOpenCoach }: { token: string; 
       max_price: maxPrice ? Number(maxPrice) : undefined,
     });
   };
+
+  if (view.screen === "profile") {
+    return (
+      <CoachPublicProfileScreen
+        token={token}
+        coachUserId={view.coachUserId}
+        onBack={() => setView({ screen: "list" })}
+        onBook={() => {}}
+      />
+    );
+  }
 
   return (
     <div className={teamStyles.screen}>
@@ -115,7 +130,7 @@ export function CoachMarketplaceScreen({ token, onOpenCoach }: { token: string; 
       {state.status === "ready" && state.coaches.length > 0 && (
         <div className={teamStyles.cardGrid}>
           {state.coaches.map((coach) => (
-            <CoachCardView key={coach.userId} coach={coach} onOpen={() => onOpenCoach(coach.userId)} />
+            <CoachCardView key={coach.userId} coach={coach} onOpen={() => setView({ screen: "profile", coachUserId: coach.userId })} />
           ))}
         </div>
       )}
