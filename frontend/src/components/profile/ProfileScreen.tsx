@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useProfile } from "../../context/ProfileContext";
 import { StateScreen } from "../StateScreen";
+import { CoachMarketplaceSettingsScreen } from "../coaches/CoachMarketplaceSettingsScreen";
 import { CoachProfileForm } from "./CoachProfileForm";
 import { HelpScreen } from "./HelpScreen";
 import { Onboarding } from "./Onboarding";
@@ -12,6 +13,7 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
   const { state, retry, savePlayer, saveCoach, switchMode } = useProfile();
   const [editing, setEditing] = useState<ActiveMode | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [showMarketplaceSettings, setShowMarketplaceSettings] = useState(false);
 
   if (state.status === "loading") {
     return <StateScreen kind="loading" title="Загрузка профиля…" />;
@@ -23,6 +25,10 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
 
   if (showHelp) {
     return <HelpScreen onBack={() => setShowHelp(false)} />;
+  }
+
+  if (showMarketplaceSettings) {
+    return <CoachMarketplaceSettingsScreen token={token} onBack={() => setShowMarketplaceSettings(false)} />;
   }
 
   const { data } = state;
@@ -69,6 +75,7 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
       onCreateOther={(mode) => setEditing(mode)}
       onOpenMyStats={onOpenMyStats}
       onOpenHelp={() => setShowHelp(true)}
+      onOpenMarketplaceSettings={() => setShowMarketplaceSettings(true)}
     />
   );
 }

@@ -13,6 +13,7 @@ interface ProfileSummaryProps {
   onCreateOther: (mode: ActiveMode) => void;
   onOpenMyStats: () => void;
   onOpenHelp: () => void;
+  onOpenMarketplaceSettings: () => void;
 }
 
 function Avatar({ photoUrl, fallbackName }: { photoUrl: string | null; fallbackName: string }) {
@@ -22,7 +23,16 @@ function Avatar({ photoUrl, fallbackName }: { photoUrl: string | null; fallbackN
   return <div className={styles.avatarPlaceholder}>{fallbackName.trim().charAt(0).toUpperCase() || "?"}</div>;
 }
 
-export function ProfileSummary({ token, profile, onEdit, onSwitchMode, onCreateOther, onOpenMyStats, onOpenHelp }: ProfileSummaryProps) {
+export function ProfileSummary({
+  token,
+  profile,
+  onEdit,
+  onSwitchMode,
+  onCreateOther,
+  onOpenMyStats,
+  onOpenHelp,
+  onOpenMarketplaceSettings,
+}: ProfileSummaryProps) {
   const { state: authState } = useAuth();
   const photoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
   const mode: ActiveMode = profile.activeMode ?? (profile.player ? "player" : "coach");
@@ -126,6 +136,15 @@ export function ProfileSummary({ token, profile, onEdit, onSwitchMode, onCreateO
               Редактировать
             </button>
           </div>
+        </div>
+      )}
+
+      {mode === "coach" && profile.coach && (
+        <div className={styles.card}>
+          <button type="button" className={styles.buttonSecondary} onClick={onOpenMarketplaceSettings}>
+            <Icon name="settings" size={17} />
+            Маркетплейс тренеров
+          </button>
         </div>
       )}
 
