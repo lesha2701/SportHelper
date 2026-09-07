@@ -46,10 +46,15 @@ export function BookingFlow({
   const [format, setFormat] = useState<"online" | "offline">(coach.offersOnline ? "online" : "offline");
   const [booking, setBooking] = useState(false);
   const [bookError, setBookError] = useState<string | null>(null);
-  const selectedDayRef = useRef(selectedDay);
+  // Identity-based (not value-based) guard: incremented on every "visit" to
+  // a day — including switching away and switching back to the same date —
+  // so a stale response can only apply to the session it was issued for,
+  // never to a later, unrelated visit that happens to share the same date
+  // string.
+  const daySessionIdRef = useRef(0);
 
   useEffect(() => {
-    selectedDayRef.current = selectedDay;
+    daySessionIdRef.current += 1;
     setSlots(null);
     setSelectedSlot(null);
     setBookError(null);
@@ -60,10 +65,12 @@ export function BookingFlow({
 
   const handleConfirm = async () => {
     if (!selectedSlot) return;
-    // Guard against the user switching to a different date before this
-    // request settles: only apply its outcome (error message, refetch) if
-    // the day is still the one this request was made for.
+    // Guard against the user switching to a different date (or switching
+    // away and back to this one) before this request settles: only apply
+    // its outcome (error message, refetch) if we're still in the same day
+    // session this request was made for.
     const dayAtRequestTime = selectedDay;
+    const sessionIdAtRequestTime = daySessionIdRef.current;
     setBooking(true);
     setBookError(null);
     try {
@@ -74,7 +81,7 @@ export function BookingFlow({
       });
       onBooked(created);
     } catch (err) {
-      if (selectedDayRef.current === dayAtRequestTime) {
+      if (daySessionIdRef.current === sessionIdAtRequestTime) {
         setBookError(
           err instanceof ApiError && err.code === "slot_unavailable"
             ? "Этот слот уже заняли — выберите другое время."
@@ -88,7 +95,7 @@ export function BookingFlow({
       // slot we tried to book) — refresh it so the grid reflects reality.
       getCoachOpenSlots(token, coach.userId, dayAtRequestTime, dayAtRequestTime)
         .then((refreshed) => {
-          if (selectedDayRef.current === dayAtRequestTime) {
+          if (daySessionIdRef.current === sessionIdAtRequestTime) {
             setSlots(refreshed);
           }
         })
