@@ -82,3 +82,43 @@
   background: var(--color-primary-glow);
   color: var(--color-primary);
 }
+
+.weekdayRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.weekdayRow:last-child {
+  border-bottom: none;
+}
+
+.weekdaySelect {
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.timeInput {
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  width: 110px;
+}
+
+.removeRowButton {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 6px;
+}

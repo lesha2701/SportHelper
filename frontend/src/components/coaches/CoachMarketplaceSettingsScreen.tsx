@@ -1,10 +1,10 @@
 // frontend/src/components/coaches/CoachMarketplaceSettingsScreen.tsx
 import { useEffect, useState } from "react";
-import { getMyMarketplaceSettings, updateMyMarketplaceSettings } from "../../api/coaches";
+import { getMyMarketplaceSettings, updateMyMarketplaceSettings, getMyAvailability, replaceMyAvailability } from "../../api/coaches";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
-import type { CoachMarketplaceSettings } from "../../types/coach";
+import type { CoachMarketplaceSettings, AvailabilityWindow } from "../../types/coach";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
@@ -13,6 +13,14 @@ type LoadState =
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "ready"; settings: CoachMarketplaceSettings };
+
+const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+
+interface WindowDraft {
+  weekday: number;
+  startTime: string;
+  endTime: string;
+}
 
 export function CoachMarketplaceSettingsScreen({ token, onBack }: { token: string; onBack: () => void }) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
@@ -25,6 +33,21 @@ export function CoachMarketplaceSettingsScreen({ token, onBack }: { token: strin
   const [duration, setDuration] = useState("60");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [windows, setWindows] = useState<WindowDraft[]>([]);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [savingAvailability, setSavingAvailability] = useState(false);
+
+  useEffect(() => {
+    getMyAvailability(token).then((loaded) =>
+      setWindows(
+        loaded.map((w: AvailabilityWindow) => ({
+          weekday: w.weekday,
+          startTime: w.startTime.slice(0, 5),
+          endTime: w.endTime.slice(0, 5),
+        })),
+      ),
+    );
+  }, [token]);
 
   useEffect(() => {
     getMyMarketplaceSettings(token)
@@ -73,6 +96,27 @@ export function CoachMarketplaceSettingsScreen({ token, onBack }: { token: strin
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveAvailability = async () => {
+    setAvailabilityError(null);
+    setSavingAvailability(true);
+    try {
+      await replaceMyAvailability(
+        token,
+        windows.map((w) => ({ weekday: w.weekday, start_time: `${w.startTime}:00`, end_time: `${w.endTime}:00` })),
+      );
+    } catch (err) {
+      setAvailabilityError(
+        err instanceof ApiError && err.code === "overlapping_availability"
+          ? "Окна пересекаются — поправьте время."
+          : err instanceof ApiError
+            ? err.message
+            : "Не удалось сохранить расписание",
+      );
+    } finally {
+      setSavingAvailability(false);
     }
   };
 
@@ -167,6 +211,70 @@ export function CoachMarketplaceSettingsScreen({ token, onBack }: { token: strin
         <div className={profileStyles.formActions}>
           <button type="button" className={profileStyles.buttonPrimary} onClick={() => void handleSave()} disabled={saving}>
             {saving ? "Сохранение…" : "Сохранить"}
+          </button>
+        </div>
+      </div>
+
+      <div className={profileStyles.card}>
+        <h2 className={profileStyles.title}>Недельное расписание</h2>
+        <p className={profileStyles.subtitle}>Когда вы обычно свободны — из этого система нарежет слоты для записи.</p>
+
+        {windows.map((w, i) => (
+          <div className={styles.weekdayRow} key={i}>
+            <select
+              className={styles.weekdaySelect}
+              value={w.weekday}
+              onChange={(e) => setWindows(windows.map((x, j) => (j === i ? { ...x, weekday: Number(e.target.value) } : x)))}
+            >
+              {WEEKDAY_LABELS.map((label, idx) => (
+                <option key={idx} value={idx}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <input
+              className={styles.timeInput}
+              type="time"
+              value={w.startTime}
+              onChange={(e) => setWindows(windows.map((x, j) => (j === i ? { ...x, startTime: e.target.value } : x)))}
+            />
+            <span>—</span>
+            <input
+              className={styles.timeInput}
+              type="time"
+              value={w.endTime}
+              onChange={(e) => setWindows(windows.map((x, j) => (j === i ? { ...x, endTime: e.target.value } : x)))}
+            />
+            <button
+              type="button"
+              className={styles.removeRowButton}
+              onClick={() => setWindows(windows.filter((_, j) => j !== i))}
+              aria-label="Удалить"
+            >
+              <Icon name="trash" size={16} />
+            </button>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          className={profileStyles.buttonSecondary}
+          onClick={() => setWindows([...windows, { weekday: 0, startTime: "10:00", endTime: "12:00" }])}
+        >
+          <Icon name="plus" size={16} />
+          Добавить окно
+        </button>
+
+        {availabilityError && <p className={profileStyles.error}>{availabilityError}</p>}
+
+        <div className={profileStyles.formActions}>
+          <button
+            type="button"
+            className={profileStyles.buttonPrimary}
+            onClick={() => void handleSaveAvailability()}
+            disabled={savingAvailability}
+          >
+            {savingAvailability ? "Сохранение…" : "Сохранить расписание"}
           </button>
         </div>
       </div>
