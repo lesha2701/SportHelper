@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useProfile } from "../../context/ProfileContext";
 import { StateScreen } from "../StateScreen";
 import { CoachMarketplaceSettingsScreen } from "../coaches/CoachMarketplaceSettingsScreen";
+import { MyBookingsSection } from "../coaches/MyBookingsSection";
 import { CoachProfileForm } from "./CoachProfileForm";
 import { HelpScreen } from "./HelpScreen";
 import { Onboarding } from "./Onboarding";
@@ -14,6 +15,7 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
   const [editing, setEditing] = useState<ActiveMode | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showMarketplaceSettings, setShowMarketplaceSettings] = useState(false);
+  const [showMyBookings, setShowMyBookings] = useState(false);
 
   if (state.status === "loading") {
     return <StateScreen kind="loading" title="Загрузка профиля…" />;
@@ -29,6 +31,10 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
 
   if (showMarketplaceSettings) {
     return <CoachMarketplaceSettingsScreen token={token} onBack={() => setShowMarketplaceSettings(false)} />;
+  }
+
+  if (showMyBookings) {
+    return <MyBookingsSection token={token} onBack={() => setShowMyBookings(false)} onReview={() => {}} />;
   }
 
   const { data } = state;
@@ -76,6 +82,7 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
       onOpenMyStats={onOpenMyStats}
       onOpenHelp={() => setShowHelp(true)}
       onOpenMarketplaceSettings={() => setShowMarketplaceSettings(true)}
+      onOpenMyBookings={() => setShowMyBookings(true)}
     />
   );
 }

@@ -14,6 +14,7 @@ interface ProfileSummaryProps {
   onOpenMyStats: () => void;
   onOpenHelp: () => void;
   onOpenMarketplaceSettings: () => void;
+  onOpenMyBookings: () => void;
 }
 
 function Avatar({ photoUrl, fallbackName }: { photoUrl: string | null; fallbackName: string }) {
@@ -32,6 +33,7 @@ export function ProfileSummary({
   onOpenMyStats,
   onOpenHelp,
   onOpenMarketplaceSettings,
+  onOpenMyBookings,
 }: ProfileSummaryProps) {
   const { state: authState } = useAuth();
   const photoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
@@ -152,6 +154,13 @@ export function ProfileSummary({
         <button type="button" className={styles.buttonPrimary} onClick={onOpenMyStats}>
           <Icon name="award" size={17} />
           Моя статистика
+        </button>
+      </div>
+
+      <div className={styles.card}>
+        <button type="button" className={styles.buttonPrimary} onClick={onOpenMyBookings}>
+          <Icon name="calendar" size={17} />
+          Мои брони
         </button>
       </div>
 
