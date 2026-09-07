@@ -8,11 +8,13 @@ import type { Booking } from "../../types/booking";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
+import { ReviewModal } from "./ReviewModal";
 
-export function MyBookingsSection({ token, onBack, onReview }: { token: string; onBack: () => void; onReview: (booking: Booking) => void }) {
+export function MyBookingsSection({ token, onBack }: { token: string; onBack: () => void }) {
   const [state, setState] = useState<{ status: "loading" } | { status: "error"; message: string } | { status: "ready"; bookings: Booking[] }>({
     status: "loading",
   });
+  const [reviewing, setReviewing] = useState<Booking | null>(null);
 
   useEffect(() => {
     listMyBookings(token)
@@ -64,13 +66,26 @@ export function MyBookingsSection({ token, onBack, onReview }: { token: string; 
             {b.hasReview ? (
               <span className={styles.bookingStatus}>Есть отзыв</span>
             ) : (
-              <button type="button" className={profileStyles.buttonSecondary} onClick={() => onReview(b)}>
+              <button type="button" className={profileStyles.buttonSecondary} onClick={() => setReviewing(b)}>
                 Оставить отзыв
               </button>
             )}
           </div>
         ))}
       </div>
+
+      {reviewing && (
+        <ReviewModal
+          token={token}
+          booking={reviewing}
+          onClose={() => setReviewing(null)}
+          onSubmitted={() => {
+            setReviewing(null);
+            // Re-fetch so hasReview flips and the button becomes the "Есть отзыв" badge.
+            listMyBookings(token).then((bookings) => setState({ status: "ready", bookings }));
+          }}
+        />
+      )}
     </div>
   );
 }

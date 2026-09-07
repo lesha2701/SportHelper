@@ -34,7 +34,7 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
   }
 
   if (showMyBookings) {
-    return <MyBookingsSection token={token} onBack={() => setShowMyBookings(false)} onReview={() => {}} />;
+    return <MyBookingsSection token={token} onBack={() => setShowMyBookings(false)} />;
   }
 
   const { data } = state;
