@@ -120,7 +120,7 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
           <h2 className={teamStyles.teamName}>Готово!</h2>
           <p className={teamStyles.teamMeta}>
             Бронь с {view.booking.coachFullName} на{" "}
-            {new Date(view.booking.startsAt).toLocaleString("ru-RU", { day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" })}{" "}
+            {new Date(view.booking.startsAt).toLocaleString("ru-RU", { day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}{" "}
             подтверждена и добавлена в ваш календарь.
           </p>
           <button type="button" className={teamStyles.addButton} onClick={() => setView({ screen: "list" })}>

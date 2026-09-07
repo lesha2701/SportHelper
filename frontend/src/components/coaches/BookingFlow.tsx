@@ -1,6 +1,6 @@
 // frontend/src/components/coaches/BookingFlow.tsx
 import { useState } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { getCoachOpenSlots } from "../../api/coaches";
 import { createBooking } from "../../api/bookings";
 import { ApiError } from "../../api/client";
@@ -46,10 +46,13 @@ export function BookingFlow({
   const [format, setFormat] = useState<"online" | "offline">(coach.offersOnline ? "online" : "offline");
   const [booking, setBooking] = useState(false);
   const [bookError, setBookError] = useState<string | null>(null);
+  const selectedDayRef = useRef(selectedDay);
 
   useEffect(() => {
+    selectedDayRef.current = selectedDay;
     setSlots(null);
     setSelectedSlot(null);
+    setBookError(null);
     getCoachOpenSlots(token, coach.userId, selectedDay, selectedDay)
       .then(setSlots)
       .catch((err: unknown) => setSlotsError(err instanceof ApiError ? err.message : "Не удалось загрузить слоты"));
@@ -57,6 +60,10 @@ export function BookingFlow({
 
   const handleConfirm = async () => {
     if (!selectedSlot) return;
+    // Guard against the user switching to a different date before this
+    // request settles: only apply its outcome (error message, refetch) if
+    // the day is still the one this request was made for.
+    const dayAtRequestTime = selectedDay;
     setBooking(true);
     setBookError(null);
     try {
@@ -67,18 +74,24 @@ export function BookingFlow({
       });
       onBooked(created);
     } catch (err) {
-      setBookError(
-        err instanceof ApiError && err.code === "slot_unavailable"
-          ? "Этот слот уже заняли — выберите другое время."
-          : err instanceof ApiError
-            ? err.message
-            : "Не удалось создать бронь",
-      );
-      setSelectedSlot(null);
+      if (selectedDayRef.current === dayAtRequestTime) {
+        setBookError(
+          err instanceof ApiError && err.code === "slot_unavailable"
+            ? "Этот слот уже заняли — выберите другое время."
+            : err instanceof ApiError
+              ? err.message
+              : "Не удалось создать бронь",
+        );
+        setSelectedSlot(null);
+      }
       // The slot list may now be stale (e.g. someone else just took the
       // slot we tried to book) — refresh it so the grid reflects reality.
-      getCoachOpenSlots(token, coach.userId, selectedDay, selectedDay)
-        .then(setSlots)
+      getCoachOpenSlots(token, coach.userId, dayAtRequestTime, dayAtRequestTime)
+        .then((refreshed) => {
+          if (selectedDayRef.current === dayAtRequestTime) {
+            setSlots(refreshed);
+          }
+        })
         .catch(() => {
           /* keep the existing (stale) list rather than losing it on a transient refresh error */
         });
@@ -125,9 +138,12 @@ export function BookingFlow({
                 key={slot.startsAt}
                 type="button"
                 className={selectedSlot?.startsAt === slot.startsAt ? styles.slotButtonActive : styles.slotButton}
-                onClick={() => setSelectedSlot(slot)}
+                onClick={() => {
+                  setSelectedSlot(slot);
+                  setBookError(null);
+                }}
               >
-                {new Date(slot.startsAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                {new Date(slot.startsAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}
               </button>
             ))}
           </div>
@@ -166,7 +182,7 @@ export function BookingFlow({
             <div className={profileStyles.row}>
               <span className={profileStyles.rowLabel}>Когда</span>
               <span className={profileStyles.rowValue}>
-                {new Date(selectedSlot.startsAt).toLocaleString("ru-RU", { day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" })}
+                {new Date(selectedSlot.startsAt).toLocaleString("ru-RU", { day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}
               </span>
             </div>
             <div className={profileStyles.row}>
