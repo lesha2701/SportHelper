@@ -165,7 +165,7 @@ export function ProfileSummary({
         <div className={styles.card}>
           <button type="button" className={styles.buttonSecondary} onClick={onOpenMarketplaceSettings}>
             <Icon name="settings" size={17} />
-            Маркетплейс тренеров
+            Мои объявления
           </button>
           <button type="button" className={styles.buttonSecondary} onClick={onOpenIncomingBookings}>
             <Icon name="inbox" size={17} />

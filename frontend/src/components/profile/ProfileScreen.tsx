@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useProfile } from "../../context/ProfileContext";
 import { StateScreen } from "../StateScreen";
-import { CoachMarketplaceSettingsScreen } from "../coaches/CoachMarketplaceSettingsScreen";
+import { MyListingsScreen } from "../coaches/MyListingsScreen";
 import { IncomingBookingsScreen } from "../coaches/IncomingBookingsScreen";
 import { MyBookingsSection } from "../coaches/MyBookingsSection";
 import { CoachProfileForm } from "./CoachProfileForm";
@@ -38,7 +38,7 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
   }
 
   if (showMarketplaceSettings) {
-    return <CoachMarketplaceSettingsScreen token={token} onBack={() => setShowMarketplaceSettings(false)} />;
+    return <MyListingsScreen token={token} onBack={() => setShowMarketplaceSettings(false)} />;
   }
 
   if (showIncomingBookings) {
