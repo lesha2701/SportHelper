@@ -37,15 +37,21 @@ export function NotificationSettings({ token }: { token: string }) {
       <h2 className={styles.title}>Уведомления</h2>
       {error && <p className={styles.error}>{error}</p>}
       {preferences.map((preference) => (
-        <label key={preference.category} style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, padding: "4px 0" }}>
-          <input
-            type="checkbox"
-            checked={preference.enabled}
+        <div className={styles.toggleRow} key={preference.category}>
+          <div className={styles.toggleLabel}>
+            <span className={styles.toggleTitle}>{NOTIFICATION_CATEGORY_LABELS[preference.category]}</span>
+          </div>
+          <button
+            type="button"
+            className={preference.enabled ? `${styles.switch} ${styles.switchOn}` : styles.switch}
+            role="switch"
+            aria-checked={preference.enabled}
             disabled={busyCategory === preference.category}
-            onChange={() => void toggle(preference)}
-          />
-          <span>{NOTIFICATION_CATEGORY_LABELS[preference.category]}</span>
-        </label>
+            onClick={() => void toggle(preference)}
+          >
+            <span className={styles.switchKnob} />
+          </button>
+        </div>
       ))}
     </div>
   );

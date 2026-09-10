@@ -8,12 +8,14 @@ import { HelpScreen } from "./HelpScreen";
 import { Onboarding } from "./Onboarding";
 import { PlayerProfileForm } from "./PlayerProfileForm";
 import { ProfileSummary } from "./ProfileSummary";
+import { SettingsScreen } from "./SettingsScreen";
 import type { ActiveMode } from "../../types/profile";
 
 export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenMyStats: () => void }) {
   const { state, retry, savePlayer, saveCoach, switchMode } = useProfile();
   const [editing, setEditing] = useState<ActiveMode | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [showMarketplaceSettings, setShowMarketplaceSettings] = useState(false);
   const [showMyBookings, setShowMyBookings] = useState(false);
 
@@ -27,6 +29,10 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
 
   if (showHelp) {
     return <HelpScreen onBack={() => setShowHelp(false)} />;
+  }
+
+  if (showSettings) {
+    return <SettingsScreen token={token} onBack={() => setShowSettings(false)} />;
   }
 
   if (showMarketplaceSettings) {
@@ -72,7 +78,6 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
 
   return (
     <ProfileSummary
-      token={token}
       profile={data}
       onEdit={(mode) => setEditing(mode)}
       onSwitchMode={(mode) => {
@@ -81,6 +86,7 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
       onCreateOther={(mode) => setEditing(mode)}
       onOpenMyStats={onOpenMyStats}
       onOpenHelp={() => setShowHelp(true)}
+      onOpenSettings={() => setShowSettings(true)}
       onOpenMarketplaceSettings={() => setShowMarketplaceSettings(true)}
       onOpenMyBookings={() => setShowMyBookings(true)}
     />

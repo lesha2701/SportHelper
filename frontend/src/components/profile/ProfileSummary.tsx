@@ -1,18 +1,16 @@
 import { useAuth } from "../../context/AuthContext";
-import { NotificationSettings } from "./NotificationSettings";
-import { ThemeToggle } from "./ThemeToggle";
 import { Icon } from "../shared/Icon";
 import { SKILL_LEVEL_LABELS, type ActiveMode, type ProfileMe } from "../../types/profile";
 import styles from "./profile.module.css";
 
 interface ProfileSummaryProps {
-  token: string;
   profile: ProfileMe;
   onEdit: (mode: ActiveMode) => void;
   onSwitchMode: (mode: ActiveMode) => void;
   onCreateOther: (mode: ActiveMode) => void;
   onOpenMyStats: () => void;
   onOpenHelp: () => void;
+  onOpenSettings: () => void;
   onOpenMarketplaceSettings: () => void;
   onOpenMyBookings: () => void;
 }
@@ -25,13 +23,13 @@ function Avatar({ photoUrl, fallbackName }: { photoUrl: string | null; fallbackN
 }
 
 export function ProfileSummary({
-  token,
   profile,
   onEdit,
   onSwitchMode,
   onCreateOther,
   onOpenMyStats,
   onOpenHelp,
+  onOpenSettings,
   onOpenMarketplaceSettings,
   onOpenMyBookings,
 }: ProfileSummaryProps) {
@@ -49,6 +47,9 @@ export function ProfileSummary({
               <h1 className={styles.title}>{profile.player.fullName}</h1>
               <p className={styles.subtitle}>Профиль игрока</p>
             </div>
+            <button type="button" className={styles.settingsButton} onClick={onOpenSettings} aria-label="Настройки">
+              <Icon name="settings" size={18} />
+            </button>
           </div>
 
           <div className={styles.row}>
@@ -108,6 +109,9 @@ export function ProfileSummary({
               <h1 className={styles.title}>{profile.coach.fullName}</h1>
               <p className={styles.subtitle}>Профиль тренера</p>
             </div>
+            <button type="button" className={styles.settingsButton} onClick={onOpenSettings} aria-label="Настройки">
+              <Icon name="settings" size={18} />
+            </button>
           </div>
 
           <div className={styles.row}>
@@ -163,10 +167,6 @@ export function ProfileSummary({
           Мои брони
         </button>
       </div>
-
-      <ThemeToggle />
-
-      <NotificationSettings token={token} />
 
       <div className={styles.card}>
         <button type="button" className={styles.buttonSecondary} onClick={onOpenHelp}>
