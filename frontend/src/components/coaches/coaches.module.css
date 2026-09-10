@@ -437,3 +437,27 @@
   font-weight: 700;
   margin-left: auto;
 }
+
+.listingCardPhoto {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+}
+
+.listingPhoto {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  margin: 8px 0;
+}
+
+.listingVideo {
+  width: 100%;
+  border-radius: var(--radius-md);
+  background: #000;
+  margin: 8px 0;
+}

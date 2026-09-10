@@ -1,12 +1,12 @@
 // frontend/src/components/coaches/BookingFlow.tsx
 import { useState } from "react";
 import { useEffect, useRef } from "react";
-import { getCoachOpenSlots } from "../../api/coaches";
+import { getListingOpenSlots } from "../../api/coachListings";
 import { createBooking } from "../../api/bookings";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
-import type { CoachPublicProfile, OpenSlot } from "../../types/coach";
+import type { CoachListingProfile, OpenSlot } from "../../types/coachListing";
 import type { Booking } from "../../types/booking";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
@@ -29,12 +29,12 @@ function toDateKey(d: Date): string {
 
 export function BookingFlow({
   token,
-  coach,
+  listing,
   onBack,
   onBooked,
 }: {
   token: string;
-  coach: CoachPublicProfile;
+  listing: CoachListingProfile;
   onBack: () => void;
   onBooked: (booking: Booking) => void;
 }) {
@@ -43,14 +43,9 @@ export function BookingFlow({
   const [slots, setSlots] = useState<OpenSlot[] | null>(null);
   const [slotsError, setSlotsError] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<OpenSlot | null>(null);
-  const [format, setFormat] = useState<"online" | "offline">(coach.offersOnline ? "online" : "offline");
+  const [format, setFormat] = useState<"online" | "offline">(listing.offersOnline ? "online" : "offline");
   const [booking, setBooking] = useState(false);
   const [bookError, setBookError] = useState<string | null>(null);
-  // Identity-based (not value-based) guard: incremented on every "visit" to
-  // a day — including switching away and switching back to the same date —
-  // so a stale response can only apply to the session it was issued for,
-  // never to a later, unrelated visit that happens to share the same date
-  // string.
   const daySessionIdRef = useRef(0);
 
   useEffect(() => {
@@ -59,24 +54,20 @@ export function BookingFlow({
     setSelectedSlot(null);
     setBookError(null);
     setSlotsError(null);
-    getCoachOpenSlots(token, coach.userId, selectedDay, selectedDay)
+    getListingOpenSlots(token, listing.id, selectedDay, selectedDay)
       .then(setSlots)
       .catch((err: unknown) => setSlotsError(err instanceof ApiError ? err.message : "Не удалось загрузить слоты"));
-  }, [token, coach.userId, selectedDay]);
+  }, [token, listing.id, selectedDay]);
 
   const handleConfirm = async () => {
     if (!selectedSlot) return;
-    // Guard against the user switching to a different date (or switching
-    // away and back to this one) before this request settles: only apply
-    // its outcome (error message, refetch) if we're still in the same day
-    // session this request was made for.
     const dayAtRequestTime = selectedDay;
     const sessionIdAtRequestTime = daySessionIdRef.current;
     setBooking(true);
     setBookError(null);
     try {
       const created = await createBooking(token, {
-        coach_user_id: coach.userId,
+        listing_id: listing.id,
         starts_at: selectedSlot.startsAt,
         format,
       });
@@ -92,9 +83,7 @@ export function BookingFlow({
         );
         setSelectedSlot(null);
       }
-      // The slot list may now be stale (e.g. someone else just took the
-      // slot we tried to book) — refresh it so the grid reflects reality.
-      getCoachOpenSlots(token, coach.userId, dayAtRequestTime, dayAtRequestTime)
+      getListingOpenSlots(token, listing.id, dayAtRequestTime, dayAtRequestTime)
         .then((refreshed) => {
           if (daySessionIdRef.current === sessionIdAtRequestTime) {
             setSlots(refreshed);
@@ -118,7 +107,8 @@ export function BookingFlow({
       </div>
 
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>Запись к {coach.fullName}</h1>
+        <h1 className={profileStyles.pageHeading}>Запись: {listing.title}</h1>
+        <p className={profileStyles.subtitle}>{listing.coachFullName}</p>
 
         <div className={styles.dateStrip}>
           {days.map((d) => {
@@ -159,7 +149,7 @@ export function BookingFlow({
 
         {bookError && <p className={profileStyles.error}>{bookError}</p>}
 
-        {coach.offersOnline && coach.offersOffline && (
+        {listing.offersOnline && listing.offersOffline && (
           <div className={profileStyles.field}>
             <span className={profileStyles.label}>Формат</span>
             <div className={styles.dateStrip}>
@@ -184,8 +174,12 @@ export function BookingFlow({
         {selectedSlot && (
           <div className={styles.confirmSummary}>
             <div className={profileStyles.row}>
+              <span className={profileStyles.rowLabel}>Объявление</span>
+              <span className={profileStyles.rowValue}>{listing.title}</span>
+            </div>
+            <div className={profileStyles.row}>
               <span className={profileStyles.rowLabel}>Тренер</span>
-              <span className={profileStyles.rowValue}>{coach.fullName}</span>
+              <span className={profileStyles.rowValue}>{listing.coachFullName}</span>
             </div>
             <div className={profileStyles.row}>
               <span className={profileStyles.rowLabel}>Когда</span>
@@ -195,12 +189,12 @@ export function BookingFlow({
             </div>
             <div className={profileStyles.row}>
               <span className={profileStyles.rowLabel}>Формат</span>
-              <span className={profileStyles.rowValue}>{format === "online" ? "Онлайн" : `Очно${coach.location ? `, ${coach.location}` : ""}`}</span>
+              <span className={profileStyles.rowValue}>{format === "online" ? "Онлайн" : `Очно${listing.location ? `, ${listing.location}` : ""}`}</span>
             </div>
             <div className={profileStyles.row}>
               <span className={profileStyles.rowLabel}>Стоимость</span>
               <span className={profileStyles.rowValue}>
-                {coach.pricePerSession !== null ? `${coach.pricePerSession} ${coach.currency}` : "Не указана"}
+                {listing.pricePerSession !== null ? `${listing.pricePerSession} ${listing.currency}` : "Не указана"}
               </span>
             </div>
             <p className={profileStyles.subtitle}>Заявка уйдёт тренеру на подтверждение — она появится в календаре, как только он её примет.</p>

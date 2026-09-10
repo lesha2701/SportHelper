@@ -1,56 +1,61 @@
 // frontend/src/components/coaches/CoachMarketplaceScreen.tsx
 import { useEffect, useState } from "react";
-import { listCoaches } from "../../api/coaches";
+import { listListings } from "../../api/coachListings";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
-import { CoachPublicProfileScreen } from "./CoachPublicProfileScreen";
+import { AuthenticatedImage } from "../shared/AuthenticatedImage";
+import { ListingPublicProfileScreen } from "./ListingPublicProfileScreen";
 import { BookingFlow } from "./BookingFlow";
-import type { CoachCard, CoachListFilters, CoachPublicProfile } from "../../types/coach";
+import type { CoachListingCard, CoachListingFilters, CoachListingProfile } from "../../types/coachListing";
 import type { Booking } from "../../types/booking";
 import teamStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 
 type View =
   | { screen: "list" }
-  | { screen: "profile"; coachUserId: string }
-  | { screen: "booking"; coach: CoachPublicProfile }
+  | { screen: "profile"; listingId: string }
+  | { screen: "booking"; listing: CoachListingProfile }
   | { screen: "confirmed"; booking: Booking };
 
-type ListState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; coaches: CoachCard[] };
+type ListState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; listings: CoachListingCard[] };
 
-function CoachCardView({ coach, onOpen }: { coach: CoachCard; onOpen: () => void }) {
+function ListingCardView({ token, listing, onOpen }: { token: string; listing: CoachListingCard; onOpen: () => void }) {
   return (
     <button type="button" className={styles.coachCard} onClick={onOpen}>
       <div className={styles.coachCardTop}>
-        {coach.photoUrl ? (
-          <img className={styles.coachAvatar} src={coach.photoUrl} alt="" />
+        {listing.coachPhotoUrl ? (
+          <img className={styles.coachAvatar} src={listing.coachPhotoUrl} alt="" />
         ) : (
-          <div className={styles.coachAvatar}>{coach.fullName.charAt(0).toUpperCase()}</div>
+          <div className={styles.coachAvatar}>{listing.coachFullName.charAt(0).toUpperCase()}</div>
         )}
         <div>
-          <h3 className={styles.coachName}>{coach.fullName}</h3>
+          <h3 className={styles.coachName}>{listing.title}</h3>
           <p className={styles.coachMeta}>
-            {coach.sport}
-            {coach.experienceYears !== null ? ` · ${coach.experienceYears} лет опыта` : ""}
+            {listing.coachFullName} · {listing.sport}
+            {listing.experienceYears !== null ? ` · ${listing.experienceYears} лет опыта` : ""}
           </p>
-          {coach.averageRating !== null && (
+          {listing.averageRating !== null && (
             <p className={styles.coachMeta}>
-              <span className={styles.starRating}>★ {coach.averageRating.toFixed(1)}</span> ({coach.reviewCount})
+              <span className={styles.starRating}>★ {listing.averageRating.toFixed(1)}</span> ({listing.reviewCount})
             </p>
           )}
         </div>
       </div>
 
-      {coach.description && <p className={styles.coachDescription}>{coach.description}</p>}
+      {listing.photoFileId && (
+        <AuthenticatedImage token={token} fileId={listing.photoFileId} alt={listing.title} className={styles.listingCardPhoto} />
+      )}
+
+      {listing.description && <p className={styles.coachDescription}>{listing.description}</p>}
 
       <div className={styles.coachFooterRow}>
         <span className={styles.coachPrice}>
-          {coach.pricePerSession !== null ? `${coach.pricePerSession} ${coach.currency}` : "Цена не указана"}
+          {listing.pricePerSession !== null ? `${listing.pricePerSession} ${listing.currency}` : "Цена не указана"}
         </span>
-        {coach.location && (
+        {listing.location && (
           <span className={teamStyles.teamMeta}>
-            <Icon name="map-pin" size={13} /> {coach.location}
+            <Icon name="map-pin" size={13} /> {listing.location}
           </span>
         )}
       </div>
@@ -65,10 +70,10 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
   const [location, setLocation] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
 
-  const load = (filters: CoachListFilters) => {
+  const load = (filters: CoachListingFilters) => {
     setState({ status: "loading" });
-    listCoaches(token, filters)
-      .then((coaches) => setState({ status: "ready", coaches }))
+    listListings(token, filters)
+      .then((listings) => setState({ status: "ready", listings }))
       .catch((err: unknown) => {
         const message = err instanceof ApiError ? err.message : "Не удалось загрузить список тренеров";
         setState({ status: "error", message });
@@ -90,11 +95,11 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
 
   if (view.screen === "profile") {
     return (
-      <CoachPublicProfileScreen
+      <ListingPublicProfileScreen
         token={token}
-        coachUserId={view.coachUserId}
+        listingId={view.listingId}
         onBack={() => setView({ screen: "list" })}
-        onBook={(coach) => setView({ screen: "booking", coach })}
+        onBook={(listing) => setView({ screen: "booking", listing })}
       />
     );
   }
@@ -103,8 +108,8 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
     return (
       <BookingFlow
         token={token}
-        coach={view.coach}
-        onBack={() => setView({ screen: "profile", coachUserId: view.coach.userId })}
+        listing={view.listing}
+        onBack={() => setView({ screen: "profile", listingId: view.listing.id })}
         onBooked={(booking) => setView({ screen: "confirmed", booking })}
       />
     );
@@ -162,13 +167,18 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
 
       {state.status === "loading" && <StateScreen kind="loading" title="Загрузка тренеров…" />}
       {state.status === "error" && <StateScreen kind="error" title="Не удалось загрузить тренеров" description={state.message} onRetry={() => load({})} />}
-      {state.status === "ready" && state.coaches.length === 0 && (
-        <StateScreen kind="empty" title="Пока никого нет" description="Тренеры появятся здесь, когда включат листинг." />
+      {state.status === "ready" && state.listings.length === 0 && (
+        <StateScreen kind="empty" title="Пока никого нет" description="Объявления появятся здесь, когда тренеры их опубликуют." />
       )}
-      {state.status === "ready" && state.coaches.length > 0 && (
+      {state.status === "ready" && state.listings.length > 0 && (
         <div className={teamStyles.cardGrid}>
-          {state.coaches.map((coach) => (
-            <CoachCardView key={coach.userId} coach={coach} onOpen={() => setView({ screen: "profile", coachUserId: coach.userId })} />
+          {state.listings.map((listing) => (
+            <ListingCardView
+              key={listing.id}
+              token={token}
+              listing={listing}
+              onOpen={() => setView({ screen: "profile", listingId: listing.id })}
+            />
           ))}
         </div>
       )}

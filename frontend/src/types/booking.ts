@@ -6,6 +6,8 @@ export interface BookingDto {
   id: string;
   coach_user_id: string;
   coach_full_name: string;
+  listing_id: string | null;
+  listing_title: string | null;
   athlete_user_id: string;
   starts_at: string;
   duration_minutes: number;
@@ -22,6 +24,8 @@ export interface Booking {
   id: string;
   coachUserId: string;
   coachFullName: string;
+  listingId: string | null;
+  listingTitle: string | null;
   athleteUserId: string;
   startsAt: string;
   durationMinutes: number;
@@ -39,6 +43,8 @@ export function mapBookingDto(dto: BookingDto): Booking {
     id: dto.id,
     coachUserId: dto.coach_user_id,
     coachFullName: dto.coach_full_name,
+    listingId: dto.listing_id,
+    listingTitle: dto.listing_title,
     athleteUserId: dto.athlete_user_id,
     startsAt: dto.starts_at,
     durationMinutes: dto.duration_minutes,
@@ -53,7 +59,7 @@ export function mapBookingDto(dto: BookingDto): Booking {
 }
 
 export interface BookingInput {
-  coach_user_id: string;
+  listing_id: string;
   starts_at: string;
   format: "online" | "offline";
 }
@@ -72,6 +78,7 @@ export interface ReviewDto {
 
 export interface PendingBookingDto {
   id: string;
+  listing_title: string | null;
   athlete_user_id: string;
   athlete_full_name: string;
   starts_at: string;
@@ -84,6 +91,7 @@ export interface PendingBookingDto {
 
 export interface PendingBooking {
   id: string;
+  listingTitle: string | null;
   athleteUserId: string;
   athleteFullName: string;
   startsAt: string;
@@ -97,6 +105,7 @@ export interface PendingBooking {
 export function mapPendingBookingDto(dto: PendingBookingDto): PendingBooking {
   return {
     id: dto.id,
+    listingTitle: dto.listing_title,
     athleteUserId: dto.athlete_user_id,
     athleteFullName: dto.athlete_full_name,
     startsAt: dto.starts_at,
