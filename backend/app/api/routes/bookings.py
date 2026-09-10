@@ -10,7 +10,7 @@ from app.core.exceptions import APIError, ForbiddenError, NotFoundError
 from app.repositories import bookings as bookings_repo
 from app.repositories import coach_marketplace as marketplace_repo
 from app.repositories import coach_reviews as coach_reviews_repo
-from app.schemas.booking import BookingIn, BookingOut, ReviewIn, ReviewOut
+from app.schemas.booking import BookingIn, BookingOut, PendingBookingOut, ReviewIn, ReviewOut
 
 router = APIRouter(prefix="/api/bookings", tags=["bookings"])
 
@@ -75,6 +75,49 @@ async def list_my_bookings(
 ) -> list[BookingOut]:
     bookings = await bookings_repo.list_for_athlete(conn, user["id"])
     return [await _to_out(conn, b) for b in bookings]
+
+
+@router.get("/coach/pending", response_model=list[PendingBookingOut])
+async def list_pending_bookings(
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> list[PendingBookingOut]:
+    rows = await bookings_repo.list_pending_for_coach(conn, user["id"])
+    return [PendingBookingOut(**row) for row in rows]
+
+
+@router.post("/{booking_id}/confirm", response_model=BookingOut)
+async def confirm_booking(
+    booking_id: UUID,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> BookingOut:
+    booking = await bookings_repo.get_booking(conn, booking_id)
+    if booking is None:
+        raise NotFoundError("booking not found")
+    if booking["coach_user_id"] != user["id"]:
+        raise ForbiddenError("you can only confirm your own bookings")
+    confirmed = await bookings_repo.confirm_booking(conn, booking_id=booking_id, coach_user_id=user["id"])
+    if confirmed is None:
+        raise APIError("booking is no longer pending", code="booking_not_pending", status_code=409)
+    return await _to_out(conn, confirmed)
+
+
+@router.post("/{booking_id}/decline", response_model=BookingOut)
+async def decline_booking(
+    booking_id: UUID,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> BookingOut:
+    booking = await bookings_repo.get_booking(conn, booking_id)
+    if booking is None:
+        raise NotFoundError("booking not found")
+    if booking["coach_user_id"] != user["id"]:
+        raise ForbiddenError("you can only decline your own bookings")
+    declined = await bookings_repo.decline_booking(conn, booking_id=booking_id, coach_user_id=user["id"])
+    if declined is None:
+        raise APIError("booking is no longer pending", code="booking_not_pending", status_code=409)
+    return await _to_out(conn, declined)
 
 
 @router.post("/{booking_id}/reviews", response_model=ReviewOut)

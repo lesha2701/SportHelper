@@ -44,6 +44,18 @@ class BookingOut(BaseModel):
     has_review: bool
 
 
+class PendingBookingOut(BaseModel):
+    id: UUID
+    athlete_user_id: UUID
+    athlete_full_name: str
+    starts_at: datetime
+    duration_minutes: int
+    format: str
+    price_per_session: float | None
+    currency: str
+    created_at: datetime
+
+
 class ReviewIn(BaseModel):
     rating: int = Field(ge=1, le=5)
     text: str | None = Field(default=None, max_length=2000)

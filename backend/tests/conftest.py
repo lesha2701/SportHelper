@@ -444,9 +444,66 @@ def client(monkeypatch: pytest.MonkeyPatch):
         items = [dict(b) for b in bookings_store.values() if b["athlete_user_id"] == athlete_user_id]
         return sorted(items, key=lambda b: b["starts_at"], reverse=True)
 
+    async def fake_confirm_booking(conn, *, booking_id, coach_user_id):
+        record = bookings_store.get(booking_id)
+        if record is None or record["coach_user_id"] != coach_user_id or record["status"] != "pending":
+            return None
+        coach_profile = coach_store.get(coach_user_id, {})
+        training = await trainings_module.create_training(
+            conn,
+            record["athlete_user_id"],
+            type="personal",
+            training_date=record["starts_at"].date(),
+            start_time=record["starts_at"].time(),
+            duration_minutes=record["duration_minutes"],
+            location=coach_profile.get("location") if record["format"] == "offline" else "Онлайн",
+            description="Бронирование тренера через маркетплейс",
+        )
+        record["status"] = "confirmed"
+        record["training_id"] = training["id"]
+        record["responded_at"] = datetime.now(timezone.utc)
+        return dict(record)
+
+    async def fake_decline_booking(conn, *, booking_id, coach_user_id):
+        record = bookings_store.get(booking_id)
+        if record is None or record["coach_user_id"] != coach_user_id or record["status"] != "pending":
+            return None
+        record["status"] = "declined"
+        record["responded_at"] = datetime.now(timezone.utc)
+        return dict(record)
+
+    async def fake_list_pending_for_coach(conn, coach_user_id):
+        items = sorted(
+            (b for b in bookings_store.values() if b["coach_user_id"] == coach_user_id and b["status"] == "pending"),
+            key=lambda b: b["created_at"],
+        )
+        result = []
+        for b in items:
+            athlete = _find_user_by_id(b["athlete_user_id"])
+            full_name = (athlete["first_name"] if athlete else "") + (
+                f" {athlete['last_name']}" if athlete and athlete.get("last_name") else ""
+            )
+            result.append(
+                {
+                    "id": b["id"],
+                    "athlete_user_id": b["athlete_user_id"],
+                    "athlete_full_name": full_name,
+                    "starts_at": b["starts_at"],
+                    "duration_minutes": b["duration_minutes"],
+                    "format": b["format"],
+                    "price_per_session": b["price_per_session"],
+                    "currency": b["currency"],
+                    "created_at": b["created_at"],
+                }
+            )
+        return result
+
     monkeypatch.setattr(bookings_module, "create_booking", fake_create_booking)
     monkeypatch.setattr(bookings_module, "get_booking", fake_get_booking)
     monkeypatch.setattr(bookings_module, "list_for_athlete", fake_list_for_athlete)
+    monkeypatch.setattr(bookings_module, "confirm_booking", fake_confirm_booking)
+    monkeypatch.setattr(bookings_module, "decline_booking", fake_decline_booking)
+    monkeypatch.setattr(bookings_module, "list_pending_for_coach", fake_list_pending_for_coach)
     # bookings_module.is_completed is a plain function — not faked, runs for real in tests.
 
     async def fake_get_by_booking(conn, booking_id):

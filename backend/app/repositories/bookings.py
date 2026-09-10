@@ -7,6 +7,8 @@ from uuid import UUID
 
 import asyncpg
 
+from app.repositories import trainings as trainings_repo
+
 _BOOKING_FIELDS = (
     "b.id, b.coach_user_id, cp.full_name AS coach_full_name, b.athlete_user_id, b.starts_at, "
     "b.duration_minutes, b.format, b.price_per_session, b.currency, b.status, b.training_id"
@@ -89,3 +91,64 @@ async def list_for_athlete(conn: asyncpg.Connection, athlete_user_id: UUID) -> l
 def is_completed(booking: dict[str, Any]) -> bool:
     ends_at = booking["starts_at"] + timedelta(minutes=booking["duration_minutes"])
     return booking["status"] == "confirmed" and datetime.now(ends_at.tzinfo) > ends_at
+
+
+async def confirm_booking(conn: asyncpg.Connection, *, booking_id: UUID, coach_user_id: UUID) -> dict[str, Any] | None:
+    """Confirms a pending booking: creates the linked Training and flips the
+    booking to 'confirmed', in one transaction. Returns None if the booking
+    isn't this coach's currently-pending one (already handled, or a race
+    with the expiry sweep) — the route layer turns that into a 409."""
+    async with conn.transaction():
+        booking = await conn.fetchrow(
+            "SELECT * FROM bookings WHERE id = $1 AND coach_user_id = $2 AND status = 'pending' FOR UPDATE",
+            booking_id,
+            coach_user_id,
+        )
+        if booking is None:
+            return None
+        coach_profile = await conn.fetchrow("SELECT location FROM coach_profiles WHERE user_id = $1", coach_user_id)
+        training = await trainings_repo.create_training(
+            conn,
+            booking["athlete_user_id"],
+            type="personal",
+            training_date=booking["starts_at"].date(),
+            start_time=booking["starts_at"].time(),
+            duration_minutes=booking["duration_minutes"],
+            location=coach_profile["location"] if booking["format"] == "offline" else "Онлайн",
+            description="Бронирование тренера через маркетплейс",
+        )
+        await conn.execute(
+            "UPDATE bookings SET status = 'confirmed', training_id = $1, responded_at = now() WHERE id = $2",
+            training["id"],
+            booking_id,
+        )
+    return await get_booking(conn, booking_id)
+
+
+async def decline_booking(conn: asyncpg.Connection, *, booking_id: UUID, coach_user_id: UUID) -> dict[str, Any] | None:
+    """Returns None if the booking isn't this coach's currently-pending one."""
+    result = await conn.execute(
+        "UPDATE bookings SET status = 'declined', responded_at = now() "
+        "WHERE id = $1 AND coach_user_id = $2 AND status = 'pending'",
+        booking_id,
+        coach_user_id,
+    )
+    if not result.endswith("1"):
+        return None
+    return await get_booking(conn, booking_id)
+
+
+async def list_pending_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) -> list[dict[str, Any]]:
+    rows = await conn.fetch(
+        """
+        SELECT b.id, b.athlete_user_id, b.starts_at, b.duration_minutes, b.format,
+               b.price_per_session, b.currency, b.created_at,
+               u.first_name || COALESCE(' ' || u.last_name, '') AS athlete_full_name
+        FROM bookings b
+        JOIN users u ON u.id = b.athlete_user_id
+        WHERE b.coach_user_id = $1 AND b.status = 'pending'
+        ORDER BY b.created_at ASC
+        """,
+        coach_user_id,
+    )
+    return [dict(row) for row in rows]
