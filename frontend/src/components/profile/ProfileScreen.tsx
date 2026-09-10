@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useProfile } from "../../context/ProfileContext";
 import { StateScreen } from "../StateScreen";
 import { CoachMarketplaceSettingsScreen } from "../coaches/CoachMarketplaceSettingsScreen";
+import { IncomingBookingsScreen } from "../coaches/IncomingBookingsScreen";
 import { MyBookingsSection } from "../coaches/MyBookingsSection";
 import { CoachProfileForm } from "./CoachProfileForm";
 import { HelpScreen } from "./HelpScreen";
@@ -18,6 +19,7 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
   const [showSettings, setShowSettings] = useState(false);
   const [showMarketplaceSettings, setShowMarketplaceSettings] = useState(false);
   const [showMyBookings, setShowMyBookings] = useState(false);
+  const [showIncomingBookings, setShowIncomingBookings] = useState(false);
 
   if (state.status === "loading") {
     return <StateScreen kind="loading" title="Загрузка профиля…" />;
@@ -37,6 +39,10 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
 
   if (showMarketplaceSettings) {
     return <CoachMarketplaceSettingsScreen token={token} onBack={() => setShowMarketplaceSettings(false)} />;
+  }
+
+  if (showIncomingBookings) {
+    return <IncomingBookingsScreen token={token} onBack={() => setShowIncomingBookings(false)} />;
   }
 
   if (showMyBookings) {
@@ -78,6 +84,7 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
 
   return (
     <ProfileSummary
+      token={token}
       profile={data}
       onEdit={(mode) => setEditing(mode)}
       onSwitchMode={(mode) => {
@@ -89,6 +96,7 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
       onOpenSettings={() => setShowSettings(true)}
       onOpenMarketplaceSettings={() => setShowMarketplaceSettings(true)}
       onOpenMyBookings={() => setShowMyBookings(true)}
+      onOpenIncomingBookings={() => setShowIncomingBookings(true)}
     />
   );
 }

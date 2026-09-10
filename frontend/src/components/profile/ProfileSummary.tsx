@@ -1,9 +1,13 @@
+import { useEffect, useState } from "react";
+import { listCoachPendingBookings } from "../../api/bookings";
 import { useAuth } from "../../context/AuthContext";
 import { Icon } from "../shared/Icon";
 import { SKILL_LEVEL_LABELS, type ActiveMode, type ProfileMe } from "../../types/profile";
+import coachStyles from "../coaches/coaches.module.css";
 import styles from "./profile.module.css";
 
 interface ProfileSummaryProps {
+  token: string;
   profile: ProfileMe;
   onEdit: (mode: ActiveMode) => void;
   onSwitchMode: (mode: ActiveMode) => void;
@@ -13,6 +17,7 @@ interface ProfileSummaryProps {
   onOpenSettings: () => void;
   onOpenMarketplaceSettings: () => void;
   onOpenMyBookings: () => void;
+  onOpenIncomingBookings: () => void;
 }
 
 function Avatar({ photoUrl, fallbackName }: { photoUrl: string | null; fallbackName: string }) {
@@ -23,6 +28,7 @@ function Avatar({ photoUrl, fallbackName }: { photoUrl: string | null; fallbackN
 }
 
 export function ProfileSummary({
+  token,
   profile,
   onEdit,
   onSwitchMode,
@@ -32,10 +38,20 @@ export function ProfileSummary({
   onOpenSettings,
   onOpenMarketplaceSettings,
   onOpenMyBookings,
+  onOpenIncomingBookings,
 }: ProfileSummaryProps) {
   const { state: authState } = useAuth();
   const photoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
   const mode: ActiveMode = profile.activeMode ?? (profile.player ? "player" : "coach");
+
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (mode !== "coach") return;
+    listCoachPendingBookings(token)
+      .then((bookings) => setPendingCount(bookings.length))
+      .catch(() => setPendingCount(0));
+  }, [token, mode]);
 
   return (
     <div className={styles.screen}>
@@ -150,6 +166,11 @@ export function ProfileSummary({
           <button type="button" className={styles.buttonSecondary} onClick={onOpenMarketplaceSettings}>
             <Icon name="settings" size={17} />
             Маркетплейс тренеров
+          </button>
+          <button type="button" className={styles.buttonSecondary} onClick={onOpenIncomingBookings}>
+            <Icon name="inbox" size={17} />
+            Входящие заявки
+            {pendingCount > 0 && <span className={coachStyles.pendingCountBadge}>{pendingCount}</span>}
           </button>
         </div>
       )}

@@ -403,3 +403,37 @@
 .ratingStarFilled {
   color: var(--color-warning, #b6790f);
 }
+
+.incomingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.incomingRow:last-child {
+  border-bottom: none;
+}
+
+.incomingActions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pendingCountBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: auto;
+}
