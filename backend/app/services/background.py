@@ -27,6 +27,7 @@ from app.repositories import files as files_repo
 from app.repositories import notifications as notifications_repo
 from app.repositories import tasks as tasks_repo
 from app.repositories import users as users_repo
+from app.services import notifications as notifications_service
 
 logger = logging.getLogger("teamflow.background")
 
@@ -68,6 +69,8 @@ async def sweep_overdue_tasks(conn: asyncpg.Connection) -> None:
 async def sweep_expired_bookings(conn: asyncpg.Connection) -> None:
     cutoff = datetime.now(timezone.utc) - timedelta(hours=BOOKING_EXPIRY_HOURS)
     expired = await bookings_repo.sweep_expired(conn, older_than=cutoff)
+    for booking in expired:
+        await notifications_service.schedule_booking_decided_notification(conn, booking, outcome="expired")
     if expired:
         logger.info("Auto-declined %d expired booking request(s)", len(expired))
 

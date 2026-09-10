@@ -12,6 +12,7 @@ import asyncpg
 from app.config import Settings
 from app.repositories import notifications as notifications_repo
 from app.repositories import teams as teams_repo
+from app.repositories import users as users_repo
 
 
 def _combine_date_time(training_date: Any, start_time: Any) -> datetime:
@@ -184,3 +185,45 @@ async def schedule_task_deadline_reminders(
             send_at=send_at,
             dedup_key=f"task_deadline:{task['id']}:{user_id}",
         )
+
+
+async def schedule_booking_requested_notification(conn: asyncpg.Connection, booking: dict[str, Any]) -> None:
+    """Pings the coach that a new booking request is waiting on them."""
+    athlete = await users_repo.get_by_id(conn, booking["athlete_user_id"])
+    athlete_name = athlete["first_name"] if athlete else "Атлет"
+    when = booking["starts_at"].strftime("%d.%m в %H:%M")
+    await _notify_recipients(
+        conn,
+        recipient_ids=[booking["coach_user_id"]],
+        category="booking_requested",
+        title="Новая заявка на тренировку",
+        body=f"{athlete_name} — {when}",
+        entity_type="booking",
+        entity_id=booking["id"],
+        send_at=datetime.now(timezone.utc),
+    )
+
+
+async def schedule_booking_decided_notification(
+    conn: asyncpg.Connection, booking: dict[str, Any], *, outcome: str
+) -> None:
+    """Pings the athlete once their booking request has an outcome —
+    confirmed by the coach, declined by the coach, or auto-declined by the
+    24h expiry sweep (see app.services.background.sweep_expired_bookings)."""
+    if outcome == "confirmed":
+        when = booking["starts_at"].strftime("%d.%m в %H:%M")
+        body = f"Тренер подтвердил тренировку {when}."
+    elif outcome == "declined":
+        body = "Заявка на тренировку отклонена."
+    else:
+        body = "Заявка на тренировку отменена: тренер не ответил вовремя."
+    await _notify_recipients(
+        conn,
+        recipient_ids=[booking["athlete_user_id"]],
+        category="booking_decided",
+        title="Статус заявки на тренировку",
+        body=body,
+        entity_type="booking",
+        entity_id=booking["id"],
+        send_at=datetime.now(timezone.utc),
+    )

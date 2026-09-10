@@ -4,7 +4,10 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-NotificationCategory = Literal["training_reminder", "task_deadline", "new_training", "new_match", "new_task"]
+NotificationCategory = Literal[
+    "training_reminder", "task_deadline", "new_training", "new_match", "new_task",
+    "booking_requested", "booking_decided",
+]
 
 NOTIFICATION_CATEGORIES: tuple[NotificationCategory, ...] = (
     "training_reminder",
@@ -12,6 +15,8 @@ NOTIFICATION_CATEGORIES: tuple[NotificationCategory, ...] = (
     "new_training",
     "new_match",
     "new_task",
+    "booking_requested",
+    "booking_decided",
 )
 
 

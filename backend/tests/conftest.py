@@ -2094,6 +2094,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
     app.dependency_overrides[deps.get_db] = override_get_db
 
     with TestClient(app) as test_client:
+        test_client.notifications_store = notifications_store
         yield test_client
 
     get_settings.cache_clear()

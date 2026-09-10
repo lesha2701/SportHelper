@@ -140,3 +140,39 @@ async def test_background_sweep_runs_via_service_function(logged_in_client, logi
 
     mine = client.get("/api/bookings/me", headers={"Authorization": f"Bearer {athlete_token}"}).json()
     assert mine[0]["status"] == "expired"
+
+
+def test_booking_request_notifies_coach(logged_in_client, login_as) -> None:
+    client, coach_token = logged_in_client
+    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890301)
+
+    requested = [n for n in client.notifications_store.values() if n["category"] == "booking_requested"]
+    assert len(requested) == 1
+    # notifications_store holds the raw UUID object passed internally to
+    # _notify_recipients; coach_id here is the JSON-serialized string form
+    # from the API response — str() both sides to compare them correctly.
+    assert str(requested[0]["user_id"]) == coach_id
+    assert "Athlete" in requested[0]["body"]
+
+
+def test_confirm_and_decline_notify_athlete(logged_in_client, login_as) -> None:
+    client, coach_token = logged_in_client
+    coach_headers = {"Authorization": f"Bearer {coach_token}"}
+
+    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890302)
+    athlete_id = client.get("/api/auth/me", headers={"Authorization": f"Bearer {athlete_token}"}).json()["id"]
+
+    confirm_resp = client.post(f"/api/bookings/{booking['id']}/confirm", headers=coach_headers)
+    assert confirm_resp.status_code == 200
+
+    decided = [n for n in client.notifications_store.values() if n["category"] == "booking_decided"]
+    assert len(decided) == 1
+    assert str(decided[0]["user_id"]) == athlete_id
+    assert "подтвердил" in decided[0]["body"]
+
+    coach_id2, athlete_token2, booking2 = _create_pending_booking(client, coach_token, login_as, telegram_id=890303)
+    decline_resp = client.post(f"/api/bookings/{booking2['id']}/decline", headers=coach_headers)
+    assert decline_resp.status_code == 200
+
+    decided_bodies = {n["body"] for n in client.notifications_store.values() if n["category"] == "booking_decided"}
+    assert any("отклонена" in body for body in decided_bodies)

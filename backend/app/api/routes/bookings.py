@@ -11,6 +11,7 @@ from app.repositories import bookings as bookings_repo
 from app.repositories import coach_marketplace as marketplace_repo
 from app.repositories import coach_reviews as coach_reviews_repo
 from app.schemas.booking import BookingIn, BookingOut, PendingBookingOut, ReviewIn, ReviewOut
+from app.services import notifications as notifications_service
 
 router = APIRouter(prefix="/api/bookings", tags=["bookings"])
 
@@ -65,6 +66,7 @@ async def create_booking(
     )
     if booking is None:
         raise APIError("slot was just booked by someone else", code="slot_unavailable", status_code=409)
+    await notifications_service.schedule_booking_requested_notification(conn, booking)
     return await _to_out(conn, booking)
 
 
@@ -100,6 +102,7 @@ async def confirm_booking(
     confirmed = await bookings_repo.confirm_booking(conn, booking_id=booking_id, coach_user_id=user["id"])
     if confirmed is None:
         raise APIError("booking is no longer pending", code="booking_not_pending", status_code=409)
+    await notifications_service.schedule_booking_decided_notification(conn, confirmed, outcome="confirmed")
     return await _to_out(conn, confirmed)
 
 
@@ -117,6 +120,7 @@ async def decline_booking(
     declined = await bookings_repo.decline_booking(conn, booking_id=booking_id, coach_user_id=user["id"])
     if declined is None:
         raise APIError("booking is no longer pending", code="booking_not_pending", status_code=409)
+    await notifications_service.schedule_booking_decided_notification(conn, declined, outcome="declined")
     return await _to_out(conn, declined)
 
 
