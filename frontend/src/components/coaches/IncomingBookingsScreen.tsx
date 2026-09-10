@@ -74,6 +74,7 @@ export function IncomingBookingsScreen({ token, onBack }: { token: string; onBac
           <div className={styles.incomingRow} key={b.id}>
             <div>
               <p className={profileStyles.rowValue}>{b.athleteFullName}</p>
+              {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
               <p className={profileStyles.subtitle}>
                 {formatDate(b.startsAt)} · {b.format === "online" ? "Онлайн" : "Очно"}
               </p>

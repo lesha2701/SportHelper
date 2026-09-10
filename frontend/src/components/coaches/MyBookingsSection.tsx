@@ -52,6 +52,7 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
               <div className={styles.bookingRow} key={b.id}>
                 <div>
                   <p className={profileStyles.rowValue}>{b.coachFullName}</p>
+                  {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
                   <p className={profileStyles.subtitle}>{formatDate(b.startsAt)}</p>
                 </div>
                 <span className={styles.bookingStatus}>Ожидает тренера</span>
@@ -66,6 +67,7 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
           <div className={styles.bookingRow} key={b.id}>
             <div>
               <p className={profileStyles.rowValue}>{b.coachFullName}</p>
+              {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
               <p className={profileStyles.subtitle}>{formatDate(b.startsAt)}</p>
             </div>
             <span className={styles.bookingStatus}>Подтверждена</span>
@@ -78,6 +80,7 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
           <div className={styles.bookingRow} key={b.id}>
             <div>
               <p className={profileStyles.rowValue}>{b.coachFullName}</p>
+              {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
               <p className={profileStyles.subtitle}>{formatDate(b.startsAt)}</p>
             </div>
             {b.hasReview ? (
@@ -97,6 +100,7 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
               <div className={styles.bookingRow} key={b.id}>
                 <div>
                   <p className={profileStyles.rowValue}>{b.coachFullName}</p>
+                  {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
                   <p className={profileStyles.subtitle}>{formatDate(b.startsAt)}</p>
                 </div>
                 <span className={styles.bookingStatusMuted}>
