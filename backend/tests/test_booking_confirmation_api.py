@@ -9,20 +9,20 @@ from tests.test_bookings_api import _list_coach_with_slot
 
 
 def _create_pending_booking(client, coach_token, login_as, telegram_id=890101):
-    coach_id, slot = _list_coach_with_slot(client, coach_token)
+    listing_id, slot = _list_coach_with_slot(client, coach_token)
     athlete_token = login_as(telegram_id, first_name="Athlete")
     resp = client.post(
         "/api/bookings",
         headers={"Authorization": f"Bearer {athlete_token}"},
-        json={"coach_user_id": coach_id, "starts_at": slot, "format": "online"},
+        json={"listing_id": listing_id, "starts_at": slot, "format": "online"},
     )
     assert resp.status_code == 200, resp.text
-    return coach_id, athlete_token, resp.json()
+    return listing_id, athlete_token, resp.json()
 
 
 def test_coach_sees_pending_request_in_inbox(logged_in_client, login_as) -> None:
     client, coach_token = logged_in_client
-    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)
+    listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)
 
     pending = client.get("/api/bookings/coach/pending", headers={"Authorization": f"Bearer {coach_token}"}).json()
     assert len(pending) == 1
@@ -32,7 +32,7 @@ def test_coach_sees_pending_request_in_inbox(logged_in_client, login_as) -> None
 
 def test_coach_confirms_booking_creates_training_and_notifies_athlete(logged_in_client, login_as) -> None:
     client, coach_token = logged_in_client
-    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)
+    listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)
 
     resp = client.post(
         f"/api/bookings/{booking['id']}/confirm",
@@ -56,7 +56,7 @@ def test_coach_confirms_booking_creates_training_and_notifies_athlete(logged_in_
 
 def test_coach_declines_booking_frees_the_slot(logged_in_client, login_as) -> None:
     client, coach_token = logged_in_client
-    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)
+    listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)
 
     resp = client.post(
         f"/api/bookings/{booking['id']}/decline",
@@ -70,7 +70,7 @@ def test_coach_declines_booking_frees_the_slot(logged_in_client, login_as) -> No
     retry = client.post(
         "/api/bookings",
         headers={"Authorization": f"Bearer {other_athlete_token}"},
-        json={"coach_user_id": coach_id, "starts_at": booking["starts_at"], "format": "online"},
+        json={"listing_id": listing_id, "starts_at": booking["starts_at"], "format": "online"},
     )
     assert retry.status_code == 200, retry.text
     assert retry.json()["status"] == "pending"
@@ -78,7 +78,7 @@ def test_coach_declines_booking_frees_the_slot(logged_in_client, login_as) -> No
 
 def test_confirm_rejects_wrong_coach(logged_in_client, login_as) -> None:
     client, coach_token = logged_in_client
-    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)
+    listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)
 
     other_coach_token = login_as(890103, first_name="OtherCoach")
     resp = client.post(
@@ -90,7 +90,7 @@ def test_confirm_rejects_wrong_coach(logged_in_client, login_as) -> None:
 
 def test_confirm_twice_is_rejected(logged_in_client, login_as) -> None:
     client, coach_token = logged_in_client
-    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)
+    listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)
 
     headers = {"Authorization": f"Bearer {coach_token}"}
     first = client.post(f"/api/bookings/{booking['id']}/confirm", headers=headers)
@@ -103,7 +103,7 @@ def test_confirm_twice_is_rejected(logged_in_client, login_as) -> None:
 
 async def test_sweep_expires_pending_booking_after_24_hours(logged_in_client, login_as) -> None:
     client, coach_token = logged_in_client
-    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)
+    listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)
 
     # Backdate the booking's created_at past the 24h cutoff by monkeypatching
     # is not available here (no direct store access from the test module),
@@ -139,7 +139,7 @@ def test_confirm_rejects_booking_whose_session_time_has_passed(logged_in_client,
     reaches the real route and the fake's guard logic (which mirrors
     confirm_booking's real SQL-side check) rather than faking the clock."""
     client, coach_token = logged_in_client
-    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890401)
+    listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890401)
 
     record = client.bookings_store[UUID(booking["id"])]
     record["starts_at"] = datetime.now(timezone.utc) - timedelta(minutes=1)
@@ -167,7 +167,7 @@ async def test_sweep_also_expires_pending_booking_whose_session_time_has_passed_
     call sweep_expired with an `older_than` cutoff in the past so the
     created_at < $1 branch of the OR cannot be what matches."""
     client, coach_token = logged_in_client
-    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890402)
+    listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890402)
 
     record = client.bookings_store[UUID(booking["id"])]
     record["starts_at"] = datetime.now(timezone.utc) - timedelta(minutes=1)
@@ -192,7 +192,7 @@ async def test_background_sweep_runs_via_service_function(logged_in_client, logi
     is already past the (now momentary) cutoff — no need to fake the clock
     or the booking's created_at."""
     client, coach_token = logged_in_client
-    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890201)
+    listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890201)
 
     monkeypatch.setattr(background, "BOOKING_EXPIRY_HOURS", 0)
     await background.sweep_expired_bookings(None)
@@ -203,7 +203,8 @@ async def test_background_sweep_runs_via_service_function(logged_in_client, logi
 
 def test_booking_request_notifies_coach(logged_in_client, login_as) -> None:
     client, coach_token = logged_in_client
-    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890301)
+    listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890301)
+    coach_id = booking["coach_user_id"]
 
     requested = [n for n in client.notifications_store.values() if n["category"] == "booking_requested"]
     assert len(requested) == 1
@@ -218,7 +219,7 @@ def test_confirm_and_decline_notify_athlete(logged_in_client, login_as) -> None:
     client, coach_token = logged_in_client
     coach_headers = {"Authorization": f"Bearer {coach_token}"}
 
-    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890302)
+    listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890302)
     athlete_id = client.get("/api/auth/me", headers={"Authorization": f"Bearer {athlete_token}"}).json()["id"]
 
     confirm_resp = client.post(f"/api/bookings/{booking['id']}/confirm", headers=coach_headers)
@@ -229,7 +230,7 @@ def test_confirm_and_decline_notify_athlete(logged_in_client, login_as) -> None:
     assert str(decided[0]["user_id"]) == athlete_id
     assert "подтвердил" in decided[0]["body"]
 
-    coach_id2, athlete_token2, booking2 = _create_pending_booking(client, coach_token, login_as, telegram_id=890303)
+    listing_id2, athlete_token2, booking2 = _create_pending_booking(client, coach_token, login_as, telegram_id=890303)
     decline_resp = client.post(f"/api/bookings/{booking2['id']}/decline", headers=coach_headers)
     assert decline_resp.status_code == 200
 

@@ -411,17 +411,20 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(coach_marketplace_module, "get_public_profile", fake_get_public_profile)
     monkeypatch.setattr(coach_marketplace_module, "compute_open_slots", fake_compute_open_slots)
 
-    async def fake_create_booking(conn, *, coach_user_id, athlete_user_id, starts_at, duration_minutes, format, price_per_session, currency, location):
+    async def fake_create_booking(conn, *, listing_id, coach_user_id, athlete_user_id, starts_at, duration_minutes, format, price_per_session, currency):
         if any(
             b["coach_user_id"] == coach_user_id and b["starts_at"] == starts_at and b["status"] in ("pending", "confirmed")
             for b in bookings_store.values()
         ):
             return None
         booking_id = uuid4()
+        listing = listings_store.get(listing_id, {})
         record = {
             "id": booking_id,
             "coach_user_id": coach_user_id,
             "coach_full_name": coach_store[coach_user_id]["full_name"],
+            "listing_id": listing_id,
+            "listing_title": listing.get("title"),
             "athlete_user_id": athlete_user_id,
             "starts_at": starts_at,
             "duration_minutes": duration_minutes,
@@ -450,7 +453,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
             return None
         if record["starts_at"] <= datetime.now(timezone.utc):
             return None
-        coach_profile = coach_store.get(coach_user_id, {})
+        listing = listings_store.get(record.get("listing_id"), {})
         training = await trainings_module.create_training(
             conn,
             record["athlete_user_id"],
@@ -458,7 +461,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
             training_date=record["starts_at"].date(),
             start_time=record["starts_at"].time(),
             duration_minutes=record["duration_minutes"],
-            location=coach_profile.get("location") if record["format"] == "offline" else "Онлайн",
+            location=listing.get("location") if record["format"] == "offline" else "Онлайн",
             description="Бронирование тренера через маркетплейс",
         )
         record["status"] = "confirmed"
@@ -488,6 +491,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
             result.append(
                 {
                     "id": b["id"],
+                    "listing_title": b.get("listing_title"),
                     "athlete_user_id": b["athlete_user_id"],
                     "athlete_full_name": full_name,
                     "starts_at": b["starts_at"],

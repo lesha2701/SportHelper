@@ -10,12 +10,13 @@ import asyncpg
 from app.repositories import trainings as trainings_repo
 
 _BOOKING_FIELDS = (
-    "b.id, b.coach_user_id, cp.full_name AS coach_full_name, b.athlete_user_id, b.starts_at, "
-    "b.duration_minutes, b.format, b.price_per_session, b.currency, b.status, b.training_id"
+    "b.id, b.coach_user_id, cp.full_name AS coach_full_name, b.listing_id, cl.title AS listing_title, "
+    "b.athlete_user_id, b.starts_at, b.duration_minutes, b.format, b.price_per_session, b.currency, "
+    "b.status, b.training_id"
 )
 
 _BOOKING_INSERT_FIELDS = (
-    "id, coach_user_id, athlete_user_id, starts_at, duration_minutes, format, "
+    "id, coach_user_id, listing_id, athlete_user_id, starts_at, duration_minutes, format, "
     "price_per_session, currency, status, training_id"
 )
 
@@ -23,6 +24,7 @@ _BOOKING_INSERT_FIELDS = (
 async def create_booking(
     conn: asyncpg.Connection,
     *,
+    listing_id: UUID,
     coach_user_id: UUID,
     athlete_user_id: UUID,
     starts_at: datetime,
@@ -30,23 +32,22 @@ async def create_booking(
     format: str,
     price_per_session: float | None,
     currency: str,
-    location: str | None,
 ) -> dict[str, Any] | None:
-    """Creates a pending booking request — no Training is created here
-    anymore; that only happens once the coach confirms (see
-    confirm_booking). Returns None if the slot was already taken (unique-
-    constraint race, now scoped to pending+confirmed bookings only)."""
+    """Creates a pending booking request against a specific listing — no
+    Training is created here; that only happens once the coach confirms
+    (see confirm_booking). Returns None if the slot was already taken."""
     try:
         row = await conn.fetchrow(
             f"""
             INSERT INTO bookings (
-                coach_user_id, athlete_user_id, starts_at, duration_minutes, format,
+                coach_user_id, listing_id, athlete_user_id, starts_at, duration_minutes, format,
                 price_per_session, currency, status
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
             RETURNING {_BOOKING_INSERT_FIELDS}, created_at
             """,
             coach_user_id,
+            listing_id,
             athlete_user_id,
             starts_at,
             duration_minutes,
@@ -57,9 +58,14 @@ async def create_booking(
     except asyncpg.UniqueViolationError:
         return None
     result = dict(row)
-    result["coach_full_name"] = (
-        await conn.fetchrow("SELECT full_name FROM coach_profiles WHERE user_id = $1", coach_user_id)
-    )["full_name"]
+    coach_and_listing = await conn.fetchrow(
+        "SELECT cp.full_name, cl.title FROM coach_profiles cp JOIN coach_listings cl ON cl.id = $2 "
+        "WHERE cp.user_id = $1",
+        coach_user_id,
+        listing_id,
+    )
+    result["coach_full_name"] = coach_and_listing["full_name"]
+    result["listing_title"] = coach_and_listing["title"]
     return result
 
 
@@ -68,6 +74,7 @@ async def get_booking(conn: asyncpg.Connection, booking_id: UUID) -> dict[str, A
         f"""
         SELECT {_BOOKING_FIELDS} FROM bookings b
         JOIN coach_profiles cp ON cp.user_id = b.coach_user_id
+        LEFT JOIN coach_listings cl ON cl.id = b.listing_id
         WHERE b.id = $1
         """,
         booking_id,
@@ -80,6 +87,7 @@ async def list_for_athlete(conn: asyncpg.Connection, athlete_user_id: UUID) -> l
         f"""
         SELECT {_BOOKING_FIELDS} FROM bookings b
         JOIN coach_profiles cp ON cp.user_id = b.coach_user_id
+        LEFT JOIN coach_listings cl ON cl.id = b.listing_id
         WHERE b.athlete_user_id = $1
         ORDER BY b.starts_at DESC
         """,
@@ -112,7 +120,7 @@ async def confirm_booking(conn: asyncpg.Connection, *, booking_id: UUID, coach_u
             return None
         if booking["starts_at"] <= datetime.now(timezone.utc):
             return None
-        coach_profile = await conn.fetchrow("SELECT location FROM coach_profiles WHERE user_id = $1", coach_user_id)
+        listing = await conn.fetchrow("SELECT location FROM coach_listings WHERE id = $1", booking["listing_id"])
         training = await trainings_repo.create_training(
             conn,
             booking["athlete_user_id"],
@@ -120,7 +128,7 @@ async def confirm_booking(conn: asyncpg.Connection, *, booking_id: UUID, coach_u
             training_date=booking["starts_at"].date(),
             start_time=booking["starts_at"].time(),
             duration_minutes=booking["duration_minutes"],
-            location=coach_profile["location"] if booking["format"] == "offline" else "Онлайн",
+            location=(listing["location"] if listing else None) if booking["format"] == "offline" else "Онлайн",
             description="Бронирование тренера через маркетплейс",
         )
         await conn.execute(
@@ -164,11 +172,12 @@ async def sweep_expired(conn: asyncpg.Connection, *, older_than: datetime) -> li
 async def list_pending_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) -> list[dict[str, Any]]:
     rows = await conn.fetch(
         """
-        SELECT b.id, b.athlete_user_id, b.starts_at, b.duration_minutes, b.format,
+        SELECT b.id, cl.title AS listing_title, b.athlete_user_id, b.starts_at, b.duration_minutes, b.format,
                b.price_per_session, b.currency, b.created_at,
                u.first_name || COALESCE(' ' || u.last_name, '') AS athlete_full_name
         FROM bookings b
         JOIN users u ON u.id = b.athlete_user_id
+        LEFT JOIN coach_listings cl ON cl.id = b.listing_id
         WHERE b.coach_user_id = $1 AND b.status = 'pending'
         ORDER BY b.created_at ASC
         """,

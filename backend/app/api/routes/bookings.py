@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from app.api.deps import get_current_user, get_db
 from app.core.exceptions import APIError, ForbiddenError, NotFoundError
 from app.repositories import bookings as bookings_repo
-from app.repositories import coach_marketplace as marketplace_repo
+from app.repositories import coach_listings as listings_repo
 from app.repositories import coach_reviews as coach_reviews_repo
 from app.schemas.booking import BookingIn, BookingOut, PendingBookingOut, ReviewIn, ReviewOut
 from app.services import notifications as notifications_service
@@ -31,38 +31,32 @@ async def create_booking(
     user: dict = Depends(get_current_user),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> BookingOut:
-    if payload.coach_user_id == user["id"]:
+    listing = await listings_repo.get_listing(conn, payload.listing_id)
+    if listing is None or not listing["is_listed"]:
+        raise NotFoundError("listing not found or not listed")
+    if listing["coach_user_id"] == user["id"]:
         raise APIError("cannot book yourself", code="self_booking", status_code=400)
-
-    settings = await marketplace_repo.get_settings(conn, payload.coach_user_id)
-    if settings is None or not settings["is_listed"]:
-        raise NotFoundError("coach not found or not listed")
-    if payload.format == "online" and not settings["offers_online"]:
+    if payload.format == "online" and not listing["offers_online"]:
         raise APIError("coach does not offer this format", code="format_not_offered", status_code=400)
-    if payload.format == "offline" and not settings["offers_offline"]:
+    if payload.format == "offline" and not listing["offers_offline"]:
         raise APIError("coach does not offer this format", code="format_not_offered", status_code=400)
 
-    open_slots = await marketplace_repo.compute_open_slots(
-        conn, payload.coach_user_id, payload.starts_at.date(), payload.starts_at.date()
+    open_slots = await listings_repo.compute_open_slots(
+        conn, payload.listing_id, payload.starts_at.date(), payload.starts_at.date()
     )
-    # payload.starts_at is already normalized to aware UTC by BookingIn's
-    # validator, matching compute_open_slots' now-aware-UTC results — no
-    # tzinfo stripping needed (and stripping it here previously let two
-    # differently-offset requests for the same wall-clock time both pass
-    # this check while inserting different starts_at values).
     if not any(s["starts_at"] == payload.starts_at for s in open_slots):
         raise APIError("slot is not open", code="slot_unavailable", status_code=409)
 
     booking = await bookings_repo.create_booking(
         conn,
-        coach_user_id=payload.coach_user_id,
+        listing_id=payload.listing_id,
+        coach_user_id=listing["coach_user_id"],
         athlete_user_id=user["id"],
         starts_at=payload.starts_at,
-        duration_minutes=settings["session_duration_minutes"],
+        duration_minutes=listing["session_duration_minutes"],
         format=payload.format,
-        price_per_session=settings["price_per_session"],
-        currency=settings["currency"],
-        location=settings["location"],
+        price_per_session=listing["price_per_session"],
+        currency=listing["currency"],
     )
     if booking is None:
         raise APIError("slot was just booked by someone else", code="slot_unavailable", status_code=409)

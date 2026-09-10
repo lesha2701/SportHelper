@@ -7,14 +7,14 @@ from tests.test_bookings_api import _list_coach_with_slot
 
 def test_athlete_can_review_completed_booking(logged_in_client, login_as, monkeypatch) -> None:
     client, coach_token = logged_in_client
-    coach_id, slot = _list_coach_with_slot(client, coach_token)
+    listing_id, slot = _list_coach_with_slot(client, coach_token)
 
     athlete_token = login_as(891001, first_name="Athlete")
     athlete_headers = {"Authorization": f"Bearer {athlete_token}"}
     booking = client.post(
         "/api/bookings",
         headers=athlete_headers,
-        json={"coach_user_id": coach_id, "starts_at": slot, "format": "online"},
+        json={"listing_id": listing_id, "starts_at": slot, "format": "online"},
     ).json()
 
     import app.repositories.bookings as bookings_module
@@ -29,21 +29,21 @@ def test_athlete_can_review_completed_booking(logged_in_client, login_as, monkey
     assert resp.status_code == 200, resp.text
     assert resp.json()["rating"] == 5
 
-    profile = client.get(f"/api/coaches/{coach_id}", headers=athlete_headers).json()
+    profile = client.get(f"/api/coach-listings/{listing_id}", headers=athlete_headers).json()
     assert profile["average_rating"] == 5.0
     assert profile["review_count"] == 1
 
 
 def test_cannot_review_before_completion(logged_in_client, login_as) -> None:
     client, coach_token = logged_in_client
-    coach_id, slot = _list_coach_with_slot(client, coach_token)
+    listing_id, slot = _list_coach_with_slot(client, coach_token)
 
     athlete_token = login_as(891002, first_name="Athlete")
     athlete_headers = {"Authorization": f"Bearer {athlete_token}"}
     booking = client.post(
         "/api/bookings",
         headers=athlete_headers,
-        json={"coach_user_id": coach_id, "starts_at": slot, "format": "online"},
+        json={"listing_id": listing_id, "starts_at": slot, "format": "online"},
     ).json()
 
     resp = client.post(
@@ -55,14 +55,14 @@ def test_cannot_review_before_completion(logged_in_client, login_as) -> None:
 
 def test_only_the_booking_athlete_can_review_it(logged_in_client, login_as, monkeypatch) -> None:
     client, coach_token = logged_in_client
-    coach_id, slot = _list_coach_with_slot(client, coach_token)
+    listing_id, slot = _list_coach_with_slot(client, coach_token)
 
     athlete_token = login_as(891003, first_name="Athlete")
     outsider_token = login_as(891004, first_name="Outsider")
     booking = client.post(
         "/api/bookings",
         headers={"Authorization": f"Bearer {athlete_token}"},
-        json={"coach_user_id": coach_id, "starts_at": slot, "format": "online"},
+        json={"listing_id": listing_id, "starts_at": slot, "format": "online"},
     ).json()
 
     import app.repositories.bookings as bookings_module
@@ -79,14 +79,14 @@ def test_only_the_booking_athlete_can_review_it(logged_in_client, login_as, monk
 
 def test_cannot_review_the_same_booking_twice(logged_in_client, login_as, monkeypatch) -> None:
     client, coach_token = logged_in_client
-    coach_id, slot = _list_coach_with_slot(client, coach_token)
+    listing_id, slot = _list_coach_with_slot(client, coach_token)
 
     athlete_token = login_as(891005, first_name="Athlete")
     athlete_headers = {"Authorization": f"Bearer {athlete_token}"}
     booking = client.post(
         "/api/bookings",
         headers=athlete_headers,
-        json={"coach_user_id": coach_id, "starts_at": slot, "format": "online"},
+        json={"listing_id": listing_id, "starts_at": slot, "format": "online"},
     ).json()
 
     import app.repositories.bookings as bookings_module
@@ -110,14 +110,14 @@ def test_concurrent_reviews_of_same_booking_yield_clean_409(logged_in_client, lo
     race handling for the second call — it must come back as a clean 409
     already_reviewed, not an unhandled 500."""
     client, coach_token = logged_in_client
-    coach_id, slot = _list_coach_with_slot(client, coach_token)
+    listing_id, slot = _list_coach_with_slot(client, coach_token)
 
     athlete_token = login_as(891006, first_name="Athlete")
     athlete_headers = {"Authorization": f"Bearer {athlete_token}"}
     booking = client.post(
         "/api/bookings",
         headers=athlete_headers,
-        json={"coach_user_id": coach_id, "starts_at": slot, "format": "online"},
+        json={"listing_id": listing_id, "starts_at": slot, "format": "online"},
     ).json()
 
     import app.repositories.bookings as bookings_module

@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class BookingIn(BaseModel):
-    coach_user_id: UUID
+    listing_id: UUID
     starts_at: datetime
     format: str  # "online" | "offline"
 
@@ -32,6 +32,8 @@ class BookingOut(BaseModel):
     id: UUID
     coach_user_id: UUID
     coach_full_name: str
+    listing_id: UUID | None
+    listing_title: str | None
     athlete_user_id: UUID
     starts_at: datetime
     duration_minutes: int
@@ -46,6 +48,7 @@ class BookingOut(BaseModel):
 
 class PendingBookingOut(BaseModel):
     id: UUID
+    listing_title: str | None
     athlete_user_id: UUID
     athlete_full_name: str
     starts_at: datetime
