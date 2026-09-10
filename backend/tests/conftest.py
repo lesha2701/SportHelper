@@ -123,7 +123,6 @@ def client(monkeypatch: pytest.MonkeyPatch):
     import app.repositories.files as files_module
     import app.repositories.plans as plans_module
     import app.repositories.bookings as bookings_module
-    import app.repositories.coach_marketplace as coach_marketplace_module
     import app.repositories.profiles as profiles_module
     import app.repositories.teams as teams_module
     import app.repositories.matches as matches_module
@@ -246,47 +245,6 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(profiles_module, "upsert_player_profile", fake_upsert_player_profile)
     monkeypatch.setattr(profiles_module, "upsert_coach_profile", fake_upsert_coach_profile)
 
-    async def fake_get_marketplace_settings(conn, user_id):
-        profile = coach_store.get(user_id)
-        if profile is None:
-            return None
-        return {
-            "user_id": user_id,
-            "is_listed": profile.get("is_listed", False),
-            "price_per_session": profile.get("price_per_session"),
-            "currency": profile.get("currency", "RUB"),
-            "offers_online": profile.get("offers_online", False),
-            "offers_offline": profile.get("offers_offline", False),
-            "location": profile.get("location"),
-            "session_duration_minutes": profile.get("session_duration_minutes"),
-        }
-
-    async def fake_upsert_marketplace_settings(conn, user_id, **fields):
-        profile = coach_store.get(user_id)
-        if profile is None:
-            return None
-        profile.update(fields)
-        return await fake_get_marketplace_settings(conn, user_id)
-
-    monkeypatch.setattr(coach_marketplace_module, "get_settings", fake_get_marketplace_settings)
-    monkeypatch.setattr(coach_marketplace_module, "upsert_settings", fake_upsert_marketplace_settings)
-
-    availability_store: dict = {}
-
-    async def fake_list_availability(conn, coach_user_id):
-        return sorted(
-            [dict(w) for w in availability_store.get(coach_user_id, [])],
-            key=lambda w: (w["weekday"], w["start_time"]),
-        )
-
-    async def fake_replace_availability(conn, coach_user_id, windows):
-        stored = [{"id": uuid4(), **w} for w in windows]
-        availability_store[coach_user_id] = stored
-        return stored
-
-    monkeypatch.setattr(coach_marketplace_module, "list_availability", fake_list_availability)
-    monkeypatch.setattr(coach_marketplace_module, "replace_availability", fake_replace_availability)
-
     def _find_user_by_id(user_id):
         for user in users_store.values():
             if user["id"] == user_id:
@@ -322,94 +280,6 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(coach_reviews_module, "list_recent_for_coach", fake_list_recent_for_coach)
 
     bookings_store: dict = {}
-
-    async def fake_list_listed_coaches(conn, *, sport=None, location=None, max_price=None, min_rating=None, training_format=None, min_experience_years=None):
-        cards = []
-        for user_id, profile in coach_store.items():
-            if not profile.get("is_listed"):
-                continue
-            if sport and sport.lower() not in profile["sport"].lower():
-                continue
-            if location and (not profile.get("location") or location.lower() not in profile["location"].lower()):
-                continue
-            if max_price is not None and profile.get("price_per_session") is not None and float(profile["price_per_session"]) > float(max_price):
-                continue
-            if min_experience_years is not None and (profile.get("experience_years") or 0) < min_experience_years:
-                continue
-            if training_format == "online" and not profile.get("offers_online"):
-                continue
-            if training_format == "offline" and not profile.get("offers_offline"):
-                continue
-            rating = await fake_get_rating_summary(conn, user_id)
-            if min_rating is not None and (rating["average"] or 0) < min_rating:
-                continue
-            user_row = _find_user_by_id(user_id)
-            next_slot = await fake_compute_open_slots(conn, user_id, date.today(), date.today() + timedelta(days=28))
-            cards.append(
-                {
-                    "user_id": user_id,
-                    "full_name": profile["full_name"],
-                    "photo_url": user_row["photo_url"] if user_row else None,
-                    "sport": profile["sport"],
-                    "specialization": profile.get("specialization"),
-                    "description": profile.get("description"),
-                    "experience_years": profile.get("experience_years"),
-                    "average_rating": rating["average"],
-                    "review_count": rating["count"],
-                    "price_per_session": profile.get("price_per_session"),
-                    "currency": profile.get("currency", "RUB"),
-                    "location": profile.get("location"),
-                    "offers_online": profile.get("offers_online", False),
-                    "offers_offline": profile.get("offers_offline", False),
-                    "next_available_slot": next_slot[0]["starts_at"] if next_slot else None,
-                }
-            )
-        return cards
-
-    async def fake_get_public_profile(conn, coach_user_id):
-        profile = coach_store.get(coach_user_id)
-        if profile is None or not profile.get("is_listed"):
-            return None
-        cards = await fake_list_listed_coaches(conn)
-        card = next((c for c in cards if c["user_id"] == coach_user_id), None)
-        if card is None:
-            return None
-        card = dict(card)
-        card["session_duration_minutes"] = profile.get("session_duration_minutes")
-        card["availability"] = await fake_list_availability(conn, coach_user_id)
-        card["recent_reviews"] = await fake_list_recent_for_coach(conn, coach_user_id)
-        return card
-
-    async def fake_compute_open_slots(conn, coach_user_id, from_date, to_date):
-        profile = coach_store.get(coach_user_id) or {}
-        duration = profile.get("session_duration_minutes")
-        if not duration:
-            return []
-        windows = await fake_list_availability(conn, coach_user_id)
-        booked = {b["starts_at"] for b in bookings_store.values() if b["coach_user_id"] == coach_user_id and b["status"] in ("pending", "confirmed")}
-        slots = []
-        day = from_date
-        while day <= to_date:
-            for window in windows:
-                if window["weekday"] != day.weekday():
-                    continue
-                # Mirrors the real compute_open_slots (aware-UTC cursor
-                # compared against aware-UTC booked starts_at) — the fake
-                # must build these the same way the real TIMESTAMPTZ column
-                # actually behaves, or a naive/aware mismatch bug here would
-                # be invisible to every test that exercises this fake.
-                cursor = datetime.combine(day, window["start_time"], tzinfo=timezone.utc)
-                window_end = datetime.combine(day, window["end_time"], tzinfo=timezone.utc)
-                while cursor + timedelta(minutes=duration) <= window_end:
-                    if cursor not in booked and cursor > datetime.now(timezone.utc):
-                        slots.append({"starts_at": cursor, "duration_minutes": duration})
-                    cursor += timedelta(minutes=duration)
-            day += timedelta(days=1)
-        return sorted(slots, key=lambda s: s["starts_at"])
-
-    monkeypatch.setattr(coach_marketplace_module, "list_listed_coaches", fake_list_listed_coaches)
-    monkeypatch.setattr(coach_marketplace_module, "get_public_profile", fake_get_public_profile)
-    monkeypatch.setattr(coach_marketplace_module, "compute_open_slots", fake_compute_open_slots)
 
     async def fake_create_booking(conn, *, listing_id, coach_user_id, athlete_user_id, starts_at, duration_minutes, format, price_per_session, currency):
         if any(

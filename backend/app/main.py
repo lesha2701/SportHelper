@@ -15,7 +15,6 @@ from app.api.routes import (
     bookings,
     calendar,
     coach_listings,
-    coaches,
     dev_auth,
     exercises,
     files,
@@ -173,7 +172,6 @@ def create_app() -> FastAPI:
     app.include_router(matches.team_matches_router)
     app.include_router(notifications.router)
     app.include_router(calendar.router)
-    app.include_router(coaches.router)
     app.include_router(coach_listings.router)
     app.include_router(metrics.router)
     app.include_router(metrics.metric_router)
