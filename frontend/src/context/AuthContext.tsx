@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { ApiError } from "../api/client";
-import { devLogin, loginWithTelegram } from "../api/auth";
+import { devLogin, devLogin2, loginWithTelegram } from "../api/auth";
 import { bootstrapTelegram } from "../telegram/init";
 import type { User } from "../types/user";
 
@@ -48,7 +48,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // production builds by import.meta.env.DEV, and the endpoint itself
     // only exists when the backend has DEV_AUTH_ENABLED set (docs/dev-notes.md).
     if (import.meta.env.DEV) {
-      devLogin()
+      // ?devUser=2 opts into the second fixed dev identity — lets you open
+      // a second tab and exercise a two-sided flow (e.g. an athlete
+      // booking a coach) as two distinct logged-in users locally.
+      const useSecondDevUser = new URLSearchParams(window.location.search).get("devUser") === "2";
+      (useSecondDevUser ? devLogin2() : devLogin())
         .then((result) => {
           setState({ status: "ready", user: result.user, token: result.accessToken });
         })

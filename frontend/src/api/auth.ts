@@ -29,6 +29,15 @@ export async function devLogin(): Promise<AuthResult> {
   return { accessToken: dto.access_token, user: mapUserDto(dto.user) };
 }
 
+/** Dev-only: logs in as a second fixed dev user, so a two-sided flow (e.g.
+ * an athlete booking a coach's own session) can be exercised locally with
+ * two distinct browser tabs. Opt in by loading the app with `?devUser=2`
+ * in the URL — see AuthContext. */
+export async function devLogin2(): Promise<AuthResult> {
+  const dto = await apiRequest<AuthResponseDto>("/api/auth/dev-login-2", { method: "POST" });
+  return { accessToken: dto.access_token, user: mapUserDto(dto.user) };
+}
+
 export async function fetchCurrentUser(token: string): Promise<User> {
   const dto = await apiRequest<UserDto>("/api/auth/me", { token });
   return mapUserDto(dto);
