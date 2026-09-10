@@ -256,9 +256,9 @@ async def compute_open_slots(
     conn: asyncpg.Connection, listing_id: UUID, from_date: date, to_date: date
 ) -> list[dict[str, Any]]:
     listing = await get_listing(conn, listing_id)
-    duration = (listing or {}).get("session_duration_minutes")
-    if not duration:
+    if listing is None or not listing.get("session_duration_minutes"):
         return []
+    duration = listing["session_duration_minutes"]
     windows = await list_availability(conn, listing_id)
     # Booked-set is keyed on coach_user_id, not listing_id — a slot taken
     # via ANY of this coach's listings must disappear here too, since the

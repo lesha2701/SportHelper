@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import io
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
+from uuid import UUID, uuid4
 
 from tests.test_teams_api import _create_coach_profile
 
@@ -319,3 +320,80 @@ def test_slots_not_found_for_unlisted_listing(logged_in_client) -> None:
         headers=headers,
     )
     assert resp.status_code == 404
+
+
+def test_booking_on_one_listing_blocks_the_slot_on_the_coachs_other_listing(logged_in_client) -> None:
+    """compute_open_slots keys its "booked" lookup on coach_user_id, not
+    listing_id, because a coach can list the same available time through
+    several listings but can still only be in one place at a time. Prove
+    that a booking made against listing A also removes the identical slot
+    from listing B's open slots — while a different slot time stays open on
+    both — rather than trusting the (correct, but untested) implementation."""
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token)
+
+    listing_a = client.post(
+        "/api/coach-listings", headers=headers, json=_listing_payload(title="Индивидуальные")
+    ).json()
+    listing_b = client.post(
+        "/api/coach-listings", headers=headers, json=_listing_payload(title="Групповые")
+    ).json()
+    assert listing_a["coach_user_id"] == listing_b["coach_user_id"]
+
+    # Both listings expose the same Monday 10:00-12:00 window, so the same
+    # two candidate slots (10:00 and 11:00) exist in both listings' open
+    # slots before anything is booked.
+    for listing in (listing_a, listing_b):
+        client.put(
+            f"/api/coach-listings/{listing['id']}/availability",
+            headers=headers,
+            json=[{"weekday": 0, "start_time": "10:00:00", "end_time": "12:00:00"}],
+        )
+        resp = client.put(
+            f"/api/coach-listings/{listing['id']}", headers=headers, json=_listing_payload(is_listed=True)
+        )
+        assert resp.status_code == 200, resp.text
+
+    today = date.today()
+    days_until_monday = (7 - today.weekday()) % 7
+    next_monday = today + timedelta(days=days_until_monday or 7)
+    booked_starts_at = datetime.combine(next_monday, datetime.min.time(), tzinfo=timezone.utc).replace(hour=10)
+    other_starts_at = booked_starts_at.replace(hour=11)
+
+    # Book the 10:00 slot directly against listing A's flow by inserting
+    # into the shared fake bookings store (the real POST /api/bookings
+    # endpoint for listings doesn't exist yet) — same shape fake_create_booking
+    # builds, keyed on the shared coach's user id.
+    coach_user_id = UUID(listing_a["coach_user_id"])
+    booking_id = uuid4()
+    client.bookings_store[booking_id] = {
+        "id": booking_id,
+        "coach_user_id": coach_user_id,
+        "listing_id": UUID(listing_a["id"]),
+        "athlete_user_id": uuid4(),
+        "starts_at": booked_starts_at,
+        "duration_minutes": 60,
+        "format": "online",
+        "price_per_session": 2000,
+        "currency": "RUB",
+        "status": "confirmed",
+        "training_id": None,
+        "created_at": datetime.now(timezone.utc),
+        "responded_at": None,
+    }
+
+    slots_a = client.get(
+        f"/api/coach-listings/{listing_a['id']}/slots",
+        params={"from_date": next_monday.isoformat(), "to_date": next_monday.isoformat()},
+        headers=headers,
+    ).json()
+    slots_b = client.get(
+        f"/api/coach-listings/{listing_b['id']}/slots",
+        params={"from_date": next_monday.isoformat(), "to_date": next_monday.isoformat()},
+        headers=headers,
+    ).json()
+
+    expected_remaining = [{"starts_at": other_starts_at.isoformat().replace("+00:00", "Z"), "duration_minutes": 60}]
+    assert slots_a == expected_remaining
+    assert slots_b == expected_remaining
