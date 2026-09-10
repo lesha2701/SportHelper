@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import asyncpg
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile
 
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_current_user, get_db, get_settings_dep
+from app.config import Settings
 from app.core.exceptions import APIError, NotFoundError
+from app.integrations.paths import build_user_file_path
+from app.integrations.yandex_disk import YandexDiskError
 from app.repositories import coach_listings as listings_repo
+from app.repositories import files as files_repo
 from app.repositories import profiles as profiles_repo
 from app.schemas.coach_listing import (
     AvailabilityWindowIn,
@@ -15,6 +19,7 @@ from app.schemas.coach_listing import (
     CoachListingIn,
     CoachListingOut,
 )
+from app.services.uploads import IMAGE_MIME_EXTENSIONS, VIDEO_MIME_EXTENSIONS, FileTooLarge, upload_to_disk
 
 router = APIRouter(prefix="/api/coach-listings", tags=["coach-listings"])
 
@@ -127,3 +132,105 @@ async def replace_listing_availability(
         raise APIError("availability windows overlap", code="overlapping_availability", status_code=400)
     updated = await listings_repo.replace_availability(conn, listing_id, windows)
     return [AvailabilityWindowOut(**w) for w in updated]
+
+
+async def _upload_listing_media(
+    listing_id: UUID,
+    file: UploadFile,
+    user: dict,
+    conn: asyncpg.Connection,
+    settings: Settings,
+    *,
+    category: str,
+    allowed_types: dict[str, str],
+    max_size_mb: int,
+) -> CoachListingOut:
+    await _get_owned_listing_or_404(conn, listing_id, user["id"])
+
+    if file.content_type not in allowed_types:
+        kind = "image" if category == "photo" else "video"
+        raise APIError(
+            f"file must be a {kind} ({', '.join(allowed_types)})", code="unsupported_media_type", status_code=415
+        )
+
+    max_bytes = max_size_mb * 1024 * 1024
+    chunk_size = settings.upload_chunk_size_kb * 1024
+    file_id = uuid4()
+    extension = allowed_types[file.content_type]
+    disk_path = build_user_file_path(
+        settings.yandex_disk_root_folder,
+        settings.app_mode,
+        user["id"],
+        f"listings/{listing_id}/{category}",
+        file_id,
+        extension,
+    )
+
+    try:
+        size_bytes = await upload_to_disk(settings, disk_path, file, max_bytes, chunk_size)
+    except RuntimeError as exc:
+        raise APIError(str(exc), code="yandex_disk_not_configured", status_code=503) from exc
+    except FileTooLarge as exc:
+        raise APIError(f"file must be smaller than {max_size_mb} MB", code="file_too_large", status_code=413) from exc
+    except YandexDiskError as exc:
+        raise APIError("failed to store the file", code="storage_error", status_code=502) from exc
+
+    file_record = await files_repo.create_file(
+        conn,
+        owner_id=user["id"],
+        team_id=None,
+        entity_type=f"coach_listing_{category}",
+        entity_id=listing_id,
+        disk_path=disk_path,
+        filename=file.filename or f"{file_id}.{extension}",
+        mime_type=file.content_type,
+        size_bytes=size_bytes,
+        access_level="PUBLIC",
+    )
+    if category == "photo":
+        await files_repo.replace_listing_photo(conn, listing_id, file_record["id"])
+    else:
+        await files_repo.replace_listing_video(conn, listing_id, file_record["id"])
+    updated = await listings_repo.get_listing(conn, listing_id)
+    assert updated is not None
+    return CoachListingOut(**updated)
+
+
+@router.post("/{listing_id}/photo", response_model=CoachListingOut)
+async def upload_listing_photo(
+    listing_id: UUID,
+    file: UploadFile,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> CoachListingOut:
+    return await _upload_listing_media(
+        listing_id,
+        file,
+        user,
+        conn,
+        settings,
+        category="photo",
+        allowed_types=IMAGE_MIME_EXTENSIONS,
+        max_size_mb=settings.max_image_size_mb,
+    )
+
+
+@router.post("/{listing_id}/video", response_model=CoachListingOut)
+async def upload_listing_video(
+    listing_id: UUID,
+    file: UploadFile,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> CoachListingOut:
+    return await _upload_listing_media(
+        listing_id,
+        file,
+        user,
+        conn,
+        settings,
+        category="video",
+        allowed_types=VIDEO_MIME_EXTENSIONS,
+        max_size_mb=settings.max_video_size_mb,
+    )

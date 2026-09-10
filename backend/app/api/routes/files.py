@@ -122,6 +122,10 @@ async def download_file(
             raise ForbiddenError("you do not have access to this file")
         if access_level == "COACHES_ONLY" and member["role"] not in ("head_coach", "assistant_coach"):
             raise ForbiddenError("you do not have access to this file")
+    elif access_level == "PUBLIC":
+        pass  # any authenticated user may view a public coach-listing photo/video
+    else:
+        raise ForbiddenError("you do not have access to this file")
 
     try:
         client = YandexDiskClient(settings)

@@ -71,6 +71,38 @@ async def replace_team_logo(conn: asyncpg.Connection, team_id: UUID, new_file_id
     return old_file_id
 
 
+async def replace_listing_photo(conn: asyncpg.Connection, listing_id: UUID, new_file_id: UUID) -> UUID | None:
+    """Point the listing at the new photo file and soft-delete the previous
+    one (if any) — same pattern as replace_team_logo."""
+    async with conn.transaction():
+        old_file_id = await conn.fetchval(
+            "SELECT photo_file_id FROM coach_listings WHERE id = $1 FOR UPDATE", listing_id
+        )
+        await conn.execute(
+            "UPDATE coach_listings SET photo_file_id = $2, updated_at = now() WHERE id = $1",
+            listing_id,
+            new_file_id,
+        )
+        if old_file_id is not None:
+            await conn.execute("UPDATE files SET deleted_at = now() WHERE id = $1", old_file_id)
+    return old_file_id
+
+
+async def replace_listing_video(conn: asyncpg.Connection, listing_id: UUID, new_file_id: UUID) -> UUID | None:
+    async with conn.transaction():
+        old_file_id = await conn.fetchval(
+            "SELECT video_file_id FROM coach_listings WHERE id = $1 FOR UPDATE", listing_id
+        )
+        await conn.execute(
+            "UPDATE coach_listings SET video_file_id = $2, updated_at = now() WHERE id = $1",
+            listing_id,
+            new_file_id,
+        )
+        if old_file_id is not None:
+            await conn.execute("UPDATE files SET deleted_at = now() WHERE id = $1", old_file_id)
+    return old_file_id
+
+
 async def list_purgeable(conn: asyncpg.Connection, before: datetime, limit: int = 100) -> list[dict[str, Any]]:
     """Files soft-deleted before the retention cutoff — safe to remove from
     Yandex.Disk and the database for good."""

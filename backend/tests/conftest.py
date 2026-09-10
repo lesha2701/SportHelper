@@ -875,9 +875,25 @@ def client(monkeypatch: pytest.MonkeyPatch):
             files_store[old_file_id]["deleted_at"] = datetime.now(timezone.utc)
         return old_file_id
 
+    async def fake_replace_listing_photo(conn, listing_id, new_file_id):
+        old_file_id = listings_store[listing_id].get("photo_file_id")
+        listings_store[listing_id]["photo_file_id"] = new_file_id
+        if old_file_id is not None and old_file_id in files_store:
+            files_store[old_file_id]["deleted_at"] = datetime.now(timezone.utc)
+        return old_file_id
+
+    async def fake_replace_listing_video(conn, listing_id, new_file_id):
+        old_file_id = listings_store[listing_id].get("video_file_id")
+        listings_store[listing_id]["video_file_id"] = new_file_id
+        if old_file_id is not None and old_file_id in files_store:
+            files_store[old_file_id]["deleted_at"] = datetime.now(timezone.utc)
+        return old_file_id
+
     monkeypatch.setattr(files_module, "create_file", fake_create_file)
     monkeypatch.setattr(files_module, "get_file", fake_get_file)
     monkeypatch.setattr(files_module, "replace_team_logo", fake_replace_team_logo)
+    monkeypatch.setattr(files_module, "replace_listing_photo", fake_replace_listing_photo)
+    monkeypatch.setattr(files_module, "replace_listing_video", fake_replace_listing_video)
 
     exercises_store: dict = {}
     exercise_shares_store: dict = {}  # (exercise_id, team_id) -> shared_by

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import io
+
 from tests.test_teams_api import _create_coach_profile
 
 
@@ -161,3 +163,66 @@ def test_delete_listing(logged_in_client) -> None:
 
     mine = client.get("/api/coach-listings/me", headers=headers).json()
     assert mine == []
+
+
+def test_upload_and_replace_listing_photo(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token)
+    listing = client.post("/api/coach-listings", headers=headers, json=_listing_payload()).json()
+
+    first = client.post(
+        f"/api/coach-listings/{listing['id']}/photo",
+        headers=headers,
+        files={"file": ("photo.jpg", io.BytesIO(b"fake-jpeg-bytes"), "image/jpeg")},
+    )
+    assert first.status_code == 200, first.text
+    first_file_id = first.json()["photo_file_id"]
+    assert first_file_id is not None
+
+    second = client.post(
+        f"/api/coach-listings/{listing['id']}/photo",
+        headers=headers,
+        files={"file": ("photo2.jpg", io.BytesIO(b"other-fake-jpeg-bytes"), "image/jpeg")},
+    )
+    assert second.status_code == 200, second.text
+    second_file_id = second.json()["photo_file_id"]
+    assert second_file_id != first_file_id
+
+    # Old file is gone (soft-deleted), new one is servable.
+    old_get = client.get(f"/api/files/{first_file_id}", headers=headers)
+    assert old_get.status_code == 404
+    new_get = client.get(f"/api/files/{second_file_id}", headers=headers)
+    assert new_get.status_code == 200
+
+
+def test_upload_listing_video_wrong_type_rejected(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token)
+    listing = client.post("/api/coach-listings", headers=headers, json=_listing_payload()).json()
+
+    resp = client.post(
+        f"/api/coach-listings/{listing['id']}/video",
+        headers=headers,
+        files={"file": ("clip.txt", io.BytesIO(b"not a video"), "text/plain")},
+    )
+    assert resp.status_code == 415
+    assert resp.json()["error"]["code"] == "unsupported_media_type"
+
+
+def test_cannot_upload_photo_to_another_coachs_listing(logged_in_client, login_as) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token)
+    listing = client.post("/api/coach-listings", headers=headers, json=_listing_payload()).json()
+
+    other_token = login_as(870002, first_name="OtherCoach")
+    other_headers = {"Authorization": f"Bearer {other_token}"}
+
+    resp = client.post(
+        f"/api/coach-listings/{listing['id']}/photo",
+        headers=other_headers,
+        files={"file": ("photo.jpg", io.BytesIO(b"bytes"), "image/jpeg")},
+    )
+    assert resp.status_code == 404
