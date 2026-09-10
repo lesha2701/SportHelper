@@ -2090,6 +2090,84 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(metrics_module, "soft_delete", fake_soft_delete_metric)
     monkeypatch.setattr(metrics_module, "list_for_user", fake_list_metrics_for_user)
 
+    import app.repositories.coach_listings as coach_listings_module
+
+    listings_store: dict = {}
+    listing_availability_store: dict = {}  # listing_id -> list[window dict]
+
+    async def fake_create_listing(conn, coach_user_id, *, title):
+        listing_id = uuid4()
+        record = {
+            "id": listing_id,
+            "coach_user_id": coach_user_id,
+            "title": title,
+            "description": None,
+            "is_listed": False,
+            "price_per_session": None,
+            "currency": "RUB",
+            "offers_online": False,
+            "offers_offline": False,
+            "location": None,
+            "session_duration_minutes": None,
+            "photo_file_id": None,
+            "video_file_id": None,
+        }
+        listings_store[listing_id] = record
+        return dict(record)
+
+    async def fake_get_listing(conn, listing_id):
+        record = listings_store.get(listing_id)
+        return dict(record) if record else None
+
+    async def fake_list_for_coach(conn, coach_user_id):
+        return [dict(r) for r in listings_store.values() if r["coach_user_id"] == coach_user_id]
+
+    async def fake_update_listing(conn, listing_id, coach_user_id, **fields):
+        record = listings_store.get(listing_id)
+        if record is None or record["coach_user_id"] != coach_user_id:
+            return None
+        record.update(fields)
+        return dict(record)
+
+    async def fake_has_active_booking(conn, listing_id):
+        now = datetime.now(timezone.utc)
+        for b in bookings_store.values():
+            if b.get("listing_id") != listing_id:
+                continue
+            if b["status"] == "pending":
+                return True
+            if b["status"] == "confirmed" and b["starts_at"] + timedelta(minutes=b["duration_minutes"]) > now:
+                return True
+        return False
+
+    async def fake_soft_delete_listing(conn, listing_id, coach_user_id):
+        record = listings_store.get(listing_id)
+        if record is None or record["coach_user_id"] != coach_user_id:
+            return False
+        del listings_store[listing_id]
+        return True
+
+    async def fake_list_listing_availability(conn, listing_id):
+        return sorted(
+            [dict(w) for w in listing_availability_store.get(listing_id, [])],
+            key=lambda w: (w["weekday"], w["start_time"]),
+        )
+
+    async def fake_replace_listing_availability(conn, listing_id, windows):
+        stored = [{"id": uuid4(), **w} for w in windows]
+        listing_availability_store[listing_id] = stored
+        return stored
+
+    monkeypatch.setattr(coach_listings_module, "create_listing", fake_create_listing)
+    monkeypatch.setattr(coach_listings_module, "get_listing", fake_get_listing)
+    monkeypatch.setattr(coach_listings_module, "list_for_coach", fake_list_for_coach)
+    monkeypatch.setattr(coach_listings_module, "update_listing", fake_update_listing)
+    monkeypatch.setattr(coach_listings_module, "has_active_booking", fake_has_active_booking)
+    monkeypatch.setattr(coach_listings_module, "soft_delete_listing", fake_soft_delete_listing)
+    monkeypatch.setattr(coach_listings_module, "list_availability", fake_list_listing_availability)
+    monkeypatch.setattr(coach_listings_module, "replace_availability", fake_replace_listing_availability)
+    # coach_listings_module.has_overlap is a plain function — not faked, runs for real in tests.
+
     app = main_module.create_app()
 
     async def override_get_db():
