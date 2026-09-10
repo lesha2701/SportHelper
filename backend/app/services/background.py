@@ -70,7 +70,12 @@ async def sweep_expired_bookings(conn: asyncpg.Connection) -> None:
     cutoff = datetime.now(timezone.utc) - timedelta(hours=BOOKING_EXPIRY_HOURS)
     expired = await bookings_repo.sweep_expired(conn, older_than=cutoff)
     for booking in expired:
-        await notifications_service.schedule_booking_decided_notification(conn, booking, outcome="expired")
+        try:
+            await notifications_service.schedule_booking_decided_notification(conn, booking, outcome="expired")
+        except Exception:  # noqa: BLE001 - one bad notification must never strand the rest of the batch or tick
+            logger.exception(
+                "Failed to schedule expiry notification for booking %s", booking["id"]
+            )
     if expired:
         logger.info("Auto-declined %d expired booking request(s)", len(expired))
 

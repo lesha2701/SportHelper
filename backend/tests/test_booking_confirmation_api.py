@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from uuid import UUID
 
 from app.services import background
 
@@ -120,6 +121,64 @@ async def test_sweep_expires_pending_booking_after_24_hours(logged_in_client, lo
 
     pending = client.get("/api/bookings/coach/pending", headers={"Authorization": f"Bearer {coach_token}"}).json()
     assert pending == []
+
+    mine = client.get("/api/bookings/me", headers={"Authorization": f"Bearer {athlete_token}"}).json()
+    assert mine[0]["status"] == "expired"
+
+
+def test_confirm_rejects_booking_whose_session_time_has_passed(logged_in_client, login_as) -> None:
+    """A coach must not be able to confirm a booking after its session
+    start time has already passed (e.g. sitting on a same-day request for
+    hours) — that would create a back-dated Training that is_completed()
+    immediately reports as completed, letting the athlete review a session
+    that never happened. The normal booking flow only allows booking future
+    slots, so to exercise the starts_at guard we create a pending booking
+    normally via the API and then backdate its starts_at directly in the
+    fake's in-memory store (exposed on the client as `bookings_store`, the
+    same way `notifications_store` is exposed for other tests) — this
+    reaches the real route and the fake's guard logic (which mirrors
+    confirm_booking's real SQL-side check) rather than faking the clock."""
+    client, coach_token = logged_in_client
+    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890401)
+
+    record = client.bookings_store[UUID(booking["id"])]
+    record["starts_at"] = datetime.now(timezone.utc) - timedelta(minutes=1)
+
+    resp = client.post(
+        f"/api/bookings/{booking['id']}/confirm",
+        headers={"Authorization": f"Bearer {coach_token}"},
+    )
+    assert resp.status_code == 409, resp.text
+    assert resp.json()["error"]["code"] == "booking_not_pending"
+
+    # It's still 'pending' (not flipped to anything) until the sweep catches
+    # it on its next tick — confirm_booking itself must not mutate it.
+    assert record["status"] == "pending"
+    assert record["training_id"] is None
+
+
+async def test_sweep_also_expires_pending_booking_whose_session_time_has_passed_within_24h(
+    logged_in_client, login_as
+) -> None:
+    """sweep_expired's widened WHERE clause must catch a booking whose
+    starts_at has passed even when it's well within the 24h creation-time
+    cutoff (e.g. a same-day request the coach sat on) — not just old ones.
+    Backdate starts_at the same way as the confirm-guard test above, then
+    call sweep_expired with an `older_than` cutoff in the past so the
+    created_at < $1 branch of the OR cannot be what matches."""
+    client, coach_token = logged_in_client
+    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890402)
+
+    record = client.bookings_store[UUID(booking["id"])]
+    record["starts_at"] = datetime.now(timezone.utc) - timedelta(minutes=1)
+
+    from app.repositories import bookings as bookings_repo
+
+    past_cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    assert record["created_at"] > past_cutoff  # created_at < $1 branch does NOT match
+
+    expired = await bookings_repo.sweep_expired(None, older_than=past_cutoff)
+    assert any(str(e["id"]) == booking["id"] for e in expired)
 
     mine = client.get("/api/bookings/me", headers={"Authorization": f"Bearer {athlete_token}"}).json()
     assert mine[0]["status"] == "expired"

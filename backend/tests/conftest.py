@@ -448,6 +448,8 @@ def client(monkeypatch: pytest.MonkeyPatch):
         record = bookings_store.get(booking_id)
         if record is None or record["coach_user_id"] != coach_user_id or record["status"] != "pending":
             return None
+        if record["starts_at"] <= datetime.now(timezone.utc):
+            return None
         coach_profile = coach_store.get(coach_user_id, {})
         training = await trainings_module.create_training(
             conn,
@@ -508,7 +510,9 @@ def client(monkeypatch: pytest.MonkeyPatch):
     async def fake_sweep_expired(conn, *, older_than):
         expired = []
         for record in bookings_store.values():
-            if record["status"] == "pending" and record["created_at"] < older_than:
+            if record["status"] == "pending" and (
+                record["created_at"] < older_than or record["starts_at"] < datetime.now(timezone.utc)
+            ):
                 record["status"] = "expired"
                 record["responded_at"] = datetime.now(timezone.utc)
                 expired.append({"id": record["id"], "athlete_user_id": record["athlete_user_id"]})
@@ -2095,6 +2099,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
 
     with TestClient(app) as test_client:
         test_client.notifications_store = notifications_store
+        test_client.bookings_store = bookings_store
         yield test_client
 
     get_settings.cache_clear()

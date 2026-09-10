@@ -1,7 +1,7 @@
 """Data access for coach-marketplace bookings. All queries are parameterized."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
@@ -97,7 +97,11 @@ async def confirm_booking(conn: asyncpg.Connection, *, booking_id: UUID, coach_u
     """Confirms a pending booking: creates the linked Training and flips the
     booking to 'confirmed', in one transaction. Returns None if the booking
     isn't this coach's currently-pending one (already handled, or a race
-    with the expiry sweep) — the route layer turns that into a 409."""
+    with the expiry sweep), or if its session start time has already
+    passed — the route layer turns either case into the same 409. A booking
+    whose starts_at has passed is deliberately left 'pending' here rather
+    than flipped to anything else; the next sweep_expired tick (which also
+    checks starts_at) will transition it out of 'pending'."""
     async with conn.transaction():
         booking = await conn.fetchrow(
             "SELECT * FROM bookings WHERE id = $1 AND coach_user_id = $2 AND status = 'pending' FOR UPDATE",
@@ -105,6 +109,8 @@ async def confirm_booking(conn: asyncpg.Connection, *, booking_id: UUID, coach_u
             coach_user_id,
         )
         if booking is None:
+            return None
+        if booking["starts_at"] <= datetime.now(timezone.utc):
             return None
         coach_profile = await conn.fetchrow("SELECT location FROM coach_profiles WHERE user_id = $1", coach_user_id)
         training = await trainings_repo.create_training(
@@ -139,12 +145,16 @@ async def decline_booking(conn: asyncpg.Connection, *, booking_id: UUID, coach_u
 
 
 async def sweep_expired(conn: asyncpg.Connection, *, older_than: datetime) -> list[dict[str, Any]]:
-    """Auto-declines every 'pending' booking created before `older_than`.
-    Called by the background tick with a rolling 24h cutoff — see
+    """Auto-declines every 'pending' booking created before `older_than`, and
+    also any 'pending' booking whose session start time has already passed
+    (regardless of when it was created) — a slot can be requested as little
+    as 1 minute before it starts, so relying on the 24h creation-time cutoff
+    alone would leave same-day requests confirmable long after their session
+    time. Called by the background tick with a rolling 24h cutoff — see
     app.services.background.sweep_expired_bookings."""
     rows = await conn.fetch(
         "UPDATE bookings SET status = 'expired', responded_at = now() "
-        "WHERE status = 'pending' AND created_at < $1 "
+        "WHERE status = 'pending' AND (created_at < $1 OR starts_at < now()) "
         "RETURNING id, athlete_user_id",
         older_than,
     )
