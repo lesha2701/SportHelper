@@ -1,5 +1,7 @@
 // frontend/src/types/booking.ts
 
+export type BookingStatus = "pending" | "confirmed" | "declined" | "expired" | "cancelled";
+
 export interface BookingDto {
   id: string;
   coach_user_id: string;
@@ -10,9 +12,9 @@ export interface BookingDto {
   format: string;
   price_per_session: number | null;
   currency: string;
-  status: string;
+  status: BookingStatus;
   is_completed: boolean;
-  training_id: string;
+  training_id: string | null;
   has_review: boolean;
 }
 
@@ -26,9 +28,9 @@ export interface Booking {
   format: "online" | "offline";
   pricePerSession: number | null;
   currency: string;
-  status: string;
+  status: BookingStatus;
   isCompleted: boolean;
-  trainingId: string;
+  trainingId: string | null;
   hasReview: boolean;
 }
 
@@ -66,4 +68,42 @@ export interface ReviewDto {
   booking_id: string;
   rating: number;
   text: string | null;
+}
+
+export interface PendingBookingDto {
+  id: string;
+  athlete_user_id: string;
+  athlete_full_name: string;
+  starts_at: string;
+  duration_minutes: number;
+  format: string;
+  price_per_session: number | null;
+  currency: string;
+  created_at: string;
+}
+
+export interface PendingBooking {
+  id: string;
+  athleteUserId: string;
+  athleteFullName: string;
+  startsAt: string;
+  durationMinutes: number;
+  format: "online" | "offline";
+  pricePerSession: number | null;
+  currency: string;
+  createdAt: string;
+}
+
+export function mapPendingBookingDto(dto: PendingBookingDto): PendingBooking {
+  return {
+    id: dto.id,
+    athleteUserId: dto.athlete_user_id,
+    athleteFullName: dto.athlete_full_name,
+    startsAt: dto.starts_at,
+    durationMinutes: dto.duration_minutes,
+    format: dto.format as "online" | "offline",
+    pricePerSession: dto.price_per_session,
+    currency: dto.currency,
+    createdAt: dto.created_at,
+  };
 }
