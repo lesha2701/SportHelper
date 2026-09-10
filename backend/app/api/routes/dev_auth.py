@@ -34,6 +34,15 @@ _DEV_USER = TelegramUser(
     photo_url=None,
 )
 
+_DEV_USER_2 = TelegramUser(
+    id=900000002,
+    first_name="Dev2",
+    last_name=None,
+    username="dev_user_2",
+    language_code="ru",
+    photo_url=None,
+)
+
 
 @router.post("/dev-login", response_model=AuthResponse)
 async def dev_login(
@@ -41,5 +50,18 @@ async def dev_login(
     settings: Settings = Depends(get_settings_dep),
 ) -> AuthResponse:
     user = await users_repo.upsert_from_telegram(conn, _DEV_USER)
+    token = create_access_token(user["id"], settings)
+    return AuthResponse(access_token=token, user=UserOut(**user))
+
+
+@router.post("/dev-login-2", response_model=AuthResponse)
+async def dev_login_2(
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> AuthResponse:
+    """Second fixed dev identity, so the coach<->athlete booking-confirmation
+    loop can be exercised locally with two distinct browser sessions — see
+    docs/superpowers/specs/2026-09-10-booking-confirmation-design.md."""
+    user = await users_repo.upsert_from_telegram(conn, _DEV_USER_2)
     token = create_access_token(user["id"], settings)
     return AuthResponse(access_token=token, user=UserOut(**user))
