@@ -48,9 +48,16 @@ ALTER TABLE files DROP CONSTRAINT files_access_level_check;
 ALTER TABLE files ADD CONSTRAINT files_access_level_check
     CHECK (access_level IN ('PRIVATE', 'TEAM', 'COACHES_ONLY', 'PUBLIC'));
 
--- One-time data migration: give every currently-listed coach a matching
--- listing + copy of their weekly schedule, so existing marketplace data
--- isn't orphaned once the new listing-centric API and frontend take over.
+-- One-time data migration: give every coach with meaningful marketplace
+-- configuration a matching listing + copy of their weekly schedule, so
+-- existing marketplace data isn't orphaned once the new listing-centric API
+-- and frontend take over. Deliberately wider than "is_listed = TRUE": a
+-- coach who fully configured their listing (price, duration, format, weekly
+-- schedule) but toggled is_listed off must not be silently dropped here,
+-- since the old source columns/table are removed by a later migration
+-- (0022) — this backfill is the only chance to carry that data forward.
+-- is_listed is still copied through as-is in the SELECT, so a genuinely
+-- unlisted-but-configured coach's new listing correctly starts unlisted too.
 INSERT INTO coach_listings (
     coach_user_id, title, is_listed, price_per_session, currency,
     offers_online, offers_offline, location, session_duration_minutes
@@ -58,7 +65,15 @@ INSERT INTO coach_listings (
 SELECT user_id, 'Тренировки', is_listed, price_per_session, currency,
        offers_online, offers_offline, location, session_duration_minutes
 FROM coach_profiles
-WHERE is_listed = TRUE;
+WHERE is_listed = TRUE
+   OR price_per_session IS NOT NULL
+   OR session_duration_minutes IS NOT NULL
+   OR offers_online = TRUE
+   OR offers_offline = TRUE
+   OR EXISTS (
+        SELECT 1 FROM coach_availability_templates cat
+        WHERE cat.coach_user_id = coach_profiles.user_id
+      );
 
 INSERT INTO coach_listing_availability (listing_id, weekday, start_time, end_time)
 SELECT cl.id, cat.weekday, cat.start_time, cat.end_time

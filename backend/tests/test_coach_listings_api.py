@@ -167,7 +167,46 @@ def test_delete_listing(logged_in_client) -> None:
     assert mine == []
 
 
-def test_upload_and_replace_listing_photo(logged_in_client) -> None:
+def test_cannot_delete_listing_with_active_booking(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    listing = _list_a_listing(client, token)
+
+    # Insert a pending booking directly into the shared fake bookings store
+    # (same shape/pattern used elsewhere in this suite, e.g.
+    # test_booking_on_one_listing_blocks_the_slot_on_the_coachs_other_listing) —
+    # the guard under test (has_active_booking) is keyed on listing_id.
+    booking_id = uuid4()
+    client.bookings_store[booking_id] = {
+        "id": booking_id,
+        "coach_user_id": UUID(listing["coach_user_id"]),
+        "listing_id": UUID(listing["id"]),
+        "athlete_user_id": uuid4(),
+        "starts_at": datetime.now(timezone.utc) + timedelta(days=1),
+        "duration_minutes": 60,
+        "format": "online",
+        "price_per_session": 2000,
+        "currency": "RUB",
+        "status": "pending",
+        "training_id": None,
+        "created_at": datetime.now(timezone.utc),
+        "responded_at": None,
+    }
+
+    resp = client.delete(f"/api/coach-listings/{listing['id']}", headers=headers)
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == "listing_has_active_booking"
+
+    # Once the booking is no longer active, the same listing can be deleted.
+    client.bookings_store[booking_id]["status"] = "declined"
+    resp2 = client.delete(f"/api/coach-listings/{listing['id']}", headers=headers)
+    assert resp2.status_code == 204
+
+    mine = client.get("/api/coach-listings/me", headers=headers).json()
+    assert mine == []
+
+
+def test_upload_and_replace_listing_photo(logged_in_client, login_as) -> None:
     client, token = logged_in_client
     headers = {"Authorization": f"Bearer {token}"}
     _create_coach_profile(client, token)
@@ -196,6 +235,16 @@ def test_upload_and_replace_listing_photo(logged_in_client) -> None:
     assert old_get.status_code == 404
     new_get = client.get(f"/api/files/{second_file_id}", headers=headers)
     assert new_get.status_code == 200
+
+    # Listing photos are uploaded with access_level=PUBLIC precisely so that
+    # athletes browsing the marketplace (not just the owning coach) can see
+    # them. Fetching with the owner's own token would pass even for a
+    # PRIVATE file, so prove PUBLIC access genuinely works by fetching as a
+    # completely different, non-owning user.
+    other_token = login_as(870003, first_name="BrowsingAthlete")
+    other_headers = {"Authorization": f"Bearer {other_token}"}
+    other_get = client.get(f"/api/files/{second_file_id}", headers=other_headers)
+    assert other_get.status_code == 200
 
 
 def test_upload_listing_video_wrong_type_rejected(logged_in_client) -> None:
@@ -397,3 +446,65 @@ def test_booking_on_one_listing_blocks_the_slot_on_the_coachs_other_listing(logg
     expected_remaining = [{"starts_at": other_starts_at.isoformat().replace("+00:00", "Z"), "duration_minutes": 60}]
     assert slots_a == expected_remaining
     assert slots_b == expected_remaining
+
+
+def test_list_listings_rejects_non_numeric_max_price(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+
+    resp = client.get("/api/coach-listings", params={"max_price": "abc"}, headers=headers)
+    assert resp.status_code == 422
+
+
+def test_slots_rejects_invalid_date_range(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    listing = _list_a_listing(client, token)
+
+    today = date.today()
+    resp = client.get(
+        f"/api/coach-listings/{listing['id']}/slots",
+        params={"from_date": today.isoformat(), "to_date": (today - timedelta(days=1)).isoformat()},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "invalid_date_range"
+
+
+def test_slots_rejects_date_range_too_wide(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    listing = _list_a_listing(client, token)
+
+    today = date.today()
+    resp = client.get(
+        f"/api/coach-listings/{listing['id']}/slots",
+        params={"from_date": today.isoformat(), "to_date": (today + timedelta(days=120)).isoformat()},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "date_range_too_wide"
+
+
+def test_listing_schema_rejects_is_listed_without_price(logged_in_client) -> None:
+    """Distinct from test_update_listing_requires_availability_before_listing
+    (the route-level 409 availability_required check): this proves the
+    Pydantic-level _validate_listing_requirements validator on
+    CoachListingIn itself rejects is_listed=true with no price, independent
+    of whether availability windows exist."""
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token)
+    listing = client.post("/api/coach-listings", headers=headers, json=_listing_payload()).json()
+    client.put(
+        f"/api/coach-listings/{listing['id']}/availability",
+        headers=headers,
+        json=[{"weekday": 0, "start_time": "10:00:00", "end_time": "12:00:00"}],
+    )
+
+    resp = client.put(
+        f"/api/coach-listings/{listing['id']}",
+        headers=headers,
+        json=_listing_payload(is_listed=True, price_per_session=None),
+    )
+    assert resp.status_code == 422
