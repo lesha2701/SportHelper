@@ -138,6 +138,19 @@ async def decline_booking(conn: asyncpg.Connection, *, booking_id: UUID, coach_u
     return await get_booking(conn, booking_id)
 
 
+async def sweep_expired(conn: asyncpg.Connection, *, older_than: datetime) -> list[dict[str, Any]]:
+    """Auto-declines every 'pending' booking created before `older_than`.
+    Called by the background tick with a rolling 24h cutoff — see
+    app.services.background.sweep_expired_bookings."""
+    rows = await conn.fetch(
+        "UPDATE bookings SET status = 'expired', responded_at = now() "
+        "WHERE status = 'pending' AND created_at < $1 "
+        "RETURNING id, athlete_user_id",
+        older_than,
+    )
+    return [dict(row) for row in rows]
+
+
 async def list_pending_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) -> list[dict[str, Any]]:
     rows = await conn.fetch(
         """

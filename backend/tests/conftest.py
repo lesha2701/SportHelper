@@ -504,6 +504,17 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(bookings_module, "confirm_booking", fake_confirm_booking)
     monkeypatch.setattr(bookings_module, "decline_booking", fake_decline_booking)
     monkeypatch.setattr(bookings_module, "list_pending_for_coach", fake_list_pending_for_coach)
+
+    async def fake_sweep_expired(conn, *, older_than):
+        expired = []
+        for record in bookings_store.values():
+            if record["status"] == "pending" and record["created_at"] < older_than:
+                record["status"] = "expired"
+                record["responded_at"] = datetime.now(timezone.utc)
+                expired.append({"id": record["id"], "athlete_user_id": record["athlete_user_id"]})
+        return expired
+
+    monkeypatch.setattr(bookings_module, "sweep_expired", fake_sweep_expired)
     # bookings_module.is_completed is a plain function — not faked, runs for real in tests.
 
     async def fake_get_by_booking(conn, booking_id):

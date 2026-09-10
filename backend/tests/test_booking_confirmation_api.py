@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
+from app.services import background
+
 from tests.test_bookings_api import _list_coach_with_slot
 
 
@@ -94,3 +98,45 @@ def test_confirm_twice_is_rejected(logged_in_client, login_as) -> None:
     second = client.post(f"/api/bookings/{booking['id']}/confirm", headers=headers)
     assert second.status_code == 409
     assert second.json()["error"]["code"] == "booking_not_pending"
+
+
+async def test_sweep_expires_pending_booking_after_24_hours(logged_in_client, login_as) -> None:
+    client, coach_token = logged_in_client
+    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)
+
+    # Backdate the booking's created_at past the 24h cutoff by monkeypatching
+    # is not available here (no direct store access from the test module),
+    # so instead call the sweep with an `older_than` cutoff in the future —
+    # equivalent to "24 hours have passed" from the sweep's point of view.
+    from app.repositories import bookings as bookings_repo
+
+    future_cutoff = datetime.now(timezone.utc) + timedelta(hours=1)
+    expired = await bookings_repo.sweep_expired(None, older_than=future_cutoff)
+    # sweep_expired returns raw UUID objects (matching what asyncpg returns
+    # for a `uuid` column), while `booking["id"]` came through the JSON
+    # response and is therefore a string — compare via str() rather than
+    # relying on UUID.__eq__(str), which is always False.
+    assert any(str(e["id"]) == booking["id"] for e in expired)
+
+    pending = client.get("/api/bookings/coach/pending", headers={"Authorization": f"Bearer {coach_token}"}).json()
+    assert pending == []
+
+    mine = client.get("/api/bookings/me", headers={"Authorization": f"Bearer {athlete_token}"}).json()
+    assert mine[0]["status"] == "expired"
+
+
+async def test_background_sweep_runs_via_service_function(logged_in_client, login_as, monkeypatch) -> None:
+    """Exercises the real sweep_expired_bookings wiring — including its own
+    cutoff computation — rather than calling bookings_repo.sweep_expired
+    directly like the test above. Dropping BOOKING_EXPIRY_HOURS to 0 makes
+    "24 hours ago" collapse to "now", so a booking created a moment earlier
+    is already past the (now momentary) cutoff — no need to fake the clock
+    or the booking's created_at."""
+    client, coach_token = logged_in_client
+    coach_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890201)
+
+    monkeypatch.setattr(background, "BOOKING_EXPIRY_HOURS", 0)
+    await background.sweep_expired_bookings(None)
+
+    mine = client.get("/api/bookings/me", headers={"Authorization": f"Bearer {athlete_token}"}).json()
+    assert mine[0]["status"] == "expired"

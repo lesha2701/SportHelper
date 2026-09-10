@@ -22,12 +22,15 @@ from aiogram.exceptions import TelegramAPIError
 
 from app.config import Settings
 from app.integrations.yandex_disk import YandexDiskClient, YandexDiskError
+from app.repositories import bookings as bookings_repo
 from app.repositories import files as files_repo
 from app.repositories import notifications as notifications_repo
 from app.repositories import tasks as tasks_repo
 from app.repositories import users as users_repo
 
 logger = logging.getLogger("teamflow.background")
+
+BOOKING_EXPIRY_HOURS = 24
 
 
 async def send_due_notifications(conn: asyncpg.Connection, bot: Bot, settings: Settings) -> None:
@@ -62,6 +65,13 @@ async def sweep_overdue_tasks(conn: asyncpg.Connection) -> None:
         logger.info("Marked %d task assignment(s) overdue", count)
 
 
+async def sweep_expired_bookings(conn: asyncpg.Connection) -> None:
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=BOOKING_EXPIRY_HOURS)
+    expired = await bookings_repo.sweep_expired(conn, older_than=cutoff)
+    if expired:
+        logger.info("Auto-declined %d expired booking request(s)", len(expired))
+
+
 async def purge_soft_deleted_files(conn: asyncpg.Connection, settings: Settings) -> None:
     if not settings.yandex_disk_oauth_token:
         return
@@ -84,6 +94,7 @@ async def purge_soft_deleted_files(conn: asyncpg.Connection, settings: Settings)
 async def run_tick(pool: asyncpg.Pool, bot: Bot, settings: Settings) -> None:
     async with pool.acquire() as conn:
         await sweep_overdue_tasks(conn)
+        await sweep_expired_bookings(conn)
         await send_due_notifications(conn, bot, settings)
         await purge_soft_deleted_files(conn, settings)
 
