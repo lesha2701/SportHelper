@@ -124,7 +124,8 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
           </div>
           <h2 className={teamStyles.teamName}>Заявка отправлена!</h2>
           <p className={teamStyles.teamMeta}>
-            Заявка на {new Date(view.booking.startsAt).toLocaleString("ru-RU", { day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}{" "}
+            Заявка{view.booking.listingTitle ? ` на «${view.booking.listingTitle}»` : ""} на{" "}
+            {new Date(view.booking.startsAt).toLocaleString("ru-RU", { day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}{" "}
             отправлена тренеру {view.booking.coachFullName}. Ждите подтверждения — статус можно посмотреть в «Мои
             брони» в профиле.
           </p>

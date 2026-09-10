@@ -77,9 +77,11 @@ export function BookingFlow({
         setBookError(
           err instanceof ApiError && err.code === "slot_unavailable"
             ? "Этот слот уже заняли — выберите другое время."
-            : err instanceof ApiError
-              ? err.message
-              : "Не удалось создать бронь",
+            : err instanceof ApiError && err.code === "self_booking"
+              ? "Нельзя забронировать собственное объявление."
+              : err instanceof ApiError
+                ? err.message
+                : "Не удалось создать бронь",
         );
         setSelectedSlot(null);
       }
