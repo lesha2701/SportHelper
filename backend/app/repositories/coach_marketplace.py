@@ -209,7 +209,7 @@ async def compute_open_slots(
         return []
     windows = await list_availability(conn, coach_user_id)
     booked_rows = await conn.fetch(
-        "SELECT starts_at FROM bookings WHERE coach_user_id = $1 AND status = 'confirmed' "
+        "SELECT starts_at FROM bookings WHERE coach_user_id = $1 AND status IN ('pending', 'confirmed') "
         "AND starts_at >= $2 AND starts_at < $3",
         coach_user_id,
         datetime.combine(from_date, time.min, tzinfo=timezone.utc),

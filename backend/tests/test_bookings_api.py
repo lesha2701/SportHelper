@@ -30,7 +30,7 @@ def _list_coach_with_slot(client, coach_token) -> tuple[str, str]:
     return coach_id, slots[0]["starts_at"]
 
 
-def test_athlete_can_book_open_slot_and_it_appears_in_calendar(logged_in_client, login_as) -> None:
+def test_athlete_booking_creates_pending_request_with_no_training_yet(logged_in_client, login_as) -> None:
     client, coach_token = logged_in_client
     coach_id, slot = _list_coach_with_slot(client, coach_token)
 
@@ -44,16 +44,14 @@ def test_athlete_can_book_open_slot_and_it_appears_in_calendar(logged_in_client,
     )
     assert resp.status_code == 200, resp.text
     booking = resp.json()
-    assert booking["status"] == "confirmed"
+    assert booking["status"] == "pending"
+    assert booking["training_id"] is None
     assert booking["is_completed"] is False
-
-    training_resp = client.get(f"/api/trainings/{booking['training_id']}", headers=athlete_headers)
-    assert training_resp.status_code == 200
-    assert training_resp.json()["type"] == "personal"
 
     mine = client.get("/api/bookings/me", headers=athlete_headers).json()
     assert len(mine) == 1
     assert mine[0]["id"] == booking["id"]
+    assert mine[0]["status"] == "pending"
 
 
 def test_double_booking_same_slot_rejected(logged_in_client, login_as) -> None:

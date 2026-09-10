@@ -7,8 +7,6 @@ from uuid import UUID
 
 import asyncpg
 
-from app.repositories import trainings as trainings_repo
-
 _BOOKING_FIELDS = (
     "b.id, b.coach_user_id, cp.full_name AS coach_full_name, b.athlete_user_id, b.starts_at, "
     "b.duration_minutes, b.format, b.price_per_session, b.currency, b.status, b.training_id"
@@ -32,44 +30,35 @@ async def create_booking(
     currency: str,
     location: str | None,
 ) -> dict[str, Any] | None:
-    """Returns None if the slot was already taken (unique-constraint race)."""
-    async with conn.transaction():
-        training = await trainings_repo.create_training(
-            conn,
-            athlete_user_id,
-            type="personal",
-            training_date=starts_at.date(),
-            start_time=starts_at.time(),
-            duration_minutes=duration_minutes,
-            location=location if format == "offline" else "Онлайн",
-            description="Бронирование тренера через маркетплейс",
-        )
-        try:
-            row = await conn.fetchrow(
-                f"""
-                INSERT INTO bookings (
-                    coach_user_id, athlete_user_id, starts_at, duration_minutes, format,
-                    price_per_session, currency, training_id
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                RETURNING {_BOOKING_INSERT_FIELDS}
-                """,
-                coach_user_id,
-                athlete_user_id,
-                starts_at,
-                duration_minutes,
-                format,
-                price_per_session,
-                currency,
-                training["id"],
+    """Creates a pending booking request — no Training is created here
+    anymore; that only happens once the coach confirms (see
+    confirm_booking). Returns None if the slot was already taken (unique-
+    constraint race, now scoped to pending+confirmed bookings only)."""
+    try:
+        row = await conn.fetchrow(
+            f"""
+            INSERT INTO bookings (
+                coach_user_id, athlete_user_id, starts_at, duration_minutes, format,
+                price_per_session, currency, status
             )
-        except asyncpg.UniqueViolationError:
-            return None
-        result = dict(row)
-        result["coach_full_name"] = (
-            await conn.fetchrow("SELECT full_name FROM coach_profiles WHERE user_id = $1", coach_user_id)
-        )["full_name"]
-        return result
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
+            RETURNING {_BOOKING_INSERT_FIELDS}, created_at
+            """,
+            coach_user_id,
+            athlete_user_id,
+            starts_at,
+            duration_minutes,
+            format,
+            price_per_session,
+            currency,
+        )
+    except asyncpg.UniqueViolationError:
+        return None
+    result = dict(row)
+    result["coach_full_name"] = (
+        await conn.fetchrow("SELECT full_name FROM coach_profiles WHERE user_id = $1", coach_user_id)
+    )["full_name"]
+    return result
 
 
 async def get_booking(conn: asyncpg.Connection, booking_id: UUID) -> dict[str, Any] | None:

@@ -386,7 +386,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
         if not duration:
             return []
         windows = await fake_list_availability(conn, coach_user_id)
-        booked = {b["starts_at"] for b in bookings_store.values() if b["coach_user_id"] == coach_user_id and b["status"] == "confirmed"}
+        booked = {b["starts_at"] for b in bookings_store.values() if b["coach_user_id"] == coach_user_id and b["status"] in ("pending", "confirmed")}
         slots = []
         day = from_date
         while day <= to_date:
@@ -412,23 +412,11 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(coach_marketplace_module, "compute_open_slots", fake_compute_open_slots)
 
     async def fake_create_booking(conn, *, coach_user_id, athlete_user_id, starts_at, duration_minutes, format, price_per_session, currency, location):
-        if any(b["coach_user_id"] == coach_user_id and b["starts_at"] == starts_at and b["status"] == "confirmed" for b in bookings_store.values()):
+        if any(
+            b["coach_user_id"] == coach_user_id and b["starts_at"] == starts_at and b["status"] in ("pending", "confirmed")
+            for b in bookings_store.values()
+        ):
             return None
-        # trainings_module.create_training is already faked below (Task 5's
-        # own client-fixture code, present from before this feature existed)
-        # — calling it here goes through that same fake_create_training,
-        # keyed into the same trainings_store, exactly like the real
-        # repository calls the real create_training.
-        training = await trainings_module.create_training(
-            conn,
-            athlete_user_id,
-            type="personal",
-            training_date=starts_at.date(),
-            start_time=starts_at.time(),
-            duration_minutes=duration_minutes,
-            location=location if format == "offline" else "Онлайн",
-            description="Бронирование тренера через маркетплейс",
-        )
         booking_id = uuid4()
         record = {
             "id": booking_id,
@@ -440,8 +428,10 @@ def client(monkeypatch: pytest.MonkeyPatch):
             "format": format,
             "price_per_session": price_per_session,
             "currency": currency,
-            "status": "confirmed",
-            "training_id": training["id"],
+            "status": "pending",
+            "training_id": None,
+            "created_at": datetime.now(timezone.utc),
+            "responded_at": None,
         }
         bookings_store[booking_id] = record
         return dict(record)

@@ -40,7 +40,7 @@ class BookingOut(BaseModel):
     currency: str
     status: str
     is_completed: bool
-    training_id: UUID
+    training_id: UUID | None
     has_review: bool
 
 
