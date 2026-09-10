@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import time
+from datetime import time, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
@@ -63,3 +63,48 @@ class AvailabilityWindowOut(BaseModel):
     weekday: int
     start_time: time
     end_time: time
+
+
+class CoachListingCardOut(BaseModel):
+    id: UUID
+    title: str
+    description: str | None
+    coach_user_id: UUID
+    coach_full_name: str
+    coach_photo_url: str | None
+    sport: str
+    specialization: str | None
+    experience_years: int | None
+    average_rating: float | None
+    review_count: int
+    price_per_session: float | None
+    currency: str
+    location: str | None
+    offers_online: bool
+    offers_offline: bool
+    photo_file_id: UUID | None
+    next_available_slot: datetime | None
+
+
+class CoachListingProfileOut(CoachListingCardOut):
+    coach_description: str | None
+    session_duration_minutes: int | None
+    video_file_id: UUID | None
+    availability: list[AvailabilityWindowOut]
+    recent_reviews: list["CoachReviewOut"]
+
+
+class CoachReviewOut(BaseModel):
+    id: UUID
+    athlete_first_name: str
+    rating: int
+    text: str | None
+    created_at: datetime
+
+
+class OpenSlotOut(BaseModel):
+    starts_at: datetime
+    duration_minutes: int
+
+
+CoachListingProfileOut.model_rebuild()

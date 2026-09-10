@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+from datetime import date, timedelta
 
 from tests.test_teams_api import _create_coach_profile
 
@@ -224,5 +225,97 @@ def test_cannot_upload_photo_to_another_coachs_listing(logged_in_client, login_a
         f"/api/coach-listings/{listing['id']}/photo",
         headers=other_headers,
         files={"file": ("photo.jpg", io.BytesIO(b"bytes"), "image/jpeg")},
+    )
+    assert resp.status_code == 404
+
+
+def _list_a_listing(client, token, *, sport="Баскетбол") -> dict:
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token, sport=sport)
+    listing = client.post("/api/coach-listings", headers=headers, json=_listing_payload()).json()
+    client.put(
+        f"/api/coach-listings/{listing['id']}/availability",
+        headers=headers,
+        json=[{"weekday": 0, "start_time": "10:00:00", "end_time": "12:00:00"}],
+    )
+    resp = client.put(f"/api/coach-listings/{listing['id']}", headers=headers, json=_listing_payload(is_listed=True))
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+def test_listed_listing_appears_in_public_list_and_profile(logged_in_client) -> None:
+    client, token = logged_in_client
+    listing = _list_a_listing(client, token)
+
+    list_resp = client.get("/api/coach-listings", headers={"Authorization": f"Bearer {token}"})
+    assert list_resp.status_code == 200
+    assert any(c["id"] == listing["id"] for c in list_resp.json())
+
+    profile_resp = client.get(f"/api/coach-listings/{listing['id']}", headers={"Authorization": f"Bearer {token}"})
+    assert profile_resp.status_code == 200
+    assert profile_resp.json()["sport"] == "Баскетбол"
+    assert profile_resp.json()["average_rating"] is None
+    assert profile_resp.json()["review_count"] == 0
+
+
+def test_unlisted_listing_does_not_appear(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token)
+    client.post("/api/coach-listings", headers=headers, json=_listing_payload())
+
+    resp = client.get("/api/coach-listings", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_coach_with_two_listings_shows_two_cards(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token)
+    for title in ("Индивидуальные", "Групповые"):
+        listing = client.post("/api/coach-listings", headers=headers, json=_listing_payload(title=title)).json()
+        client.put(
+            f"/api/coach-listings/{listing['id']}/availability",
+            headers=headers,
+            json=[{"weekday": 1, "start_time": "09:00:00", "end_time": "11:00:00"}],
+        )
+        client.put(f"/api/coach-listings/{listing['id']}", headers=headers, json=_listing_payload(title=title, is_listed=True))
+
+    cards = client.get("/api/coach-listings", headers=headers).json()
+    assert {c["title"] for c in cards} == {"Индивидуальные", "Групповые"}
+
+
+def test_open_slots_computed_from_listing_availability(logged_in_client) -> None:
+    client, token = logged_in_client
+    listing = _list_a_listing(client, token)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    today = date.today()
+    days_until_monday = (7 - today.weekday()) % 7
+    next_monday = today + timedelta(days=days_until_monday or 7)
+
+    resp = client.get(
+        f"/api/coach-listings/{listing['id']}/slots",
+        params={"from_date": next_monday.isoformat(), "to_date": next_monday.isoformat()},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json() == [
+        {"starts_at": f"{next_monday.isoformat()}T10:00:00Z", "duration_minutes": 60},
+        {"starts_at": f"{next_monday.isoformat()}T11:00:00Z", "duration_minutes": 60},
+    ]
+
+
+def test_slots_not_found_for_unlisted_listing(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token)
+    listing = client.post("/api/coach-listings", headers=headers, json=_listing_payload()).json()
+
+    resp = client.get(
+        f"/api/coach-listings/{listing['id']}/slots",
+        params={"from_date": date.today().isoformat(), "to_date": date.today().isoformat()},
+        headers=headers,
     )
     assert resp.status_code == 404

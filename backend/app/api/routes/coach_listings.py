@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from uuid import UUID, uuid4
 
 import asyncpg
@@ -16,8 +17,11 @@ from app.repositories import profiles as profiles_repo
 from app.schemas.coach_listing import (
     AvailabilityWindowIn,
     AvailabilityWindowOut,
+    CoachListingCardOut,
     CoachListingIn,
     CoachListingOut,
+    CoachListingProfileOut,
+    OpenSlotOut,
 )
 from app.services.uploads import IMAGE_MIME_EXTENSIONS, VIDEO_MIME_EXTENSIONS, FileTooLarge, upload_to_disk
 
@@ -234,3 +238,64 @@ async def upload_listing_video(
         allowed_types=VIDEO_MIME_EXTENSIONS,
         max_size_mb=settings.max_video_size_mb,
     )
+
+
+@router.get("", response_model=list[CoachListingCardOut])
+async def list_listings(
+    sport: str | None = None,
+    location: str | None = None,
+    max_price: float | None = None,
+    min_rating: float | None = None,
+    format: str | None = None,
+    min_experience_years: int | None = None,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> list[CoachListingCardOut]:
+    cards = await listings_repo.list_listed(
+        conn,
+        sport=sport,
+        location=location,
+        max_price=max_price,
+        min_rating=min_rating,
+        training_format=format,
+        min_experience_years=min_experience_years,
+    )
+    return [CoachListingCardOut(**c) for c in cards]
+
+
+@router.get("/{listing_id}", response_model=CoachListingProfileOut)
+async def get_listing_profile(
+    listing_id: UUID,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> CoachListingProfileOut:
+    profile = await listings_repo.get_public_listing(conn, listing_id)
+    if profile is None:
+        raise NotFoundError("listing not found or not listed")
+    return CoachListingProfileOut(**profile)
+
+
+_MAX_SLOTS_RANGE_DAYS = 90
+
+
+@router.get("/{listing_id}/slots", response_model=list[OpenSlotOut])
+async def get_listing_open_slots(
+    listing_id: UUID,
+    from_date: date,
+    to_date: date,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> list[OpenSlotOut]:
+    if to_date < from_date:
+        raise APIError("to_date must not be before from_date", code="invalid_date_range", status_code=400)
+    if (to_date - from_date).days > _MAX_SLOTS_RANGE_DAYS:
+        raise APIError(
+            f"date range must not exceed {_MAX_SLOTS_RANGE_DAYS} days",
+            code="date_range_too_wide",
+            status_code=400,
+        )
+    listing = await listings_repo.get_listing(conn, listing_id)
+    if listing is None or not listing["is_listed"]:
+        raise NotFoundError("listing not found or not listed")
+    slots = await listings_repo.compute_open_slots(conn, listing_id, from_date, to_date)
+    return [OpenSlotOut(**s) for s in slots]

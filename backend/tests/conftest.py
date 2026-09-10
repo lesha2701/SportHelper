@@ -2184,6 +2184,101 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(coach_listings_module, "replace_availability", fake_replace_listing_availability)
     # coach_listings_module.has_overlap is a plain function — not faked, runs for real in tests.
 
+    async def fake_list_listed(conn, *, sport=None, location=None, max_price=None, min_rating=None, training_format=None, min_experience_years=None):
+        cards = []
+        for listing in listings_store.values():
+            if not listing.get("is_listed"):
+                continue
+            profile = coach_store.get(listing["coach_user_id"])
+            if profile is None:
+                continue
+            if sport and sport.lower() not in profile["sport"].lower():
+                continue
+            if location and (not listing.get("location") or location.lower() not in listing["location"].lower()):
+                continue
+            if max_price is not None and listing.get("price_per_session") is not None and float(listing["price_per_session"]) > float(max_price):
+                continue
+            if min_experience_years is not None and (profile.get("experience_years") or 0) < min_experience_years:
+                continue
+            if training_format == "online" and not listing.get("offers_online"):
+                continue
+            if training_format == "offline" and not listing.get("offers_offline"):
+                continue
+            rating = await fake_get_rating_summary(conn, listing["coach_user_id"])
+            if min_rating is not None and (rating["average"] or 0) < min_rating:
+                continue
+            user_row = _find_user_by_id(listing["coach_user_id"])
+            next_slot = await fake_listing_compute_open_slots(conn, listing["id"], date.today(), date.today() + timedelta(days=28))
+            cards.append(
+                {
+                    "id": listing["id"],
+                    "title": listing["title"],
+                    "description": listing["description"],
+                    "coach_user_id": listing["coach_user_id"],
+                    "coach_full_name": profile["full_name"],
+                    "coach_photo_url": user_row["photo_url"] if user_row else None,
+                    "sport": profile["sport"],
+                    "specialization": profile.get("specialization"),
+                    "experience_years": profile.get("experience_years"),
+                    "average_rating": rating["average"],
+                    "review_count": rating["count"],
+                    "price_per_session": listing.get("price_per_session"),
+                    "currency": listing.get("currency", "RUB"),
+                    "location": listing.get("location"),
+                    "offers_online": listing.get("offers_online", False),
+                    "offers_offline": listing.get("offers_offline", False),
+                    "photo_file_id": listing.get("photo_file_id"),
+                    "next_available_slot": next_slot[0]["starts_at"] if next_slot else None,
+                }
+            )
+        return cards
+
+    async def fake_get_public_listing(conn, listing_id):
+        cards = await fake_list_listed(conn)
+        card = next((c for c in cards if c["id"] == listing_id), None)
+        if card is None:
+            return None
+        card = dict(card)
+        listing = listings_store[listing_id]
+        profile = coach_store.get(listing["coach_user_id"], {})
+        card["coach_description"] = profile.get("description")
+        card["session_duration_minutes"] = listing.get("session_duration_minutes")
+        card["video_file_id"] = listing.get("video_file_id")
+        card["availability"] = await fake_list_listing_availability(conn, listing_id)
+        card["recent_reviews"] = await fake_list_recent_for_coach(conn, listing["coach_user_id"])
+        return card
+
+    async def fake_listing_compute_open_slots(conn, listing_id, from_date, to_date):
+        listing = listings_store.get(listing_id) or {}
+        duration = listing.get("session_duration_minutes")
+        if not duration:
+            return []
+        coach_user_id = listing.get("coach_user_id")
+        windows = await fake_list_listing_availability(conn, listing_id)
+        booked = {
+            b["starts_at"]
+            for b in bookings_store.values()
+            if b["coach_user_id"] == coach_user_id and b["status"] in ("pending", "confirmed")
+        }
+        slots = []
+        day = from_date
+        while day <= to_date:
+            for window in windows:
+                if window["weekday"] != day.weekday():
+                    continue
+                cursor = datetime.combine(day, window["start_time"], tzinfo=timezone.utc)
+                window_end = datetime.combine(day, window["end_time"], tzinfo=timezone.utc)
+                while cursor + timedelta(minutes=duration) <= window_end:
+                    if cursor not in booked and cursor > datetime.now(timezone.utc):
+                        slots.append({"starts_at": cursor, "duration_minutes": duration})
+                    cursor += timedelta(minutes=duration)
+            day += timedelta(days=1)
+        return sorted(slots, key=lambda s: s["starts_at"])
+
+    monkeypatch.setattr(coach_listings_module, "list_listed", fake_list_listed)
+    monkeypatch.setattr(coach_listings_module, "get_public_listing", fake_get_public_listing)
+    monkeypatch.setattr(coach_listings_module, "compute_open_slots", fake_listing_compute_open_slots)
+
     app = main_module.create_app()
 
     async def override_get_db():
