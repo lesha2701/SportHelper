@@ -203,7 +203,7 @@ export function BookingFlow({
                 {coach.pricePerSession !== null ? `${coach.pricePerSession} ${coach.currency}` : "Не указана"}
               </span>
             </div>
-            <p className={profileStyles.subtitle}>После подтверждения бронь появится в вашем календаре.</p>
+            <p className={profileStyles.subtitle}>Заявка уйдёт тренеру на подтверждение — она появится в календаре, как только он её примет.</p>
 
             <div className={profileStyles.formActions}>
               <button type="button" className={profileStyles.buttonPrimary} onClick={() => void handleConfirm()} disabled={booking}>

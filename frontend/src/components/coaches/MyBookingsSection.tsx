@@ -25,8 +25,10 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
   if (state.status === "loading") return <StateScreen kind="loading" title="Загрузка броней…" />;
   if (state.status === "error") return <StateScreen kind="error" title="Не удалось загрузить брони" description={state.message} />;
 
+  const pending = state.bookings.filter((b) => b.status === "pending");
   const upcoming = state.bookings.filter((b) => !b.isCompleted && b.status === "confirmed");
   const past = state.bookings.filter((b) => b.isCompleted);
+  const declinedOrExpired = state.bookings.filter((b) => b.status === "declined" || b.status === "expired");
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
@@ -42,6 +44,21 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
 
       <div className={profileStyles.card}>
         <h1 className={profileStyles.pageHeading}>Мои брони</h1>
+
+        {pending.length > 0 && (
+          <>
+            <h2 className={profileStyles.title}>Ожидают подтверждения</h2>
+            {pending.map((b) => (
+              <div className={styles.bookingRow} key={b.id}>
+                <div>
+                  <p className={profileStyles.rowValue}>{b.coachFullName}</p>
+                  <p className={profileStyles.subtitle}>{formatDate(b.startsAt)}</p>
+                </div>
+                <span className={styles.bookingStatus}>Ожидает тренера</span>
+              </div>
+            ))}
+          </>
+        )}
 
         <h2 className={profileStyles.title}>Предстоящие</h2>
         {upcoming.length === 0 && <p className={profileStyles.subtitle}>Нет предстоящих броней.</p>}
@@ -72,6 +89,23 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
             )}
           </div>
         ))}
+
+        {declinedOrExpired.length > 0 && (
+          <>
+            <h2 className={profileStyles.title}>Отклонённые</h2>
+            {declinedOrExpired.map((b) => (
+              <div className={styles.bookingRow} key={b.id}>
+                <div>
+                  <p className={profileStyles.rowValue}>{b.coachFullName}</p>
+                  <p className={profileStyles.subtitle}>{formatDate(b.startsAt)}</p>
+                </div>
+                <span className={styles.bookingStatusMuted}>
+                  {b.status === "declined" ? "Отклонена тренером" : "Истекла — тренер не ответил"}
+                </span>
+              </div>
+            ))}
+          </>
+        )}
       </div>
 
       {reviewing && (

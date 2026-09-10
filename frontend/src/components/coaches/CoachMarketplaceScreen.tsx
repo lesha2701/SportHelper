@@ -117,11 +117,11 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
           <div className={styles.successIcon}>
             <Icon name="check-circle" size={40} />
           </div>
-          <h2 className={teamStyles.teamName}>Готово!</h2>
+          <h2 className={teamStyles.teamName}>Заявка отправлена!</h2>
           <p className={teamStyles.teamMeta}>
-            Бронь с {view.booking.coachFullName} на{" "}
-            {new Date(view.booking.startsAt).toLocaleString("ru-RU", { day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}{" "}
-            подтверждена и добавлена в ваш календарь.
+            Заявка на {new Date(view.booking.startsAt).toLocaleString("ru-RU", { day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}{" "}
+            отправлена тренеру {view.booking.coachFullName}. Ждите подтверждения — статус можно посмотреть в «Мои
+            брони» в профиле.
           </p>
           <button type="button" className={teamStyles.addButton} onClick={() => setView({ screen: "list" })}>
             К списку тренеров
