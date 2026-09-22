@@ -43,11 +43,17 @@ function ListingCardView({ token, listing, onOpen }: { token: string; listing: C
         </div>
       </div>
 
-      {listing.photoFileId && (
-        <AuthenticatedImage token={token} fileId={listing.photoFileId} alt={listing.title} className={styles.listingCardPhoto} />
-      )}
+      <div className={styles.listingCardPhotoWrap}>
+        {listing.photoFileId ? (
+          <AuthenticatedImage token={token} fileId={listing.photoFileId} alt={listing.title} className={styles.listingCardPhoto} />
+        ) : (
+          <div className={styles.listingCardPhotoPlaceholder}>
+            <Icon name="image" size={28} />
+          </div>
+        )}
+      </div>
 
-      {listing.description && <p className={styles.coachDescription}>{listing.description}</p>}
+      <p className={styles.coachDescription}>{listing.description || " "}</p>
 
       <div className={styles.coachFooterRow}>
         <span className={styles.coachPrice}>

@@ -3,7 +3,6 @@ import { listCoachPendingBookings } from "../../api/bookings";
 import { useAuth } from "../../context/AuthContext";
 import { Icon } from "../shared/Icon";
 import { SKILL_LEVEL_LABELS, type ActiveMode, type ProfileMe } from "../../types/profile";
-import coachStyles from "../coaches/coaches.module.css";
 import styles from "./profile.module.css";
 
 interface ProfileSummaryProps {
@@ -54,7 +53,8 @@ export function ProfileSummary({
   }, [token, mode]);
 
   return (
-    <div className={styles.screen}>
+    <div className={styles.summaryScreen}>
+      <div className={styles.summaryIdentity}>
       {mode === "player" && profile.player && (
         <div className={styles.card}>
           <div className={styles.headerRow}>
@@ -160,62 +160,103 @@ export function ProfileSummary({
           </div>
         </div>
       )}
+      </div>
 
-      {mode === "coach" && profile.coach && (
-        <div className={styles.card}>
-          <button type="button" className={styles.buttonSecondary} onClick={onOpenMarketplaceSettings}>
-            <Icon name="settings" size={17} />
-            Мои объявления
+      <div className={styles.summaryActions}>
+        <div className={styles.actionGrid}>
+          {mode === "coach" && profile.coach && (
+            <button type="button" className={styles.actionTile} onClick={onOpenMarketplaceSettings}>
+              <span className={styles.actionTileIcon}>
+                <Icon name="settings" size={18} />
+              </span>
+              <span className={styles.actionTileLabel}>Мои объявления</span>
+              <span className={styles.actionTileChevron}>
+                <Icon name="chevron-right" size={18} />
+              </span>
+            </button>
+          )}
+
+          {mode === "coach" && profile.coach && (
+            <button type="button" className={styles.actionTile} onClick={onOpenIncomingBookings}>
+              <span className={styles.actionTileIcon}>
+                <Icon name="inbox" size={18} />
+              </span>
+              <span className={styles.actionTileLabel}>Входящие заявки</span>
+              {pendingCount > 0 && <span className={styles.actionTileBadge}>{pendingCount}</span>}
+              <span className={styles.actionTileChevron}>
+                <Icon name="chevron-right" size={18} />
+              </span>
+            </button>
+          )}
+
+          <button type="button" className={styles.actionTile} onClick={onOpenMyStats}>
+            <span className={styles.actionTileIcon}>
+              <Icon name="award" size={18} />
+            </span>
+            <span className={styles.actionTileLabel}>Моя статистика</span>
+            <span className={styles.actionTileChevron}>
+              <Icon name="chevron-right" size={18} />
+            </span>
           </button>
-          <button type="button" className={styles.buttonSecondary} onClick={onOpenIncomingBookings}>
-            <Icon name="inbox" size={17} />
-            Входящие заявки
-            {pendingCount > 0 && <span className={coachStyles.pendingCountBadge}>{pendingCount}</span>}
+
+          <button type="button" className={styles.actionTile} onClick={onOpenMyBookings}>
+            <span className={styles.actionTileIcon}>
+              <Icon name="calendar" size={18} />
+            </span>
+            <span className={styles.actionTileLabel}>Мои брони</span>
+            <span className={styles.actionTileChevron}>
+              <Icon name="chevron-right" size={18} />
+            </span>
           </button>
+
+          <button type="button" className={styles.actionTile} onClick={onOpenHelp}>
+            <span className={styles.actionTileIcon}>
+              <Icon name="book" size={18} />
+            </span>
+            <span className={styles.actionTileLabel}>Помощь</span>
+            <span className={styles.actionTileChevron}>
+              <Icon name="chevron-right" size={18} />
+            </span>
+          </button>
+
+          {profile.player && profile.coach && (
+            <button
+              type="button"
+              className={styles.actionTile}
+              onClick={() => onSwitchMode(mode === "player" ? "coach" : "player")}
+            >
+              <span className={styles.actionTileIcon}>
+                <Icon name="users" size={18} />
+              </span>
+              <span className={styles.actionTileLabel}>Переключиться на {mode === "player" ? "тренера" : "игрока"}</span>
+              <span className={styles.actionTileChevron}>
+                <Icon name="chevron-right" size={18} />
+              </span>
+            </button>
+          )}
+          {!profile.player && (
+            <button type="button" className={styles.actionTile} onClick={() => onCreateOther("player")}>
+              <span className={styles.actionTileIcon}>
+                <Icon name="plus" size={18} />
+              </span>
+              <span className={styles.actionTileLabel}>Завести профиль игрока</span>
+              <span className={styles.actionTileChevron}>
+                <Icon name="chevron-right" size={18} />
+              </span>
+            </button>
+          )}
+          {!profile.coach && (
+            <button type="button" className={styles.actionTile} onClick={() => onCreateOther("coach")}>
+              <span className={styles.actionTileIcon}>
+                <Icon name="plus" size={18} />
+              </span>
+              <span className={styles.actionTileLabel}>Завести профиль тренера</span>
+              <span className={styles.actionTileChevron}>
+                <Icon name="chevron-right" size={18} />
+              </span>
+            </button>
+          )}
         </div>
-      )}
-
-      <div className={styles.card}>
-        <button type="button" className={styles.buttonPrimary} onClick={onOpenMyStats}>
-          <Icon name="award" size={17} />
-          Моя статистика
-        </button>
-      </div>
-
-      <div className={styles.card}>
-        <button type="button" className={styles.buttonPrimary} onClick={onOpenMyBookings}>
-          <Icon name="calendar" size={17} />
-          Мои брони
-        </button>
-      </div>
-
-      <div className={styles.card}>
-        <button type="button" className={styles.buttonSecondary} onClick={onOpenHelp}>
-          <Icon name="book" size={17} />
-          Помощь
-        </button>
-      </div>
-
-      <div className={styles.card}>
-        {profile.player && profile.coach && (
-          <button
-            type="button"
-            className={styles.buttonSecondary}
-            onClick={() => onSwitchMode(mode === "player" ? "coach" : "player")}
-          >
-            Переключиться на {mode === "player" ? "тренера" : "игрока"}
-          </button>
-        )}
-        {!profile.player && (
-          <button type="button" className={styles.buttonSecondary} onClick={() => onCreateOther("player")}>
-            Завести профиль игрока
-          </button>
-        )}
-        {!profile.coach && (
-          <button type="button" className={styles.buttonSecondary} onClick={() => onCreateOther("coach")}>
-            Завести профиль тренера
-          </button>
-        )}
       </div>
     </div>
   );

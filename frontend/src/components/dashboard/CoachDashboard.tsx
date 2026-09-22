@@ -106,62 +106,68 @@ export function CoachDashboard({
         <h1 className={styles.heroTitle}>Тренерская панель</h1>
       </div>
 
-      {nextEvent ? (
-        <button type="button" className={styles.nextEventCard} onClick={() => onOpenEvent(nextEvent)}>
-          <Icon name={CALENDAR_EVENT_ICONS[nextEvent.type]} size={22} />
-          <div className={styles.nextEventText}>
-            <span className={styles.nextEventLabel}>Ближайшее</span>
-            <span className={styles.nextEventTitle}>{nextEvent.title}</span>
-            <span className={styles.nextEventMeta}>
-              {nextEvent.date}
-              {nextEvent.time ? ` · ${nextEvent.time}` : ""}
-              {nextEvent.teamName ? ` · ${nextEvent.teamName}` : ""}
-            </span>
-          </div>
-          <Icon name="chevron-right" size={18} />
-        </button>
-      ) : (
-        <p className={styles.emptyHint}>Ближайших событий нет.</p>
-      )}
-
-      {teams.length > 1 && (
-        <div className={styles.teamSwitcher}>
-          {teams.map((team) => (
-            <button
-              key={team.id}
-              type="button"
-              className={team.id === selectedTeamId ? styles.chipActive : styles.chip}
-              onClick={() => setSelectedTeamId(team.id)}
-            >
-              {team.name}
+      <div className={styles.contentGrid}>
+        <div className={styles.mainColumn}>
+          {nextEvent ? (
+            <button type="button" className={styles.nextEventCard} onClick={() => onOpenEvent(nextEvent)}>
+              <Icon name={CALENDAR_EVENT_ICONS[nextEvent.type]} size={22} />
+              <div className={styles.nextEventText}>
+                <span className={styles.nextEventLabel}>Ближайшее</span>
+                <span className={styles.nextEventTitle}>{nextEvent.title}</span>
+                <span className={styles.nextEventMeta}>
+                  {nextEvent.date}
+                  {nextEvent.time ? ` · ${nextEvent.time}` : ""}
+                  {nextEvent.teamName ? ` · ${nextEvent.teamName}` : ""}
+                </span>
+              </div>
+              <Icon name="chevron-right" size={18} />
             </button>
-          ))}
-        </div>
-      )}
+          ) : (
+            <p className={styles.emptyHint}>Ближайших событий нет.</p>
+          )}
 
-      {statsState.status === "ready" && (
-        <div className={styles.kpiRow}>
-          <StatTile value={formatRate(statsState.stats.attendanceRate)} label="Посещаемость" tone="dark" />
-          <StatTile value={statsState.stats.trainingsUpcoming} label="Тренировок впереди" />
-          <StatTile value={statsState.stats.tasksOverdue} label="Просрочено заданий" />
-          <StatTile
-            value={`${statsState.stats.matchesWon}-${statsState.stats.matchesLost}-${statsState.stats.matchesDrawn}`}
-            label="П-Пор-Н"
-          />
-        </div>
-      )}
-      {statsState.status === "loading" && <p className={styles.emptyHint}>Загрузка статистики…</p>}
-      {statsState.status === "error" && <p className={styles.emptyHint}>{statsState.message}</p>}
+          {teams.length > 1 && (
+            <div className={styles.teamSwitcher}>
+              {teams.map((team) => (
+                <button
+                  key={team.id}
+                  type="button"
+                  className={team.id === selectedTeamId ? styles.chipActive : styles.chip}
+                  onClick={() => setSelectedTeamId(team.id)}
+                >
+                  {team.name}
+                </button>
+              ))}
+            </div>
+          )}
 
-      <button type="button" className={teamStyles.navRow} onClick={() => onOpenTeam(selectedTeam.id)}>
-        <span className={teamStyles.navRowIcon}>
-          <Icon name="trophy" size={18} />
-        </span>
-        <span className={teamStyles.navRowLabel}>Открыть «{selectedTeam.name}»</span>
-        <span className={teamStyles.navRowChevron}>
-          <Icon name="chevron-right" size={18} />
-        </span>
-      </button>
+          <button type="button" className={teamStyles.navRow} onClick={() => onOpenTeam(selectedTeam.id)}>
+            <span className={teamStyles.navRowIcon}>
+              <Icon name="trophy" size={18} />
+            </span>
+            <span className={teamStyles.navRowLabel}>Открыть «{selectedTeam.name}»</span>
+            <span className={teamStyles.navRowChevron}>
+              <Icon name="chevron-right" size={18} />
+            </span>
+          </button>
+        </div>
+
+        <div className={styles.asideColumn}>
+          {statsState.status === "ready" && (
+            <div className={styles.kpiRow}>
+              <StatTile value={formatRate(statsState.stats.attendanceRate)} label="Посещаемость" tone="dark" />
+              <StatTile value={statsState.stats.trainingsUpcoming} label="Тренировок впереди" />
+              <StatTile value={statsState.stats.tasksOverdue} label="Просрочено заданий" />
+              <StatTile
+                value={`${statsState.stats.matchesWon}-${statsState.stats.matchesLost}-${statsState.stats.matchesDrawn}`}
+                label="П-Пор-Н"
+              />
+            </div>
+          )}
+          {statsState.status === "loading" && <p className={styles.emptyHint}>Загрузка статистики…</p>}
+          {statsState.status === "error" && <p className={styles.emptyHint}>{statsState.message}</p>}
+        </div>
+      </div>
     </div>
   );
 }

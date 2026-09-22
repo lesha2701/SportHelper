@@ -67,44 +67,50 @@ export function PlayerDashboard({
         <h1 className={styles.heroTitle}>Твой прогресс</h1>
       </div>
 
-      {nextEvent ? (
-        <button type="button" className={styles.nextEventCard} onClick={() => onOpenEvent(nextEvent)}>
-          <Icon name={CALENDAR_EVENT_ICONS[nextEvent.type]} size={22} />
-          <div className={styles.nextEventText}>
-            <span className={styles.nextEventLabel}>Ближайшее</span>
-            <span className={styles.nextEventTitle}>{nextEvent.title}</span>
-            <span className={styles.nextEventMeta}>
-              {nextEvent.date}
-              {nextEvent.time ? ` · ${nextEvent.time}` : ""}
-              {nextEvent.teamName ? ` · ${nextEvent.teamName}` : ""}
-            </span>
-          </div>
-          <Icon name="chevron-right" size={18} />
-        </button>
-      ) : (
-        <p className={styles.emptyHint}>Ближайших событий нет.</p>
-      )}
+      <div className={styles.contentGrid}>
+        <div className={styles.mainColumn}>
+          {nextEvent ? (
+            <button type="button" className={styles.nextEventCard} onClick={() => onOpenEvent(nextEvent)}>
+              <Icon name={CALENDAR_EVENT_ICONS[nextEvent.type]} size={22} />
+              <div className={styles.nextEventText}>
+                <span className={styles.nextEventLabel}>Ближайшее</span>
+                <span className={styles.nextEventTitle}>{nextEvent.title}</span>
+                <span className={styles.nextEventMeta}>
+                  {nextEvent.date}
+                  {nextEvent.time ? ` · ${nextEvent.time}` : ""}
+                  {nextEvent.teamName ? ` · ${nextEvent.teamName}` : ""}
+                </span>
+              </div>
+              <Icon name="chevron-right" size={18} />
+            </button>
+          ) : (
+            <p className={styles.emptyHint}>Ближайших событий нет.</p>
+          )}
 
-      <div className={styles.kpiRow}>
-        <StatTile value={formatRate(stats.attendanceRate)} label="Посещаемость" tone="dark" />
-        <StatTile value={stats.activityStreak} label="Серия посещений" />
-        <StatTile value={stats.tasksCompleted} label="Заданий выполнено" />
-        <StatTile value={stats.tasksOverdue} label="Просрочено" />
-      </div>
+          <button type="button" className={styles.recommendationCard} onClick={onOpenMyStats}>
+            <Icon name="sparkles" size={20} />
+            <div className={styles.nextEventText}>
+              <span className={styles.nextEventTitle}>Рекомендации ИИ</span>
+              <span className={styles.nextEventMeta}>Разбор прогресса и советы по нагрузке</span>
+            </div>
+            <Icon name="chevron-right" size={18} />
+          </button>
 
-      <button type="button" className={styles.recommendationCard} onClick={onOpenMyStats}>
-        <Icon name="sparkles" size={20} />
-        <div className={styles.nextEventText}>
-          <span className={styles.nextEventTitle}>Рекомендации ИИ</span>
-          <span className={styles.nextEventMeta}>Разбор прогресса и советы по нагрузке</span>
+          <button type="button" className={styles.quickAction} onClick={onCreateTraining}>
+            <Icon name="plus" size={16} />
+            Добавить тренировку
+          </button>
         </div>
-        <Icon name="chevron-right" size={18} />
-      </button>
 
-      <button type="button" className={styles.quickAction} onClick={onCreateTraining}>
-        <Icon name="plus" size={16} />
-        Добавить тренировку
-      </button>
+        <div className={styles.asideColumn}>
+          <div className={styles.kpiRow}>
+            <StatTile value={formatRate(stats.attendanceRate)} label="Посещаемость" tone="dark" />
+            <StatTile value={stats.activityStreak} label="Серия посещений" />
+            <StatTile value={stats.tasksCompleted} label="Заданий выполнено" />
+            <StatTile value={stats.tasksOverdue} label="Просрочено" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
