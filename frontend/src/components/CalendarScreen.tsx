@@ -6,6 +6,15 @@ import { Icon } from "./shared/Icon";
 import { CALENDAR_EVENT_ICONS, type CalendarEvent, type CalendarEventType } from "../types/calendar";
 import styles from "./teams/teams.module.css";
 import profileStyles from "./profile/profile.module.css";
+import weekStyles from "./calendar.module.css";
+
+const HOURS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
+const WEEK_ROW_HEIGHT = 52;
+const EVENT_TYPE_LABELS: Record<CalendarEventType, string> = {
+  training: "Тренировка",
+  match: "Матч",
+  task_deadline: "Дедлайн задания",
+};
 
 type Mode = "list" | "overdue" | "day" | "week";
 
@@ -186,7 +195,16 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
         <StateScreen kind="error" title="Не удалось загрузить календарь" description={state.message} onRetry={load} />
       )}
 
-      {state.status === "ready" && visibleEvents.length === 0 && (
+      {state.status === "ready" && mode === "week" && (
+        <WeekGrid
+          weekStart={weekStart}
+          events={state.events}
+          overdueEvents={state.events.filter((event) => isEventOverdue(event, todayIso))}
+          onOpenEvent={onOpenEvent}
+        />
+      )}
+
+      {state.status === "ready" && mode !== "week" && visibleEvents.length === 0 && (
         <StateScreen
           kind="empty"
           title={mode === "overdue" ? "Просроченных нет" : "Пока ничего нет"}
@@ -198,7 +216,166 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
         />
       )}
 
-      {state.status === "ready" && visibleEvents.length > 0 && <EventList events={visibleEvents} onOpenEvent={onOpenEvent} />}
+      {state.status === "ready" && mode !== "week" && visibleEvents.length > 0 && (
+        <EventList events={visibleEvents} onOpenEvent={onOpenEvent} />
+      )}
+    </div>
+  );
+}
+
+function WeekGrid({
+  weekStart,
+  events,
+  overdueEvents,
+  onOpenEvent,
+}: {
+  weekStart: Date;
+  events: CalendarEvent[];
+  overdueEvents: CalendarEvent[];
+  onOpenEvent?: (event: CalendarEvent) => void;
+}) {
+  const todayIso = toIso(new Date());
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+
+  const byDay = new Map<string, CalendarEvent[]>();
+  for (const event of events) {
+    const list = byDay.get(event.date) ?? [];
+    list.push(event);
+    byDay.set(event.date, list);
+  }
+
+  const gridHeight = (HOURS.length - 1) * WEEK_ROW_HEIGHT;
+
+  return (
+    <div className={weekStyles.weekLayout}>
+      <div className={weekStyles.weekCard}>
+        <div className={weekStyles.weekScroll}>
+          <div className={weekStyles.weekGridInner}>
+            <div className={weekStyles.weekHeadRow}>
+              <span />
+              {days.map((d) => {
+                const iso = toIso(d);
+                const isToday = iso === todayIso;
+                return (
+                  <div key={iso} className={weekStyles.weekHeadCell}>
+                    <span className={weekStyles.weekHeadWd}>{d.toLocaleDateString("ru-RU", { weekday: "short" })}</span>
+                    <span className={isToday ? `${weekStyles.weekHeadNum} ${weekStyles.weekHeadNumToday}` : weekStyles.weekHeadNum}>
+                      {d.getDate()}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {days.some((d) => (byDay.get(toIso(d)) ?? []).some((e) => !e.time)) && (
+              <div className={weekStyles.weekHeadRow}>
+                <span />
+                {days.map((d) => {
+                  const iso = toIso(d);
+                  const noTime = (byDay.get(iso) ?? []).filter((e) => !e.time);
+                  return (
+                    <div key={iso} className={weekStyles.weekNoTimeRow}>
+                      {noTime.map((e) => (
+                        <button
+                          key={`${e.type}-${e.id}`}
+                          type="button"
+                          className={weekStyles.weekNoTimeChip}
+                          data-type={e.type}
+                          onClick={() => onOpenEvent?.(e)}
+                          title={e.title}
+                        >
+                          {e.title}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className={weekStyles.weekBody} style={{ height: gridHeight }}>
+              <div className={weekStyles.weekGutter}>
+                {HOURS.map((h) => (
+                  <span key={h} className={weekStyles.weekGutterHour} style={{ height: WEEK_ROW_HEIGHT }}>
+                    {h}
+                  </span>
+                ))}
+              </div>
+              {days.map((d) => {
+                const iso = toIso(d);
+                const isToday = iso === todayIso;
+                const timed = (byDay.get(iso) ?? []).filter((e) => !!e.time);
+                return (
+                  <div
+                    key={iso}
+                    className={isToday ? `${weekStyles.weekDayCol} ${weekStyles.weekDayColToday}` : weekStyles.weekDayCol}
+                  >
+                    {timed.map((e) => {
+                      const [h, m] = e.time!.split(":").map(Number);
+                      const startHour = h! + m! / 60;
+                      const top = Math.max(0, (startHour - 8) * WEEK_ROW_HEIGHT);
+                      return (
+                        <button
+                          key={`${e.type}-${e.id}`}
+                          type="button"
+                          className={weekStyles.weekEventBlock}
+                          data-type={e.type}
+                          style={{ top, height: WEEK_ROW_HEIGHT - 4 }}
+                          onClick={() => onOpenEvent?.(e)}
+                        >
+                          <span className={weekStyles.weekEventTime}>{e.time!.slice(0, 5)}</span>
+                          <span className={weekStyles.weekEventTitle}>{e.title}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className={weekStyles.sideCard}>
+          <div className={weekStyles.sideCardHead}>
+            <h3 className={weekStyles.sideCardTitle}>Просрочено</h3>
+            {overdueEvents.length > 0 && <span className={weekStyles.sideCardBadge}>{overdueEvents.length}</span>}
+          </div>
+          {overdueEvents.length === 0 ? (
+            <p className={profileStyles.subtitle}>Всё по плану.</p>
+          ) : (
+            overdueEvents.slice(0, 4).map((e) => (
+              <button
+                key={`${e.type}-${e.id}`}
+                type="button"
+                className={weekStyles.overdueItem}
+                onClick={() => onOpenEvent?.(e)}
+              >
+                <span className={weekStyles.overdueItemTitle}>{e.title}</span>
+                <span className={weekStyles.overdueItemMeta}>
+                  {parseIsoDateLocal(e.date).toLocaleDateString("ru-RU", { weekday: "short", day: "2-digit", month: "long" })}
+                  {e.time ? ` · ${e.time.slice(0, 5)}` : ""}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+
+        <div className={weekStyles.sideCard}>
+          <h3 className={weekStyles.sideCardTitle}>Обозначения</h3>
+          {(Object.keys(EVENT_TYPE_LABELS) as CalendarEventType[]).map((type) => (
+            <div key={type} className={weekStyles.legendRow}>
+              <span className={weekStyles.legendSwatch} style={{ background: EVENT_COLORS[type] }} />
+              {EVENT_TYPE_LABELS[type]}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
