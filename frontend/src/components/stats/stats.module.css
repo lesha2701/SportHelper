@@ -1,0 +1,89 @@
+/* frontend/src/components/stats/stats.module.css
+   Bento primitives (card, cardHeader, cardTitle, span helpers, bento grid)
+   are shared from dashboard.module.css — this file only holds what is
+   specific to the stats screens: the attendance ring and the AI card. */
+.ringCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--color-graphite-elevated);
+  color: #fff;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-height: 190px;
+}
+
+.ringWrap {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  flex-shrink: 0;
+}
+
+.ringSvg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.ringValue {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 800;
+}
+
+.ringText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ringLabel {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.ringSubtitle {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.1;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.aiCard {
+  border-radius: 22px;
+  background: var(--color-primary-glow);
+  border: 1px solid var(--color-primary);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.aiCardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-primary);
+}
+
+.aiCardTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

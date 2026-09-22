@@ -7,12 +7,18 @@ import { useAuth } from "../../context/AuthContext";
 import { StateScreen } from "../StateScreen";
 import { ConfirmModal } from "../shared/ConfirmModal";
 import { Icon } from "../shared/Icon";
+import { StatTile } from "../shared/StatTile";
 import { MetricForm } from "./MetricForm";
 import { MATCH_RESULT_LABELS } from "../../types/match";
 import type { Metric } from "../../types/metric";
 import { formatRate, type PlayerStats } from "../../types/stats";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
+import dashStyles from "../dashboard/dashboard.module.css";
+import statsStyles from "./stats.module.css";
+
+const RING_RADIUS = 68;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; stats: PlayerStats };
 
@@ -100,171 +106,193 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
         </button>
       </div>
 
-      <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>Статистика</h1>
+      <h1 className={profileStyles.pageHeading}>Статистика</h1>
 
-        <div className={styles.statGrid}>
-          <div className={styles.statTile}>
-            <span className={styles.statValue}>{formatRate(stats.attendanceRate)}</span>
-            <span className={styles.statLabel}>Посещаемость</span>
+      <div className={dashStyles.bento}>
+        <div className={`${statsStyles.ringCard} ${dashStyles.span5}`}>
+          <div className={statsStyles.ringWrap}>
+            <svg width="150" height="150" viewBox="0 0 150 150" className={statsStyles.ringSvg}>
+              <circle cx="75" cy="75" r={RING_RADIUS} fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="14" />
+              <circle
+                cx="75"
+                cy="75"
+                r={RING_RADIUS}
+                fill="none"
+                stroke="var(--color-primary)"
+                strokeWidth="14"
+                strokeLinecap="round"
+                strokeDasharray={RING_CIRCUMFERENCE}
+                strokeDashoffset={RING_CIRCUMFERENCE * (1 - (stats.attendanceRate ?? 0))}
+              />
+            </svg>
+            <span className={statsStyles.ringValue}>{formatRate(stats.attendanceRate)}</span>
           </div>
-          <div className={styles.statTile}>
-            <span className={styles.statValue}>{stats.activityStreak}</span>
-            <span className={styles.statLabel}>Серия подряд</span>
-          </div>
-          <div className={styles.statTile}>
-            <span className={styles.statValue}>
-              {stats.tasksCompleted}/{stats.tasksTotal}
+          <div className={statsStyles.ringText}>
+            <span className={statsStyles.ringLabel}>Посещаемость</span>
+            <span className={statsStyles.ringSubtitle}>
+              {stats.trainingsAttended} из {stats.teamTrainingsCount}
+              <br />
+              тренировок
             </span>
-            <span className={styles.statLabel}>Заданий выполнено</span>
-          </div>
-          <div className={styles.statTile}>
-            <span className={styles.statValue}>{Math.round(stats.trainingMinutes / 60)} ч</span>
-            <span className={styles.statLabel}>Тренировочное время</span>
           </div>
         </div>
 
-        <div className={profileStyles.row}>
-          <span className={profileStyles.rowLabel}>Тренировок посещено</span>
-          <span className={profileStyles.rowValue}>
-            {stats.trainingsAttended} / {stats.teamTrainingsCount}
-          </span>
+        <div className={`${dashStyles.kpiRow} ${dashStyles.span7}`}>
+          <StatTile value={stats.activityStreak} label="Серия подряд" />
+          <StatTile value={`${stats.tasksCompleted}/${stats.tasksTotal}`} label="Заданий выполнено" />
+          <StatTile value={`${Math.round(stats.trainingMinutes / 60)} ч`} label="Тренировочное время" />
+          <StatTile value={stats.personalTrainingsCount} label="Личных тренировок" />
         </div>
-        <div className={profileStyles.row}>
-          <span className={profileStyles.rowLabel}>Личных тренировок</span>
-          <span className={profileStyles.rowValue}>{stats.personalTrainingsCount}</span>
-        </div>
-        {stats.tasksOverdue > 0 && (
-          <div className={profileStyles.row}>
-            <span className={profileStyles.rowLabel}>Просрочено заданий</span>
-            <span className={profileStyles.rowValue}>{stats.tasksOverdue}</span>
+
+        {userId === myUserId && (
+          <div className={`${statsStyles.aiCard} ${dashStyles.span4}`}>
+            <div className={statsStyles.aiCardHead}>
+              <Icon name="sparkles" size={18} />
+              <span className={statsStyles.aiCardTitle}>Рекомендации ИИ</span>
+            </div>
+            {!aiRecommendation && (
+              <p className={profileStyles.subtitle}>ИИ проанализирует прогресс по тренировкам, заданиям и показателям.</p>
+            )}
+            {aiRecommendation && <p className={profileStyles.subtitle}>{aiRecommendation}</p>}
+            {aiError && <p className={profileStyles.error}>{aiError}</p>}
+            <button
+              type="button"
+              className={profileStyles.buttonPrimary}
+              onClick={() => void handleAiAnalyze()}
+              disabled={aiLoading}
+              style={{ marginTop: "auto" }}
+            >
+              {aiLoading ? "Анализирую…" : aiRecommendation ? "Обновить разбор" : "Получить рекомендации"}
+            </button>
           </div>
         )}
-      </div>
 
-      {userId === myUserId && (
-        <div className={profileStyles.card}>
-          <h2 className={profileStyles.title}>Рекомендации ИИ</h2>
-          <p className={profileStyles.subtitle}>ИИ проанализирует ваш прогресс по тренировкам, заданиям и показателям.</p>
-          <button type="button" className={profileStyles.buttonSecondary} onClick={() => void handleAiAnalyze()} disabled={aiLoading}>
-            {aiLoading ? "Анализирую…" : "Получить рекомендации"}
-          </button>
-          {aiError && <p className={profileStyles.error}>{aiError}</p>}
-          {aiRecommendation && <p className={profileStyles.subtitle}>{aiRecommendation}</p>}
-        </div>
-      )}
-
-      {actionError && (
-        <div className={profileStyles.card}>
-          <p className={profileStyles.error}>{actionError}</p>
-        </div>
-      )}
-
-      {stats.personalRecords.length > 0 && (
-        <div className={profileStyles.card}>
-          <h2 className={profileStyles.title}>Личные рекорды</h2>
-          {stats.personalRecords.map((r) => (
-            <div key={r.name} className={profileStyles.row}>
-              <span className={profileStyles.rowLabel}>{r.name}</span>
-              <span className={profileStyles.rowValue}>
-                {r.value} {r.unit ?? ""}
-              </span>
+        {stats.personalRecords.length > 0 && (
+          <div className={`${dashStyles.card} ${dashStyles.span4}`}>
+            <div className={dashStyles.cardHeader}>
+              <h3 className={dashStyles.cardTitle}>Личные рекорды</h3>
             </div>
-          ))}
-        </div>
-      )}
+            <div className={dashStyles.rowList}>
+              {stats.personalRecords.map((r) => (
+                <div key={r.name} className={profileStyles.row}>
+                  <span className={profileStyles.rowLabel}>{r.name}</span>
+                  <span className={profileStyles.rowValue}>
+                    {r.value} {r.unit ?? ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-      <div className={profileStyles.card}>
-        <div className={styles.teamCardTop}>
-          <span className={profileStyles.title}>Показатели</span>
-          {!addingMetric && (
-            <button type="button" className={styles.iconButton} onClick={() => setAddingMetric(true)}>
-              + Добавить
-            </button>
+        {stats.coachComments.length > 0 && (
+          <div className={`${dashStyles.card} ${dashStyles.span4}`}>
+            <div className={dashStyles.cardHeader}>
+              <h3 className={dashStyles.cardTitle}>Комментарии тренера</h3>
+            </div>
+            <div className={dashStyles.rowList}>
+              {stats.coachComments.map((c, index) => (
+                <div key={index} className={profileStyles.row}>
+                  <span className={profileStyles.rowLabel}>{c.context}</span>
+                  <span className={profileStyles.rowValue}>{c.comment}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {actionError && (
+          <div className={`${dashStyles.card} ${dashStyles.span12}`}>
+            <p className={profileStyles.error}>{actionError}</p>
+          </div>
+        )}
+
+        <div className={`${dashStyles.card} ${dashStyles.span8}`}>
+          <div className={dashStyles.cardHeader}>
+            <h3 className={dashStyles.cardTitle}>Показатели</h3>
+            {!addingMetric && (
+              <button type="button" className={dashStyles.cardAction} onClick={() => setAddingMetric(true)}>
+                + Добавить
+              </button>
+            )}
+          </div>
+
+          {addingMetric && (
+            <MetricForm
+              token={token}
+              userId={userId}
+              onSaved={() => {
+                setAddingMetric(false);
+                load();
+              }}
+              onCancel={() => setAddingMetric(false)}
+            />
+          )}
+
+          {editingMetric && (
+            <MetricForm
+              token={token}
+              userId={userId}
+              initial={editingMetric}
+              onSaved={() => {
+                setEditingMetric(null);
+                load();
+              }}
+              onCancel={() => setEditingMetric(null)}
+            />
+          )}
+
+          {stats.metrics.length === 0 && !addingMetric && <p className={profileStyles.subtitle}>Пока нет записей.</p>}
+
+          {!addingMetric && !editingMetric && (
+            <div className={dashStyles.rowList}>
+              {stats.metrics.map((metric) => (
+                <div key={metric.id} className={profileStyles.row}>
+                  <div>
+                    <div className={profileStyles.rowValue}>
+                      {metric.name}: {metric.value} {metric.unit ?? ""}
+                    </div>
+                    <div className={styles.memberMeta}>
+                      {metric.recordedDate}
+                      {metric.source ? ` · ${metric.source}` : ""}
+                    </div>
+                  </div>
+                  {metric.recordedBy === myUserId && (
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button type="button" className={styles.iconButton} onClick={() => setEditingMetric(metric)}>
+                        Изменить
+                      </button>
+                      <button type="button" className={styles.iconButton} onClick={() => setDeletingMetric(metric)}>
+                        Удалить
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
-        {addingMetric && (
-          <MetricForm
-            token={token}
-            userId={userId}
-            onSaved={() => {
-              setAddingMetric(false);
-              load();
-            }}
-            onCancel={() => setAddingMetric(false)}
-          />
-        )}
-
-        {editingMetric && (
-          <MetricForm
-            token={token}
-            userId={userId}
-            initial={editingMetric}
-            onSaved={() => {
-              setEditingMetric(null);
-              load();
-            }}
-            onCancel={() => setEditingMetric(null)}
-          />
-        )}
-
-        {stats.metrics.length === 0 && !addingMetric && <p className={profileStyles.subtitle}>Пока нет записей.</p>}
-
-        {!addingMetric &&
-          !editingMetric &&
-          stats.metrics.map((metric) => (
-            <div key={metric.id} className={profileStyles.row}>
-              <div>
-                <div className={profileStyles.rowValue}>
-                  {metric.name}: {metric.value} {metric.unit ?? ""}
-                </div>
-                <div className={styles.memberMeta}>
-                  {metric.recordedDate}
-                  {metric.source ? ` · ${metric.source}` : ""}
-                </div>
-              </div>
-              {metric.recordedBy === myUserId && (
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button type="button" className={styles.iconButton} onClick={() => setEditingMetric(metric)}>
-                    Изменить
-                  </button>
-                  <button type="button" className={styles.iconButton} onClick={() => setDeletingMetric(metric)}>
-                    Удалить
-                  </button>
-                </div>
-              )}
+        {stats.matchesHistory.length > 0 && (
+          <div className={`${dashStyles.card} ${dashStyles.span4}`}>
+            <div className={dashStyles.cardHeader}>
+              <h3 className={dashStyles.cardTitle}>История матчей</h3>
             </div>
-          ))}
+            <div className={dashStyles.rowList}>
+              {stats.matchesHistory.map((m) => (
+                <div key={m.id} className={profileStyles.row}>
+                  <span className={profileStyles.rowLabel}>
+                    {m.matchDate} · {m.teamName ?? ""}
+                  </span>
+                  <span className={profileStyles.rowValue}>
+                    {m.opponentName}: {m.ourScore}:{m.opponentScore} ({matchResultLabel(m)})
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-
-      {stats.matchesHistory.length > 0 && (
-        <div className={profileStyles.card}>
-          <h2 className={profileStyles.title}>История матчей</h2>
-          {stats.matchesHistory.map((m) => (
-            <div key={m.id} className={profileStyles.row}>
-              <span className={profileStyles.rowLabel}>
-                {m.matchDate} · {m.teamName ?? ""}
-              </span>
-              <span className={profileStyles.rowValue}>
-                {m.opponentName}: {m.ourScore}:{m.opponentScore} ({matchResultLabel(m)})
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {stats.coachComments.length > 0 && (
-        <div className={profileStyles.card}>
-          <h2 className={profileStyles.title}>Комментарии тренера</h2>
-          {stats.coachComments.map((c, index) => (
-            <div key={index} className={profileStyles.row}>
-              <span className={profileStyles.rowLabel}>{c.context}</span>
-              <span className={profileStyles.rowValue}>{c.comment}</span>
-            </div>
-          ))}
-        </div>
-      )}
 
       {deletingMetric && (
         <ConfirmModal
