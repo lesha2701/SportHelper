@@ -1,0 +1,132 @@
+.bar {
+  height: 76px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.kicker {
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.search {
+  width: 280px;
+  flex-shrink: 0;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-tertiary);
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 13.5px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.searchInput:disabled {
+  cursor: default;
+}
+
+.searchKey {
+  flex-shrink: 0;
+  font: 500 11px var(--font-mono);
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-tertiary);
+}
+
+.bell {
+  position: relative;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.cta {
+  flex-shrink: 0;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  border: none;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.cta:active {
+  transform: scale(0.97);
+  background: var(--color-primary-hover);
+}
+
+@media (max-width: 1180px) {
+  .search {
+    width: 200px;
+  }
+
+  .searchKey {
+    display: none;
+  }
+}

@@ -8,6 +8,15 @@
   padding-bottom: 32px;
 }
 
+@media (min-width: 900px) {
+  .screen {
+    padding: 0;
+  }
+}
+
+/* Desktop gets the same title from AppShell's TopBar, so the in-content
+   hero banner (title + label) is mobile-only there — kept exactly as
+   before for the phone/bottom-nav layout. */
 .hero {
   position: relative;
   overflow: hidden;
@@ -18,6 +27,12 @@
   border-radius: var(--radius-lg);
   background: var(--color-graphite-elevated);
   color: #ffffff;
+}
+
+@media (min-width: 900px) {
+  .hero {
+    display: none;
+  }
 }
 
 .heroLabel {
@@ -176,61 +191,449 @@
   background: var(--color-primary-hover);
 }
 
-/* Sidebar layout (AppShell, see useIsDesktop) already gives this screen a
-   wider column — spread the KPI tiles out instead of stacking two by two. */
+/* ---- Desktop bento grid (coach dashboard) ----
+   12-column grid; each card declares how many columns it spans. Mobile
+   stays a simple vertical stack in DOM order (same components, no grid). */
+.bento {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 @media (min-width: 900px) {
-  .kpiRow {
-    grid-template-columns: repeat(4, 1fr);
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-auto-rows: minmax(0, auto);
+    gap: 16px;
+    align-items: stretch;
   }
 }
 
-/* Desktop-only: split the dashboard into a main column (next event, team
-   switcher, quick actions) and a narrower aside (stats) instead of one
-   long stack of full-width blocks — everything below the hero used to
-   read as a single mobile column stretched across a wide screen. */
+.card {
+  border-radius: 22px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cardTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.cardAction {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
 @media (min-width: 900px) {
-  .contentGrid {
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    align-items: start;
-    gap: 20px;
+  .span3 {
+    grid-column: span 3;
   }
+  .span4 {
+    grid-column: span 4;
+  }
+  .span5 {
+    grid-column: span 5;
+  }
+  .span7 {
+    grid-column: span 7;
+  }
+  .span8 {
+    grid-column: span 8;
+  }
+  .span12 {
+    grid-column: span 12;
+  }
+}
 
-  .mainColumn {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    min-width: 0;
-  }
+/* Hero: next-training card, dark, spans the wide column. */
+.heroCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--color-graphite-elevated);
+  color: #fff;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-height: 220px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  width: 100%;
+}
 
-  .asideColumn {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
+.heroWave {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.14;
+  pointer-events: none;
+}
 
-  .asideColumn .kpiRow {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.heroBadgeRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 
-  .asideCard {
-    padding: 16px;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-card);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
+.heroBadge {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: #fff;
+}
 
-  .asideCardTitle {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--color-text-secondary);
-  }
+.heroBadgeMeta {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.64);
+}
+
+.heroTitleRow {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.heroMainTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.heroSubtitle {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.64);
+}
+
+/* Week overview */
+.weekGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  min-height: 0;
+}
+
+.weekCol {
+  border-radius: 14px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  background: transparent;
+  border: 1px solid var(--color-border);
+}
+
+.weekColToday {
+  background: var(--color-surface-alt);
+  border-color: var(--color-primary);
+}
+
+.weekColHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.weekColWd {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.weekColNum {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.weekColNumToday {
+  color: var(--color-primary);
+}
+
+.weekEvent {
+  border-radius: 8px;
+  padding: 5px 6px;
+  border: none;
+  border-left: 3px solid var(--color-primary);
+  background: var(--color-primary-glow);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.weekEventTime {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.weekEventTitle {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Attention list */
+.rowList {
+  display: flex;
+  flex-direction: column;
+}
+
+.attentionRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.attentionRow:first-child {
+  border-top: none;
+}
+
+.attentionAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-surface-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.attentionText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.attentionName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.attentionWhy {
+  font-size: 12px;
+  color: var(--color-warning);
+}
+
+.attentionRate {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+/* Workload summary */
+.workloadGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.workloadTile {
+  border-radius: 16px;
+  background: var(--color-surface-alt);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.workloadValue {
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.workloadLabel {
+  font-size: 11.5px;
+  color: var(--color-text-tertiary);
+}
+
+/* Matches */
+.matchRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.matchRow:first-child {
+  border-top: none;
+}
+
+.matchResult {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.matchResultWin {
+  background: var(--color-success);
+}
+
+.matchResultLoss {
+  background: var(--color-danger);
+}
+
+.matchResultDraw {
+  background: var(--color-text-tertiary);
+}
+
+.matchText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.matchOpp {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.matchDate {
+  font-size: 11.5px;
+  color: var(--color-text-tertiary);
+}
+
+.matchScore {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+/* Quick action tiles column */
+.quickTileCol {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quickTile {
+  flex: 1;
+  border-radius: 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 0 16px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: border-color var(--transition-fast);
+}
+
+.quickTile:hover {
+  border-color: var(--color-border-strong);
+}
+
+.quickTileIcon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--color-primary-glow);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quickTileLabel {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text);
 }

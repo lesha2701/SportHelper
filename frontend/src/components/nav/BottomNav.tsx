@@ -5,6 +5,7 @@ export interface NavItem<T extends string> {
   key: T;
   label: string;
   icon: IconName;
+  badge?: number;
 }
 
 interface BottomNavProps<T extends string> {

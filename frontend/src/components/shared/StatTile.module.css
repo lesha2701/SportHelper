@@ -37,3 +37,14 @@
   text-transform: uppercase;
   color: var(--color-text-secondary);
 }
+
+.delta {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.tileDark .delta {
+  color: rgba(255, 255, 255, 0.64);
+}

@@ -34,7 +34,7 @@ export function DashboardScreen({
   }
 
   if (state.data.activeMode === "coach") {
-    return <CoachDashboard token={token} onOpenEvent={onOpenEvent} onOpenTeam={onOpenTeam} />;
+    return <CoachDashboard token={token} onOpenEvent={onOpenEvent} onOpenTeam={onOpenTeam} onCreateTraining={onCreateTraining} />;
   }
 
   return (

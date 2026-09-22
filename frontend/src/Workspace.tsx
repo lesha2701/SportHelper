@@ -17,9 +17,28 @@ import { PlayerStatsScreen } from "./components/stats/PlayerStatsScreen";
 import { CoachMarketplaceScreen } from "./components/coaches/CoachMarketplaceScreen";
 import { StateScreen } from "./components/StateScreen";
 import type { NavItem } from "./components/nav/BottomNav";
+import type { SideNavTeam, SideNavUser } from "./components/nav/SideNav";
+import type { TopBarConfig } from "./components/nav/TopBar";
 import { AppShell } from "./components/nav/AppShell";
+import { listMyTeams } from "./api/teams";
+import { listCoachPendingBookings } from "./api/bookings";
+import { TEAM_ROLE_LABELS, type Team } from "./types/team";
 import type { Training } from "./types/training";
 import type { CalendarEvent } from "./types/calendar";
+
+function initialOf(name: string): string {
+  return name.trim().charAt(0).toUpperCase() || "?";
+}
+
+function dateKicker(): string {
+  const s = new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function monthKicker(): string {
+  const s = new Date().toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 function readInviteToken(): string | null {
   return new URLSearchParams(window.location.search).get("invite");
@@ -70,6 +89,38 @@ function calendarEventToOverlay(event: CalendarEvent): Overlay {
   }
 }
 
+function coachTopBar(tab: CoachTab, onCreateTraining: () => void): TopBarConfig {
+  switch (tab) {
+    case "dashboard":
+      return { kicker: dateKicker(), title: "Тренерская панель", cta: { label: "Тренировка", icon: "plus", onClick: onCreateTraining } };
+    case "teams":
+      return { kicker: "Команды", title: "Команды" };
+    case "library":
+      return { kicker: "Упражнения, планы, шаблоны", title: "Библиотека" };
+    case "calendar":
+      return { kicker: monthKicker(), title: "Календарь" };
+    case "coaches":
+      return { kicker: "Индивидуальные занятия", title: "Тренеры" };
+    case "profile":
+      return { kicker: "Аккаунт", title: "Профиль" };
+  }
+}
+
+function playerTopBar(tab: PlayerTab, onCreateTraining: () => void): TopBarConfig {
+  switch (tab) {
+    case "dashboard":
+      return { kicker: dateKicker(), title: "Твой прогресс", cta: { label: "Тренировка", icon: "plus", onClick: onCreateTraining } };
+    case "teams":
+      return { kicker: "Команды", title: "Команды" };
+    case "calendar":
+      return { kicker: monthKicker(), title: "Календарь" };
+    case "coaches":
+      return { kicker: "Индивидуальные занятия", title: "Тренеры" };
+    case "profile":
+      return { kicker: "Аккаунт", title: "Профиль" };
+  }
+}
+
 function CoachTabContent({
   tab,
   token,
@@ -116,8 +167,47 @@ function MainContent({ token }: { token: string }) {
   const { state } = useProfile();
   const { state: authState } = useAuth();
   const myUserId = authState.status === "ready" ? authState.user.id : null;
+  const myPhotoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
   const [coachTab, setCoachTab] = useState<CoachTab>("dashboard");
   const [playerTab, setPlayerTab] = useState<PlayerTab>("dashboard");
+
+  const [teams, setTeams] = useState<Team[] | null>(null);
+  useEffect(() => {
+    listMyTeams(token)
+      .then(setTeams)
+      .catch(() => setTeams([]));
+  }, [token]);
+
+  const isCoachMode = state.status === "ready" && state.data.activeMode === "coach";
+  const [pendingBookings, setPendingBookings] = useState(0);
+  useEffect(() => {
+    if (!isCoachMode) {
+      setPendingBookings(0);
+      return;
+    }
+    listCoachPendingBookings(token)
+      .then((bookings) => setPendingBookings(bookings.length))
+      .catch(() => setPendingBookings(0));
+  }, [token, isCoachMode]);
+
+  const primaryTeam = teams && teams.length > 0 ? teams[0]! : null;
+  const sideTeam: SideNavTeam | null = primaryTeam
+    ? {
+        name: primaryTeam.name,
+        roleLabel: primaryTeam.myRole ? TEAM_ROLE_LABELS[primaryTeam.myRole] : "Участник",
+        initial: initialOf(primaryTeam.name),
+      }
+    : null;
+
+  let sideUser: SideNavUser = { name: "…", sub: "", photoUrl: myPhotoUrl, initial: "?" };
+  if (state.status === "ready") {
+    const mode = state.data.activeMode ?? (state.data.player ? "player" : "coach");
+    if (mode === "player" && state.data.player) {
+      sideUser = { name: state.data.player.fullName, sub: "Игрок", photoUrl: myPhotoUrl, initial: initialOf(state.data.player.fullName) };
+    } else if (mode === "coach" && state.data.coach) {
+      sideUser = { name: state.data.coach.fullName, sub: "Тренер", photoUrl: myPhotoUrl, initial: initialOf(state.data.coach.fullName) };
+    }
+  }
 
   // A brand-new user (no player or coach profile yet) should land on
   // Онбординг (via the Профиль tab), not a dashboard full of zeros —
@@ -199,17 +289,28 @@ function MainContent({ token }: { token: string }) {
   }
 
   const hasOverlay = overlayContent !== null;
+  const onCreateTraining = () => setOverlay({ kind: "training-create" });
+  const onOpenTeam = primaryTeam ? () => setOverlay({ kind: "team", teamId: primaryTeam.id }) : undefined;
 
   if (state.status === "ready" && state.data.activeMode === "coach") {
+    const coachNavItems = COACH_NAV_ITEMS.map((item) => (item.key === "coaches" ? { ...item, badge: pendingBookings } : item));
     return (
       <AppShell
-        navItems={COACH_NAV_ITEMS}
+        navItems={coachNavItems}
         activeTab={coachTab}
         onChangeTab={(tab) => {
           setOverlay(null);
           setCoachTab(tab);
         }}
         hasOverlay={hasOverlay}
+        sideTeam={sideTeam}
+        onOpenTeam={onOpenTeam}
+        sideUser={sideUser}
+        onOpenProfile={() => {
+          setOverlay(null);
+          setCoachTab("profile");
+        }}
+        topBar={hasOverlay ? undefined : coachTopBar(coachTab, onCreateTraining)}
       >
         {overlayContent ?? (
           <CoachTabContent
@@ -219,7 +320,7 @@ function MainContent({ token }: { token: string }) {
             onOpenMyStats={() => setOverlay({ kind: "my-stats" })}
             onOpenEvent={(event) => setOverlay(calendarEventToOverlay(event))}
             onOpenTeam={(teamId) => setOverlay({ kind: "team", teamId })}
-            onCreateTraining={() => setOverlay({ kind: "training-create" })}
+            onCreateTraining={onCreateTraining}
           />
         )}
       </AppShell>
@@ -235,6 +336,14 @@ function MainContent({ token }: { token: string }) {
         setPlayerTab(tab);
       }}
       hasOverlay={hasOverlay}
+      sideTeam={sideTeam}
+      onOpenTeam={onOpenTeam}
+      sideUser={sideUser}
+      onOpenProfile={() => {
+        setOverlay(null);
+        setPlayerTab("profile");
+      }}
+      topBar={hasOverlay ? undefined : playerTopBar(playerTab, onCreateTraining)}
     >
       {overlayContent ?? (
         <>
