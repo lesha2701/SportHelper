@@ -3,10 +3,19 @@ import { listMyExercises } from "../../api/exercises";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
+import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { ExerciseForm } from "./ExerciseForm";
 import { ExerciseDetail } from "./ExerciseDetail";
+import { SKILL_LEVEL_LABELS } from "../../types/profile";
 import type { Exercise } from "../../types/exercise";
 import styles from "../teams/teams.module.css";
+import libStyles from "./library.module.css";
+
+function formatDuration(seconds: number | null): string | null {
+  if (!seconds) return null;
+  const minutes = Math.round(seconds / 60);
+  return minutes > 0 ? `${minutes} мин` : `${seconds} сек`;
+}
 
 type ListState =
   | { status: "loading" }
@@ -106,30 +115,46 @@ export function ExercisesScreen({ token }: { token: string }) {
       ) : filtered.length === 0 ? (
         <StateScreen kind="empty" title="Ничего не найдено" description="Попробуйте изменить запрос." />
       ) : (
-        filtered.map((exercise) => (
-          <button
-            key={exercise.id}
-            type="button"
-            className={styles.teamCard}
-            onClick={() => setView({ screen: "detail", exerciseId: exercise.id })}
-          >
-            <div className={styles.teamCardRow}>
-              <div className={styles.teamAvatar}>
-                <Icon name="dumbbell" size={19} />
-              </div>
-              <div className={styles.teamNameCol}>
-                <div className={styles.teamCardTop}>
-                  <h2 className={styles.teamName}>{exercise.name}</h2>
-                  {exercise.sharedTeamIds.length > 0 && <span className={styles.badge}>показано {exercise.sharedTeamIds.length}</span>}
-                  <span className={styles.chevron} aria-hidden="true">
-                    <Icon name="chevron-right" size={18} />
-                  </span>
+        <div className={libStyles.exerciseGrid}>
+          {filtered.map((exercise) => {
+            const duration = formatDuration(exercise.durationSeconds);
+            return (
+              <button
+                key={exercise.id}
+                type="button"
+                className={libStyles.exerciseCard}
+                onClick={() => setView({ screen: "detail", exerciseId: exercise.id })}
+              >
+                <div className={libStyles.exerciseCardMedia}>
+                  {exercise.photoFileId ? (
+                    <AuthenticatedImage
+                      token={token}
+                      fileId={exercise.photoFileId}
+                      alt={exercise.name}
+                      className={libStyles.exerciseCardMediaImg}
+                    />
+                  ) : (
+                    <div className={libStyles.exerciseCardMediaPlaceholder}>
+                      <Icon name={exercise.videoFileId ? "video" : "dumbbell"} size={26} />
+                    </div>
+                  )}
+                  {duration && <span className={libStyles.exerciseDurationBadge}>{duration}</span>}
                 </div>
-                <p className={styles.teamMeta}>{exercise.sport}</p>
-              </div>
-            </div>
-          </button>
-        ))
+                <div className={libStyles.exerciseCardBody}>
+                  <h2 className={libStyles.exerciseCardTitle}>{exercise.name}</h2>
+                  <div className={libStyles.exerciseCardFooter}>
+                    <span className={libStyles.exerciseCardCategory}>
+                      {exercise.difficulty ? SKILL_LEVEL_LABELS[exercise.difficulty] : exercise.sport}
+                    </span>
+                    <span className={libStyles.exerciseCardShared}>
+                      {exercise.sharedTeamIds.length > 0 ? `${exercise.sharedTeamIds.length} команд` : "личное"}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       )}
     </div>
   );

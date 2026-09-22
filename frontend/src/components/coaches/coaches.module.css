@@ -123,6 +123,151 @@
   padding: 6px;
 }
 
+.marketplaceLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .marketplaceLayout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+}
+
+.filterPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
+}
+
+.filterPanelTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filterFieldLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.filterFieldInput {
+  height: 42px;
+  border-radius: 12px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  padding: 0 14px;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--color-text);
+}
+
+.filterFieldInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.priceValueRow {
+  display: flex;
+  justify-content: space-between;
+}
+
+.priceValue {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.priceSlider {
+  width: 100%;
+  accent-color: var(--color-primary);
+}
+
+.ratingPillRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.ratingPill,
+.ratingPillActive {
+  padding: 8px 0;
+  border-radius: 10px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.ratingPillActive {
+  background: var(--color-text);
+  color: var(--color-bg);
+  border-color: var(--color-text);
+}
+
+.onlineToggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.onlineToggleLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.resetFiltersLink {
+  margin-top: auto;
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.resultsHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+}
+
+.resultsColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
 .filterBar {
   display: flex;
   flex-wrap: wrap;

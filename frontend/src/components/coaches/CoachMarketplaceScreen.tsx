@@ -69,12 +69,16 @@ function ListingCardView({ token, listing, onOpen }: { token: string; listing: C
   );
 }
 
+const MAX_PRICE_CEILING = 5000;
+
 export function CoachMarketplaceScreen({ token }: { token: string }) {
   const [view, setView] = useState<View>({ screen: "list" });
   const [state, setState] = useState<ListState>({ status: "loading" });
   const [sport, setSport] = useState("");
   const [location, setLocation] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState(MAX_PRICE_CEILING);
+  const [minRating, setMinRating] = useState<number | undefined>(undefined);
+  const [onlineOnly, setOnlineOnly] = useState(false);
 
   const load = (filters: CoachListingFilters) => {
     setState({ status: "loading" });
@@ -91,12 +95,30 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const applyFilters = () => {
+  const applyFilters = (overrides: Partial<{ sport: string; location: string; maxPrice: number; minRating?: number; onlineOnly: boolean }> = {}) => {
+    const next = {
+      sport: overrides.sport ?? sport,
+      location: overrides.location ?? location,
+      maxPrice: overrides.maxPrice ?? maxPrice,
+      minRating: "minRating" in overrides ? overrides.minRating : minRating,
+      onlineOnly: overrides.onlineOnly ?? onlineOnly,
+    };
     load({
-      sport: sport.trim() || undefined,
-      location: location.trim() || undefined,
-      max_price: maxPrice ? Number(maxPrice) : undefined,
+      sport: next.sport.trim() || undefined,
+      location: next.location.trim() || undefined,
+      max_price: next.maxPrice < MAX_PRICE_CEILING ? next.maxPrice : undefined,
+      min_rating: next.minRating,
+      format: next.onlineOnly ? "online" : undefined,
     });
+  };
+
+  const resetFilters = () => {
+    setSport("");
+    setLocation("");
+    setMaxPrice(MAX_PRICE_CEILING);
+    setMinRating(undefined);
+    setOnlineOnly(false);
+    load({});
   };
 
   if (view.screen === "profile") {
@@ -147,48 +169,117 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
     <div className={teamStyles.screen}>
       <h1 className={teamStyles.heading}>Тренеры</h1>
 
-      <div className={styles.filterBar}>
-        <input
-          className={styles.filterInput}
-          placeholder="Вид спорта"
-          value={sport}
-          onChange={(e) => setSport(e.target.value)}
-          onBlur={applyFilters}
-        />
-        <input
-          className={styles.filterInput}
-          placeholder="Город"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          onBlur={applyFilters}
-        />
-        <input
-          className={styles.filterInput}
-          type="number"
-          placeholder="Цена до"
-          value={maxPrice}
-          onChange={(e) => setMaxPrice(e.target.value)}
-          onBlur={applyFilters}
-        />
-      </div>
+      <div className={styles.marketplaceLayout}>
+        <div className={styles.filterPanel}>
+          <h2 className={styles.filterPanelTitle}>Фильтры</h2>
 
-      {state.status === "loading" && <StateScreen kind="loading" title="Загрузка тренеров…" />}
-      {state.status === "error" && <StateScreen kind="error" title="Не удалось загрузить тренеров" description={state.message} onRetry={() => load({})} />}
-      {state.status === "ready" && state.listings.length === 0 && (
-        <StateScreen kind="empty" title="Пока никого нет" description="Объявления появятся здесь, когда тренеры их опубликуют." />
-      )}
-      {state.status === "ready" && state.listings.length > 0 && (
-        <div className={teamStyles.cardGrid}>
-          {state.listings.map((listing) => (
-            <ListingCardView
-              key={listing.id}
-              token={token}
-              listing={listing}
-              onOpen={() => setView({ screen: "profile", listingId: listing.id })}
+          <div className={styles.filterField}>
+            <span className={styles.filterFieldLabel}>Вид спорта</span>
+            <input
+              className={styles.filterFieldInput}
+              placeholder="Например, баскетбол"
+              value={sport}
+              onChange={(e) => setSport(e.target.value)}
+              onBlur={() => applyFilters()}
             />
-          ))}
+          </div>
+
+          <div className={styles.filterField}>
+            <span className={styles.filterFieldLabel}>Город</span>
+            <input
+              className={styles.filterFieldInput}
+              placeholder="Например, Москва"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              onBlur={() => applyFilters()}
+            />
+          </div>
+
+          <div className={styles.filterField}>
+            <div className={styles.priceValueRow}>
+              <span className={styles.filterFieldLabel}>Цена до</span>
+              <span className={styles.priceValue}>{maxPrice >= MAX_PRICE_CEILING ? "Любая" : `${maxPrice} ₽`}</span>
+            </div>
+            <input
+              className={styles.priceSlider}
+              type="range"
+              min={0}
+              max={MAX_PRICE_CEILING}
+              step={100}
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(Number(e.target.value))}
+              onMouseUp={() => applyFilters()}
+              onTouchEnd={() => applyFilters()}
+            />
+          </div>
+
+          <div className={styles.filterField}>
+            <span className={styles.filterFieldLabel}>Рейтинг</span>
+            <div className={styles.ratingPillRow}>
+              {[undefined, 4.5, 4.8].map((r) => (
+                <button
+                  key={r ?? "any"}
+                  type="button"
+                  className={minRating === r ? styles.ratingPillActive : styles.ratingPill}
+                  onClick={() => {
+                    setMinRating(r);
+                    applyFilters({ minRating: r });
+                  }}
+                >
+                  {r ? `${r}+` : "Любой"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.onlineToggleRow}>
+            <span className={styles.onlineToggleLabel}>Онлайн-занятия</span>
+            <button
+              type="button"
+              className={onlineOnly ? `${styles.switch} ${styles.switchOn}` : styles.switch}
+              onClick={() => {
+                const next = !onlineOnly;
+                setOnlineOnly(next);
+                applyFilters({ onlineOnly: next });
+              }}
+            >
+              <span className={styles.switchKnob} />
+            </button>
+          </div>
+
+          <button type="button" className={styles.resetFiltersLink} onClick={resetFilters}>
+            Сбросить фильтры
+          </button>
         </div>
-      )}
+
+        <div className={styles.resultsColumn}>
+          {state.status === "ready" && (
+            <div className={styles.resultsHeader}>
+              <span>Найдено {state.listings.length} объявлений</span>
+            </div>
+          )}
+
+          {state.status === "loading" && <StateScreen kind="loading" title="Загрузка тренеров…" />}
+          {state.status === "error" && (
+            <StateScreen kind="error" title="Не удалось загрузить тренеров" description={state.message} onRetry={() => load({})} />
+          )}
+          {state.status === "ready" && state.listings.length === 0 && (
+            <StateScreen kind="empty" title="Пока никого нет" description="Объявления появятся здесь, когда тренеры их опубликуют." />
+          )}
+          {state.status === "ready" && state.listings.length > 0 && (
+            <div className={teamStyles.cardGrid}>
+              {state.listings.map((listing) => (
+                <ListingCardView
+                  key={listing.id}
+                  token={token}
+                  listing={listing}
+                  onOpen={() => setView({ screen: "profile", listingId: listing.id })}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
