@@ -1,3 +1,231 @@
+.libraryLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (min-width: 900px) {
+  .libraryLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 16px;
+    align-items: start;
+  }
+}
+
+.libraryMain {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.toolbarRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sportChip,
+.sportChipActive {
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sportChipActive {
+  background: var(--color-text);
+  color: var(--color-bg);
+  border-color: var(--color-text);
+}
+
+.resultCount {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.detailPanel {
+  border-radius: 22px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.detailMedia {
+  height: 200px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--color-surface-alt), var(--color-bg));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+}
+
+.detailMediaFill {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.detailBody {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+.detailCategory {
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.detailTitle {
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.1;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.detailDescription {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.detailStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.detailStatTile {
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--color-surface-alt);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.detailStatValue {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.detailStatLabel {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.detailSharedLabel {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.detailSharedRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.detailSharedChip {
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-glow);
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.detailAddTeamChip {
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px dashed var(--color-border-strong);
+  background: none;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.detailDropdown {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+}
+
+.detailDropdownItem {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.detailDropdownItem:hover {
+  background: var(--color-surface);
+}
+
+.detailDropdownEmpty {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+
+.detailActions {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .exerciseGrid {
   display: flex;
   flex-direction: column;
