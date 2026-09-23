@@ -51,6 +51,35 @@ def _fake_disk(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(uploads_module, "YandexDiskClient", _FakeYandexDiskClient)
 
 
+_video_duration_queue: list[float] = []
+
+
+@pytest.fixture(autouse=True)
+def _fake_video_probe(monkeypatch: pytest.MonkeyPatch):
+    """Replaces the ffprobe-shelling duration check with an in-memory stand-in
+    — tests upload fake (non-playable) video bytes, so real ffprobe would
+    reject every one of them. Defaults to a short, always-under-the-limit
+    duration; queue_video_duration lets a test control it explicitly (e.g.
+    to exercise the "video too long" rejection)."""
+    _video_duration_queue.clear()
+    import app.services.uploads as uploads_module
+
+    async def fake_get_video_duration_seconds(path: str) -> float:
+        if _video_duration_queue:
+            return _video_duration_queue.pop(0)
+        return 5.0
+
+    monkeypatch.setattr(uploads_module, "get_video_duration_seconds", fake_get_video_duration_seconds)
+
+
+@pytest.fixture
+def queue_video_duration():
+    def _queue(seconds: float) -> None:
+        _video_duration_queue.append(seconds)
+
+    return _queue
+
+
 _ai_response_queue: list[str] = []
 
 

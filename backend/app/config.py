@@ -76,7 +76,8 @@ class Settings(BaseSettings):
     yandex_ai_base_url: str = Field(default="https://ai.api.cloud.yandex.net/v1", alias="YANDEX_BASE_URL")
 
     max_image_size_mb: int = Field(default=10, alias="MAX_IMAGE_SIZE_MB")
-    max_video_size_mb: int = Field(default=200, alias="MAX_VIDEO_SIZE_MB")
+    max_video_size_mb: int = Field(default=100, alias="MAX_VIDEO_SIZE_MB")
+    max_video_duration_seconds: int = Field(default=60, alias="MAX_VIDEO_DURATION_SECONDS")
     upload_chunk_size_kb: int = Field(default=512, alias="UPLOAD_CHUNK_SIZE_KB")
     http_client_timeout_seconds: int = Field(default=15, alias="HTTP_CLIENT_TIMEOUT_SECONDS")
     rate_limit_per_minute: int = Field(default=300, alias="RATE_LIMIT_PER_MINUTE")

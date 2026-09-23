@@ -42,7 +42,13 @@ export function AchievementsGallery({ token, userId, editable }: { token: string
       const created = await uploadProfileVideo(token, file);
       setState((prev) => (prev.status === "ready" ? { status: "ready", items: [...prev.items, created] } : prev));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Не удалось загрузить видео");
+      if (err instanceof ApiError && err.code === "video_too_long") {
+        setError("Видео должно быть короче 1 минуты.");
+      } else if (err instanceof ApiError && err.code === "unsupported_media_type") {
+        setError("Видео должно быть в формате MP4, MOV или WEBM.");
+      } else {
+        setError(err instanceof ApiError ? err.message : "Не удалось загрузить видео");
+      }
     } finally {
       setBusy(false);
     }
@@ -111,9 +117,10 @@ export function AchievementsGallery({ token, userId, editable }: { token: string
                 }}
               />
             </label>
-            <label className={styles.mediaAddTile}>
+            <label className={styles.mediaAddTile} title="MP4, MOV или WEBM — до 1 минуты и 100 МБ">
               <Icon name="video" size={20} />
               Видео
+              <span style={{ opacity: 0.7 }}>до 1 мин</span>
               <input
                 type="file"
                 accept="video/mp4,video/quicktime,video/webm"

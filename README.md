@@ -39,6 +39,7 @@ Backend и бот — это два независимых процесса од
 - **Python 3.12** (в системе может быть несколько версий — используйте `py -3.12`)
 - **Node.js 20+** и npm
 - **PostgreSQL 14+**, запущенный локально или доступный по сети
+- **ffmpeg** (даёт `ffprobe`) — нужен backend'у, чтобы проверять длительность загружаемых видео (жёсткий лимит: 1 минута, 100 МБ). В Docker-образе backend'а уже установлен (см. `backend/Dockerfile`); при запуске backend напрямую (не через Docker) поставьте его сами — например `winget install ffmpeg` (Windows), `brew install ffmpeg` (macOS) или `apt install ffmpeg` (Linux)
 - Telegram-бот, созданный через [@BotFather](https://t.me/BotFather) (нужен токен)
 
 ## Установка и запуск (пошагово, для новичка)

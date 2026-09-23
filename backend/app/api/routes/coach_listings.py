@@ -23,7 +23,15 @@ from app.schemas.coach_listing import (
     CoachListingProfileOut,
     OpenSlotOut,
 )
-from app.services.uploads import IMAGE_MIME_EXTENSIONS, VIDEO_MIME_EXTENSIONS, FileTooLarge, upload_to_disk
+from app.services.uploads import (
+    IMAGE_MIME_EXTENSIONS,
+    VIDEO_MIME_EXTENSIONS,
+    FileTooLarge,
+    VideoProbeError,
+    VideoTooLong,
+    upload_to_disk,
+    upload_video_to_disk,
+)
 
 router = APIRouter(prefix="/api/coach-listings", tags=["coach-listings"])
 
@@ -171,11 +179,24 @@ async def _upload_listing_media(
     )
 
     try:
-        size_bytes = await upload_to_disk(settings, disk_path, file, max_bytes, chunk_size)
+        if category == "video":
+            size_bytes = await upload_video_to_disk(
+                settings, disk_path, file, max_bytes, chunk_size, settings.max_video_duration_seconds
+            )
+        else:
+            size_bytes = await upload_to_disk(settings, disk_path, file, max_bytes, chunk_size)
     except RuntimeError as exc:
         raise APIError(str(exc), code="yandex_disk_not_configured", status_code=503) from exc
     except FileTooLarge as exc:
         raise APIError(f"file must be smaller than {max_size_mb} MB", code="file_too_large", status_code=413) from exc
+    except VideoTooLong as exc:
+        raise APIError(
+            f"video must be under {settings.max_video_duration_seconds} seconds (got {exc.duration_seconds:.0f}s)",
+            code="video_too_long",
+            status_code=413,
+        ) from exc
+    except VideoProbeError as exc:
+        raise APIError(f"could not read this video file: {exc}", code="invalid_video", status_code=415) from exc
     except YandexDiskError as exc:
         raise APIError("failed to store the file", code="storage_error", status_code=502) from exc
 

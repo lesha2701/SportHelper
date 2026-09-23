@@ -14,7 +14,15 @@ from app.integrations.yandex_disk import YandexDiskError
 from app.repositories import profile_media as profile_media_repo
 from app.repositories import files as files_repo
 from app.schemas.profile_media import ProfileMediaOut
-from app.services.uploads import IMAGE_MIME_EXTENSIONS, VIDEO_MIME_EXTENSIONS, FileTooLarge, upload_to_disk
+from app.services.uploads import (
+    IMAGE_MIME_EXTENSIONS,
+    VIDEO_MIME_EXTENSIONS,
+    FileTooLarge,
+    VideoProbeError,
+    VideoTooLong,
+    upload_to_disk,
+    upload_video_to_disk,
+)
 
 logger = logging.getLogger("teamflow.profile_media")
 
@@ -47,11 +55,24 @@ async def _upload_media(
     )
 
     try:
-        size_bytes = await upload_to_disk(settings, disk_path, file, max_bytes, chunk_size)
+        if media_type == "video":
+            size_bytes = await upload_video_to_disk(
+                settings, disk_path, file, max_bytes, chunk_size, settings.max_video_duration_seconds
+            )
+        else:
+            size_bytes = await upload_to_disk(settings, disk_path, file, max_bytes, chunk_size)
     except RuntimeError as exc:
         raise APIError(str(exc), code="yandex_disk_not_configured", status_code=503) from exc
     except FileTooLarge as exc:
         raise APIError(f"file must be smaller than {max_size_mb} MB", code="file_too_large", status_code=413) from exc
+    except VideoTooLong as exc:
+        raise APIError(
+            f"video must be under {settings.max_video_duration_seconds} seconds (got {exc.duration_seconds:.0f}s)",
+            code="video_too_long",
+            status_code=413,
+        ) from exc
+    except VideoProbeError as exc:
+        raise APIError(f"could not read this video file: {exc}", code="invalid_video", status_code=415) from exc
     except YandexDiskError as exc:
         logger.error("Yandex.Disk upload failed: %s", exc)
         raise APIError("failed to store the file", code="storage_error", status_code=502) from exc

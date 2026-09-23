@@ -262,6 +262,40 @@ def test_upload_listing_video_wrong_type_rejected(logged_in_client) -> None:
     assert resp.json()["error"]["code"] == "unsupported_media_type"
 
 
+def test_upload_listing_video_within_limits_succeeds(logged_in_client, queue_video_duration) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token)
+    listing = client.post("/api/coach-listings", headers=headers, json=_listing_payload()).json()
+
+    queue_video_duration(45)  # under the 60s hard limit
+    resp = client.post(
+        f"/api/coach-listings/{listing['id']}/video",
+        headers=headers,
+        files={"file": ("clip.mp4", io.BytesIO(b"fake-mp4-bytes"), "video/mp4")},
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["video_file_id"] is not None
+
+
+def test_upload_listing_video_rejects_over_duration_limit(logged_in_client, queue_video_duration) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token)
+    listing = client.post("/api/coach-listings", headers=headers, json=_listing_payload()).json()
+
+    queue_video_duration(75)  # over the 60s hard limit
+    resp = client.post(
+        f"/api/coach-listings/{listing['id']}/video",
+        headers=headers,
+        files={"file": ("clip.mp4", io.BytesIO(b"fake-mp4-bytes"), "video/mp4")},
+    )
+    assert resp.status_code == 413
+    assert resp.json()["error"]["code"] == "video_too_long"
+    # Rejected upload must not have left a file record behind.
+    assert client.get("/api/coach-listings/me", headers=headers).json()[0]["video_file_id"] is None
+
+
 def test_cannot_upload_photo_to_another_coachs_listing(logged_in_client, login_as) -> None:
     client, token = logged_in_client
     headers = {"Authorization": f"Bearer {token}"}

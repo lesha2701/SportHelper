@@ -103,6 +103,56 @@ def test_delete_media_removes_it_and_revokes_file_access(logged_in_client) -> No
     assert client.get(f"/api/files/{photo['file_id']}", headers=headers).status_code == 404
 
 
+def test_upload_video_rejects_over_duration_limit(logged_in_client, queue_video_duration) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+
+    queue_video_duration(90)  # over the 60s hard limit
+    resp = client.post(
+        "/api/profile/media/video",
+        headers=headers,
+        files={"file": ("v.mp4", io.BytesIO(_mp4_bytes()), "video/mp4")},
+    )
+    assert resp.status_code == 413
+    assert resp.json()["error"]["code"] == "video_too_long"
+
+    me = client.get("/api/auth/me", headers=headers).json()
+    assert client.get(f"/api/profile/media/{me['id']}", headers=headers).json() == []
+
+
+def test_upload_video_within_duration_limit_succeeds(logged_in_client, queue_video_duration) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+
+    queue_video_duration(60)  # exactly at the limit — must be accepted, not rejected
+    resp = client.post(
+        "/api/profile/media/video",
+        headers=headers,
+        files={"file": ("v.mp4", io.BytesIO(_mp4_bytes()), "video/mp4")},
+    )
+    assert resp.status_code == 200, resp.text
+
+
+def test_upload_video_rejects_oversized_file(logged_in_client, monkeypatch) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+
+    monkeypatch.setenv("MAX_VIDEO_SIZE_MB", "0")  # 0 MB -> anything is too large
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+    try:
+        resp = client.post(
+            "/api/profile/media/video",
+            headers=headers,
+            files={"file": ("v.mp4", io.BytesIO(_mp4_bytes(1000)), "video/mp4")},
+        )
+        assert resp.status_code == 413
+        assert resp.json()["error"]["code"] == "file_too_large"
+    finally:
+        get_settings.cache_clear()
+
+
 def test_cannot_delete_another_users_media(logged_in_client, login_as) -> None:
     client, token = logged_in_client
     headers = {"Authorization": f"Bearer {token}"}

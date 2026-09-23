@@ -6,6 +6,12 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+# ffprobe (part of ffmpeg) enforces the hard video-duration limit on upload
+# — see app/services/uploads.py:get_video_duration_seconds.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies first so this layer is cached across code-only changes.
 COPY backend/requirements.txt backend/requirements.txt
 RUN pip install --no-cache-dir -r backend/requirements.txt

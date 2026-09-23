@@ -182,7 +182,13 @@ export function ListingEditScreen({
       const updated = await uploadListingVideo(token, listingId, file);
       setVideoFileId(updated.videoFileId);
     } catch (err) {
-      setMediaError(err instanceof ApiError ? err.message : "Не удалось загрузить видео");
+      if (err instanceof ApiError && err.code === "video_too_long") {
+        setMediaError("Видео должно быть короче 1 минуты.");
+      } else if (err instanceof ApiError && err.code === "unsupported_media_type") {
+        setMediaError("Видео должно быть в формате MP4, MOV или WEBM.");
+      } else {
+        setMediaError(err instanceof ApiError ? err.message : "Не удалось загрузить видео");
+      }
     } finally {
       setMediaBusy(false);
     }
@@ -299,7 +305,7 @@ export function ListingEditScreen({
           <FilePicker
             icon="video"
             label="Выбрать видео"
-            hint="MP4, MOV или WEBM"
+            hint="MP4, MOV или WEBM, до 1 минуты и 100 МБ"
             accept="video/mp4,video/quicktime,video/webm"
             onSelect={(file) => void handleVideoChange(file)}
             disabled={mediaBusy}
