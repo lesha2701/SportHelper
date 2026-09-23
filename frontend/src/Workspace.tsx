@@ -293,7 +293,7 @@ function MainContent({ token }: { token: string }) {
   const onOpenTeam = primaryTeam ? () => setOverlay({ kind: "team", teamId: primaryTeam.id }) : undefined;
 
   if (state.status === "ready" && state.data.activeMode === "coach") {
-    const coachNavItems = COACH_NAV_ITEMS.map((item) => (item.key === "coaches" ? { ...item, badge: pendingBookings } : item));
+    const coachNavItems = COACH_NAV_ITEMS.map((item) => (item.key === "profile" ? { ...item, badge: pendingBookings } : item));
     return (
       <AppShell
         navItems={coachNavItems}

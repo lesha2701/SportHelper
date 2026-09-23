@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { listCoachPendingBookings } from "../../api/bookings";
 import { getPlayerStats } from "../../api/stats";
 import { useAuth } from "../../context/AuthContext";
-import { useTheme } from "../../context/ThemeContext";
 import { Icon, type IconName } from "../shared/Icon";
 import { SKILL_LEVEL_LABELS, type ActiveMode, type ProfileMe } from "../../types/profile";
 import { formatRate } from "../../types/stats";
@@ -85,7 +84,6 @@ export function ProfileSummary({
   onOpenIncomingBookings,
 }: ProfileSummaryProps) {
   const { state: authState } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const photoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
   const myUserId = authState.status === "ready" ? authState.user.id : null;
   const mode: ActiveMode = profile.activeMode ?? (profile.player ? "player" : "coach");
@@ -152,12 +150,6 @@ export function ProfileSummary({
   }
   actionRows.push({ key: "stats", icon: "award", label: "Моя статистика", onClick: onOpenMyStats });
   actionRows.push({ key: "bookings", icon: "calendar", label: "Мои брони", onClick: onOpenMyBookings });
-  actionRows.push({
-    key: "theme",
-    icon: theme === "dark" ? "moon" : "sun",
-    label: "Тёмная тема",
-    toggle: { on: theme === "dark", onChange: toggleTheme },
-  });
   actionRows.push({ key: "settings", icon: "settings", label: "Настройки", onClick: onOpenSettings });
   actionRows.push({ key: "help", icon: "book", label: "Помощь", onClick: onOpenHelp });
   if (profile.player && profile.coach) {

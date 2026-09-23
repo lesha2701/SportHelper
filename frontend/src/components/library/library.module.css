@@ -65,6 +65,15 @@
   flex-direction: column;
 }
 
+@media (min-width: 900px) {
+  .detailPanel {
+    position: sticky;
+    top: 20px;
+    max-height: calc(100svh - 40px);
+    overflow-y: auto;
+  }
+}
+
 .detailMedia {
   height: 200px;
   flex-shrink: 0;

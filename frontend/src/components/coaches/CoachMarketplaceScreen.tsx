@@ -147,7 +147,6 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
   const [view, setView] = useState<View>({ screen: "list" });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [state, setState] = useState<ListState>({ status: "loading" });
-  const [sport, setSport] = useState("");
   const [location, setLocation] = useState("");
   const [maxPrice, setMaxPrice] = useState(MAX_PRICE_CEILING);
   const [minRating, setMinRating] = useState<number | undefined>(undefined);
@@ -168,16 +167,14 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const applyFilters = (overrides: Partial<{ sport: string; location: string; maxPrice: number; minRating?: number; onlineOnly: boolean }> = {}) => {
+  const applyFilters = (overrides: Partial<{ location: string; maxPrice: number; minRating?: number; onlineOnly: boolean }> = {}) => {
     const next = {
-      sport: overrides.sport ?? sport,
       location: overrides.location ?? location,
       maxPrice: overrides.maxPrice ?? maxPrice,
       minRating: "minRating" in overrides ? overrides.minRating : minRating,
       onlineOnly: overrides.onlineOnly ?? onlineOnly,
     };
     load({
-      sport: next.sport.trim() || undefined,
       location: next.location.trim() || undefined,
       max_price: next.maxPrice < MAX_PRICE_CEILING ? next.maxPrice : undefined,
       min_rating: next.minRating,
@@ -186,7 +183,6 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
   };
 
   const resetFilters = () => {
-    setSport("");
     setLocation("");
     setMaxPrice(MAX_PRICE_CEILING);
     setMinRating(undefined);
@@ -245,17 +241,6 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
       <div className={styles.marketplaceLayout}>
         <div className={styles.filterPanel}>
           <h2 className={styles.filterPanelTitle}>Фильтры</h2>
-
-          <div className={styles.filterField}>
-            <span className={styles.filterFieldLabel}>Вид спорта</span>
-            <input
-              className={styles.filterFieldInput}
-              placeholder="Например, баскетбол"
-              value={sport}
-              onChange={(e) => setSport(e.target.value)}
-              onBlur={() => applyFilters()}
-            />
-          </div>
 
           <div className={styles.filterField}>
             <span className={styles.filterFieldLabel}>Город</span>
