@@ -55,6 +55,18 @@ async def create_recurring_series(
     return created
 
 
+async def has_training_with_plan(conn: asyncpg.Connection, plan_id: UUID, created_by: UUID) -> bool:
+    """Whether this user has a (non-deleted) training using this plan — lets
+    an athlete view a plan their coach attached to a booked session even
+    though the plan itself isn't shared with any team the athlete is on."""
+    row = await conn.fetchrow(
+        "SELECT 1 FROM trainings WHERE plan_id = $1 AND created_by = $2 AND deleted_at IS NULL LIMIT 1",
+        plan_id,
+        created_by,
+    )
+    return row is not None
+
+
 async def get_training(conn: asyncpg.Connection, training_id: UUID) -> dict[str, Any] | None:
     row = await conn.fetchrow(
         f"SELECT {_TRAINING_FIELDS} FROM trainings WHERE id = $1 AND deleted_at IS NULL", training_id

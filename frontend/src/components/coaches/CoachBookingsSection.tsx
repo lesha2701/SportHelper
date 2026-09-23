@@ -8,6 +8,7 @@ import type { Booking } from "../../types/booking";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
+import { PlanPickerModal } from "./PlanPickerModal";
 
 /** The coach's own session list — who is booked and when. Separate from
  * IncomingBookingsScreen (pending requests needing accept/decline) and
@@ -18,12 +19,18 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
   const [state, setState] = useState<{ status: "loading" } | { status: "error"; message: string } | { status: "ready"; bookings: Booking[] }>({
     status: "loading",
   });
+  const [planPickerFor, setPlanPickerFor] = useState<Booking | null>(null);
 
   useEffect(() => {
     listCoachBookings(token)
       .then((bookings) => setState({ status: "ready", bookings }))
       .catch((err: unknown) => setState({ status: "error", message: err instanceof ApiError ? err.message : "Не удалось загрузить записи" }));
   }, [token]);
+
+  const updateBooking = (updated: Booking) => {
+    if (state.status !== "ready") return;
+    setState({ status: "ready", bookings: state.bookings.map((b) => (b.id === updated.id ? updated : b)) });
+  };
 
   if (state.status === "loading") return <StateScreen kind="loading" title="Загрузка записей…" />;
   if (state.status === "error") return <StateScreen kind="error" title="Не удалось загрузить записи" description={state.message} />;
@@ -50,28 +57,50 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
         <h2 className={profileStyles.title}>Предстоящие</h2>
         {upcoming.length === 0 && <p className={profileStyles.subtitle}>Нет предстоящих записей.</p>}
         {upcoming.map((b) => (
-          <div className={styles.bookingRow} key={b.id}>
-            <div>
-              <p className={profileStyles.rowValue}>{b.athleteFullName}</p>
-              {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
-              <p className={profileStyles.subtitle}>
-                {formatDate(b.startsAt)} · {b.format === "online" ? "Онлайн" : "Очно"}
-              </p>
+          <div className={styles.bookingRowStack} key={b.id}>
+            <div className={styles.bookingRowTop}>
+              <div>
+                <p className={profileStyles.rowValue}>{b.athleteFullName}</p>
+                {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
+                <p className={profileStyles.subtitle}>
+                  {formatDate(b.startsAt)} · {b.format === "online" ? "Онлайн" : "Очно"}
+                </p>
+              </div>
+              <span className={styles.bookingStatus}>Подтверждена</span>
             </div>
-            <span className={styles.bookingStatus}>Подтверждена</span>
+            {b.athleteNotes && <p className={styles.bookingNotes}>Пожелания: {b.athleteNotes}</p>}
+            <div className={styles.bookingPlanRow}>
+              <span className={styles.bookingPlanLabel}>
+                {b.trainingPlanName ? `План: ${b.trainingPlanName}` : "План не выбран"}
+              </span>
+              <button type="button" className={styles.bookingPlanAction} onClick={() => setPlanPickerFor(b)}>
+                {b.trainingPlanName ? "Изменить" : "Выбрать план"}
+              </button>
+            </div>
           </div>
         ))}
 
         <h2 className={profileStyles.title}>Прошедшие</h2>
         {past.length === 0 && <p className={profileStyles.subtitle}>Пока нет прошедших записей.</p>}
         {past.map((b) => (
-          <div className={styles.bookingRow} key={b.id}>
-            <div>
-              <p className={profileStyles.rowValue}>{b.athleteFullName}</p>
-              {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
-              <p className={profileStyles.subtitle}>{formatDate(b.startsAt)}</p>
+          <div className={styles.bookingRowStack} key={b.id}>
+            <div className={styles.bookingRowTop}>
+              <div>
+                <p className={profileStyles.rowValue}>{b.athleteFullName}</p>
+                {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
+                <p className={profileStyles.subtitle}>{formatDate(b.startsAt)}</p>
+              </div>
+              <span className={styles.bookingStatusMuted}>{b.hasReview ? "Есть отзыв" : "Завершена"}</span>
             </div>
-            <span className={styles.bookingStatusMuted}>{b.hasReview ? "Есть отзыв" : "Завершена"}</span>
+            {b.athleteNotes && <p className={styles.bookingNotes}>Пожелания: {b.athleteNotes}</p>}
+            <div className={styles.bookingPlanRow}>
+              <span className={styles.bookingPlanLabel}>
+                {b.trainingPlanName ? `План: ${b.trainingPlanName}` : "План не выбран"}
+              </span>
+              <button type="button" className={styles.bookingPlanAction} onClick={() => setPlanPickerFor(b)}>
+                {b.trainingPlanName ? "Изменить" : "Выбрать план"}
+              </button>
+            </div>
           </div>
         ))}
 
@@ -93,6 +122,18 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
           </>
         )}
       </div>
+
+      {planPickerFor && (
+        <PlanPickerModal
+          token={token}
+          booking={planPickerFor}
+          onClose={() => setPlanPickerFor(null)}
+          onSaved={(updated) => {
+            updateBooking(updated);
+            setPlanPickerFor(updated);
+          }}
+        />
+      )}
     </div>
   );
 }

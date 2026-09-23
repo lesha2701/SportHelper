@@ -10,7 +10,9 @@ from app.core.exceptions import APIError, ForbiddenError, NotFoundError
 from app.repositories import bookings as bookings_repo
 from app.repositories import coach_listings as listings_repo
 from app.repositories import coach_reviews as coach_reviews_repo
-from app.schemas.booking import BookingIn, BookingOut, PendingBookingOut, ReviewIn, ReviewOut
+from app.repositories import plans as plans_repo
+from app.repositories import trainings as trainings_repo
+from app.schemas.booking import BookingIn, BookingOut, BookingPlanIn, PendingBookingOut, ReviewIn, ReviewOut
 from app.services import notifications as notifications_service
 
 router = APIRouter(prefix="/api/bookings", tags=["bookings"])
@@ -57,6 +59,7 @@ async def create_booking(
         format=payload.format,
         price_per_session=listing["price_per_session"],
         currency=listing["currency"],
+        athlete_notes=payload.athlete_notes,
     )
     if booking is None:
         raise APIError("slot was just booked by someone else", code="slot_unavailable", status_code=409)
@@ -89,6 +92,33 @@ async def list_coach_bookings(
 ) -> list[BookingOut]:
     bookings = await bookings_repo.list_for_coach(conn, user["id"])
     return [await _to_out(conn, b) for b in bookings]
+
+
+@router.patch("/{booking_id}/plan", response_model=BookingOut)
+async def set_booking_plan(
+    booking_id: UUID,
+    payload: BookingPlanIn,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> BookingOut:
+    """Lets the coach pick which of their own training plans to use for a
+    confirmed booking's session — stored on the linked Training, which the
+    athlete already sees plan details for when they open it (same as any
+    other training with a plan)."""
+    booking = await bookings_repo.get_booking(conn, booking_id)
+    if booking is None:
+        raise NotFoundError("booking not found")
+    if booking["coach_user_id"] != user["id"]:
+        raise ForbiddenError("you can only set the plan on your own bookings")
+    if booking["training_id"] is None:
+        raise APIError("booking has no session yet — confirm it first", code="booking_not_confirmed", status_code=409)
+    if payload.plan_id is not None:
+        plan = await plans_repo.get_plan(conn, payload.plan_id)
+        if plan is None or plan["owner_id"] != user["id"]:
+            raise NotFoundError("plan not found")
+    await trainings_repo.update_training(conn, booking["training_id"], plan_id=payload.plan_id)
+    updated = await bookings_repo.get_booking(conn, booking_id)
+    return await _to_out(conn, updated)
 
 
 @router.post("/{booking_id}/confirm", response_model=BookingOut)

@@ -6,15 +6,19 @@ from uuid import UUID
 from app.services import background
 
 from tests.test_bookings_api import _list_coach_with_slot
+from tests.test_plans_api import _PLAN_PAYLOAD
 
 
-def _create_pending_booking(client, coach_token, login_as, telegram_id=890101):
+def _create_pending_booking(client, coach_token, login_as, telegram_id=890101, athlete_notes=None):
     listing_id, slot = _list_coach_with_slot(client, coach_token)
     athlete_token = login_as(telegram_id, first_name="Athlete")
+    payload = {"listing_id": listing_id, "starts_at": slot, "format": "online"}
+    if athlete_notes is not None:
+        payload["athlete_notes"] = athlete_notes
     resp = client.post(
         "/api/bookings",
         headers={"Authorization": f"Bearer {athlete_token}"},
-        json={"listing_id": listing_id, "starts_at": slot, "format": "online"},
+        json=payload,
     )
     assert resp.status_code == 200, resp.text
     return listing_id, athlete_token, resp.json()
@@ -98,6 +102,80 @@ def test_coach_records_list_shows_confirmed_and_declined_but_not_pending(logged_
     assert by_id[confirmed_booking["id"]]["status"] == "confirmed"
     assert by_id[confirmed_booking["id"]]["athlete_full_name"] == "Athlete"
     assert by_id[declined_booking["id"]]["status"] == "declined"
+
+
+def test_athlete_notes_visible_to_coach_in_pending_inbox_and_records(logged_in_client, login_as) -> None:
+    client, coach_token = logged_in_client
+    coach_headers = {"Authorization": f"Bearer {coach_token}"}
+
+    _, _, booking = _create_pending_booking(
+        client, coach_token, login_as, telegram_id=890501, athlete_notes="Хочу поработать над подачей"
+    )
+    assert booking["athlete_notes"] == "Хочу поработать над подачей"
+
+    pending = client.get("/api/bookings/coach/pending", headers=coach_headers).json()
+    assert pending[0]["athlete_notes"] == "Хочу поработать над подачей"
+
+    client.post(f"/api/bookings/{booking['id']}/confirm", headers=coach_headers)
+    records = client.get("/api/bookings/coach", headers=coach_headers).json()
+    assert records[0]["athlete_notes"] == "Хочу поработать над подачей"
+
+
+def test_coach_can_select_and_clear_training_plan_on_confirmed_booking(logged_in_client, login_as) -> None:
+    client, coach_token = logged_in_client
+    coach_headers = {"Authorization": f"Bearer {coach_token}"}
+
+    _, _, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890502)
+
+    # Can't attach a plan before the booking is confirmed (no training yet).
+    plan = client.post("/api/plans", headers=coach_headers, json=_PLAN_PAYLOAD).json()
+    early = client.patch(f"/api/bookings/{booking['id']}/plan", headers=coach_headers, json={"plan_id": plan["id"]})
+    assert early.status_code == 409
+
+    confirmed = client.post(f"/api/bookings/{booking['id']}/confirm", headers=coach_headers).json()
+    assert confirmed["training_plan_id"] is None
+
+    set_resp = client.patch(
+        f"/api/bookings/{booking['id']}/plan", headers=coach_headers, json={"plan_id": plan["id"]}
+    )
+    assert set_resp.status_code == 200, set_resp.text
+    assert set_resp.json()["training_plan_id"] == plan["id"]
+    assert set_resp.json()["training_plan_name"] == plan["name"]
+
+    # The athlete sees the plan through their own training record, and can
+    # open the plan itself even though the coach never shared it with any
+    # team the athlete is on — visibility here comes from the booking.
+    athlete_token = login_as(890502, first_name="Athlete")
+    athlete_headers = {"Authorization": f"Bearer {athlete_token}"}
+    training = client.get(f"/api/trainings/{confirmed['training_id']}", headers=athlete_headers).json()
+    assert training["plan_id"] == plan["id"]
+
+    plan_view = client.get(f"/api/plans/{plan['id']}", headers=athlete_headers)
+    assert plan_view.status_code == 200, plan_view.text
+    assert plan_view.json()["name"] == plan["name"]
+
+    # Clearing it (plan_id: null) removes it again — and the athlete loses
+    # view access to the plan along with it.
+    cleared = client.patch(f"/api/bookings/{booking['id']}/plan", headers=coach_headers, json={"plan_id": None})
+    assert cleared.json()["training_plan_id"] is None
+    assert client.get(f"/api/plans/{plan['id']}", headers=athlete_headers).status_code == 403
+
+
+def test_coach_cannot_attach_a_plan_they_do_not_own(logged_in_client, login_as) -> None:
+    client, coach_token = logged_in_client
+    coach_headers = {"Authorization": f"Bearer {coach_token}"}
+    _, _, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890503)
+    client.post(f"/api/bookings/{booking['id']}/confirm", headers=coach_headers)
+
+    other_coach_token = login_as(890504, first_name="OtherCoach")
+    from tests.test_teams_api import _create_coach_profile
+
+    _create_coach_profile(client, other_coach_token, sport="Теннис")
+    other_headers = {"Authorization": f"Bearer {other_coach_token}"}
+    other_plan = client.post("/api/plans", headers=other_headers, json=_PLAN_PAYLOAD).json()
+
+    resp = client.patch(f"/api/bookings/{booking['id']}/plan", headers=coach_headers, json={"plan_id": other_plan["id"]})
+    assert resp.status_code == 404
 
 
 def test_confirm_rejects_wrong_coach(logged_in_client, login_as) -> None:

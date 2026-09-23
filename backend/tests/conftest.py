@@ -281,7 +281,20 @@ def client(monkeypatch: pytest.MonkeyPatch):
 
     bookings_store: dict = {}
 
-    async def fake_create_booking(conn, *, listing_id, coach_user_id, athlete_user_id, starts_at, duration_minutes, format, price_per_session, currency):
+    def _booking_view(record):
+        # Mirrors the real repo's LEFT JOIN trainings/training_plans: the
+        # plan is looked up fresh from the linked training every read, not
+        # cached on the booking record, so a plan change is visible
+        # immediately without re-touching bookings_store.
+        view = dict(record)
+        training = trainings_store.get(record["training_id"]) if record.get("training_id") else None
+        plan_id = training["plan_id"] if training else None
+        plan = plans_store.get(plan_id) if plan_id else None
+        view["training_plan_id"] = plan_id
+        view["training_plan_name"] = plan["name"] if plan else None
+        return view
+
+    async def fake_create_booking(conn, *, listing_id, coach_user_id, athlete_user_id, starts_at, duration_minutes, format, price_per_session, currency, athlete_notes=None):
         if any(
             b["coach_user_id"] == coach_user_id and b["starts_at"] == starts_at and b["status"] in ("pending", "confirmed")
             for b in bookings_store.values()
@@ -301,6 +314,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
             "listing_title": listing.get("title"),
             "athlete_user_id": athlete_user_id,
             "athlete_full_name": athlete_full_name,
+            "athlete_notes": athlete_notes,
             "starts_at": starts_at,
             "duration_minutes": duration_minutes,
             "format": format,
@@ -312,19 +326,19 @@ def client(monkeypatch: pytest.MonkeyPatch):
             "responded_at": None,
         }
         bookings_store[booking_id] = record
-        return dict(record)
+        return _booking_view(record)
 
     async def fake_get_booking(conn, booking_id):
         record = bookings_store.get(booking_id)
-        return dict(record) if record else None
+        return _booking_view(record) if record else None
 
     async def fake_list_for_athlete(conn, athlete_user_id):
-        items = [dict(b) for b in bookings_store.values() if b["athlete_user_id"] == athlete_user_id]
+        items = [_booking_view(b) for b in bookings_store.values() if b["athlete_user_id"] == athlete_user_id]
         return sorted(items, key=lambda b: b["starts_at"], reverse=True)
 
     async def fake_list_for_coach(conn, coach_user_id):
         items = [
-            dict(b) for b in bookings_store.values() if b["coach_user_id"] == coach_user_id and b["status"] != "pending"
+            _booking_view(b) for b in bookings_store.values() if b["coach_user_id"] == coach_user_id and b["status"] != "pending"
         ]
         return sorted(items, key=lambda b: b["starts_at"], reverse=True)
 
@@ -348,7 +362,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
         record["status"] = "confirmed"
         record["training_id"] = training["id"]
         record["responded_at"] = datetime.now(timezone.utc)
-        return dict(record)
+        return _booking_view(record)
 
     async def fake_decline_booking(conn, *, booking_id, coach_user_id):
         record = bookings_store.get(booking_id)
@@ -356,7 +370,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
             return None
         record["status"] = "declined"
         record["responded_at"] = datetime.now(timezone.utc)
-        return dict(record)
+        return _booking_view(record)
 
     async def fake_list_pending_for_coach(conn, coach_user_id):
         items = sorted(
@@ -375,6 +389,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
                     "listing_title": b.get("listing_title"),
                     "athlete_user_id": b["athlete_user_id"],
                     "athlete_full_name": full_name,
+                    "athlete_notes": b.get("athlete_notes"),
                     "starts_at": b["starts_at"],
                     "duration_minutes": b["duration_minutes"],
                     "format": b["format"],
@@ -1030,6 +1045,11 @@ def client(monkeypatch: pytest.MonkeyPatch):
         record = trainings_store.get(training_id)
         return dict(record) if record else None
 
+    async def fake_has_training_with_plan(conn, plan_id, created_by):
+        return any(
+            r.get("plan_id") == plan_id and r["created_by"] == created_by for r in trainings_store.values()
+        )
+
     async def fake_update_training(conn, training_id, **fields):
         record = trainings_store.get(training_id)
         if record is None:
@@ -1217,6 +1237,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(trainings_module, "create_training", fake_create_training)
     monkeypatch.setattr(trainings_module, "create_recurring_series", fake_create_recurring_series)
     monkeypatch.setattr(trainings_module, "get_training", fake_get_training)
+    monkeypatch.setattr(trainings_module, "has_training_with_plan", fake_has_training_with_plan)
     monkeypatch.setattr(trainings_module, "update_training", fake_update_training)
     monkeypatch.setattr(trainings_module, "soft_delete", fake_soft_delete_training)
     monkeypatch.setattr(trainings_module, "cancel_series", fake_cancel_series)

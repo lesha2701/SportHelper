@@ -78,6 +78,7 @@ export function IncomingBookingsScreen({ token, onBack }: { token: string; onBac
               <p className={profileStyles.subtitle}>
                 {formatDate(b.startsAt)} · {b.format === "online" ? "Онлайн" : "Очно"}
               </p>
+              {b.athleteNotes && <p className={styles.bookingNotes}>Пожелания: {b.athleteNotes}</p>}
             </div>
             <div className={styles.incomingActions}>
               <button

@@ -12,13 +12,21 @@ from app.repositories import trainings as trainings_repo
 _BOOKING_FIELDS = (
     "b.id, b.coach_user_id, cp.full_name AS coach_full_name, b.listing_id, cl.title AS listing_title, "
     "b.athlete_user_id, u.first_name || COALESCE(' ' || u.last_name, '') AS athlete_full_name, "
+    "b.athlete_notes, "
     "b.starts_at, b.duration_minutes, b.format, b.price_per_session, b.currency, "
-    "b.status, b.training_id"
+    "b.status, b.training_id, t.plan_id AS training_plan_id, tp.name AS training_plan_name"
+)
+# Every _BOOKING_FIELDS query needs this pair of joins for the linked
+# training's plan — a booking's training_id is only set once confirmed, so
+# both are LEFT JOINs (and training_plan_id/name simply come back NULL for
+# a pending booking).
+_BOOKING_PLAN_JOINS = (
+    "LEFT JOIN trainings t ON t.id = b.training_id LEFT JOIN training_plans tp ON tp.id = t.plan_id"
 )
 
 _BOOKING_INSERT_FIELDS = (
     "id, coach_user_id, listing_id, athlete_user_id, starts_at, duration_minutes, format, "
-    "price_per_session, currency, status, training_id"
+    "price_per_session, currency, status, training_id, athlete_notes"
 )
 
 
@@ -33,6 +41,7 @@ async def create_booking(
     format: str,
     price_per_session: float | None,
     currency: str,
+    athlete_notes: str | None = None,
 ) -> dict[str, Any] | None:
     """Creates a pending booking request against a specific listing — no
     Training is created here; that only happens once the coach confirms
@@ -42,9 +51,9 @@ async def create_booking(
             f"""
             INSERT INTO bookings (
                 coach_user_id, listing_id, athlete_user_id, starts_at, duration_minutes, format,
-                price_per_session, currency, status
+                price_per_session, currency, status, athlete_notes
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', $9)
             RETURNING {_BOOKING_INSERT_FIELDS}, created_at
             """,
             coach_user_id,
@@ -55,6 +64,7 @@ async def create_booking(
             format,
             price_per_session,
             currency,
+            athlete_notes,
         )
     except asyncpg.UniqueViolationError:
         return None
@@ -72,6 +82,9 @@ async def create_booking(
         athlete_user_id,
     )
     result["athlete_full_name"] = athlete["full_name"]
+    # No Training exists yet for a freshly created (pending) booking.
+    result["training_plan_id"] = None
+    result["training_plan_name"] = None
     return result
 
 
@@ -82,6 +95,7 @@ async def get_booking(conn: asyncpg.Connection, booking_id: UUID) -> dict[str, A
         JOIN coach_profiles cp ON cp.user_id = b.coach_user_id
         JOIN users u ON u.id = b.athlete_user_id
         LEFT JOIN coach_listings cl ON cl.id = b.listing_id
+        {_BOOKING_PLAN_JOINS}
         WHERE b.id = $1
         """,
         booking_id,
@@ -96,6 +110,7 @@ async def list_for_athlete(conn: asyncpg.Connection, athlete_user_id: UUID) -> l
         JOIN coach_profiles cp ON cp.user_id = b.coach_user_id
         JOIN users u ON u.id = b.athlete_user_id
         LEFT JOIN coach_listings cl ON cl.id = b.listing_id
+        {_BOOKING_PLAN_JOINS}
         WHERE b.athlete_user_id = $1
         ORDER BY b.starts_at DESC
         """,
@@ -115,6 +130,7 @@ async def list_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) -> list[
         JOIN coach_profiles cp ON cp.user_id = b.coach_user_id
         JOIN users u ON u.id = b.athlete_user_id
         LEFT JOIN coach_listings cl ON cl.id = b.listing_id
+        {_BOOKING_PLAN_JOINS}
         WHERE b.coach_user_id = $1 AND b.status != 'pending'
         ORDER BY b.starts_at DESC
         """,
@@ -200,7 +216,7 @@ async def list_pending_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) 
     rows = await conn.fetch(
         """
         SELECT b.id, cl.title AS listing_title, b.athlete_user_id, b.starts_at, b.duration_minutes, b.format,
-               b.price_per_session, b.currency, b.created_at,
+               b.price_per_session, b.currency, b.created_at, b.athlete_notes,
                u.first_name || COALESCE(' ' || u.last_name, '') AS athlete_full_name
         FROM bookings b
         JOIN users u ON u.id = b.athlete_user_id

@@ -10,6 +10,7 @@ class BookingIn(BaseModel):
     listing_id: UUID
     starts_at: datetime
     format: str  # "online" | "offline"
+    athlete_notes: str | None = Field(default=None, max_length=1000)
 
     @model_validator(mode="after")
     def _normalize_starts_at_to_utc(self) -> "BookingIn":
@@ -36,6 +37,7 @@ class BookingOut(BaseModel):
     listing_title: str | None
     athlete_user_id: UUID
     athlete_full_name: str
+    athlete_notes: str | None
     starts_at: datetime
     duration_minutes: int
     format: str
@@ -44,6 +46,8 @@ class BookingOut(BaseModel):
     status: str
     is_completed: bool
     training_id: UUID | None
+    training_plan_id: UUID | None
+    training_plan_name: str | None
     has_review: bool
 
 
@@ -52,12 +56,17 @@ class PendingBookingOut(BaseModel):
     listing_title: str | None
     athlete_user_id: UUID
     athlete_full_name: str
+    athlete_notes: str | None
     starts_at: datetime
     duration_minutes: int
     format: str
     price_per_session: float | None
     currency: str
     created_at: datetime
+
+
+class BookingPlanIn(BaseModel):
+    plan_id: UUID | None = None
 
 
 class ReviewIn(BaseModel):

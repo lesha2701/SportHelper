@@ -11,6 +11,7 @@ from app.repositories import exercises as exercises_repo
 from app.repositories import plans as plans_repo
 from app.repositories import profiles as profiles_repo
 from app.repositories import teams as teams_repo
+from app.repositories import trainings as trainings_repo
 from app.schemas.plan import PlanExerciseIn, PlanExerciseOut, PlanIn, PlanOut, SharePlanIn
 
 router = APIRouter(prefix="/api/plans", tags=["plans"])
@@ -79,6 +80,8 @@ async def get_plan(
             if await teams_repo.get_member(conn, team_id, user["id"]) is not None:
                 visible = True
                 break
+        if not visible:
+            visible = await trainings_repo.has_training_with_plan(conn, plan_id, user["id"])
         if not visible:
             raise ForbiddenError("you do not have access to this plan")
     return await _plan_out(conn, plan)

@@ -35,3 +35,12 @@ export async function declineBooking(token: string, bookingId: string): Promise<
   const dto = await apiRequest<BookingDto>(`/api/bookings/${bookingId}/decline`, { method: "POST", token });
   return mapBookingDto(dto);
 }
+
+export async function setBookingPlan(token: string, bookingId: string, planId: string | null): Promise<Booking> {
+  const dto = await apiRequest<BookingDto>(`/api/bookings/${bookingId}/plan`, {
+    method: "PATCH",
+    token,
+    body: { plan_id: planId },
+  });
+  return mapBookingDto(dto);
+}

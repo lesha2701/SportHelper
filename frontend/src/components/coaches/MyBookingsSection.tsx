@@ -4,6 +4,7 @@ import { listMyBookings } from "../../api/bookings";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
+import { TrainingDetail } from "../trainings/TrainingDetail";
 import type { Booking } from "../../types/booking";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
@@ -15,12 +16,27 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
     status: "loading",
   });
   const [reviewing, setReviewing] = useState<Booking | null>(null);
+  const [openTrainingId, setOpenTrainingId] = useState<string | null>(null);
 
   useEffect(() => {
     listMyBookings(token)
       .then((bookings) => setState({ status: "ready", bookings }))
       .catch((err: unknown) => setState({ status: "error", message: err instanceof ApiError ? err.message : "Не удалось загрузить брони" }));
   }, [token]);
+
+  if (openTrainingId) {
+    // canEdit=false: this training's schedule is driven by the booking, not
+    // something the athlete should be able to change independently from it.
+    return (
+      <TrainingDetail
+        token={token}
+        trainingId={openTrainingId}
+        canEdit={false}
+        onBack={() => setOpenTrainingId(null)}
+        onEdit={() => {}}
+      />
+    );
+  }
 
   if (state.status === "loading") return <StateScreen kind="loading" title="Загрузка броней…" />;
   if (state.status === "error") return <StateScreen kind="error" title="Не удалось загрузить брони" description={state.message} />;
@@ -64,11 +80,17 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
         <h2 className={profileStyles.title}>Предстоящие</h2>
         {upcoming.length === 0 && <p className={profileStyles.subtitle}>Нет предстоящих броней.</p>}
         {upcoming.map((b) => (
-          <div className={styles.bookingRow} key={b.id}>
+          <div
+            className={styles.bookingRow}
+            key={b.id}
+            style={b.trainingId ? { cursor: "pointer" } : undefined}
+            onClick={() => b.trainingId && setOpenTrainingId(b.trainingId)}
+          >
             <div>
               <p className={profileStyles.rowValue}>{b.coachFullName}</p>
               {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
               <p className={profileStyles.subtitle}>{formatDate(b.startsAt)}</p>
+              <p className={profileStyles.subtitle}>{b.trainingPlanName ? `План: ${b.trainingPlanName}` : "Тренер ещё не выбрал план"}</p>
             </div>
             <span className={styles.bookingStatus}>Подтверждена</span>
           </div>
@@ -77,7 +99,12 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
         <h2 className={profileStyles.title}>Прошедшие</h2>
         {past.length === 0 && <p className={profileStyles.subtitle}>Пока нет прошедших броней.</p>}
         {past.map((b) => (
-          <div className={styles.bookingRow} key={b.id}>
+          <div
+            className={styles.bookingRow}
+            key={b.id}
+            style={b.trainingId ? { cursor: "pointer" } : undefined}
+            onClick={() => b.trainingId && setOpenTrainingId(b.trainingId)}
+          >
             <div>
               <p className={profileStyles.rowValue}>{b.coachFullName}</p>
               {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
@@ -86,7 +113,14 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
             {b.hasReview ? (
               <span className={styles.bookingStatus}>Есть отзыв</span>
             ) : (
-              <button type="button" className={profileStyles.buttonSecondary} onClick={() => setReviewing(b)}>
+              <button
+                type="button"
+                className={profileStyles.buttonSecondary}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setReviewing(b);
+                }}
+              >
                 Оставить отзыв
               </button>
             )}

@@ -44,6 +44,7 @@ export function BookingFlow({
   const [slotsError, setSlotsError] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<OpenSlot | null>(null);
   const [format, setFormat] = useState<"online" | "offline">(listing.offersOnline ? "online" : "offline");
+  const [notes, setNotes] = useState("");
   const [booking, setBooking] = useState(false);
   const [bookError, setBookError] = useState<string | null>(null);
   const daySessionIdRef = useRef(0);
@@ -70,6 +71,7 @@ export function BookingFlow({
         listing_id: listing.id,
         starts_at: selectedSlot.startsAt,
         format,
+        athlete_notes: notes.trim() || null,
       });
       onBooked(created);
     } catch (err) {
@@ -199,6 +201,18 @@ export function BookingFlow({
                 {listing.pricePerSession !== null ? `${listing.pricePerSession} ${listing.currency}` : "Не указана"}
               </span>
             </div>
+            <label className={profileStyles.field}>
+              <span className={profileStyles.label}>Пожелания к тренировке (необязательно)</span>
+              <textarea
+                className={profileStyles.textarea}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                maxLength={1000}
+                placeholder="Например: хочу поработать над подачей"
+                disabled={booking}
+              />
+            </label>
+
             <p className={profileStyles.subtitle}>Заявка уйдёт тренеру на подтверждение — она появится в календаре, как только он её примет.</p>
 
             <div className={profileStyles.formActions}>

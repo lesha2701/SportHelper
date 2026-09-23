@@ -10,6 +10,7 @@ export interface BookingDto {
   listing_title: string | null;
   athlete_user_id: string;
   athlete_full_name: string;
+  athlete_notes: string | null;
   starts_at: string;
   duration_minutes: number;
   format: string;
@@ -18,6 +19,8 @@ export interface BookingDto {
   status: BookingStatus;
   is_completed: boolean;
   training_id: string | null;
+  training_plan_id: string | null;
+  training_plan_name: string | null;
   has_review: boolean;
 }
 
@@ -29,6 +32,7 @@ export interface Booking {
   listingTitle: string | null;
   athleteUserId: string;
   athleteFullName: string;
+  athleteNotes: string | null;
   startsAt: string;
   durationMinutes: number;
   format: "online" | "offline";
@@ -37,6 +41,8 @@ export interface Booking {
   status: BookingStatus;
   isCompleted: boolean;
   trainingId: string | null;
+  trainingPlanId: string | null;
+  trainingPlanName: string | null;
   hasReview: boolean;
 }
 
@@ -49,6 +55,7 @@ export function mapBookingDto(dto: BookingDto): Booking {
     listingTitle: dto.listing_title,
     athleteUserId: dto.athlete_user_id,
     athleteFullName: dto.athlete_full_name,
+    athleteNotes: dto.athlete_notes,
     startsAt: dto.starts_at,
     durationMinutes: dto.duration_minutes,
     format: dto.format as "online" | "offline",
@@ -57,6 +64,8 @@ export function mapBookingDto(dto: BookingDto): Booking {
     status: dto.status,
     isCompleted: dto.is_completed,
     trainingId: dto.training_id,
+    trainingPlanId: dto.training_plan_id,
+    trainingPlanName: dto.training_plan_name,
     hasReview: dto.has_review,
   };
 }
@@ -65,6 +74,7 @@ export interface BookingInput {
   listing_id: string;
   starts_at: string;
   format: "online" | "offline";
+  athlete_notes: string | null;
 }
 
 export interface ReviewInput {
@@ -84,6 +94,7 @@ export interface PendingBookingDto {
   listing_title: string | null;
   athlete_user_id: string;
   athlete_full_name: string;
+  athlete_notes: string | null;
   starts_at: string;
   duration_minutes: number;
   format: string;
@@ -97,6 +108,7 @@ export interface PendingBooking {
   listingTitle: string | null;
   athleteUserId: string;
   athleteFullName: string;
+  athleteNotes: string | null;
   startsAt: string;
   durationMinutes: number;
   format: "online" | "offline";
@@ -111,6 +123,7 @@ export function mapPendingBookingDto(dto: PendingBookingDto): PendingBooking {
     listingTitle: dto.listing_title,
     athleteUserId: dto.athlete_user_id,
     athleteFullName: dto.athlete_full_name,
+    athleteNotes: dto.athlete_notes,
     startsAt: dto.starts_at,
     durationMinutes: dto.duration_minutes,
     format: dto.format as "online" | "offline",
