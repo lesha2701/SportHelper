@@ -15,6 +15,220 @@
   margin-bottom: 8px;
 }
 
+.teamHero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--color-graphite-elevated);
+  color: #fff;
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.teamHeroWave {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.teamHeroLogo {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 22px;
+  background: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 800;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.teamHeroLogoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.teamHeroInfo {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.teamHeroName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 800;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teamHeroMeta {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.64);
+}
+
+.teamHeroStats {
+  position: relative;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.teamHeroStat {
+  display: flex;
+  flex-direction: column;
+}
+
+.teamHeroStatValue {
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.teamHeroStatLabel {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.teamHeroForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+
+.teamHeroFormRow {
+  display: flex;
+  gap: 4px;
+}
+
+.teamHeroFormBadge {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.realTabBar {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+}
+
+.realTab,
+.realTabActive {
+  padding: 10px 14px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: none;
+  background: none;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--color-text-tertiary);
+}
+
+.realTabActive {
+  color: var(--color-text);
+  border-bottom-color: var(--color-primary);
+}
+
+.teamContentLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .teamContentLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+    gap: 16px;
+  }
+}
+
+.teamSidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nextTrainingCard {
+  border-radius: 22px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nextTrainingLabel {
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.nextTrainingTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.05;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.nextTrainingMeta {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.quickStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
 .headerRow {
   display: flex;
   align-items: center;
