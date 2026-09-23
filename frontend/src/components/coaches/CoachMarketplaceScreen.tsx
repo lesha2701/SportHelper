@@ -7,9 +7,12 @@ import { Icon } from "../shared/Icon";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { ListingPublicProfileScreen } from "./ListingPublicProfileScreen";
 import { BookingFlow } from "./BookingFlow";
+import { useIsDesktop } from "../../hooks/useIsDesktop";
 import type { CoachListingCard, CoachListingFilters, CoachListingProfile } from "../../types/coachListing";
 import type { Booking } from "../../types/booking";
 import teamStyles from "../teams/teams.module.css";
+import profileStyles from "../profile/profile.module.css";
+import libStyles from "../library/library.module.css";
 import styles from "./coaches.module.css";
 
 type View =
@@ -69,10 +72,80 @@ function ListingCardView({ token, listing, onOpen }: { token: string; listing: C
   );
 }
 
+function ListingDetailPanel({
+  token,
+  listing,
+  onOpenFull,
+}: {
+  token: string;
+  listing: CoachListingCard;
+  onOpenFull: () => void;
+}) {
+  const format = [listing.offersOnline && "Онлайн", listing.offersOffline && "Очно"].filter(Boolean).join(" · ");
+
+  return (
+    <div className={libStyles.detailPanel}>
+      <div className={libStyles.detailMedia}>
+        {listing.photoFileId ? (
+          <AuthenticatedImage token={token} fileId={listing.photoFileId} alt={listing.title} className={libStyles.detailMediaFill} />
+        ) : (
+          <Icon name="image" size={28} />
+        )}
+      </div>
+      <div className={libStyles.detailBody}>
+        <div>
+          <span className={libStyles.detailCategory}>{listing.sport}</span>
+          <h2 className={libStyles.detailTitle}>{listing.title}</h2>
+        </div>
+        <p className={profileStyles.subtitle} style={{ margin: 0 }}>
+          {listing.coachFullName}
+          {listing.experienceYears !== null ? ` · ${listing.experienceYears} лет опыта` : ""}
+        </p>
+        {listing.averageRating !== null && (
+          <p className={profileStyles.subtitle} style={{ margin: 0 }}>
+            <span className={styles.starRating}>★ {listing.averageRating.toFixed(1)}</span> ({listing.reviewCount} отзывов)
+          </p>
+        )}
+        <p className={libStyles.detailDescription}>{listing.description || "Без описания."}</p>
+
+        <div className={libStyles.detailStatsGrid}>
+          <div className={libStyles.detailStatTile}>
+            <span className={libStyles.detailStatValue}>{listing.pricePerSession ?? "—"}</span>
+            <span className={libStyles.detailStatLabel}>{listing.pricePerSession !== null ? listing.currency : "цена"}</span>
+          </div>
+          <div className={libStyles.detailStatTile}>
+            <span className={libStyles.detailStatValue} style={{ fontSize: 15 }}>
+              {format || "—"}
+            </span>
+            <span className={libStyles.detailStatLabel}>формат</span>
+          </div>
+          <div className={libStyles.detailStatTile}>
+            <span className={libStyles.detailStatValue} style={{ fontSize: 15 }}>
+              {listing.location || "—"}
+            </span>
+            <span className={libStyles.detailStatLabel}>город</span>
+          </div>
+        </div>
+
+        <div className={libStyles.detailActions}>
+          <button type="button" className={profileStyles.buttonPrimary} onClick={onOpenFull}>
+            Записаться
+          </button>
+          <button type="button" className={profileStyles.buttonSecondary} onClick={onOpenFull}>
+            Профиль
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const MAX_PRICE_CEILING = 5000;
 
 export function CoachMarketplaceScreen({ token }: { token: string }) {
+  const isDesktop = useIsDesktop();
   const [view, setView] = useState<View>({ screen: "list" });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [state, setState] = useState<ListState>({ status: "loading" });
   const [sport, setSport] = useState("");
   const [location, setLocation] = useState("");
@@ -266,18 +339,34 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
           {state.status === "ready" && state.listings.length === 0 && (
             <StateScreen kind="empty" title="Пока никого нет" description="Объявления появятся здесь, когда тренеры их опубликуют." />
           )}
-          {state.status === "ready" && state.listings.length > 0 && (
-            <div className={teamStyles.cardGrid}>
-              {state.listings.map((listing) => (
-                <ListingCardView
-                  key={listing.id}
-                  token={token}
-                  listing={listing}
-                  onOpen={() => setView({ screen: "profile", listingId: listing.id })}
-                />
-              ))}
-            </div>
-          )}
+          {state.status === "ready" && state.listings.length > 0 && (() => {
+            const selected = state.listings.find((l) => l.id === selectedId) ?? state.listings[0]!;
+            return (
+              <div className={libStyles.libraryLayout}>
+                <div className={libStyles.libraryMain}>
+                  <div className={teamStyles.cardGrid}>
+                    {state.listings.map((listing) => (
+                      <ListingCardView
+                        key={listing.id}
+                        token={token}
+                        listing={listing}
+                        onOpen={() =>
+                          isDesktop ? setSelectedId(listing.id) : setView({ screen: "profile", listingId: listing.id })
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+                {isDesktop && (
+                  <ListingDetailPanel
+                    token={token}
+                    listing={selected}
+                    onOpenFull={() => setView({ screen: "profile", listingId: selected.id })}
+                  />
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>
