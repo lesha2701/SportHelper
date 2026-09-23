@@ -9,7 +9,7 @@ import asyncpg
 from app.security.telegram_auth import TelegramUser
 
 _SELECT_FIELDS = (
-    "id, telegram_id, username, first_name, last_name, photo_url, "
+    "id, telegram_id, username, first_name, last_name, photo_url, avatar_file_id, "
     "language_code, is_banned, banned_at, active_mode, last_login_at, created_at, updated_at"
 )
 

@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { listCoachPendingBookings } from "../../api/bookings";
 import { getPlayerStats } from "../../api/stats";
+import { ApiError } from "../../api/client";
+import { removeUserAvatar, uploadUserAvatar } from "../../api/users";
 import { useAuth } from "../../context/AuthContext";
+import { AchievementsGallery } from "./AchievementsGallery";
+import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { Icon, type IconName } from "../shared/Icon";
 import { SKILL_LEVEL_LABELS, type ActiveMode, type ProfileMe } from "../../types/profile";
 import { formatRate } from "../../types/stats";
@@ -85,13 +89,42 @@ export function ProfileSummary({
   onOpenCoachBookings,
   onOpenIncomingBookings,
 }: ProfileSummaryProps) {
-  const { state: authState } = useAuth();
+  const { state: authState, updateUser } = useAuth();
   const photoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
+  const avatarFileId = authState.status === "ready" ? authState.user.avatarFileId : null;
   const myUserId = authState.status === "ready" ? authState.user.id : null;
   const mode: ActiveMode = profile.activeMode ?? (profile.player ? "player" : "coach");
 
   const [pendingCount, setPendingCount] = useState(0);
   const [attendanceRate, setAttendanceRate] = useState<number | null>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+
+  const handleAvatarChange = async (file: File) => {
+    setAvatarBusy(true);
+    setAvatarError(null);
+    try {
+      const updated = await uploadUserAvatar(token, file);
+      updateUser(updated);
+    } catch (err) {
+      setAvatarError(err instanceof ApiError ? err.message : "Не удалось загрузить фото");
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    setAvatarBusy(true);
+    setAvatarError(null);
+    try {
+      const updated = await removeUserAvatar(token);
+      updateUser(updated);
+    } catch (err) {
+      setAvatarError(err instanceof ApiError ? err.message : "Не удалось удалить фото");
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (mode !== "coach") return;
@@ -193,8 +226,28 @@ export function ProfileSummary({
               </svg>
             )}
             <div className={styles.heroRingAvatar}>
-              {photoUrl ? <img className={styles.heroRingAvatarImg} src={photoUrl} alt="" /> : initial}
+              {avatarFileId ? (
+                <AuthenticatedImage token={token} fileId={avatarFileId} alt="" className={styles.heroRingAvatarImg} />
+              ) : photoUrl ? (
+                <img className={styles.heroRingAvatarImg} src={photoUrl} alt="" />
+              ) : (
+                initial
+              )}
             </div>
+            <label className={styles.avatarEditButton} title="Изменить фото профиля">
+              <Icon name="edit" size={14} />
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className={styles.avatarEditInput}
+                disabled={avatarBusy}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (file) void handleAvatarChange(file);
+                }}
+              />
+            </label>
           </div>
           <div>
             <h1 className={styles.heroName}>{fullName ?? "—"}</h1>
@@ -203,6 +256,21 @@ export function ProfileSummary({
                 ? [profile.player?.position, profile.player?.sport].filter(Boolean).join(" · ")
                 : [profile.coach?.specialization, profile.coach?.sport].filter(Boolean).join(" · ")}
             </p>
+            {avatarFileId && (
+              <button
+                type="button"
+                onClick={() => void handleAvatarRemove()}
+                disabled={avatarBusy}
+                style={{ background: "none", border: "none", color: "var(--color-text-secondary)", fontSize: 12.5, padding: 0, cursor: "pointer" }}
+              >
+                Удалить фото
+              </button>
+            )}
+            {avatarError && (
+              <p className={styles.heroSub} style={{ margin: 0, color: "var(--color-danger)" }}>
+                {avatarError}
+              </p>
+            )}
           </div>
           {mode === "player" && attendanceRate !== null && (
             <p className={styles.heroSub} style={{ margin: 0 }}>
@@ -267,6 +335,8 @@ export function ProfileSummary({
             </div>
           </div>
         )}
+
+        {myUserId && <AchievementsGallery token={token} userId={myUserId} editable />}
 
         <div className={styles.actionRowList}>
           {actionRows.map((def) => (

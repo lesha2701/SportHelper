@@ -24,6 +24,7 @@ from app.api.routes import (
     notifications,
     plans,
     profile,
+    profile_media,
     reports,
     stats,
     task_templates,
@@ -157,7 +158,9 @@ def create_app() -> FastAPI:
     app.include_router(teams.router)
     app.include_router(teams.invites_router)
     app.include_router(files.team_files_router)
+    app.include_router(files.user_files_router)
     app.include_router(files.files_router)
+    app.include_router(profile_media.router)
     app.include_router(exercises.router)
     app.include_router(exercises.team_exercises_router)
     app.include_router(plans.router)

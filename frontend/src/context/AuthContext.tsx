@@ -14,6 +14,9 @@ export type AuthState =
 interface AuthContextValue {
   state: AuthState;
   retry: () => void;
+  /** Merges a freshly-fetched User (e.g. after an avatar upload) into the
+   * current session without a full re-login. No-op if not currently ready. */
+  updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -72,7 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     runAuth();
   }, [runAuth]);
 
-  return <AuthContext.Provider value={{ state, retry: runAuth }}>{children}</AuthContext.Provider>;
+  const updateUser = useCallback((user: User) => {
+    setState((prev) => (prev.status === "ready" ? { ...prev, user } : prev));
+  }, []);
+
+  return <AuthContext.Provider value={{ state, retry: runAuth, updateUser }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextValue {

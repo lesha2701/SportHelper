@@ -71,6 +71,32 @@ async def replace_team_logo(conn: asyncpg.Connection, team_id: UUID, new_file_id
     return old_file_id
 
 
+async def replace_user_avatar(conn: asyncpg.Connection, user_id: UUID, new_file_id: UUID) -> UUID | None:
+    """Point the user at the new avatar file and soft-delete the previous
+    one (if any) — same pattern as replace_team_logo."""
+    async with conn.transaction():
+        old_file_id = await conn.fetchval(
+            "SELECT avatar_file_id FROM users WHERE id = $1 FOR UPDATE", user_id
+        )
+        await conn.execute("UPDATE users SET avatar_file_id = $2 WHERE id = $1", user_id, new_file_id)
+        if old_file_id is not None:
+            await conn.execute("UPDATE files SET deleted_at = now() WHERE id = $1", old_file_id)
+    return old_file_id
+
+
+async def remove_user_avatar(conn: asyncpg.Connection, user_id: UUID) -> UUID | None:
+    """Clears the custom avatar, reverting display to the Telegram photo_url."""
+    async with conn.transaction():
+        old_file_id = await conn.fetchval(
+            "SELECT avatar_file_id FROM users WHERE id = $1 FOR UPDATE", user_id
+        )
+        if old_file_id is None:
+            return None
+        await conn.execute("UPDATE users SET avatar_file_id = NULL WHERE id = $1", user_id)
+        await conn.execute("UPDATE files SET deleted_at = now() WHERE id = $1", old_file_id)
+    return old_file_id
+
+
 async def replace_listing_photo(conn: asyncpg.Connection, listing_id: UUID, new_file_id: UUID) -> UUID | None:
     """Point the listing at the new photo file and soft-delete the previous
     one (if any) — same pattern as replace_team_logo."""

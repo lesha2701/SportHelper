@@ -5,6 +5,7 @@ export interface User {
   firstName: string;
   lastName: string | null;
   photoUrl: string | null;
+  avatarFileId: string | null;
   languageCode: string | null;
   createdAt: string;
   lastLoginAt: string | null;
@@ -18,6 +19,7 @@ export interface UserDto {
   first_name: string;
   last_name: string | null;
   photo_url: string | null;
+  avatar_file_id: string | null;
   language_code: string | null;
   created_at: string;
   last_login_at: string | null;
@@ -31,6 +33,7 @@ export function mapUserDto(dto: UserDto): User {
     firstName: dto.first_name,
     lastName: dto.last_name,
     photoUrl: dto.photo_url,
+    avatarFileId: dto.avatar_file_id,
     languageCode: dto.language_code,
     createdAt: dto.created_at,
     lastLoginAt: dto.last_login_at,

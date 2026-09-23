@@ -11,13 +11,15 @@ from fastapi.responses import StreamingResponse
 from app.api.deps import get_current_user, get_db, get_settings_dep
 from app.config import Settings
 from app.core.exceptions import APIError, ForbiddenError, NotFoundError
-from app.integrations.paths import build_team_file_path
+from app.integrations.paths import build_team_file_path, build_user_file_path
 from app.integrations.yandex_disk import YandexDiskClient, YandexDiskError
 from app.api.routes.teams import _team_out
 from app.repositories import exercises as exercises_repo
 from app.repositories import files as files_repo
 from app.repositories import teams as teams_repo
+from app.repositories import users as users_repo
 from app.schemas.team import TeamOut
+from app.schemas.user import UserOut
 from app.services.uploads import IMAGE_MIME_EXTENSIONS, FileTooLarge, upload_to_disk
 
 _EXERCISE_MEDIA_ENTITY_TYPES = ("exercise_photo", "exercise_video")
@@ -25,6 +27,7 @@ _EXERCISE_MEDIA_ENTITY_TYPES = ("exercise_photo", "exercise_video")
 logger = logging.getLogger("teamflow.files")
 
 team_files_router = APIRouter(prefix="/api/teams", tags=["files"])
+user_files_router = APIRouter(prefix="/api/users", tags=["files"])
 files_router = APIRouter(prefix="/api/files", tags=["files"])
 
 _ALLOWED_IMAGE_TYPES = IMAGE_MIME_EXTENSIONS
@@ -85,6 +88,69 @@ async def upload_team_logo(
     updated_team = await teams_repo.get_team(conn, team_id)
     members_count = await teams_repo.count_members(conn, team_id)
     return _team_out(updated_team, my_role=member["role"], members_count=members_count)
+
+
+@user_files_router.post("/me/avatar", response_model=UserOut)
+async def upload_user_avatar(
+    file: UploadFile,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> UserOut:
+    if file.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise APIError(
+            "avatar must be an image (jpeg, png, webp or gif)", code="unsupported_media_type", status_code=415
+        )
+
+    max_bytes = settings.max_image_size_mb * 1024 * 1024
+    chunk_size = settings.upload_chunk_size_kb * 1024
+    file_id = uuid4()
+    extension = _ALLOWED_IMAGE_TYPES[file.content_type]
+    disk_path = build_user_file_path(settings.yandex_disk_root_folder, settings.app_mode, user["id"], "avatar", file_id, extension)
+
+    try:
+        size_bytes = await upload_to_disk(settings, disk_path, file, max_bytes, chunk_size)
+    except RuntimeError as exc:
+        raise APIError(str(exc), code="yandex_disk_not_configured", status_code=503) from exc
+    except FileTooLarge as exc:
+        raise APIError(
+            f"avatar must be smaller than {settings.max_image_size_mb} MB", code="file_too_large", status_code=413
+        ) from exc
+    except YandexDiskError as exc:
+        logger.error("Yandex.Disk upload failed: %s", exc)
+        raise APIError("failed to store the file", code="storage_error", status_code=502) from exc
+
+    file_record = await files_repo.create_file(
+        conn,
+        owner_id=user["id"],
+        team_id=None,
+        entity_type="user_avatar",
+        entity_id=user["id"],
+        disk_path=disk_path,
+        filename=file.filename or f"{file_id}.{extension}",
+        mime_type=file.content_type,
+        size_bytes=size_bytes,
+        # PUBLIC: an avatar is meant to be seen anywhere the user's name
+        # shows up (teammates, coach marketplace, bookings), not gated to
+        # one team the way a team logo is.
+        access_level="PUBLIC",
+    )
+    await files_repo.replace_user_avatar(conn, user["id"], file_record["id"])
+
+    updated_user = await users_repo.get_by_id(conn, user["id"])
+    assert updated_user is not None
+    return UserOut(**updated_user)
+
+
+@user_files_router.delete("/me/avatar", response_model=UserOut)
+async def remove_user_avatar(
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> UserOut:
+    await files_repo.remove_user_avatar(conn, user["id"])
+    updated_user = await users_repo.get_by_id(conn, user["id"])
+    assert updated_user is not None
+    return UserOut(**updated_user)
 
 
 @files_router.get("/{file_id}")

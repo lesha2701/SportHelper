@@ -120,6 +120,77 @@ def test_replacing_logo_soft_deletes_previous_file(logged_in_client) -> None:
     assert old_file_resp.status_code == 404
 
 
+def test_upload_avatar_rejects_non_image(logged_in_client) -> None:
+    client, token = logged_in_client
+    response = client.post(
+        "/api/users/me/avatar",
+        headers={"Authorization": f"Bearer {token}"},
+        files={"file": ("avatar.txt", io.BytesIO(b"not an image"), "text/plain")},
+    )
+    assert response.status_code == 415
+
+
+def test_upload_and_download_avatar_roundtrip(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    content = _png_bytes(42)
+
+    upload_resp = client.post("/api/users/me/avatar", headers=headers, files={"file": ("a.png", io.BytesIO(content), "image/png")})
+    assert upload_resp.status_code == 200, upload_resp.text
+    file_id = upload_resp.json()["avatar_file_id"]
+    assert file_id is not None
+
+    download_resp = client.get(f"/api/files/{file_id}", headers=headers)
+    assert download_resp.status_code == 200
+    assert download_resp.content == content
+
+
+def test_avatar_is_publicly_viewable(logged_in_client, login_as) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    upload_resp = client.post(
+        "/api/users/me/avatar", headers=headers, files={"file": ("a.png", io.BytesIO(_png_bytes()), "image/png")}
+    )
+    file_id = upload_resp.json()["avatar_file_id"]
+
+    other_token = login_as(700050, first_name="Other")
+    resp = client.get(f"/api/files/{file_id}", headers={"Authorization": f"Bearer {other_token}"})
+    assert resp.status_code == 200
+
+
+def test_replacing_avatar_soft_deletes_previous_file(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+
+    first = client.post(
+        "/api/users/me/avatar", headers=headers, files={"file": ("a1.png", io.BytesIO(_png_bytes(10)), "image/png")}
+    ).json()
+    first_file_id = first["avatar_file_id"]
+
+    second = client.post(
+        "/api/users/me/avatar", headers=headers, files={"file": ("a2.png", io.BytesIO(_png_bytes(20)), "image/png")}
+    ).json()
+    assert second["avatar_file_id"] != first_file_id
+
+    assert client.get(f"/api/files/{first_file_id}", headers=headers).status_code == 404
+
+
+def test_remove_avatar_clears_it(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+
+    uploaded = client.post(
+        "/api/users/me/avatar", headers=headers, files={"file": ("a.png", io.BytesIO(_png_bytes()), "image/png")}
+    ).json()
+    assert uploaded["avatar_file_id"] is not None
+
+    removed = client.delete("/api/users/me/avatar", headers=headers)
+    assert removed.status_code == 200, removed.text
+    assert removed.json()["avatar_file_id"] is None
+
+    assert client.get(f"/api/files/{uploaded['avatar_file_id']}", headers=headers).status_code == 404
+
+
 _EXERCISE_PAYLOAD = {
     "sport": "Баскетбол",
     "name": "Проверка доступа",

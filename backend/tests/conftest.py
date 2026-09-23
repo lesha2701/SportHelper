@@ -122,6 +122,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
     import app.repositories.exercises as exercises_module
     import app.repositories.files as files_module
     import app.repositories.plans as plans_module
+    import app.repositories.profile_media as profile_media_module
     import app.repositories.bookings as bookings_module
     import app.repositories.profiles as profiles_module
     import app.repositories.teams as teams_module
@@ -790,11 +791,67 @@ def client(monkeypatch: pytest.MonkeyPatch):
             files_store[old_file_id]["deleted_at"] = datetime.now(timezone.utc)
         return old_file_id
 
+    async def fake_replace_user_avatar(conn, user_id, new_file_id):
+        user = _find_user_by_id(user_id)
+        old_file_id = user.get("avatar_file_id") if user else None
+        if user is not None:
+            user["avatar_file_id"] = new_file_id
+        if old_file_id is not None and old_file_id in files_store:
+            files_store[old_file_id]["deleted_at"] = datetime.now(timezone.utc)
+        return old_file_id
+
+    async def fake_remove_user_avatar(conn, user_id):
+        user = _find_user_by_id(user_id)
+        old_file_id = user.get("avatar_file_id") if user else None
+        if old_file_id is None:
+            return None
+        user["avatar_file_id"] = None
+        if old_file_id in files_store:
+            files_store[old_file_id]["deleted_at"] = datetime.now(timezone.utc)
+        return old_file_id
+
     monkeypatch.setattr(files_module, "create_file", fake_create_file)
     monkeypatch.setattr(files_module, "get_file", fake_get_file)
     monkeypatch.setattr(files_module, "replace_team_logo", fake_replace_team_logo)
     monkeypatch.setattr(files_module, "replace_listing_photo", fake_replace_listing_photo)
     monkeypatch.setattr(files_module, "replace_listing_video", fake_replace_listing_video)
+    monkeypatch.setattr(files_module, "replace_user_avatar", fake_replace_user_avatar)
+    monkeypatch.setattr(files_module, "remove_user_avatar", fake_remove_user_avatar)
+
+    profile_media_store: dict = {}
+
+    async def fake_add_media(conn, *, user_id, file_id, media_type, caption):
+        media_id = uuid4()
+        existing_orders = [m["sort_order"] for m in profile_media_store.values() if m["user_id"] == user_id]
+        record = {
+            "id": media_id,
+            "user_id": user_id,
+            "file_id": file_id,
+            "media_type": media_type,
+            "caption": caption,
+            "sort_order": (max(existing_orders) + 1) if existing_orders else 0,
+            "created_at": datetime.now(timezone.utc),
+            "deleted_at": None,
+        }
+        profile_media_store[media_id] = record
+        return dict(record)
+
+    async def fake_list_media(conn, user_id):
+        items = [m for m in profile_media_store.values() if m["user_id"] == user_id and m["deleted_at"] is None]
+        return [dict(m) for m in sorted(items, key=lambda m: m["sort_order"])]
+
+    async def fake_delete_media(conn, media_id, user_id):
+        record = profile_media_store.get(media_id)
+        if record is None or record["user_id"] != user_id or record["deleted_at"] is not None:
+            return None
+        record["deleted_at"] = datetime.now(timezone.utc)
+        if record["file_id"] in files_store:
+            files_store[record["file_id"]]["deleted_at"] = datetime.now(timezone.utc)
+        return record["file_id"]
+
+    monkeypatch.setattr(profile_media_module, "add_media", fake_add_media)
+    monkeypatch.setattr(profile_media_module, "list_media", fake_list_media)
+    monkeypatch.setattr(profile_media_module, "delete_media", fake_delete_media)
 
     exercises_store: dict = {}
     exercise_shares_store: dict = {}  # (exercise_id, team_id) -> shared_by
