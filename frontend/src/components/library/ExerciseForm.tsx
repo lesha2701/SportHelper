@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { createExercise, updateExercise } from "../../api/exercises";
 import { ApiError } from "../../api/client";
-import { COMMON_SPORTS, SKILL_LEVEL_LABELS, type SkillLevel } from "../../types/profile";
+import { SKILL_LEVEL_LABELS, type SkillLevel } from "../../types/profile";
 import type { Exercise, ExerciseInput } from "../../types/exercise";
 import profileStyles from "../profile/profile.module.css";
 
@@ -14,7 +14,7 @@ interface ExerciseFormProps {
 
 export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseFormProps) {
   const isEdit = initial !== undefined;
-  const [sport, setSport] = useState(initial?.sport ?? "");
+  const [sport] = useState(initial?.sport ?? "Баскетбол");
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [goal, setGoal] = useState(initial?.goal ?? "");
@@ -76,25 +76,6 @@ export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseForm
             Название<span className={profileStyles.requiredMark}>*</span>
           </span>
           <input className={profileStyles.input} value={name} onChange={(e) => setName(e.target.value)} required maxLength={150} />
-        </label>
-
-        <label className={profileStyles.field}>
-          <span className={profileStyles.label}>
-            Вид спорта<span className={profileStyles.requiredMark}>*</span>
-          </span>
-          <input
-            className={profileStyles.input}
-            value={sport}
-            onChange={(e) => setSport(e.target.value)}
-            list="exercise-sports-suggestions"
-            required
-            maxLength={50}
-          />
-          <datalist id="exercise-sports-suggestions">
-            {COMMON_SPORTS.map((s) => (
-              <option key={s} value={s} />
-            ))}
-          </datalist>
         </label>
 
         <label className={profileStyles.field}>

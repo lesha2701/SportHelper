@@ -82,6 +82,15 @@ async def list_pending_bookings(
     return [PendingBookingOut(**row) for row in rows]
 
 
+@router.get("/coach", response_model=list[BookingOut])
+async def list_coach_bookings(
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> list[BookingOut]:
+    bookings = await bookings_repo.list_for_coach(conn, user["id"])
+    return [await _to_out(conn, b) for b in bookings]
+
+
 @router.post("/{booking_id}/confirm", response_model=BookingOut)
 async def confirm_booking(
     booking_id: UUID,

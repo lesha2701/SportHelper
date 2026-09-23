@@ -9,6 +9,7 @@ export interface BookingDto {
   listing_id: string | null;
   listing_title: string | null;
   athlete_user_id: string;
+  athlete_full_name: string;
   starts_at: string;
   duration_minutes: number;
   format: string;
@@ -27,6 +28,7 @@ export interface Booking {
   listingId: string | null;
   listingTitle: string | null;
   athleteUserId: string;
+  athleteFullName: string;
   startsAt: string;
   durationMinutes: number;
   format: "online" | "offline";
@@ -46,6 +48,7 @@ export function mapBookingDto(dto: BookingDto): Booking {
     listingId: dto.listing_id,
     listingTitle: dto.listing_title,
     athleteUserId: dto.athlete_user_id,
+    athleteFullName: dto.athlete_full_name,
     startsAt: dto.starts_at,
     durationMinutes: dto.duration_minutes,
     format: dto.format as "online" | "offline",

@@ -154,7 +154,6 @@ export function PlansScreen({ token }: { token: string }) {
   const [state, setState] = useState<ListState>({ status: "loading" });
   const [teams, setTeams] = useState<Team[]>([]);
   const [query, setQuery] = useState("");
-  const [sportFilter, setSportFilter] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -211,12 +210,9 @@ export function PlansScreen({ token }: { token: string }) {
     return <StateScreen kind="error" title="Не удалось загрузить планы" description={state.message} onRetry={load} />;
   }
 
-  const sports = Array.from(new Set(state.plans.map((p) => p.sport))).sort((a, b) => a.localeCompare(b, "ru"));
-
   const filteredPlans = state.plans.filter((plan) => {
     const q = query.trim().toLowerCase();
     if (q && !plan.name.toLowerCase().includes(q) && !plan.sport.toLowerCase().includes(q)) return false;
-    if (sportFilter && plan.sport !== sportFilter) return false;
     return true;
   });
 
@@ -247,20 +243,9 @@ export function PlansScreen({ token }: { token: string }) {
       ) : (
         <>
           <div className={libStyles.toolbarRow}>
-            <button type="button" className={sportFilter === "" ? libStyles.sportChipActive : libStyles.sportChip} onClick={() => setSportFilter("")}>
-              Все
-            </button>
-            {sports.map((sport) => (
-              <button
-                key={sport}
-                type="button"
-                className={sportFilter === sport ? libStyles.sportChipActive : libStyles.sportChip}
-                onClick={() => setSportFilter(sport)}
-              >
-                {sport}
-              </button>
-            ))}
-            <span className={libStyles.resultCount}>{filteredPlans.length} планов</span>
+            <span className={libStyles.resultCount} style={{ marginLeft: 0 }}>
+              {filteredPlans.length} планов
+            </span>
           </div>
 
           {filteredPlans.length === 0 ? (

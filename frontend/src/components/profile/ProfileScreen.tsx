@@ -4,6 +4,7 @@ import { StateScreen } from "../StateScreen";
 import { MyListingsScreen } from "../coaches/MyListingsScreen";
 import { IncomingBookingsScreen } from "../coaches/IncomingBookingsScreen";
 import { MyBookingsSection } from "../coaches/MyBookingsSection";
+import { CoachBookingsSection } from "../coaches/CoachBookingsSection";
 import { CoachProfileForm } from "./CoachProfileForm";
 import { HelpScreen } from "./HelpScreen";
 import { Onboarding } from "./Onboarding";
@@ -19,6 +20,7 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
   const [showSettings, setShowSettings] = useState(false);
   const [showMarketplaceSettings, setShowMarketplaceSettings] = useState(false);
   const [showMyBookings, setShowMyBookings] = useState(false);
+  const [showCoachBookings, setShowCoachBookings] = useState(false);
   const [showIncomingBookings, setShowIncomingBookings] = useState(false);
 
   if (state.status === "loading") {
@@ -47,6 +49,10 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
 
   if (showMyBookings) {
     return <MyBookingsSection token={token} onBack={() => setShowMyBookings(false)} />;
+  }
+
+  if (showCoachBookings) {
+    return <CoachBookingsSection token={token} onBack={() => setShowCoachBookings(false)} />;
   }
 
   const { data } = state;
@@ -96,6 +102,7 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
       onOpenSettings={() => setShowSettings(true)}
       onOpenMarketplaceSettings={() => setShowMarketplaceSettings(true)}
       onOpenMyBookings={() => setShowMyBookings(true)}
+      onOpenCoachBookings={() => setShowCoachBookings(true)}
       onOpenIncomingBookings={() => setShowIncomingBookings(true)}
     />
   );

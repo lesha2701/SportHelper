@@ -76,6 +76,30 @@ def test_coach_declines_booking_frees_the_slot(logged_in_client, login_as) -> No
     assert retry.json()["status"] == "pending"
 
 
+def test_coach_records_list_shows_confirmed_and_declined_but_not_pending(logged_in_client, login_as) -> None:
+    client, coach_token = logged_in_client
+    coach_headers = {"Authorization": f"Bearer {coach_token}"}
+
+    _, _, confirmed_booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890111)
+    client.post(f"/api/bookings/{confirmed_booking['id']}/confirm", headers=coach_headers)
+
+    _, _, declined_booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890112)
+    client.post(f"/api/bookings/{declined_booking['id']}/decline", headers=coach_headers)
+
+    _, _, still_pending_booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890113)
+
+    records = client.get("/api/bookings/coach", headers=coach_headers).json()
+    record_ids = {r["id"] for r in records}
+    assert confirmed_booking["id"] in record_ids
+    assert declined_booking["id"] in record_ids
+    assert still_pending_booking["id"] not in record_ids
+
+    by_id = {r["id"]: r for r in records}
+    assert by_id[confirmed_booking["id"]]["status"] == "confirmed"
+    assert by_id[confirmed_booking["id"]]["athlete_full_name"] == "Athlete"
+    assert by_id[declined_booking["id"]]["status"] == "declined"
+
+
 def test_confirm_rejects_wrong_coach(logged_in_client, login_as) -> None:
     client, coach_token = logged_in_client
     listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)

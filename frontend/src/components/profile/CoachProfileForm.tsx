@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { ApiError } from "../../api/client";
-import { COMMON_SPORTS, type CoachProfile, type CoachProfileInput } from "../../types/profile";
+import type { CoachProfile, CoachProfileInput } from "../../types/profile";
 import styles from "./profile.module.css";
 
 interface CoachProfileFormProps {
@@ -11,7 +11,7 @@ interface CoachProfileFormProps {
 
 export function CoachProfileForm({ initial, onSubmit, onCancel }: CoachProfileFormProps) {
   const [fullName, setFullName] = useState(initial?.fullName ?? "");
-  const [sport, setSport] = useState(initial?.sport ?? "");
+  const [sport] = useState(initial?.sport ?? "Баскетбол");
   const [experienceYears, setExperienceYears] = useState(initial?.experienceYears?.toString() ?? "");
   const [specialization, setSpecialization] = useState(initial?.specialization ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -56,37 +56,17 @@ export function CoachProfileForm({ initial, onSubmit, onCancel }: CoachProfileFo
           />
         </label>
 
-        <div className={styles.fieldGrid}>
-          <label className={styles.field}>
-            <span className={styles.label}>
-              Вид спорта<span className={styles.requiredMark}>*</span>
-            </span>
-            <input
-              className={styles.input}
-              value={sport}
-              onChange={(e) => setSport(e.target.value)}
-              list="sports-suggestions-coach"
-              required
-              maxLength={50}
-            />
-            <datalist id="sports-suggestions-coach">
-              {COMMON_SPORTS.map((s) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
-          </label>
-          <label className={styles.field}>
-            <span className={styles.label}>Опыт, лет</span>
-            <input
-              className={styles.input}
-              type="number"
-              min={0}
-              max={80}
-              value={experienceYears}
-              onChange={(e) => setExperienceYears(e.target.value)}
-            />
-          </label>
-        </div>
+        <label className={styles.field}>
+          <span className={styles.label}>Опыт, лет</span>
+          <input
+            className={styles.input}
+            type="number"
+            min={0}
+            max={80}
+            value={experienceYears}
+            onChange={(e) => setExperienceYears(e.target.value)}
+          />
+        </label>
 
         <label className={styles.field}>
           <span className={styles.label}>Специализация</span>

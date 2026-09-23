@@ -190,7 +190,6 @@ export function ExercisesScreen({ token }: { token: string }) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [query, setQuery] = useState("");
-  const [sportFilter, setSportFilter] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -252,12 +251,9 @@ export function ExercisesScreen({ token }: { token: string }) {
     return <StateScreen kind="error" title="Не удалось загрузить упражнения" description={state.message} onRetry={load} />;
   }
 
-  const sports = Array.from(new Set(state.exercises.map((e) => e.sport))).sort((a, b) => a.localeCompare(b, "ru"));
-
   const filtered = state.exercises.filter((exercise) => {
     const q = query.trim().toLowerCase();
     if (q && !exercise.name.toLowerCase().includes(q) && !exercise.sport.toLowerCase().includes(q)) return false;
-    if (sportFilter && exercise.sport !== sportFilter) return false;
     return true;
   });
 
@@ -288,20 +284,9 @@ export function ExercisesScreen({ token }: { token: string }) {
       ) : (
         <>
           <div className={libStyles.toolbarRow}>
-            <button type="button" className={sportFilter === "" ? libStyles.sportChipActive : libStyles.sportChip} onClick={() => setSportFilter("")}>
-              Все
-            </button>
-            {sports.map((sport) => (
-              <button
-                key={sport}
-                type="button"
-                className={sportFilter === sport ? libStyles.sportChipActive : libStyles.sportChip}
-                onClick={() => setSportFilter(sport)}
-              >
-                {sport}
-              </button>
-            ))}
-            <span className={libStyles.resultCount}>{filtered.length} упражнений</span>
+            <span className={libStyles.resultCount} style={{ marginLeft: 0 }}>
+              {filtered.length} упражнений
+            </span>
           </div>
 
           {filtered.length === 0 ? (

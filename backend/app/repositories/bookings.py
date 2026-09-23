@@ -11,7 +11,8 @@ from app.repositories import trainings as trainings_repo
 
 _BOOKING_FIELDS = (
     "b.id, b.coach_user_id, cp.full_name AS coach_full_name, b.listing_id, cl.title AS listing_title, "
-    "b.athlete_user_id, b.starts_at, b.duration_minutes, b.format, b.price_per_session, b.currency, "
+    "b.athlete_user_id, u.first_name || COALESCE(' ' || u.last_name, '') AS athlete_full_name, "
+    "b.starts_at, b.duration_minutes, b.format, b.price_per_session, b.currency, "
     "b.status, b.training_id"
 )
 
@@ -66,6 +67,11 @@ async def create_booking(
     )
     result["coach_full_name"] = coach_and_listing["full_name"]
     result["listing_title"] = coach_and_listing["title"]
+    athlete = await conn.fetchrow(
+        "SELECT first_name || COALESCE(' ' || last_name, '') AS full_name FROM users WHERE id = $1",
+        athlete_user_id,
+    )
+    result["athlete_full_name"] = athlete["full_name"]
     return result
 
 
@@ -74,6 +80,7 @@ async def get_booking(conn: asyncpg.Connection, booking_id: UUID) -> dict[str, A
         f"""
         SELECT {_BOOKING_FIELDS} FROM bookings b
         JOIN coach_profiles cp ON cp.user_id = b.coach_user_id
+        JOIN users u ON u.id = b.athlete_user_id
         LEFT JOIN coach_listings cl ON cl.id = b.listing_id
         WHERE b.id = $1
         """,
@@ -87,11 +94,31 @@ async def list_for_athlete(conn: asyncpg.Connection, athlete_user_id: UUID) -> l
         f"""
         SELECT {_BOOKING_FIELDS} FROM bookings b
         JOIN coach_profiles cp ON cp.user_id = b.coach_user_id
+        JOIN users u ON u.id = b.athlete_user_id
         LEFT JOIN coach_listings cl ON cl.id = b.listing_id
         WHERE b.athlete_user_id = $1
         ORDER BY b.starts_at DESC
         """,
         athlete_user_id,
+    )
+    return [dict(row) for row in rows]
+
+
+async def list_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) -> list[dict[str, Any]]:
+    """The coach's own session list ("Записи") — who's booked and when.
+    Unlike list_pending_for_coach (action-required requests only), this
+    covers every non-pending booking so the coach can see their upcoming
+    and past confirmed sessions plus declined/expired history."""
+    rows = await conn.fetch(
+        f"""
+        SELECT {_BOOKING_FIELDS} FROM bookings b
+        JOIN coach_profiles cp ON cp.user_id = b.coach_user_id
+        JOIN users u ON u.id = b.athlete_user_id
+        LEFT JOIN coach_listings cl ON cl.id = b.listing_id
+        WHERE b.coach_user_id = $1 AND b.status != 'pending'
+        ORDER BY b.starts_at DESC
+        """,
+        coach_user_id,
     )
     return [dict(row) for row in rows]
 

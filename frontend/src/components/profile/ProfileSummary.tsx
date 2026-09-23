@@ -18,6 +18,7 @@ interface ProfileSummaryProps {
   onOpenSettings: () => void;
   onOpenMarketplaceSettings: () => void;
   onOpenMyBookings: () => void;
+  onOpenCoachBookings: () => void;
   onOpenIncomingBookings: () => void;
 }
 
@@ -81,6 +82,7 @@ export function ProfileSummary({
   onOpenSettings,
   onOpenMarketplaceSettings,
   onOpenMyBookings,
+  onOpenCoachBookings,
   onOpenIncomingBookings,
 }: ProfileSummaryProps) {
   const { state: authState } = useAuth();
@@ -149,7 +151,11 @@ export function ProfileSummary({
     });
   }
   actionRows.push({ key: "stats", icon: "award", label: "Моя статистика", onClick: onOpenMyStats });
-  actionRows.push({ key: "bookings", icon: "calendar", label: "Мои брони", onClick: onOpenMyBookings });
+  actionRows.push(
+    mode === "coach"
+      ? { key: "records", icon: "calendar", label: "Записи", onClick: onOpenCoachBookings }
+      : { key: "bookings", icon: "calendar", label: "Мои брони", onClick: onOpenMyBookings },
+  );
   actionRows.push({ key: "settings", icon: "settings", label: "Настройки", onClick: onOpenSettings });
   actionRows.push({ key: "help", icon: "book", label: "Помощь", onClick: onOpenHelp });
   if (profile.player && profile.coach) {

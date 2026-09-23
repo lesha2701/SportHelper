@@ -225,8 +225,8 @@ export function CoachDashboard({
               <StatTile value={statsState.stats.trainingsUpcoming} label="Тренировок впереди" />
               <StatTile value={statsState.stats.tasksOverdue} label="Просрочено заданий" />
               <StatTile
-                value={`${statsState.stats.matchesWon}-${statsState.stats.matchesLost}-${statsState.stats.matchesDrawn}`}
-                label="П-Пор-Н"
+                value={`${statsState.stats.matchesWon}-${statsState.stats.matchesDrawn}-${statsState.stats.matchesLost}`}
+                label="Победы-ничьи-поражения"
               />
             </>
           ) : statsState.status === "error" ? (

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { ApiError } from "../../api/client";
-import { COMMON_SPORTS, SKILL_LEVEL_LABELS, type PlayerProfile, type PlayerProfileInput, type SkillLevel } from "../../types/profile";
+import { SKILL_LEVEL_LABELS, type PlayerProfile, type PlayerProfileInput, type SkillLevel } from "../../types/profile";
 import styles from "./profile.module.css";
 
 interface PlayerProfileFormProps {
@@ -14,7 +14,7 @@ export function PlayerProfileForm({ initial, onSubmit, onCancel }: PlayerProfile
   const [age, setAge] = useState(initial?.age?.toString() ?? "");
   const [heightCm, setHeightCm] = useState(initial?.heightCm?.toString() ?? "");
   const [weightKg, setWeightKg] = useState(initial?.weightKg?.toString() ?? "");
-  const [sport, setSport] = useState(initial?.sport ?? "");
+  const [sport] = useState(initial?.sport ?? "Баскетбол");
   const [position, setPosition] = useState(initial?.position ?? "");
   const [level, setLevel] = useState<SkillLevel | "">(initial?.level ?? "");
   const [goals, setGoals] = useState(initial?.goals ?? "");
@@ -124,25 +124,6 @@ export function PlayerProfileForm({ initial, onSubmit, onCancel }: PlayerProfile
         </div>
 
         <span className={styles.fieldSectionLabel}>Спорт</span>
-
-        <label className={styles.field}>
-          <span className={styles.label}>
-            Вид спорта<span className={styles.requiredMark}>*</span>
-          </span>
-          <input
-            className={styles.input}
-            value={sport}
-            onChange={(e) => setSport(e.target.value)}
-            list="sports-suggestions"
-            required
-            maxLength={50}
-          />
-          <datalist id="sports-suggestions">
-            {COMMON_SPORTS.map((s) => (
-              <option key={s} value={s} />
-            ))}
-          </datalist>
-        </label>
 
         <label className={styles.field}>
           <span className={styles.label}>Игровая позиция</span>

@@ -289,6 +289,10 @@ def client(monkeypatch: pytest.MonkeyPatch):
             return None
         booking_id = uuid4()
         listing = listings_store.get(listing_id, {})
+        athlete = _find_user_by_id(athlete_user_id)
+        athlete_full_name = (athlete["first_name"] if athlete else "") + (
+            f" {athlete['last_name']}" if athlete and athlete.get("last_name") else ""
+        )
         record = {
             "id": booking_id,
             "coach_user_id": coach_user_id,
@@ -296,6 +300,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
             "listing_id": listing_id,
             "listing_title": listing.get("title"),
             "athlete_user_id": athlete_user_id,
+            "athlete_full_name": athlete_full_name,
             "starts_at": starts_at,
             "duration_minutes": duration_minutes,
             "format": format,
@@ -315,6 +320,12 @@ def client(monkeypatch: pytest.MonkeyPatch):
 
     async def fake_list_for_athlete(conn, athlete_user_id):
         items = [dict(b) for b in bookings_store.values() if b["athlete_user_id"] == athlete_user_id]
+        return sorted(items, key=lambda b: b["starts_at"], reverse=True)
+
+    async def fake_list_for_coach(conn, coach_user_id):
+        items = [
+            dict(b) for b in bookings_store.values() if b["coach_user_id"] == coach_user_id and b["status"] != "pending"
+        ]
         return sorted(items, key=lambda b: b["starts_at"], reverse=True)
 
     async def fake_confirm_booking(conn, *, booking_id, coach_user_id):
@@ -377,6 +388,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(bookings_module, "create_booking", fake_create_booking)
     monkeypatch.setattr(bookings_module, "get_booking", fake_get_booking)
     monkeypatch.setattr(bookings_module, "list_for_athlete", fake_list_for_athlete)
+    monkeypatch.setattr(bookings_module, "list_for_coach", fake_list_for_coach)
     monkeypatch.setattr(bookings_module, "confirm_booking", fake_confirm_booking)
     monkeypatch.setattr(bookings_module, "decline_booking", fake_decline_booking)
     monkeypatch.setattr(bookings_module, "list_pending_for_coach", fake_list_pending_for_coach)

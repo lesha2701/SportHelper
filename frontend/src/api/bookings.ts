@@ -21,6 +21,11 @@ export async function listCoachPendingBookings(token: string): Promise<PendingBo
   return dtos.map(mapPendingBookingDto);
 }
 
+export async function listCoachBookings(token: string): Promise<Booking[]> {
+  const dtos = await apiRequest<BookingDto[]>("/api/bookings/coach", { token });
+  return dtos.map(mapBookingDto);
+}
+
 export async function confirmBooking(token: string, bookingId: string): Promise<Booking> {
   const dto = await apiRequest<BookingDto>(`/api/bookings/${bookingId}/confirm`, { method: "POST", token });
   return mapBookingDto(dto);

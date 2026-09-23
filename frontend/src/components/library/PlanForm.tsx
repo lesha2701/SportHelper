@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react";
 import { createPlan, updatePlan } from "../../api/plans";
 import { createTrainingPlanDraft } from "../../api/ai";
 import { ApiError } from "../../api/client";
-import { COMMON_SPORTS } from "../../types/profile";
 import type { Plan, PlanInput } from "../../types/plan";
 import { Icon } from "../shared/Icon";
 import { CollapsibleSection } from "../shared/CollapsibleSection";
@@ -18,7 +17,7 @@ interface PlanFormProps {
 
 export function PlanForm({ token, initial, onSaved, onCancel }: PlanFormProps) {
   const isEdit = initial !== undefined;
-  const [sport, setSport] = useState(initial?.sport ?? "");
+  const [sport, setSport] = useState(initial?.sport ?? "Баскетбол");
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [durationMinutes, setDurationMinutes] = useState(initial?.durationMinutes?.toString() ?? "");
@@ -145,25 +144,6 @@ export function PlanForm({ token, initial, onSaved, onCancel }: PlanFormProps) {
             Название<span className={profileStyles.requiredMark}>*</span>
           </span>
           <input className={profileStyles.input} value={name} onChange={(e) => setName(e.target.value)} required maxLength={150} />
-        </label>
-
-        <label className={profileStyles.field}>
-          <span className={profileStyles.label}>
-            Вид спорта<span className={profileStyles.requiredMark}>*</span>
-          </span>
-          <input
-            className={profileStyles.input}
-            value={sport}
-            onChange={(e) => setSport(e.target.value)}
-            list="plan-sports-suggestions"
-            required
-            maxLength={50}
-          />
-          <datalist id="plan-sports-suggestions">
-            {COMMON_SPORTS.map((s) => (
-              <option key={s} value={s} />
-            ))}
-          </datalist>
         </label>
 
         <label className={profileStyles.field}>

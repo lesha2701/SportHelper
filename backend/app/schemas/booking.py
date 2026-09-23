@@ -35,6 +35,7 @@ class BookingOut(BaseModel):
     listing_id: UUID | None
     listing_title: str | None
     athlete_user_id: UUID
+    athlete_full_name: str
     starts_at: datetime
     duration_minutes: int
     format: str
