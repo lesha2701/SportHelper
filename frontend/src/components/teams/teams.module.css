@@ -249,6 +249,20 @@
   box-shadow: var(--shadow-card);
   border-radius: var(--radius-md);
   padding: 10px 12px;
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  .memberRow {
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    gap: 12px;
+    transition: border-color var(--transition-fast);
+  }
+
+  .memberRow:hover {
+    border-color: var(--color-border-strong);
+  }
 }
 
 .avatar {
@@ -258,6 +272,13 @@
   object-fit: cover;
   background: var(--color-surface-alt);
   flex-shrink: 0;
+}
+
+@media (min-width: 900px) {
+  .avatar {
+    width: 48px;
+    height: 48px;
+  }
 }
 
 .memberInfo {
@@ -280,6 +301,20 @@
 .memberMeta {
   font-size: 12px;
   color: var(--color-text-secondary);
+}
+
+.memberRolePill {
+  align-self: flex-start;
+  margin-top: 2px;
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-glow);
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .iconButton {

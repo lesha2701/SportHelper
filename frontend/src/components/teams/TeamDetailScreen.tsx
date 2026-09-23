@@ -273,31 +273,32 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
         </>
       )}
 
-      {tab === "roster" &&
-        members.map((member) => (
-          <button
-            key={member.userId}
-            type="button"
-            className={styles.memberRow}
-            onClick={() => (isCoachStaff ? setSelectedMember(member) : undefined)}
-            style={{ cursor: isCoachStaff ? "pointer" : "default", textAlign: "left" }}
-          >
-            {member.photoUrl ? (
-              <img className={styles.avatar} src={member.photoUrl} alt="" />
-            ) : (
-              <div className={styles.avatar} />
-            )}
-            <div className={styles.memberInfo}>
-              <span className={styles.memberName}>
-                {member.firstName} {member.lastName ?? ""}
-              </span>
-              <span className={styles.memberMeta}>
-                {TEAM_ROLE_LABELS[member.role]}
-                {member.position ? ` · ${member.position}` : ""}
-              </span>
-            </div>
-          </button>
-        ))}
+      {tab === "roster" && (
+        <div className={styles.cardGrid}>
+          {members.map((member) => (
+            <button
+              key={member.userId}
+              type="button"
+              className={styles.memberRow}
+              onClick={() => (isCoachStaff ? setSelectedMember(member) : undefined)}
+              style={{ cursor: isCoachStaff ? "pointer" : "default", textAlign: "left" }}
+            >
+              {member.photoUrl ? (
+                <img className={styles.avatar} src={member.photoUrl} alt="" />
+              ) : (
+                <div className={styles.avatar} />
+              )}
+              <div className={styles.memberInfo}>
+                <span className={styles.memberName}>
+                  {member.firstName} {member.lastName ?? ""}
+                </span>
+                {member.position && <span className={styles.memberMeta}>{member.position}</span>}
+                <span className={styles.memberRolePill}>{TEAM_ROLE_LABELS[member.role]}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {tab === "trainings" && <TeamTrainingsTab token={token} teamId={teamId} canManage={isCoachStaff} />}
 
