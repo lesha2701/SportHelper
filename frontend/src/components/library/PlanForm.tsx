@@ -7,6 +7,7 @@ import type { Plan, PlanInput } from "../../types/plan";
 import { Icon } from "../shared/Icon";
 import { CollapsibleSection } from "../shared/CollapsibleSection";
 import profileStyles from "../profile/profile.module.css";
+import aiStyles from "../stats/stats.module.css";
 
 interface PlanFormProps {
   token: string;
@@ -98,14 +99,23 @@ export function PlanForm({ token, initial, onSaved, onCancel }: PlanFormProps) {
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         {!isEdit && !showAiPanel && (
-          <button type="button" className={profileStyles.buttonSecondary} onClick={() => setShowAiPanel(true)}>
-            <Icon name="sparkles" size={16} />
-            Заполнить с помощью ИИ
+          <button type="button" className={aiStyles.aiTeaser} style={{ cursor: "pointer", font: "inherit", textAlign: "left" }} onClick={() => setShowAiPanel(true)}>
+            <span className={aiStyles.aiTeaserIcon}>
+              <Icon name="sparkles" size={20} />
+            </span>
+            <span className={aiStyles.aiTeaserText}>
+              <b>Заполнить с помощью ИИ</b> — опишите цель, остальное предложит ИИ
+            </span>
+            <span className={aiStyles.aiTeaserButton}>Заполнить</span>
           </button>
         )}
 
         {!isEdit && showAiPanel && (
-          <div className={profileStyles.field} style={{ border: "1px solid var(--color-border)", borderRadius: 8, padding: 12 }}>
+          <div className={aiStyles.aiCard}>
+            <div className={aiStyles.aiCardHead}>
+              <Icon name="sparkles" size={18} />
+              <span className={aiStyles.aiCardTitle}>План с ИИ</span>
+            </div>
             <span className={profileStyles.label}>Цель тренировки для ИИ</span>
             <textarea
               className={profileStyles.textarea}

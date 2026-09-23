@@ -17,6 +17,7 @@ import { DragReorderList } from "../shared/DragReorderList";
 import { CollapsibleSection } from "../shared/CollapsibleSection";
 import profileStyles from "../profile/profile.module.css";
 import libraryStyles from "../library/library.module.css";
+import aiStyles from "../stats/stats.module.css";
 
 interface TaskFormProps {
   token: string;
@@ -217,14 +218,23 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         {!isEdit && !prefill && !showAiPanel && (
-          <button type="button" className={profileStyles.buttonSecondary} onClick={() => setShowAiPanel(true)}>
-            <Icon name="sparkles" size={16} />
-            Заполнить с помощью ИИ
+          <button type="button" className={aiStyles.aiTeaser} style={{ cursor: "pointer", font: "inherit", textAlign: "left" }} onClick={() => setShowAiPanel(true)}>
+            <span className={aiStyles.aiTeaserIcon}>
+              <Icon name="sparkles" size={20} />
+            </span>
+            <span className={aiStyles.aiTeaserText}>
+              <b>Заполнить с помощью ИИ</b> — опишите цель, остальное предложит ИИ
+            </span>
+            <span className={aiStyles.aiTeaserButton}>Заполнить</span>
           </button>
         )}
 
         {!isEdit && showAiPanel && (
-          <div className={profileStyles.field} style={{ border: "1px solid var(--color-border)", borderRadius: 8, padding: 12 }}>
+          <div className={aiStyles.aiCard}>
+            <div className={aiStyles.aiCardHead}>
+              <Icon name="sparkles" size={18} />
+              <span className={aiStyles.aiCardTitle}>Задание с ИИ</span>
+            </div>
             <span className={profileStyles.label}>Цель задания для ИИ</span>
             <textarea
               className={profileStyles.textarea}

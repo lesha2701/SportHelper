@@ -87,3 +87,79 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+
+/* Collapsed AI trigger — a single-row teaser banner (icon + copy + button)
+   used before the full .aiCard panel opens, e.g. in TrainingForm/TaskForm. */
+.aiTeaser {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--color-primary-glow);
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+}
+
+.aiTeaserIcon {
+  flex-shrink: 0;
+  display: flex;
+}
+
+.aiTeaserText {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.aiTeaserText b {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.aiTeaserButton {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.aiRadioRow {
+  display: flex;
+  gap: 8px;
+}
+
+.aiRadioPill,
+.aiRadioPillActive {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.aiRadioPillActive {
+  border-color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+:global([data-theme="dark"]) .aiRadioPillActive {
+  background: var(--color-surface-alt);
+}

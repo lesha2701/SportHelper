@@ -12,6 +12,7 @@ import type { TeamMember } from "../../types/team";
 import type { Training, TrainingUpdateInput } from "../../types/training";
 import profileStyles from "../profile/profile.module.css";
 import styles from "./training.module.css";
+import aiStyles from "../stats/stats.module.css";
 
 interface TrainingFormProps {
   token: string;
@@ -250,23 +251,32 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         {isPersonalCreate && !showAiPanel && (
-          <button type="button" className={profileStyles.buttonSecondary} onClick={() => setShowAiPanel(true)}>
-            <Icon name="sparkles" size={16} />
-            Предложить тренировку (ИИ)
+          <button type="button" className={aiStyles.aiTeaser} style={{ cursor: "pointer", font: "inherit", textAlign: "left" }} onClick={() => setShowAiPanel(true)}>
+            <span className={aiStyles.aiTeaserIcon}>
+              <Icon name="sparkles" size={20} />
+            </span>
+            <span className={aiStyles.aiTeaserText}>
+              <b>Предложить тренировку с ИИ</b> — учтёт профиль, уровень и цели
+            </span>
+            <span className={aiStyles.aiTeaserButton}>Предложить</span>
           </button>
         )}
 
         {isPersonalCreate && showAiPanel && (
-          <div className={profileStyles.field} style={{ border: "1px solid var(--color-border)", borderRadius: 8, padding: 12 }}>
+          <div className={aiStyles.aiCard}>
+            <div className={aiStyles.aiCardHead}>
+              <Icon name="sparkles" size={18} />
+              <span className={aiStyles.aiCardTitle}>Тренировка с ИИ</span>
+            </div>
             <span className={profileStyles.label}>Стиль тренировки</span>
-            <div style={{ display: "flex", gap: 8 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <input type="radio" name="aiStyle" checked={aiStyle === "reps"} onChange={() => setAiStyle("reps")} />
-                <span>На повторения</span>
+            <div className={aiStyles.aiRadioRow}>
+              <label className={aiStyle === "reps" ? aiStyles.aiRadioPillActive : aiStyles.aiRadioPill}>
+                <input type="radio" name="aiStyle" checked={aiStyle === "reps"} onChange={() => setAiStyle("reps")} style={{ display: "none" }} />
+                На повторения
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <input type="radio" name="aiStyle" checked={aiStyle === "circuit"} onChange={() => setAiStyle("circuit")} />
-                <span>Круговая</span>
+              <label className={aiStyle === "circuit" ? aiStyles.aiRadioPillActive : aiStyles.aiRadioPill}>
+                <input type="radio" name="aiStyle" checked={aiStyle === "circuit"} onChange={() => setAiStyle("circuit")} style={{ display: "none" }} />
+                Круговая
               </label>
             </div>
             <span className={profileStyles.label}>Пожелание к тренировке (необязательно)</span>
