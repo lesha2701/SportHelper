@@ -10,7 +10,7 @@ import asyncpg
 
 _NOTIFICATION_FIELDS = (
     "id, user_id, category, title, body, entity_type, entity_id, send_at, "
-    "status, attempts, last_error, dedup_key, created_at, sent_at"
+    "status, attempts, last_error, dedup_key, created_at, sent_at, read_at"
 )
 
 
@@ -73,6 +73,44 @@ async def list_due(conn: asyncpg.Connection, limit: int = 100) -> list[dict[str,
         limit,
     )
     return [dict(row) for row in rows]
+
+
+async def list_for_user(conn: asyncpg.Connection, user_id: UUID, limit: int = 50) -> list[dict[str, Any]]:
+    """The website bell's feed — every notification that has actually
+    "happened" for this user (due and not cancelled by a disabled
+    preference), newest first. Excludes still-pending future-dated rows
+    (e.g. a training reminder that hasn't fired yet) since those haven't
+    happened from the user's point of view."""
+    rows = await conn.fetch(
+        f"""
+        SELECT {_NOTIFICATION_FIELDS} FROM notifications
+        WHERE user_id = $1 AND status != 'cancelled' AND send_at <= now()
+        ORDER BY send_at DESC
+        LIMIT $2
+        """,
+        user_id,
+        limit,
+    )
+    return [dict(row) for row in rows]
+
+
+async def mark_read(conn: asyncpg.Connection, notification_id: UUID, user_id: UUID) -> dict[str, Any] | None:
+    row = await conn.fetchrow(
+        f"""
+        UPDATE notifications SET read_at = COALESCE(read_at, now())
+        WHERE id = $1 AND user_id = $2
+        RETURNING {_NOTIFICATION_FIELDS}
+        """,
+        notification_id,
+        user_id,
+    )
+    return dict(row) if row else None
+
+
+async def mark_all_read(conn: asyncpg.Connection, user_id: UUID) -> None:
+    await conn.execute(
+        "UPDATE notifications SET read_at = now() WHERE user_id = $1 AND read_at IS NULL", user_id
+    )
 
 
 async def mark_sent(conn: asyncpg.Connection, notification_id: UUID) -> None:

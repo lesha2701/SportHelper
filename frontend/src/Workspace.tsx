@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ProfileProvider, useProfile } from "./context/ProfileContext";
 import { useAuth } from "./context/AuthContext";
 import { ProfileScreen } from "./components/profile/ProfileScreen";
@@ -15,6 +15,9 @@ import { MatchDetail } from "./components/matches/MatchDetail";
 import { CalendarScreen } from "./components/CalendarScreen";
 import { PlayerStatsScreen } from "./components/stats/PlayerStatsScreen";
 import { CoachMarketplaceScreen } from "./components/coaches/CoachMarketplaceScreen";
+import { IncomingBookingsScreen } from "./components/coaches/IncomingBookingsScreen";
+import { MyBookingsSection } from "./components/coaches/MyBookingsSection";
+import { NotificationsScreen } from "./components/notifications/NotificationsScreen";
 import { StateScreen } from "./components/StateScreen";
 import type { NavItem } from "./components/nav/BottomNav";
 import type { SideNavTeam, SideNavUser } from "./components/nav/SideNav";
@@ -22,9 +25,11 @@ import type { TopBarConfig } from "./components/nav/TopBar";
 import { AppShell } from "./components/nav/AppShell";
 import { listMyTeams } from "./api/teams";
 import { listCoachPendingBookings } from "./api/bookings";
+import { listNotifications } from "./api/notifications";
 import { TEAM_ROLE_LABELS, type Team } from "./types/team";
 import type { Training } from "./types/training";
 import type { CalendarEvent } from "./types/calendar";
+import type { NotificationCategory, NotificationItem } from "./types/notification";
 
 function initialOf(name: string): string {
   return name.trim().charAt(0).toUpperCase() || "?";
@@ -42,6 +47,25 @@ function monthKicker(): string {
 
 function readInviteToken(): string | null {
   return new URLSearchParams(window.location.search).get("invite");
+}
+
+interface DeepLink {
+  category: NotificationCategory;
+  entityId: string;
+}
+
+/** Consumed once, from either a Telegram notification's "Открыть в
+ * приложении" button (see backend/app/services/background.py) or a bell
+ * click on the site itself. `open` carries the notification's category
+ * (not entity_type) since that's what disambiguates booking_requested
+ * from booking_decided — same entity_type ("booking"), different target
+ * screen depending on which side of the booking the recipient is on. */
+function readNotificationDeepLink(): DeepLink | null {
+  const params = new URLSearchParams(window.location.search);
+  const category = params.get("open");
+  const entityId = params.get("id");
+  if (!category || !entityId) return null;
+  return { category: category as NotificationCategory, entityId };
 }
 
 type CoachTab = "dashboard" | "teams" | "library" | "calendar" | "coaches" | "profile";
@@ -76,6 +100,9 @@ type Overlay =
   | { kind: "match-detail"; matchId: string }
   | { kind: "task-detail"; taskId: string }
   | { kind: "my-stats" }
+  | { kind: "notifications" }
+  | { kind: "incoming-bookings" }
+  | { kind: "my-bookings" }
   | null;
 
 function calendarEventToOverlay(event: CalendarEvent): Overlay {
@@ -86,6 +113,30 @@ function calendarEventToOverlay(event: CalendarEvent): Overlay {
       return { kind: "match-detail", matchId: event.id };
     case "task_deadline":
       return { kind: "task-detail", taskId: event.id };
+  }
+}
+
+/** Where a notification's "Открыть в приложении" button (Telegram) or its
+ * row on the in-app bell screen should navigate to. booking_requested (the
+ * coach's inbox) and booking_decided (the athlete's own bookings) share
+ * entity_type "booking" but need different screens, which is why this
+ * switches on `category` rather than `entity_type`. */
+function notificationToOverlay(category: NotificationCategory, entityId: string): Overlay {
+  switch (category) {
+    case "training_reminder":
+    case "new_training":
+      return { kind: "training-detail", trainingId: entityId };
+    case "new_match":
+      return { kind: "match-detail", matchId: entityId };
+    case "task_deadline":
+    case "new_task":
+      return { kind: "task-detail", taskId: entityId };
+    case "booking_requested":
+      return { kind: "incoming-bookings" };
+    case "booking_decided":
+      return { kind: "my-bookings" };
+    default:
+      return null;
   }
 }
 
@@ -129,6 +180,8 @@ function CoachTabContent({
   onOpenEvent,
   onOpenTeam,
   onCreateTraining,
+  onOpenNotifications,
+  unreadNotifications,
 }: {
   tab: CoachTab;
   token: string;
@@ -137,6 +190,8 @@ function CoachTabContent({
   onOpenEvent: (event: CalendarEvent) => void;
   onOpenTeam: (teamId: string) => void;
   onCreateTraining: () => void;
+  onOpenNotifications: () => void;
+  unreadNotifications: number;
 }) {
   switch (tab) {
     case "dashboard":
@@ -159,11 +214,18 @@ function CoachTabContent({
     case "coaches":
       return <CoachMarketplaceScreen token={token} />;
     case "profile":
-      return <ProfileScreen token={token} onOpenMyStats={onOpenMyStats} />;
+      return (
+        <ProfileScreen
+          token={token}
+          onOpenMyStats={onOpenMyStats}
+          onOpenNotifications={onOpenNotifications}
+          unreadNotifications={unreadNotifications}
+        />
+      );
   }
 }
 
-function MainContent({ token }: { token: string }) {
+function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | null }) {
   const { state } = useProfile();
   const { state: authState } = useAuth();
   const myUserId = authState.status === "ready" ? authState.user.id : null;
@@ -189,6 +251,19 @@ function MainContent({ token }: { token: string }) {
       .then((bookings) => setPendingBookings(bookings.length))
       .catch(() => setPendingBookings(0));
   }, [token, isCoachMode]);
+
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const refreshUnreadNotifications = () => {
+    listNotifications(token)
+      .then((items) => setUnreadNotifications(items.filter((n) => !n.readAt).length))
+      .catch(() => {});
+  };
+  useEffect(() => {
+    refreshUnreadNotifications();
+    const interval = setInterval(refreshUnreadNotifications, 45000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const primaryTeam = teams && teams.length > 0 ? teams[0]! : null;
   const sideTeam: SideNavTeam | null = primaryTeam
@@ -220,6 +295,18 @@ function MainContent({ token }: { token: string }) {
   }, [state]);
 
   const [overlay, setOverlay] = useState<Overlay>(null);
+
+  // A Telegram notification button (or a page freshly opened with
+  // ?open=&id= from anywhere else) should jump straight to the relevant
+  // screen exactly once, on the first render after it appears — never
+  // re-triggered by later state changes (e.g. switching tabs afterward).
+  const appliedDeepLinkRef = useRef(false);
+  useEffect(() => {
+    if (!deepLink || appliedDeepLinkRef.current) return;
+    appliedDeepLinkRef.current = true;
+    const target = notificationToOverlay(deepLink.category, deepLink.entityId);
+    if (target) setOverlay(target);
+  }, [deepLink]);
 
   // Computed once so both the coach and player AppShell branches below
   // render the same overlay content — desktop keeps the sidebar mounted
@@ -286,6 +373,25 @@ function MainContent({ token }: { token: string }) {
         onDeleted={() => setOverlay(null)}
       />
     );
+  } else if (overlay?.kind === "notifications") {
+    overlayContent = (
+      <NotificationsScreen
+        token={token}
+        onBack={() => {
+          setOverlay(null);
+          refreshUnreadNotifications();
+        }}
+        onOpen={(notification) => {
+          setUnreadNotifications((prev) => Math.max(0, prev - (notification.readAt ? 0 : 1)));
+          const target = notificationToOverlay(notification.category, notification.entityId);
+          setOverlay(target);
+        }}
+      />
+    );
+  } else if (overlay?.kind === "incoming-bookings") {
+    overlayContent = <IncomingBookingsScreen token={token} onBack={() => setOverlay(null)} />;
+  } else if (overlay?.kind === "my-bookings") {
+    overlayContent = <MyBookingsSection token={token} onBack={() => setOverlay(null)} />;
   }
 
   const hasOverlay = overlayContent !== null;
@@ -310,7 +416,15 @@ function MainContent({ token }: { token: string }) {
           setOverlay(null);
           setCoachTab("profile");
         }}
-        topBar={hasOverlay ? undefined : coachTopBar(coachTab, onCreateTraining)}
+        topBar={
+          hasOverlay
+            ? undefined
+            : {
+                ...coachTopBar(coachTab, onCreateTraining),
+                unreadNotifications,
+                onOpenNotifications: () => setOverlay({ kind: "notifications" }),
+              }
+        }
       >
         {overlayContent ?? (
           <CoachTabContent
@@ -321,6 +435,8 @@ function MainContent({ token }: { token: string }) {
             onOpenEvent={(event) => setOverlay(calendarEventToOverlay(event))}
             onOpenTeam={(teamId) => setOverlay({ kind: "team", teamId })}
             onCreateTraining={onCreateTraining}
+            onOpenNotifications={() => setOverlay({ kind: "notifications" })}
+            unreadNotifications={unreadNotifications}
           />
         )}
       </AppShell>
@@ -343,7 +459,15 @@ function MainContent({ token }: { token: string }) {
         setOverlay(null);
         setPlayerTab("profile");
       }}
-      topBar={hasOverlay ? undefined : playerTopBar(playerTab, onCreateTraining)}
+      topBar={
+        hasOverlay
+          ? undefined
+          : {
+              ...playerTopBar(playerTab, onCreateTraining),
+              unreadNotifications,
+              onOpenNotifications: () => setOverlay({ kind: "notifications" }),
+            }
+      }
     >
       {overlayContent ?? (
         <>
@@ -369,7 +493,12 @@ function MainContent({ token }: { token: string }) {
           )}
           {playerTab === "coaches" && <CoachMarketplaceScreen token={token} />}
           {playerTab === "profile" && (
-            <ProfileScreen token={token} onOpenMyStats={() => setOverlay({ kind: "my-stats" })} />
+            <ProfileScreen
+              token={token}
+              onOpenMyStats={() => setOverlay({ kind: "my-stats" })}
+              onOpenNotifications={() => setOverlay({ kind: "notifications" })}
+              unreadNotifications={unreadNotifications}
+            />
           )}
         </>
       )}
@@ -379,6 +508,7 @@ function MainContent({ token }: { token: string }) {
 
 export function Workspace({ token }: { token: string }) {
   const [inviteToken, setInviteToken] = useState<string | null>(readInviteToken);
+  const [deepLink] = useState<DeepLink | null>(readNotificationDeepLink);
 
   const clearInvite = () => {
     const url = new URL(window.location.href);
@@ -387,12 +517,23 @@ export function Workspace({ token }: { token: string }) {
     setInviteToken(null);
   };
 
+  // Strip ?open=&id= from the URL once read — same spirit as clearInvite,
+  // just without needing to gate anything else on it first.
+  useEffect(() => {
+    if (!deepLink) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("open");
+    url.searchParams.delete("id");
+    window.history.replaceState({}, "", url.toString());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <ProfileProvider token={token}>
       {inviteToken ? (
         <InviteAcceptScreenGate token={token} inviteToken={inviteToken} onDone={clearInvite} />
       ) : (
-        <MainContent token={token} />
+        <MainContent token={token} deepLink={deepLink} />
       )}
     </ProfileProvider>
   );

@@ -2047,6 +2047,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
             "dedup_key": dedup_key,
             "created_at": existing["created_at"] if existing else now,
             "sent_at": None,
+            "read_at": existing["read_at"] if existing else None,
         }
 
     async def fake_cancel_pending_for_entity(conn, entity_type, entity_id):
@@ -2084,6 +2085,28 @@ def client(monkeypatch: pytest.MonkeyPatch):
             if record["id"] == notification_id:
                 record["status"] = "cancelled"
 
+    async def fake_list_for_user(conn, user_id, limit=50):
+        now = datetime.now(timezone.utc)
+        items = [
+            r for r in notifications_store.values()
+            if r["user_id"] == user_id and r["status"] != "cancelled" and r["send_at"] <= now
+        ]
+        return sorted(items, key=lambda r: r["send_at"], reverse=True)[:limit]
+
+    async def fake_mark_read(conn, notification_id, user_id):
+        for record in notifications_store.values():
+            if record["id"] == notification_id and record["user_id"] == user_id:
+                if record["read_at"] is None:
+                    record["read_at"] = datetime.now(timezone.utc)
+                return dict(record)
+        return None
+
+    async def fake_mark_all_read(conn, user_id):
+        now = datetime.now(timezone.utc)
+        for record in notifications_store.values():
+            if record["user_id"] == user_id and record["read_at"] is None:
+                record["read_at"] = now
+
     async def fake_is_enabled(conn, user_id, category):
         return notification_preferences_store.get((user_id, category), True)
 
@@ -2104,6 +2127,9 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(notifications_module, "mark_retry", fake_mark_retry)
     monkeypatch.setattr(notifications_module, "mark_failed", fake_mark_failed)
     monkeypatch.setattr(notifications_module, "mark_cancelled", fake_mark_cancelled)
+    monkeypatch.setattr(notifications_module, "list_for_user", fake_list_for_user)
+    monkeypatch.setattr(notifications_module, "mark_read", fake_mark_read)
+    monkeypatch.setattr(notifications_module, "mark_all_read", fake_mark_all_read)
     monkeypatch.setattr(notifications_module, "is_enabled", fake_is_enabled)
     monkeypatch.setattr(notifications_module, "list_preferences", fake_list_preferences)
     monkeypatch.setattr(notifications_module, "set_preference", fake_set_preference)

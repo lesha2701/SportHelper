@@ -19,7 +19,9 @@ from datetime import datetime, timedelta, timezone
 import asyncpg
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
+from app.bot.deeplink import build_mini_app_url
 from app.config import Settings
 from app.integrations.yandex_disk import YandexDiskClient, YandexDiskError
 from app.repositories import bookings as bookings_repo
@@ -47,8 +49,16 @@ async def send_due_notifications(conn: asyncpg.Connection, bot: Bot, settings: S
             continue
 
         text = f"<b>{notification['title']}</b>\n{notification['body']}"
+        keyboard = None
+        if settings.mini_app_url:
+            url = build_mini_app_url(
+                settings.mini_app_url, {"open": notification["category"], "id": str(notification["entity_id"])}
+            )
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[[InlineKeyboardButton(text="Открыть в приложении", web_app=WebAppInfo(url=url))]]
+            )
         try:
-            await bot.send_message(chat_id=user["telegram_id"], text=text)
+            await bot.send_message(chat_id=user["telegram_id"], text=text, reply_markup=keyboard)
         except TelegramAPIError as exc:
             attempts = notification["attempts"] + 1
             if attempts >= settings.notification_max_attempts:

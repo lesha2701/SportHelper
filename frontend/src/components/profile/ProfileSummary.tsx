@@ -24,6 +24,8 @@ interface ProfileSummaryProps {
   onOpenMyBookings: () => void;
   onOpenCoachBookings: () => void;
   onOpenIncomingBookings: () => void;
+  onOpenNotifications: () => void;
+  unreadNotifications?: number;
 }
 
 const RING_RADIUS = 56;
@@ -88,6 +90,8 @@ export function ProfileSummary({
   onOpenMyBookings,
   onOpenCoachBookings,
   onOpenIncomingBookings,
+  onOpenNotifications,
+  unreadNotifications,
 }: ProfileSummaryProps) {
   const { state: authState, updateUser } = useAuth();
   const photoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
@@ -189,6 +193,13 @@ export function ProfileSummary({
       ? { key: "records", icon: "calendar", label: "Записи", onClick: onOpenCoachBookings }
       : { key: "bookings", icon: "calendar", label: "Мои брони", onClick: onOpenMyBookings },
   );
+  actionRows.push({
+    key: "notifications",
+    icon: "bell",
+    label: "Уведомления",
+    badge: unreadNotifications,
+    onClick: onOpenNotifications,
+  });
   actionRows.push({ key: "settings", icon: "settings", label: "Настройки", onClick: onOpenSettings });
   actionRows.push({ key: "help", icon: "book", label: "Помощь", onClick: onOpenHelp });
   if (profile.player && profile.coach) {

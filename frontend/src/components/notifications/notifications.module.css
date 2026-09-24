@@ -1,0 +1,84 @@
+.notificationCard {
+  position: relative;
+  text-align: left;
+  cursor: pointer;
+  border: none;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+}
+
+.notificationCardUnread {
+  border-left: 3px solid var(--color-primary);
+}
+
+.notificationTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.notificationIcon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-glow);
+  color: var(--color-primary);
+}
+
+.notificationBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.notificationTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notificationTitle {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.unreadDot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.notificationText {
+  margin: 2px 0 0;
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+}
+
+.notificationTime {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.markAllLink {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}

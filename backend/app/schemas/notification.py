@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 NotificationCategory = Literal[
     "training_reminder", "task_deadline", "new_training", "new_match", "new_task",
@@ -32,3 +34,14 @@ class NotificationPreferenceIn(BaseModel):
 
 class NotificationPreferencesUpdateIn(BaseModel):
     preferences: list[NotificationPreferenceIn]
+
+
+class NotificationOut(BaseModel):
+    id: UUID
+    category: NotificationCategory
+    title: str
+    body: str
+    entity_type: str
+    entity_id: UUID
+    send_at: datetime
+    read_at: datetime | None = Field(default=None)

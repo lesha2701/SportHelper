@@ -13,7 +13,17 @@ import { ProfileSummary } from "./ProfileSummary";
 import { SettingsScreen } from "./SettingsScreen";
 import type { ActiveMode } from "../../types/profile";
 
-export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenMyStats: () => void }) {
+export function ProfileScreen({
+  token,
+  onOpenMyStats,
+  onOpenNotifications,
+  unreadNotifications,
+}: {
+  token: string;
+  onOpenMyStats: () => void;
+  onOpenNotifications: () => void;
+  unreadNotifications?: number;
+}) {
   const { state, retry, savePlayer, saveCoach, switchMode } = useProfile();
   const [editing, setEditing] = useState<ActiveMode | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -104,6 +114,8 @@ export function ProfileScreen({ token, onOpenMyStats }: { token: string; onOpenM
       onOpenMyBookings={() => setShowMyBookings(true)}
       onOpenCoachBookings={() => setShowCoachBookings(true)}
       onOpenIncomingBookings={() => setShowIncomingBookings(true)}
+      onOpenNotifications={onOpenNotifications}
+      unreadNotifications={unreadNotifications}
     />
   );
 }

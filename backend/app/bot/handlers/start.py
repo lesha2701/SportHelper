@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from urllib.parse import urlencode, urlparse, urlunparse
-
 from aiogram import Router
 from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
 
+from app.bot.deeplink import build_mini_app_url
 from app.config import Settings
 
 router = Router(name="start")
@@ -13,18 +12,10 @@ router = Router(name="start")
 _INVITE_PREFIX = "invite_"
 
 
-def _build_mini_app_url(mini_app_url: str, invite_token: str | None) -> str:
-    if not invite_token:
-        return mini_app_url
-    parts = urlparse(mini_app_url)
-    query = urlencode({"invite": invite_token})
-    return urlunparse(parts._replace(query=query))
-
-
 def _build_keyboard(mini_app_url: str, invite_token: str | None) -> InlineKeyboardMarkup | None:
     if not mini_app_url:
         return None
-    url = _build_mini_app_url(mini_app_url, invite_token)
+    url = build_mini_app_url(mini_app_url, {"invite": invite_token} if invite_token else {})
     return InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="Открыть TeamFlow Sports", web_app=WebAppInfo(url=url))]]
     )
