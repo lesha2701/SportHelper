@@ -224,6 +224,33 @@ async def list_listed(
     return cards
 
 
+async def list_listed_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) -> list[dict[str, Any]]:
+    """Public variant of list_for_coach — only this coach's published
+    listings, shaped like list_listed's cards (rating + next slot) so a
+    coach's public profile can render them with CoachListingCardOut."""
+    rows = await conn.fetch(
+        """
+        SELECT cl.id, cl.title, cl.description, cl.coach_user_id, cp.full_name AS coach_full_name,
+               u.photo_url AS coach_photo_url, cp.sport, cp.specialization, cp.experience_years,
+               cl.price_per_session, cl.currency, cl.location, cl.offers_online, cl.offers_offline,
+               cl.photo_file_id
+        FROM coach_listings cl
+        JOIN coach_profiles cp ON cp.user_id = cl.coach_user_id
+        JOIN users u ON u.id = cl.coach_user_id
+        WHERE cl.coach_user_id = $1 AND cl.is_listed = TRUE AND cl.deleted_at IS NULL
+        ORDER BY cl.created_at
+        """,
+        coach_user_id,
+    )
+    rating = await coach_reviews_repo.get_rating_summary(conn, coach_user_id)
+    cards = []
+    for row in rows:
+        row = dict(row)
+        next_slot = await _next_available_slot(conn, row["id"])
+        cards.append(_card_row_to_dict(row, rating, next_slot))
+    return cards
+
+
 async def get_public_listing(conn: asyncpg.Connection, listing_id: UUID) -> dict[str, Any] | None:
     row = await conn.fetchrow(
         """

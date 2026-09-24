@@ -167,7 +167,7 @@ export interface CoachReview {
   createdAt: string;
 }
 
-function mapCoachReviewDto(dto: CoachReviewDto): CoachReview {
+export function mapCoachReviewDto(dto: CoachReviewDto): CoachReview {
   return { id: dto.id, athleteFirstName: dto.athlete_first_name, rating: dto.rating, text: dto.text, createdAt: dto.created_at };
 }
 

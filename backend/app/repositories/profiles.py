@@ -30,6 +30,23 @@ async def get_coach_profile(conn: asyncpg.Connection, user_id: UUID) -> dict[str
     return dict(row) if row else None
 
 
+async def get_public_coach_profile(conn: asyncpg.Connection, user_id: UUID) -> dict[str, Any] | None:
+    """Like get_coach_profile, but joins in the fields a viewer other than
+    the coach themself needs (their avatar and Telegram photo — get_coach_
+    profile is "my own profile" only and has neither)."""
+    row = await conn.fetchrow(
+        """
+        SELECT cp.user_id, cp.full_name, cp.sport, cp.experience_years, cp.specialization, cp.description,
+               u.avatar_file_id, u.photo_url
+        FROM coach_profiles cp
+        JOIN users u ON u.id = cp.user_id
+        WHERE cp.user_id = $1
+        """,
+        user_id,
+    )
+    return dict(row) if row else None
+
+
 async def upsert_player_profile(
     conn: asyncpg.Connection,
     user_id: UUID,

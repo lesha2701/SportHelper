@@ -251,6 +251,22 @@ def client(monkeypatch: pytest.MonkeyPatch):
     async def fake_get_coach_profile(conn, user_id):
         return coach_store.get(user_id)
 
+    async def fake_get_public_coach_profile(conn, user_id):
+        profile = coach_store.get(user_id)
+        if profile is None:
+            return None
+        user_row = _find_user_by_id(user_id)
+        return {
+            "user_id": user_id,
+            "full_name": profile["full_name"],
+            "sport": profile["sport"],
+            "experience_years": profile.get("experience_years"),
+            "specialization": profile.get("specialization"),
+            "description": profile.get("description"),
+            "avatar_file_id": user_row.get("avatar_file_id") if user_row else None,
+            "photo_url": user_row.get("photo_url") if user_row else None,
+        }
+
     async def fake_upsert_player_profile(conn, user_id, **fields):
         now = datetime.now(timezone.utc)
         profile = player_store.get(user_id) or {"user_id": user_id, "created_at": now}
@@ -272,6 +288,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(users_module, "set_active_mode", fake_set_active_mode)
     monkeypatch.setattr(profiles_module, "get_player_profile", fake_get_player_profile)
     monkeypatch.setattr(profiles_module, "get_coach_profile", fake_get_coach_profile)
+    monkeypatch.setattr(profiles_module, "get_public_coach_profile", fake_get_public_coach_profile)
     monkeypatch.setattr(profiles_module, "upsert_player_profile", fake_upsert_player_profile)
     monkeypatch.setattr(profiles_module, "upsert_coach_profile", fake_upsert_coach_profile)
 
@@ -2268,8 +2285,13 @@ def client(monkeypatch: pytest.MonkeyPatch):
             day += timedelta(days=1)
         return sorted(slots, key=lambda s: s["starts_at"])
 
+    async def fake_list_listed_for_coach(conn, coach_user_id):
+        cards = await fake_list_listed(conn)
+        return [c for c in cards if c["coach_user_id"] == coach_user_id]
+
     monkeypatch.setattr(coach_listings_module, "list_listed", fake_list_listed)
     monkeypatch.setattr(coach_listings_module, "get_public_listing", fake_get_public_listing)
+    monkeypatch.setattr(coach_listings_module, "list_listed_for_coach", fake_list_listed_for_coach)
     monkeypatch.setattr(coach_listings_module, "compute_open_slots", fake_listing_compute_open_slots)
 
     app = main_module.create_app()

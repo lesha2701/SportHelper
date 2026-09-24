@@ -6,6 +6,7 @@ import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { ListingPublicProfileScreen } from "./ListingPublicProfileScreen";
+import { CoachPublicProfileScreen } from "./CoachPublicProfileScreen";
 import { BookingFlow } from "./BookingFlow";
 import { useIsDesktop } from "../../hooks/useIsDesktop";
 import type { CoachListingCard, CoachListingFilters, CoachListingProfile } from "../../types/coachListing";
@@ -17,7 +18,8 @@ import styles from "./coaches.module.css";
 
 type View =
   | { screen: "list" }
-  | { screen: "profile"; listingId: string }
+  | { screen: "coachProfile"; coachUserId: string }
+  | { screen: "profile"; listingId: string; coachUserId: string }
   | { screen: "booking"; listing: CoachListingProfile }
   | { screen: "confirmed"; booking: Booking };
 
@@ -75,11 +77,13 @@ function ListingCardView({ token, listing, onOpen }: { token: string; listing: C
 function ListingDetailPanel({
   token,
   listing,
-  onOpenFull,
+  onBook,
+  onOpenProfile,
 }: {
   token: string;
   listing: CoachListingCard;
-  onOpenFull: () => void;
+  onBook: () => void;
+  onOpenProfile: () => void;
 }) {
   const format = [listing.offersOnline && "Онлайн", listing.offersOffline && "Очно"].filter(Boolean).join(" · ");
 
@@ -128,10 +132,10 @@ function ListingDetailPanel({
         </div>
 
         <div className={libStyles.detailActions}>
-          <button type="button" className={profileStyles.buttonPrimary} onClick={onOpenFull}>
+          <button type="button" className={profileStyles.buttonPrimary} onClick={onBook}>
             Записаться
           </button>
-          <button type="button" className={profileStyles.buttonSecondary} onClick={onOpenFull}>
+          <button type="button" className={profileStyles.buttonSecondary} onClick={onOpenProfile}>
             Профиль
           </button>
         </div>
@@ -190,12 +194,23 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
     load({});
   };
 
+  if (view.screen === "coachProfile") {
+    return (
+      <CoachPublicProfileScreen
+        token={token}
+        coachUserId={view.coachUserId}
+        onBack={() => setView({ screen: "list" })}
+        onOpenListing={(listingId) => setView({ screen: "profile", listingId, coachUserId: view.coachUserId })}
+      />
+    );
+  }
+
   if (view.screen === "profile") {
     return (
       <ListingPublicProfileScreen
         token={token}
         listingId={view.listingId}
-        onBack={() => setView({ screen: "list" })}
+        onBack={() => setView({ screen: "coachProfile", coachUserId: view.coachUserId })}
         onBook={(listing) => setView({ screen: "booking", listing })}
       />
     );
@@ -206,7 +221,7 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
       <BookingFlow
         token={token}
         listing={view.listing}
-        onBack={() => setView({ screen: "profile", listingId: view.listing.id })}
+        onBack={() => setView({ screen: "profile", listingId: view.listing.id, coachUserId: view.listing.coachUserId })}
         onBooked={(booking) => setView({ screen: "confirmed", booking })}
       />
     );
@@ -336,7 +351,9 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
                         token={token}
                         listing={listing}
                         onOpen={() =>
-                          isDesktop ? setSelectedId(listing.id) : setView({ screen: "profile", listingId: listing.id })
+                          isDesktop
+                            ? setSelectedId(listing.id)
+                            : setView({ screen: "coachProfile", coachUserId: listing.coachUserId })
                         }
                       />
                     ))}
@@ -346,7 +363,8 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
                   <ListingDetailPanel
                     token={token}
                     listing={selected}
-                    onOpenFull={() => setView({ screen: "profile", listingId: selected.id })}
+                    onBook={() => setView({ screen: "profile", listingId: selected.id, coachUserId: selected.coachUserId })}
+                    onOpenProfile={() => setView({ screen: "coachProfile", coachUserId: selected.coachUserId })}
                   />
                 )}
               </div>
