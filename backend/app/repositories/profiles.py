@@ -23,6 +23,23 @@ async def get_player_profile(conn: asyncpg.Connection, user_id: UUID) -> dict[st
     return dict(row) if row else None
 
 
+async def get_public_player_profile(conn: asyncpg.Connection, user_id: UUID) -> dict[str, Any] | None:
+    """Like get_player_profile, but joins in avatar_file_id/photo_url —
+    needed when a coach with a booking relationship (not necessarily a
+    shared team) views the athlete's profile."""
+    row = await conn.fetchrow(
+        """
+        SELECT pp.user_id, pp.full_name, pp.age, pp.height_cm, pp.weight_kg, pp.sport, pp.position,
+               pp.level, pp.goals, pp.load_restrictions, u.avatar_file_id, u.photo_url
+        FROM player_profiles pp
+        JOIN users u ON u.id = pp.user_id
+        WHERE pp.user_id = $1
+        """,
+        user_id,
+    )
+    return dict(row) if row else None
+
+
 async def get_coach_profile(conn: asyncpg.Connection, user_id: UUID) -> dict[str, Any] | None:
     row = await conn.fetchrow(
         f"SELECT {_COACH_FIELDS} FROM coach_profiles WHERE user_id = $1", user_id

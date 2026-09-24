@@ -251,6 +251,26 @@ def client(monkeypatch: pytest.MonkeyPatch):
     async def fake_get_coach_profile(conn, user_id):
         return coach_store.get(user_id)
 
+    async def fake_get_public_player_profile(conn, user_id):
+        profile = player_store.get(user_id)
+        if profile is None:
+            return None
+        user_row = _find_user_by_id(user_id)
+        return {
+            "user_id": user_id,
+            "full_name": profile["full_name"],
+            "age": profile.get("age"),
+            "height_cm": profile.get("height_cm"),
+            "weight_kg": profile.get("weight_kg"),
+            "sport": profile["sport"],
+            "position": profile.get("position"),
+            "level": profile.get("level"),
+            "goals": profile.get("goals"),
+            "load_restrictions": profile.get("load_restrictions"),
+            "avatar_file_id": user_row.get("avatar_file_id") if user_row else None,
+            "photo_url": user_row.get("photo_url") if user_row else None,
+        }
+
     async def fake_get_public_coach_profile(conn, user_id):
         profile = coach_store.get(user_id)
         if profile is None:
@@ -289,6 +309,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(profiles_module, "get_player_profile", fake_get_player_profile)
     monkeypatch.setattr(profiles_module, "get_coach_profile", fake_get_coach_profile)
     monkeypatch.setattr(profiles_module, "get_public_coach_profile", fake_get_public_coach_profile)
+    monkeypatch.setattr(profiles_module, "get_public_player_profile", fake_get_public_player_profile)
     monkeypatch.setattr(profiles_module, "upsert_player_profile", fake_upsert_player_profile)
     monkeypatch.setattr(profiles_module, "upsert_coach_profile", fake_upsert_coach_profile)
 
@@ -454,6 +475,14 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(bookings_module, "confirm_booking", fake_confirm_booking)
     monkeypatch.setattr(bookings_module, "decline_booking", fake_decline_booking)
     monkeypatch.setattr(bookings_module, "list_pending_for_coach", fake_list_pending_for_coach)
+
+    async def fake_has_booking_between(conn, coach_user_id, athlete_user_id):
+        return any(
+            b["coach_user_id"] == coach_user_id and b["athlete_user_id"] == athlete_user_id
+            for b in bookings_store.values()
+        )
+
+    monkeypatch.setattr(bookings_module, "has_booking_between", fake_has_booking_between)
 
     async def fake_sweep_expired(conn, *, older_than):
         expired = []

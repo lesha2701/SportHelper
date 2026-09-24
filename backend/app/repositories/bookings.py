@@ -139,6 +139,18 @@ async def list_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) -> list[
     return [dict(row) for row in rows]
 
 
+async def has_booking_between(conn: asyncpg.Connection, coach_user_id: UUID, athlete_user_id: UUID) -> bool:
+    """Whether this coach and athlete have ever had a booking together
+    (any status) — the basis for letting a coach view an athlete's profile
+    outside of a shared team: reviewing a pending request, and continuing
+    to see it afterward in "Записи", both need this."""
+    return await conn.fetchval(
+        "SELECT EXISTS (SELECT 1 FROM bookings WHERE coach_user_id = $1 AND athlete_user_id = $2)",
+        coach_user_id,
+        athlete_user_id,
+    )
+
+
 def is_completed(booking: dict[str, Any]) -> bool:
     ends_at = booking["starts_at"] + timedelta(minutes=booking["duration_minutes"])
     return booking["status"] == "confirmed" and datetime.now(ends_at.tzinfo) > ends_at

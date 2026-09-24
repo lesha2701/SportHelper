@@ -23,6 +23,7 @@ from app.api.routes import (
     matches,
     metrics,
     notifications,
+    players,
     plans,
     profile,
     profile_media,
@@ -178,6 +179,7 @@ def create_app() -> FastAPI:
     app.include_router(calendar.router)
     app.include_router(coach_listings.router)
     app.include_router(coaches.router)
+    app.include_router(players.router)
     app.include_router(metrics.router)
     app.include_router(metrics.metric_router)
     app.include_router(stats.router)

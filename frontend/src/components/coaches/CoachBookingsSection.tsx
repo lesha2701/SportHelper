@@ -9,6 +9,7 @@ import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 import { PlanPickerModal } from "./PlanPickerModal";
+import { PlayerPublicProfileScreen } from "./PlayerPublicProfileScreen";
 
 /** The coach's own session list — who is booked and when. Separate from
  * IncomingBookingsScreen (pending requests needing accept/decline) and
@@ -20,6 +21,7 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
     status: "loading",
   });
   const [planPickerFor, setPlanPickerFor] = useState<Booking | null>(null);
+  const [viewingPlayerId, setViewingPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     listCoachBookings(token)
@@ -31,6 +33,10 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
     if (state.status !== "ready") return;
     setState({ status: "ready", bookings: state.bookings.map((b) => (b.id === updated.id ? updated : b)) });
   };
+
+  if (viewingPlayerId) {
+    return <PlayerPublicProfileScreen token={token} playerUserId={viewingPlayerId} onBack={() => setViewingPlayerId(null)} />;
+  }
 
   if (state.status === "loading") return <StateScreen kind="loading" title="Загрузка записей…" />;
   if (state.status === "error") return <StateScreen kind="error" title="Не удалось загрузить записи" description={state.message} />;
@@ -60,7 +66,14 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
           <div className={styles.bookingRowStack} key={b.id}>
             <div className={styles.bookingRowTop}>
               <div>
-                <p className={profileStyles.rowValue}>{b.athleteFullName}</p>
+                <button
+                  type="button"
+                  className={profileStyles.rowValue}
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", textDecoration: "underline" }}
+                  onClick={() => setViewingPlayerId(b.athleteUserId)}
+                >
+                  {b.athleteFullName}
+                </button>
                 {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
                 <p className={profileStyles.subtitle}>
                   {formatDate(b.startsAt)} · {b.format === "online" ? "Онлайн" : "Очно"}
@@ -86,7 +99,14 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
           <div className={styles.bookingRowStack} key={b.id}>
             <div className={styles.bookingRowTop}>
               <div>
-                <p className={profileStyles.rowValue}>{b.athleteFullName}</p>
+                <button
+                  type="button"
+                  className={profileStyles.rowValue}
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", textDecoration: "underline" }}
+                  onClick={() => setViewingPlayerId(b.athleteUserId)}
+                >
+                  {b.athleteFullName}
+                </button>
                 {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
                 <p className={profileStyles.subtitle}>{formatDate(b.startsAt)}</p>
               </div>
@@ -110,7 +130,14 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
             {declinedOrExpired.map((b) => (
               <div className={styles.bookingRow} key={b.id}>
                 <div>
-                  <p className={profileStyles.rowValue}>{b.athleteFullName}</p>
+                  <button
+                  type="button"
+                  className={profileStyles.rowValue}
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", textDecoration: "underline" }}
+                  onClick={() => setViewingPlayerId(b.athleteUserId)}
+                >
+                  {b.athleteFullName}
+                </button>
                   {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
                   <p className={profileStyles.subtitle}>{formatDate(b.startsAt)}</p>
                 </div>

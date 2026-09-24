@@ -4,6 +4,7 @@ import { confirmBooking, declineBooking, listCoachPendingBookings } from "../../
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
+import { PlayerPublicProfileScreen } from "./PlayerPublicProfileScreen";
 import type { PendingBooking } from "../../types/booking";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
@@ -18,6 +19,7 @@ export function IncomingBookingsScreen({ token, onBack }: { token: string; onBac
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [viewingPlayerId, setViewingPlayerId] = useState<string | null>(null);
 
   const load = () => {
     listCoachPendingBookings(token)
@@ -28,6 +30,10 @@ export function IncomingBookingsScreen({ token, onBack }: { token: string; onBac
   };
 
   useEffect(load, [token]);
+
+  if (viewingPlayerId) {
+    return <PlayerPublicProfileScreen token={token} playerUserId={viewingPlayerId} onBack={() => setViewingPlayerId(null)} />;
+  }
 
   const respond = async (bookingId: string, action: "confirm" | "decline") => {
     setBusyId(bookingId);
@@ -73,7 +79,14 @@ export function IncomingBookingsScreen({ token, onBack }: { token: string; onBac
         {state.bookings.map((b) => (
           <div className={styles.incomingRow} key={b.id}>
             <div>
-              <p className={profileStyles.rowValue}>{b.athleteFullName}</p>
+              <button
+                type="button"
+                className={profileStyles.rowValue}
+                style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", textDecoration: "underline" }}
+                onClick={() => setViewingPlayerId(b.athleteUserId)}
+              >
+                {b.athleteFullName}
+              </button>
               {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
               <p className={profileStyles.subtitle}>
                 {formatDate(b.startsAt)} · {b.format === "online" ? "Онлайн" : "Очно"}
