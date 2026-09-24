@@ -635,26 +635,28 @@
   border-bottom: none;
 }
 
-/* Same padding/border as .bookingRow, but stacked vertically for rows that
-   also show the athlete's notes and/or a plan-selection action below the
-   headline info + status line. */
-.bookingRowStack {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.bookingRowStack:last-child {
-  border-bottom: none;
-}
-
-.bookingRowTop {
+/* Each booking/record is its own project-standard block (same look as
+   profileStyles.card) rather than a thin row inside one shared card — this
+   is the top line (name/details + status badge) within that block. */
+.bookingCardTop {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
+}
+
+.bookingAthleteName {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0 0 2px;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .bookingNotes {
@@ -745,19 +747,6 @@
 
 .ratingStarFilled {
   color: var(--color-warning, #b6790f);
-}
-
-.incomingRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.incomingRow:last-child {
-  border-bottom: none;
 }
 
 .incomingActions {

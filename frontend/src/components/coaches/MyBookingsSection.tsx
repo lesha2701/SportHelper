@@ -25,8 +25,7 @@ function CoachNameButton({ booking, onOpen }: { booking: Booking; onOpen: (coach
   return (
     <button
       type="button"
-      className={profileStyles.rowValue}
-      style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", textDecoration: "underline" }}
+      className={styles.bookingAthleteName}
       onClick={(e) => {
         e.stopPropagation();
         onOpen(booking.coachUserId);
@@ -36,6 +35,9 @@ function CoachNameButton({ booking, onOpen }: { booking: Booking; onOpen: (coach
     </button>
   );
 }
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 
 export function MyBookingsSection({ token, onBack }: { token: string; onBack: () => void }) {
   const [state, setState] = useState<{ status: "loading" } | { status: "error"; message: string } | { status: "ready"; bookings: Booking[] }>({
@@ -129,9 +131,6 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
   const past = state.bookings.filter((b) => b.isCompleted);
   const declinedOrExpired = state.bookings.filter((b) => b.status === "declined" || b.status === "expired");
 
-  const formatDate = (iso: string) =>
-    new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
-
   return (
     <div className={profileStyles.screen}>
       <div className={sharedStyles.headerRow}>
@@ -141,14 +140,14 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
         </button>
       </div>
 
-      <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>Мои брони</h1>
+      <h1 className={profileStyles.pageHeading}>Мои брони</h1>
 
-        {pending.length > 0 && (
-          <>
-            <h2 className={profileStyles.title}>Ожидают подтверждения</h2>
-            {pending.map((b) => (
-              <div className={styles.bookingRow} key={b.id}>
+      {pending.length > 0 && (
+        <>
+          <h2 className={profileStyles.title}>Ожидают подтверждения</h2>
+          {pending.map((b) => (
+            <div className={profileStyles.card} key={b.id}>
+              <div className={styles.bookingCardTop}>
                 <div>
                   <CoachNameButton booking={b} onOpen={(coachUserId) => setCoachView({ screen: "profile", coachUserId })} />
                   {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
@@ -156,19 +155,21 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
                 </div>
                 <span className={styles.bookingStatus}>Ожидает тренера</span>
               </div>
-            ))}
-          </>
-        )}
+            </div>
+          ))}
+        </>
+      )}
 
-        <h2 className={profileStyles.title}>Предстоящие</h2>
-        {upcoming.length === 0 && <p className={profileStyles.subtitle}>Нет предстоящих броней.</p>}
-        {upcoming.map((b) => (
-          <div
-            className={styles.bookingRow}
-            key={b.id}
-            style={b.trainingId ? { cursor: "pointer" } : undefined}
-            onClick={() => b.trainingId && setOpenTrainingId(b.trainingId)}
-          >
+      <h2 className={profileStyles.title}>Предстоящие</h2>
+      {upcoming.length === 0 && <p className={profileStyles.subtitle}>Нет предстоящих броней.</p>}
+      {upcoming.map((b) => (
+        <div
+          className={profileStyles.card}
+          key={b.id}
+          style={b.trainingId ? { cursor: "pointer" } : undefined}
+          onClick={() => b.trainingId && setOpenTrainingId(b.trainingId)}
+        >
+          <div className={styles.bookingCardTop}>
             <div>
               <CoachNameButton booking={b} onOpen={(coachUserId) => setCoachView({ screen: "profile", coachUserId })} />
               {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
@@ -177,17 +178,19 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
             </div>
             <span className={styles.bookingStatus}>Подтверждена</span>
           </div>
-        ))}
+        </div>
+      ))}
 
-        <h2 className={profileStyles.title}>Прошедшие</h2>
-        {past.length === 0 && <p className={profileStyles.subtitle}>Пока нет прошедших броней.</p>}
-        {past.map((b) => (
-          <div
-            className={styles.bookingRow}
-            key={b.id}
-            style={b.trainingId ? { cursor: "pointer" } : undefined}
-            onClick={() => b.trainingId && setOpenTrainingId(b.trainingId)}
-          >
+      <h2 className={profileStyles.title}>Прошедшие</h2>
+      {past.length === 0 && <p className={profileStyles.subtitle}>Пока нет прошедших броней.</p>}
+      {past.map((b) => (
+        <div
+          className={profileStyles.card}
+          key={b.id}
+          style={b.trainingId ? { cursor: "pointer" } : undefined}
+          onClick={() => b.trainingId && setOpenTrainingId(b.trainingId)}
+        >
+          <div className={styles.bookingCardTop}>
             <div>
               <CoachNameButton booking={b} onOpen={(coachUserId) => setCoachView({ screen: "profile", coachUserId })} />
               {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
@@ -208,13 +211,15 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
               </button>
             )}
           </div>
-        ))}
+        </div>
+      ))}
 
-        {declinedOrExpired.length > 0 && (
-          <>
-            <h2 className={profileStyles.title}>Отклонённые</h2>
-            {declinedOrExpired.map((b) => (
-              <div className={styles.bookingRow} key={b.id}>
+      {declinedOrExpired.length > 0 && (
+        <>
+          <h2 className={profileStyles.title}>Отклонённые</h2>
+          {declinedOrExpired.map((b) => (
+            <div className={profileStyles.card} key={b.id}>
+              <div className={styles.bookingCardTop}>
                 <div>
                   <CoachNameButton booking={b} onOpen={(coachUserId) => setCoachView({ screen: "profile", coachUserId })} />
                   {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
@@ -224,10 +229,10 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
                   {b.status === "declined" ? "Отклонена тренером" : "Истекла — тренер не ответил"}
                 </span>
               </div>
-            ))}
-          </>
-        )}
-      </div>
+            </div>
+          ))}
+        </>
+      )}
 
       {reviewing && (
         <ReviewModal

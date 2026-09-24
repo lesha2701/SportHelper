@@ -69,51 +69,51 @@ export function IncomingBookingsScreen({ token, onBack }: { token: string; onBac
         </button>
       </div>
 
-      <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>Входящие заявки</h1>
+      <h1 className={profileStyles.pageHeading}>Входящие заявки</h1>
 
-        {actionError && <p className={profileStyles.error}>{actionError}</p>}
+      {actionError && (
+        <div className={profileStyles.card}>
+          <p className={profileStyles.error}>{actionError}</p>
+        </div>
+      )}
 
-        {state.bookings.length === 0 && <p className={profileStyles.subtitle}>Нет заявок, ожидающих ответа.</p>}
+      {state.bookings.length === 0 && (
+        <div className={profileStyles.card}>
+          <p className={profileStyles.subtitle}>Нет заявок, ожидающих ответа.</p>
+        </div>
+      )}
 
-        {state.bookings.map((b) => (
-          <div className={styles.incomingRow} key={b.id}>
-            <div>
-              <button
-                type="button"
-                className={profileStyles.rowValue}
-                style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", textDecoration: "underline" }}
-                onClick={() => setViewingPlayerId(b.athleteUserId)}
-              >
-                {b.athleteFullName}
-              </button>
-              {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
-              <p className={profileStyles.subtitle}>
-                {formatDate(b.startsAt)} · {b.format === "online" ? "Онлайн" : "Очно"}
-              </p>
-              {b.athleteNotes && <p className={styles.bookingNotes}>Пожелания: {b.athleteNotes}</p>}
-            </div>
-            <div className={styles.incomingActions}>
-              <button
-                type="button"
-                className={profileStyles.buttonPrimary}
-                disabled={busyId === b.id}
-                onClick={() => void respond(b.id, "confirm")}
-              >
-                Подтвердить
-              </button>
-              <button
-                type="button"
-                className={profileStyles.buttonSecondary}
-                disabled={busyId === b.id}
-                onClick={() => void respond(b.id, "decline")}
-              >
-                Отклонить
-              </button>
-            </div>
+      {state.bookings.map((b) => (
+        <div className={profileStyles.card} key={b.id}>
+          <button type="button" className={styles.bookingAthleteName} onClick={() => setViewingPlayerId(b.athleteUserId)}>
+            {b.athleteFullName}
+          </button>
+          {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
+          <p className={profileStyles.subtitle}>
+            {formatDate(b.startsAt)} · {b.format === "online" ? "Онлайн" : "Очно"}
+          </p>
+          {b.athleteNotes && <p className={styles.bookingNotes}>Пожелания: {b.athleteNotes}</p>}
+
+          <div className={styles.incomingActions}>
+            <button
+              type="button"
+              className={profileStyles.buttonPrimary}
+              disabled={busyId === b.id}
+              onClick={() => void respond(b.id, "confirm")}
+            >
+              Подтвердить
+            </button>
+            <button
+              type="button"
+              className={profileStyles.buttonSecondary}
+              disabled={busyId === b.id}
+              onClick={() => void respond(b.id, "decline")}
+            >
+              Отклонить
+            </button>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }

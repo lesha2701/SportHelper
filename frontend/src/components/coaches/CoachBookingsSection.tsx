@@ -1,5 +1,5 @@
 // frontend/src/components/coaches/CoachBookingsSection.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { listCoachBookings } from "../../api/bookings";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
@@ -10,6 +10,51 @@ import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 import { PlanPickerModal } from "./PlanPickerModal";
 import { PlayerPublicProfileScreen } from "./PlayerPublicProfileScreen";
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+
+function BookingCard({
+  booking,
+  statusBadge,
+  showPlanRow,
+  onOpenPlayer,
+  onOpenPlan,
+}: {
+  booking: Booking;
+  statusBadge: ReactNode;
+  showPlanRow: boolean;
+  onOpenPlayer: (userId: string) => void;
+  onOpenPlan: (booking: Booking) => void;
+}) {
+  return (
+    <div className={profileStyles.card}>
+      <div className={styles.bookingCardTop}>
+        <div>
+          <button type="button" className={styles.bookingAthleteName} onClick={() => onOpenPlayer(booking.athleteUserId)}>
+            {booking.athleteFullName}
+          </button>
+          {booking.listingTitle && <p className={profileStyles.subtitle}>{booking.listingTitle}</p>}
+          <p className={profileStyles.subtitle}>
+            {formatDate(booking.startsAt)} · {booking.format === "online" ? "Онлайн" : "Очно"}
+          </p>
+        </div>
+        {statusBadge}
+      </div>
+      {booking.athleteNotes && <p className={styles.bookingNotes}>Пожелания: {booking.athleteNotes}</p>}
+      {showPlanRow && (
+        <div className={styles.bookingPlanRow}>
+          <span className={styles.bookingPlanLabel}>
+            {booking.trainingPlanName ? `План: ${booking.trainingPlanName}` : "План не выбран"}
+          </span>
+          <button type="button" className={styles.bookingPlanAction} onClick={() => onOpenPlan(booking)}>
+            {booking.trainingPlanName ? "Изменить" : "Выбрать план"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** The coach's own session list — who is booked and when. Separate from
  * IncomingBookingsScreen (pending requests needing accept/decline) and
@@ -45,9 +90,6 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
   const past = state.bookings.filter((b) => b.isCompleted);
   const declinedOrExpired = state.bookings.filter((b) => b.status === "declined" || b.status === "expired");
 
-  const formatDate = (iso: string) =>
-    new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
-
   return (
     <div className={profileStyles.screen}>
       <div className={sharedStyles.headerRow}>
@@ -57,98 +99,53 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
         </button>
       </div>
 
-      <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>Записи</h1>
+      <h1 className={profileStyles.pageHeading}>Записи</h1>
 
-        <h2 className={profileStyles.title}>Предстоящие</h2>
-        {upcoming.length === 0 && <p className={profileStyles.subtitle}>Нет предстоящих записей.</p>}
-        {upcoming.map((b) => (
-          <div className={styles.bookingRowStack} key={b.id}>
-            <div className={styles.bookingRowTop}>
-              <div>
-                <button
-                  type="button"
-                  className={profileStyles.rowValue}
-                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", textDecoration: "underline" }}
-                  onClick={() => setViewingPlayerId(b.athleteUserId)}
-                >
-                  {b.athleteFullName}
-                </button>
-                {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
-                <p className={profileStyles.subtitle}>
-                  {formatDate(b.startsAt)} · {b.format === "online" ? "Онлайн" : "Очно"}
-                </p>
-              </div>
-              <span className={styles.bookingStatus}>Подтверждена</span>
-            </div>
-            {b.athleteNotes && <p className={styles.bookingNotes}>Пожелания: {b.athleteNotes}</p>}
-            <div className={styles.bookingPlanRow}>
-              <span className={styles.bookingPlanLabel}>
-                {b.trainingPlanName ? `План: ${b.trainingPlanName}` : "План не выбран"}
-              </span>
-              <button type="button" className={styles.bookingPlanAction} onClick={() => setPlanPickerFor(b)}>
-                {b.trainingPlanName ? "Изменить" : "Выбрать план"}
-              </button>
-            </div>
-          </div>
-        ))}
+      <h2 className={profileStyles.title}>Предстоящие</h2>
+      {upcoming.length === 0 && <p className={profileStyles.subtitle}>Нет предстоящих записей.</p>}
+      {upcoming.map((b) => (
+        <BookingCard
+          key={b.id}
+          booking={b}
+          statusBadge={<span className={styles.bookingStatus}>Подтверждена</span>}
+          showPlanRow
+          onOpenPlayer={setViewingPlayerId}
+          onOpenPlan={setPlanPickerFor}
+        />
+      ))}
 
-        <h2 className={profileStyles.title}>Прошедшие</h2>
-        {past.length === 0 && <p className={profileStyles.subtitle}>Пока нет прошедших записей.</p>}
-        {past.map((b) => (
-          <div className={styles.bookingRowStack} key={b.id}>
-            <div className={styles.bookingRowTop}>
-              <div>
-                <button
-                  type="button"
-                  className={profileStyles.rowValue}
-                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", textDecoration: "underline" }}
-                  onClick={() => setViewingPlayerId(b.athleteUserId)}
-                >
-                  {b.athleteFullName}
-                </button>
-                {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
-                <p className={profileStyles.subtitle}>{formatDate(b.startsAt)}</p>
-              </div>
-              <span className={styles.bookingStatusMuted}>{b.hasReview ? "Есть отзыв" : "Завершена"}</span>
-            </div>
-            {b.athleteNotes && <p className={styles.bookingNotes}>Пожелания: {b.athleteNotes}</p>}
-            <div className={styles.bookingPlanRow}>
-              <span className={styles.bookingPlanLabel}>
-                {b.trainingPlanName ? `План: ${b.trainingPlanName}` : "План не выбран"}
-              </span>
-              <button type="button" className={styles.bookingPlanAction} onClick={() => setPlanPickerFor(b)}>
-                {b.trainingPlanName ? "Изменить" : "Выбрать план"}
-              </button>
-            </div>
-          </div>
-        ))}
+      <h2 className={profileStyles.title}>Прошедшие</h2>
+      {past.length === 0 && <p className={profileStyles.subtitle}>Пока нет прошедших записей.</p>}
+      {past.map((b) => (
+        <BookingCard
+          key={b.id}
+          booking={b}
+          statusBadge={<span className={styles.bookingStatusMuted}>{b.hasReview ? "Есть отзыв" : "Завершена"}</span>}
+          showPlanRow
+          onOpenPlayer={setViewingPlayerId}
+          onOpenPlan={setPlanPickerFor}
+        />
+      ))}
 
-        {declinedOrExpired.length > 0 && (
-          <>
-            <h2 className={profileStyles.title}>Отклонённые</h2>
-            {declinedOrExpired.map((b) => (
-              <div className={styles.bookingRow} key={b.id}>
-                <div>
-                  <button
-                  type="button"
-                  className={profileStyles.rowValue}
-                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", textDecoration: "underline" }}
-                  onClick={() => setViewingPlayerId(b.athleteUserId)}
-                >
-                  {b.athleteFullName}
-                </button>
-                  {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
-                  <p className={profileStyles.subtitle}>{formatDate(b.startsAt)}</p>
-                </div>
+      {declinedOrExpired.length > 0 && (
+        <>
+          <h2 className={profileStyles.title}>Отклонённые</h2>
+          {declinedOrExpired.map((b) => (
+            <BookingCard
+              key={b.id}
+              booking={b}
+              statusBadge={
                 <span className={styles.bookingStatusMuted}>
                   {b.status === "declined" ? "Отклонена вами" : "Истекла — не рассмотрена вовремя"}
                 </span>
-              </div>
-            ))}
-          </>
-        )}
-      </div>
+              }
+              showPlanRow={false}
+              onOpenPlayer={setViewingPlayerId}
+              onOpenPlan={setPlanPickerFor}
+            />
+          ))}
+        </>
+      )}
 
       {planPickerFor && (
         <PlanPickerModal
