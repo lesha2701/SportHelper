@@ -255,8 +255,9 @@
 
 .resultsHeader {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 12px;
   font-size: 13.5px;
   color: var(--color-text-secondary);
 }
@@ -266,6 +267,62 @@
   flex-direction: column;
   gap: 14px;
   min-width: 0;
+}
+
+/* Desktop-only layout toggle for the results grid — hidden on mobile,
+   where a single column is the only sensible option anyway. */
+.layoutToggleRow {
+  display: none;
+  gap: 4px;
+}
+
+@media (min-width: 900px) {
+  .layoutToggleRow {
+    display: flex;
+  }
+}
+
+.layoutToggleButton,
+.layoutToggleButtonActive {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.layoutToggleButtonActive {
+  border-color: var(--color-primary);
+  background: var(--color-primary-glow);
+  color: var(--color-primary);
+}
+
+/* "В колонну" — one full-width card per row, regardless of viewport. */
+.listingsColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* "3 в ряд" — a fixed 3-column grid on desktop; still a single column on
+   narrower viewports where 3 columns wouldn't fit anything useful. */
+.listingsGrid3 {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .listingsGrid3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
 }
 
 .filterBar {

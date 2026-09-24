@@ -34,7 +34,9 @@ export type IconName =
   | "video"
   | "filter"
   | "map-pin"
-  | "flag";
+  | "flag"
+  | "list"
+  | "grid-3";
 
 const PATHS: Record<IconName, ReactElement> = {
   home: (
@@ -216,6 +218,20 @@ const PATHS: Record<IconName, ReactElement> = {
   flag: (
     <>
       <path d="M5.5 21V4M5.5 4h11l-2.6 3.6L16.5 11h-11" />
+    </>
+  ),
+  list: (
+    <>
+      <rect x="4" y="5" width="16" height="4" rx="1.1" />
+      <rect x="4" y="10.5" width="16" height="4" rx="1.1" />
+      <rect x="4" y="16" width="16" height="4" rx="1.1" />
+    </>
+  ),
+  "grid-3": (
+    <>
+      <rect x="3.5" y="5" width="5" height="14" rx="1.1" />
+      <rect x="9.5" y="5" width="5" height="14" rx="1.1" />
+      <rect x="15.5" y="5" width="5" height="14" rx="1.1" />
     </>
   ),
 };

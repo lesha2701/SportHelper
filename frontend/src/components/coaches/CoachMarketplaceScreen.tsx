@@ -145,6 +145,18 @@ function ListingDetailPanel({
 }
 
 const MAX_PRICE_CEILING = 5000;
+const LISTINGS_LAYOUT_STORAGE_KEY = "coachMarketplaceListingsLayout";
+
+type ListingsLayout = "column" | "grid3";
+
+function loadStoredLayout(): ListingsLayout {
+  try {
+    const stored = window.localStorage.getItem(LISTINGS_LAYOUT_STORAGE_KEY);
+    return stored === "grid3" ? "grid3" : "column";
+  } catch {
+    return "column";
+  }
+}
 
 export function CoachMarketplaceScreen({ token }: { token: string }) {
   const isDesktop = useIsDesktop();
@@ -155,6 +167,21 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
   const [maxPrice, setMaxPrice] = useState(MAX_PRICE_CEILING);
   const [minRating, setMinRating] = useState<number | undefined>(undefined);
   const [onlineOnly, setOnlineOnly] = useState(false);
+  const [listingsLayout, setListingsLayout] = useState<ListingsLayout>(loadStoredLayout);
+
+  const setLayout = (layout: ListingsLayout) => {
+    setListingsLayout(layout);
+    try {
+      window.localStorage.setItem(LISTINGS_LAYOUT_STORAGE_KEY, layout);
+    } catch {
+      // Best-effort — a private-browsing tab or full storage just means the
+      // choice doesn't persist across reloads, which is fine.
+    }
+  };
+
+  // 3-per-row leaves no room for the master-detail side panel — clicking a
+  // card there goes straight to the coach's profile, same as mobile.
+  const showDetailPanel = isDesktop && listingsLayout === "column";
 
   const load = (filters: CoachListingFilters) => {
     setState({ status: "loading" });
@@ -329,6 +356,28 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
           {state.status === "ready" && (
             <div className={styles.resultsHeader}>
               <span>Найдено {state.listings.length} объявлений</span>
+              <div className={styles.layoutToggleRow}>
+                <button
+                  type="button"
+                  className={listingsLayout === "column" ? styles.layoutToggleButtonActive : styles.layoutToggleButton}
+                  title="В колонну"
+                  aria-label="В колонну"
+                  aria-pressed={listingsLayout === "column"}
+                  onClick={() => setLayout("column")}
+                >
+                  <Icon name="list" size={16} />
+                </button>
+                <button
+                  type="button"
+                  className={listingsLayout === "grid3" ? styles.layoutToggleButtonActive : styles.layoutToggleButton}
+                  title="3 в ряд"
+                  aria-label="3 в ряд"
+                  aria-pressed={listingsLayout === "grid3"}
+                  onClick={() => setLayout("grid3")}
+                >
+                  <Icon name="grid-3" size={16} />
+                </button>
+              </div>
             </div>
           )}
 
@@ -341,32 +390,38 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
           )}
           {state.status === "ready" && state.listings.length > 0 && (() => {
             const selected = state.listings.find((l) => l.id === selectedId) ?? state.listings[0]!;
+            const gridClassName = listingsLayout === "grid3" ? styles.listingsGrid3 : styles.listingsColumn;
+            const cards = (
+              <div className={gridClassName}>
+                {state.listings.map((listing) => (
+                  <ListingCardView
+                    key={listing.id}
+                    token={token}
+                    listing={listing}
+                    onOpen={() =>
+                      showDetailPanel
+                        ? setSelectedId(listing.id)
+                        : setView({ screen: "coachProfile", coachUserId: listing.coachUserId })
+                    }
+                  />
+                ))}
+              </div>
+            );
+
+            // libraryLayout reserves a fixed 360px column for the detail
+            // panel — only wrap in it when that panel actually renders, or
+            // the reserved (empty) column starves the cards of width.
+            if (!showDetailPanel) return cards;
+
             return (
               <div className={libStyles.libraryLayout}>
-                <div className={libStyles.libraryMain}>
-                  <div className={teamStyles.cardGrid}>
-                    {state.listings.map((listing) => (
-                      <ListingCardView
-                        key={listing.id}
-                        token={token}
-                        listing={listing}
-                        onOpen={() =>
-                          isDesktop
-                            ? setSelectedId(listing.id)
-                            : setView({ screen: "coachProfile", coachUserId: listing.coachUserId })
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-                {isDesktop && (
-                  <ListingDetailPanel
-                    token={token}
-                    listing={selected}
-                    onBook={() => setView({ screen: "profile", listingId: selected.id, coachUserId: selected.coachUserId })}
-                    onOpenProfile={() => setView({ screen: "coachProfile", coachUserId: selected.coachUserId })}
-                  />
-                )}
+                <div className={libStyles.libraryMain}>{cards}</div>
+                <ListingDetailPanel
+                  token={token}
+                  listing={selected}
+                  onBook={() => setView({ screen: "profile", listingId: selected.id, coachUserId: selected.coachUserId })}
+                  onOpenProfile={() => setView({ screen: "coachProfile", coachUserId: selected.coachUserId })}
+                />
               </div>
             );
           })()}
