@@ -1,4 +1,5 @@
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { BrowserLogin } from "./components/BrowserLogin";
 import { StateScreen } from "./components/StateScreen";
 import { Workspace } from "./Workspace";
 
@@ -10,13 +11,7 @@ function AuthGate() {
       return <StateScreen kind="loading" title="Выполняется вход…" />;
 
     case "unavailable":
-      return (
-        <StateScreen
-          kind="empty"
-          title="Откройте приложение через Telegram"
-          description="TeamFlow Sports работает как Mini App внутри Telegram. Запустите бота и нажмите кнопку «Открыть TeamFlow Sports»."
-        />
-      );
+      return <BrowserLogin />;
 
     case "forbidden":
       return <StateScreen kind="forbidden" title="Доступ ограничен" description={state.message} />;

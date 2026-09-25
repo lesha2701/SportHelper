@@ -167,6 +167,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
     from app.config import get_settings
 
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", BOT_TOKEN)
+    monkeypatch.setenv("TELEGRAM_BOT_USERNAME", "TestFlowBot")
     monkeypatch.setenv("JWT_SECRET", "test-jwt-secret")
     # The rate limiter is real (not mocked) in tests — a single test can
     # legitimately fire more requests than a human would in a minute, so
@@ -303,6 +304,35 @@ def client(monkeypatch: pytest.MonkeyPatch):
         coach_store[user_id] = profile
         return profile
 
+    import app.repositories.login_tokens as login_tokens_module
+
+    login_tokens_store: dict[str, dict] = {}
+
+    async def fake_login_create(conn, token, ttl_seconds):
+        login_tokens_store[token] = {"user_id": None, "ttl": ttl_seconds}
+
+    async def fake_login_confirm(conn, token, user_id):
+        entry = login_tokens_store.get(token)
+        if entry is None or entry["user_id"] is not None or entry["ttl"] <= 0:
+            return False
+        entry["user_id"] = user_id
+        return True
+
+    async def fake_login_consume(conn, token):
+        entry = login_tokens_store.get(token)
+        if entry is None or entry["user_id"] is None or entry["ttl"] <= 0:
+            return None
+        del login_tokens_store[token]
+        return entry["user_id"]
+
+    async def fake_login_is_pending(conn, token):
+        entry = login_tokens_store.get(token)
+        return entry is not None and entry["ttl"] > 0
+
+    monkeypatch.setattr(login_tokens_module, "create", fake_login_create)
+    monkeypatch.setattr(login_tokens_module, "confirm", fake_login_confirm)
+    monkeypatch.setattr(login_tokens_module, "consume", fake_login_consume)
+    monkeypatch.setattr(login_tokens_module, "is_pending", fake_login_is_pending)
     monkeypatch.setattr(users_module, "upsert_from_telegram", fake_upsert_from_telegram)
     monkeypatch.setattr(users_module, "get_by_id", fake_get_by_id)
     monkeypatch.setattr(users_module, "set_active_mode", fake_set_active_mode)

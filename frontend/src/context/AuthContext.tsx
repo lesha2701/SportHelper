@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { ApiError } from "../api/client";
-import { devLogin, devLogin2, loginWithTelegram } from "../api/auth";
+import { devLogin, devLogin2, fetchCurrentUser, loginWithTelegram, type AuthResult } from "../api/auth";
 import { bootstrapTelegram } from "../telegram/init";
 import type { User } from "../types/user";
 
@@ -17,6 +17,28 @@ interface AuthContextValue {
   /** Merges a freshly-fetched User (e.g. after an avatar upload) into the
    * current session without a full re-login. No-op if not currently ready. */
   updateUser: (user: User) => void;
+  /** Completes a browser (non-Telegram) login and remembers the session. */
+  signIn: (result: AuthResult) => void;
+  logout: () => void;
+}
+
+const SESSION_KEY = "teamflow.session";
+
+function readStoredToken(): string | null {
+  try {
+    return window.localStorage.getItem(SESSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredToken(token: string | null): void {
+  try {
+    if (token) window.localStorage.setItem(SESSION_KEY, token);
+    else window.localStorage.removeItem(SESSION_KEY);
+  } catch {
+    // storage unavailable (private mode) — the session just won't survive a reload
+  }
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -68,7 +90,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setState({ status: "unavailable" });
+    // Plain browser: resume a remembered session, otherwise show the
+    // "log in via the Telegram bot" screen (see BrowserLogin).
+    const storedToken = readStoredToken();
+    if (!storedToken) {
+      setState({ status: "unavailable" });
+      return;
+    }
+    fetchCurrentUser(storedToken)
+      .then((user) => setState({ status: "ready", user, token: storedToken }))
+      .catch(() => {
+        writeStoredToken(null);
+        setState({ status: "unavailable" });
+      });
   }, []);
 
   useEffect(() => {
@@ -79,7 +113,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState((prev) => (prev.status === "ready" ? { ...prev, user } : prev));
   }, []);
 
-  return <AuthContext.Provider value={{ state, retry: runAuth, updateUser }}>{children}</AuthContext.Provider>;
+  const signIn = useCallback((result: AuthResult) => {
+    writeStoredToken(result.accessToken);
+    setState({ status: "ready", user: result.user, token: result.accessToken });
+  }, []);
+
+  const logout = useCallback(() => {
+    writeStoredToken(null);
+    setState({ status: "unavailable" });
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ state, retry: runAuth, updateUser, signIn, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {

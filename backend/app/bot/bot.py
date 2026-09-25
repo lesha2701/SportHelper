@@ -27,7 +27,7 @@ def create_dispatcher(settings: Settings, pool: asyncpg.Pool | None = None) -> D
     dispatcher = Dispatcher()
     dispatcher["settings"] = settings
     dispatcher["pool"] = pool
-    dispatcher.include_router(register_start(settings))
+    dispatcher.include_router(register_start(settings, pool))
     if pool is not None:
         dispatcher.include_router(register_admin(settings, pool))
     return dispatcher

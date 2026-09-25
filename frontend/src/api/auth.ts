@@ -42,3 +42,33 @@ export async function fetchCurrentUser(token: string): Promise<User> {
   const dto = await apiRequest<UserDto>("/api/auth/me", { token });
   return mapUserDto(dto);
 }
+
+export interface BrowserLoginStart {
+  token: string;
+  botUrl: string;
+  expiresIn: number;
+}
+
+export async function startBrowserLogin(): Promise<BrowserLoginStart> {
+  const dto = await apiRequest<{ token: string; bot_url: string; expires_in: number }>(
+    "/api/auth/browser/start",
+    { method: "POST" },
+  );
+  return { token: dto.token, botUrl: dto.bot_url, expiresIn: dto.expires_in };
+}
+
+export type BrowserLoginPoll =
+  | { status: "pending" }
+  | { status: "expired" }
+  | { status: "ok"; result: AuthResult };
+
+export async function pollBrowserLogin(token: string): Promise<BrowserLoginPoll> {
+  const dto = await apiRequest<{ status: string; auth: AuthResponseDto | null }>("/api/auth/browser/poll", {
+    method: "POST",
+    body: { token },
+  });
+  if (dto.status === "ok" && dto.auth) {
+    return { status: "ok", result: { accessToken: dto.auth.access_token, user: mapUserDto(dto.auth.user) } };
+  }
+  return { status: dto.status === "pending" ? "pending" : "expired" };
+}
