@@ -29,7 +29,7 @@ import { listNotifications } from "./api/notifications";
 import { TEAM_ROLE_LABELS, type Team } from "./types/team";
 import type { Training } from "./types/training";
 import type { CalendarEvent } from "./types/calendar";
-import type { NotificationCategory, NotificationItem } from "./types/notification";
+import type { NotificationCategory } from "./types/notification";
 
 function initialOf(name: string): string {
   return name.trim().charAt(0).toUpperCase() || "?";

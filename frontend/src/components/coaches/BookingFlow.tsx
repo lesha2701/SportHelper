@@ -39,7 +39,7 @@ export function BookingFlow({
   onBooked: (booking: Booking) => void;
 }) {
   const days = nextNDays(14);
-  const [selectedDay, setSelectedDay] = useState(toDateKey(days[0]));
+  const [selectedDay, setSelectedDay] = useState(toDateKey(days[0] ?? new Date()));
   const [slots, setSlots] = useState<OpenSlot[] | null>(null);
   const [slotsError, setSlotsError] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<OpenSlot | null>(null);
