@@ -1,5 +1,5 @@
 // frontend/src/components/coaches/ListingEditScreen.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   createListing,
   getListingAvailability,
@@ -10,6 +10,8 @@ import {
 } from "../../api/coachListings";
 import { ApiError } from "../../api/client";
 import { Icon } from "../shared/Icon";
+import { photoVideoGallery } from "../shared/MediaLightbox";
+import { toast, withoutSuccessToasts } from "../../toast";
 import { FilePicker } from "../shared/FilePicker";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { AuthenticatedVideo } from "../shared/AuthenticatedVideo";
@@ -19,11 +21,41 @@ import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 
 const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
+const MAX_VIDEO_SECONDS = 60;
 
 interface WindowDraft {
   weekday: number;
   startTime: string;
   endTime: string;
+}
+
+/** Client-side pre-check of a picked video (the server enforces the same
+ * limits) so a too-big/too-long file is rejected before the long upload. */
+function checkVideo(file: File): Promise<string | null> {
+  if (file.size > MAX_VIDEO_BYTES) return Promise.resolve("Видео больше 100 МБ.");
+  return new Promise((resolve) => {
+    const probe = document.createElement("video");
+    const url = URL.createObjectURL(file);
+    const done = (result: string | null) => {
+      URL.revokeObjectURL(url);
+      resolve(result);
+    };
+    probe.preload = "metadata";
+    probe.onloadedmetadata = () =>
+      done(probe.duration > MAX_VIDEO_SECONDS + 0.5 ? "Видео должно быть короче 1 минуты." : null);
+    // Some containers can't be probed in the browser; the server still checks.
+    probe.onerror = () => done(null);
+    probe.src = url;
+  });
+}
+
+function usePreviewUrl(file: File | null): string | null {
+  const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  useEffect(() => () => {
+    if (url) URL.revokeObjectURL(url);
+  }, [url]);
+  return url;
 }
 
 export function ListingEditScreen({
@@ -36,6 +68,8 @@ export function ListingEditScreen({
   onBack: () => void;
 }) {
   const isNew = initialListing === null;
+  // Set once the row exists server-side. If a multi-step save fails halfway
+  // for a new listing, a retry continues as an update instead of creating a duplicate.
   const [listingId, setListingId] = useState<string | null>(initialListing?.id ?? null);
   const [title, setTitle] = useState(initialListing?.title ?? "");
   const [description, setDescription] = useState(initialListing?.description ?? "");
@@ -48,42 +82,76 @@ export function ListingEditScreen({
   const [duration, setDuration] = useState(initialListing?.sessionDurationMinutes?.toString() ?? "60");
   const [photoFileId, setPhotoFileId] = useState<string | null>(initialListing?.photoFileId ?? null);
   const [videoFileId, setVideoFileId] = useState<string | null>(initialListing?.videoFileId ?? null);
+  // Newly picked files, uploaded together with everything else on Save.
+  const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
+  const [pendingVideo, setPendingVideo] = useState<File | null>(null);
+  const photoPreview = usePreviewUrl(pendingPhoto);
+  const videoPreview = usePreviewUrl(pendingVideo);
+  const [windows, setWindows] = useState<WindowDraft[]>([]);
+  // Existing listings load their schedule first; saving without it would wipe it.
+  const [availabilityReady, setAvailabilityReady] = useState(isNew);
+  const [availabilityLoadError, setAvailabilityLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [mediaError, setMediaError] = useState<string | null>(null);
-  const [mediaBusy, setMediaBusy] = useState(false);
-  const [windows, setWindows] = useState<WindowDraft[]>([]);
-  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
-  const [availabilityLoadError, setAvailabilityLoadError] = useState<string | null>(null);
-  const [savingAvailability, setSavingAvailability] = useState(false);
 
   useEffect(() => {
-    if (listingId === null) return;
-    getListingAvailability(token, listingId)
-      .then((loaded) =>
+    if (initialListing === null) return;
+    getListingAvailability(token, initialListing.id)
+      .then((loaded) => {
         setWindows(
           loaded.map((w: AvailabilityWindow) => ({
             weekday: w.weekday,
             startTime: w.startTime.slice(0, 5),
             endTime: w.endTime.slice(0, 5),
           })),
-        ),
-      )
+        );
+        setAvailabilityReady(true);
+      })
       .catch((err: unknown) => setAvailabilityLoadError(err instanceof ApiError ? err.message : "Не удалось загрузить расписание"));
-    // Only runs once, for the listing this screen was opened with — a
-    // brand-new listing has no id yet at mount time (handled by the
-    // listingId===null guard above and re-triggered once handleSave sets it).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listingId]);
+  }, []);
+
+  const fail = (message: string) => {
+    setError(message);
+    toast.error(message);
+  };
+
+  const pickPhoto = (file: File) => {
+    setError(null);
+    setPendingPhoto(file);
+  };
+
+  const pickVideo = async (file: File) => {
+    setError(null);
+    const problem = await checkVideo(file);
+    if (problem) {
+      fail(problem);
+      return;
+    }
+    setPendingVideo(file);
+  };
+
+  const validate = (): string | null => {
+    if (!title.trim()) return "Укажите название объявления.";
+    for (const w of windows) {
+      if (!w.startTime || !w.endTime || w.startTime >= w.endTime) {
+        return "В расписании время окончания должно быть позже времени начала.";
+      }
+    }
+    if (isListed) {
+      if (!(offersOnline || offersOffline)) return "Выберите формат тренировки (онлайн или очно), чтобы опубликовать объявление.";
+      if (!price) return "Укажите цену, чтобы опубликовать объявление.";
+      if (!duration) return "Укажите длительность тренировки, чтобы опубликовать объявление.";
+      if (windows.length === 0) return "Добавьте хотя бы одно окно в расписание — без него нельзя опубликовать объявление.";
+    }
+    return null;
+  };
 
   const handleSave = async () => {
     setError(null);
-    if (!title.trim()) {
-      setError("Укажите название объявления.");
-      return;
-    }
-    if (isListed && (!(offersOnline || offersOffline) || !price || !duration)) {
-      setError("Укажите цену, формат и длительность тренировки, прежде чем публиковать.");
+    const problem = validate();
+    if (problem) {
+      fail(problem);
       return;
     }
     setSaving(true);
@@ -98,106 +166,83 @@ export function ListingEditScreen({
       location: location.trim() || null,
       session_duration_minutes: duration ? Number(duration) : null,
     };
+    const availabilityPayload = windows.map((w) => ({
+      weekday: w.weekday,
+      start_time: `${w.startTime}:00`,
+      end_time: `${w.endTime}:00`,
+    }));
+
+    const wasNew = listingId === null;
+    let step = "объявление";
     try {
-      if (listingId === null) {
-        const wantedListed = isListed;
-        // A brand-new listing can never be created already-listed (no
-        // availability could exist yet for a not-yet-created row) — the
-        // backend rejects this with its own 409 regardless, so create
-        // unlisted first and let the coach publish via a follow-up Save
-        // once they've added availability below.
-        const created = await createListing(token, { ...payload, is_listed: false });
-        setListingId(created.id);
-        setIsListed(false);
-        if (wantedListed) {
-          setError("Объявление создано. Добавьте расписание ниже, затем сохраните ещё раз, чтобы опубликовать.");
+      await withoutSuccessToasts(async () => {
+        let id = listingId;
+        if (id === null) {
+          // The backend refuses to create a listing already published (no
+          // schedule can exist for a row that isn't there yet): create it
+          // hidden, attach schedule + media, then publish as the last step.
+          const created = await createListing(token, { ...payload, is_listed: false });
+          id = created.id;
+          setListingId(id);
         }
-      } else {
-        await updateListing(token, listingId, payload);
-      }
+
+        if (availabilityReady && !(wasNew && windows.length === 0)) {
+          step = "расписание";
+          await replaceListingAvailability(token, id, availabilityPayload);
+        }
+        if (!wasNew) {
+          step = "объявление";
+          await updateListing(token, id, payload);
+        }
+
+        if (pendingPhoto) {
+          step = "фото";
+          const updated = await uploadListingPhoto(token, id, pendingPhoto);
+          setPhotoFileId(updated.photoFileId);
+          setPendingPhoto(null);
+        }
+        if (pendingVideo) {
+          step = "видео";
+          const updated = await uploadListingVideo(token, id, pendingVideo);
+          setVideoFileId(updated.videoFileId);
+          setPendingVideo(null);
+        }
+
+        if (wasNew && isListed) {
+          step = "публикацию";
+          await updateListing(token, id, payload);
+        }
+      });
+      toast.success(wasNew ? "Объявление создано" : "Объявление сохранено");
+      onBack();
     } catch (err) {
-      setError(
+      // The API layer already toasted the server's reason; explain what was affected.
+      const reason =
         err instanceof ApiError && err.code === "availability_required"
           ? "Сначала задайте расписание — без него нельзя опубликовать объявление."
-          : err instanceof ApiError
-            ? err.message
-            : "Не удалось сохранить объявление",
+          : err instanceof ApiError && err.code === "video_too_long"
+            ? "Видео должно быть короче 1 минуты."
+            : err instanceof ApiError && err.code === "unsupported_media_type"
+              ? "Неподдерживаемый формат файла."
+              : err instanceof ApiError
+                ? err.message
+                : "Неизвестная ошибка";
+      setError(
+        wasNew && step !== "объявление"
+          ? `Объявление создано, но не удалось сохранить ${step}: ${reason} Исправьте и нажмите «Сохранить» ещё раз.`
+          : `Не удалось сохранить ${step}: ${reason}`,
       );
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSaveAvailability = async () => {
-    if (listingId === null) {
-      setAvailabilityError("Сначала сохраните объявление.");
-      return;
-    }
-    setAvailabilityError(null);
-    setSavingAvailability(true);
-    try {
-      await replaceListingAvailability(
-        token,
-        listingId,
-        windows.map((w) => ({ weekday: w.weekday, start_time: `${w.startTime}:00`, end_time: `${w.endTime}:00` })),
-      );
-    } catch (err) {
-      setAvailabilityError(
-        err instanceof ApiError && err.code === "overlapping_availability"
-          ? "Окна пересекаются — поправьте время."
-          : err instanceof ApiError
-            ? err.message
-            : "Не удалось сохранить расписание",
-      );
-    } finally {
-      setSavingAvailability(false);
-    }
-  };
-
-  const handlePhotoChange = async (file: File) => {
-    if (listingId === null) {
-      setMediaError("Сначала сохраните объявление.");
-      return;
-    }
-    setMediaBusy(true);
-    setMediaError(null);
-    try {
-      const updated = await uploadListingPhoto(token, listingId, file);
-      setPhotoFileId(updated.photoFileId);
-    } catch (err) {
-      setMediaError(err instanceof ApiError ? err.message : "Не удалось загрузить фото");
-    } finally {
-      setMediaBusy(false);
-    }
-  };
-
-  const handleVideoChange = async (file: File) => {
-    if (listingId === null) {
-      setMediaError("Сначала сохраните объявление.");
-      return;
-    }
-    setMediaBusy(true);
-    setMediaError(null);
-    try {
-      const updated = await uploadListingVideo(token, listingId, file);
-      setVideoFileId(updated.videoFileId);
-    } catch (err) {
-      if (err instanceof ApiError && err.code === "video_too_long") {
-        setMediaError("Видео должно быть короче 1 минуты.");
-      } else if (err instanceof ApiError && err.code === "unsupported_media_type") {
-        setMediaError("Видео должно быть в формате MP4, MOV или WEBM.");
-      } else {
-        setMediaError(err instanceof ApiError ? err.message : "Не удалось загрузить видео");
-      }
-    } finally {
-      setMediaBusy(false);
-    }
-  };
+  const gallery = photoVideoGallery(photoFileId, videoFileId, title);
 
   return (
     <div className={profileStyles.screen}>
       <div className={sharedStyles.headerRow}>
-        <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
+        <button type="button" className={sharedStyles.iconButton} onClick={onBack} disabled={saving}>
           <Icon name="chevron-left" size={16} />
           Назад
         </button>
@@ -277,54 +322,68 @@ export function ListingEditScreen({
           <input className={profileStyles.input} type="number" min={1} value={duration} onChange={(e) => setDuration(e.target.value)} />
         </label>
 
-        {error && <p className={profileStyles.error}>{error}</p>}
-
-        <div className={profileStyles.formActions}>
-          <button type="button" className={profileStyles.buttonPrimary} onClick={() => void handleSave()} disabled={saving}>
-            {saving ? "Сохранение…" : "Сохранить"}
-          </button>
-        </div>
       </div>
 
-      {listingId !== null && (
-        <div className={profileStyles.card}>
-          <h2 className={profileStyles.title}>Фото и видео</h2>
-          {mediaError && <p className={profileStyles.error}>{mediaError}</p>}
+      <div className={profileStyles.card}>
+        <h2 className={profileStyles.title}>Фото и видео</h2>
+        <p className={profileStyles.subtitle}>Файлы загрузятся вместе с объявлением, когда вы нажмёте «Сохранить».</p>
 
-          {photoFileId && <AuthenticatedImage token={token} fileId={photoFileId} alt={title} className={styles.listingPhoto} />}
-          {videoFileId && <AuthenticatedVideo token={token} fileId={videoFileId} className={styles.listingVideo} />}
+        {photoPreview ? (
+          <img className={styles.listingPhoto} src={photoPreview} alt="Новое фото" />
+        ) : (
+          photoFileId && (
+            <AuthenticatedImage token={token} fileId={photoFileId} alt={title} className={styles.listingPhoto} zoomable gallery={gallery.items} galleryIndex={gallery.photoIndex} />
+          )
+        )}
+        <FilePicker
+          icon="image"
+          label={pendingPhoto ? pendingPhoto.name : photoFileId ? "Заменить фотографию" : "Выбрать фотографию"}
+          hint="JPEG, PNG, WEBP или GIF"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          onSelect={pickPhoto}
+          disabled={saving}
+        />
+        {pendingPhoto && (
+          <button type="button" className={profileStyles.buttonSecondary} onClick={() => setPendingPhoto(null)} disabled={saving}>
+            Убрать выбранное фото
+          </button>
+        )}
 
-          <FilePicker
-            icon="image"
-            label="Выбрать фотографию"
-            hint="JPEG, PNG, WEBP или GIF"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            onSelect={(file) => void handlePhotoChange(file)}
-            disabled={mediaBusy}
-          />
-          <FilePicker
-            icon="video"
-            label="Выбрать видео"
-            hint="MP4, MOV или WEBM, до 1 минуты и 100 МБ"
-            accept="video/mp4,video/quicktime,video/webm"
-            onSelect={(file) => void handleVideoChange(file)}
-            disabled={mediaBusy}
-          />
-        </div>
-      )}
+        {videoPreview ? (
+          <video className={styles.listingVideo} src={videoPreview} controls preload="metadata" />
+        ) : (
+          videoFileId && (
+            <AuthenticatedVideo token={token} fileId={videoFileId} className={styles.listingVideo} zoomable gallery={gallery.items} galleryIndex={gallery.videoIndex} />
+          )
+        )}
+        <FilePicker
+          icon="video"
+          label={pendingVideo ? pendingVideo.name : videoFileId ? "Заменить видео" : "Выбрать видео"}
+          hint="MP4, MOV или WEBM, до 1 минуты и 100 МБ"
+          accept="video/mp4,video/quicktime,video/webm"
+          onSelect={(file) => void pickVideo(file)}
+          disabled={saving}
+        />
+        {pendingVideo && (
+          <button type="button" className={profileStyles.buttonSecondary} onClick={() => setPendingVideo(null)} disabled={saving}>
+            Убрать выбранное видео
+          </button>
+        )}
+      </div>
 
-      {listingId !== null && (
-        <div className={profileStyles.card}>
-          <h2 className={profileStyles.title}>Недельное расписание</h2>
-          <p className={profileStyles.subtitle}>Когда вы обычно свободны — из этого система нарежет слоты для записи.</p>
+      <div className={profileStyles.card}>
+        <h2 className={profileStyles.title}>Недельное расписание</h2>
+        <p className={profileStyles.subtitle}>Когда вы обычно свободны — из этого система нарежет слоты для записи.</p>
 
-          {availabilityLoadError ? (
-            <p className={profileStyles.error}>
-              Не удалось загрузить текущее расписание: {availabilityLoadError}. Сохранение отключено, чтобы случайно не стереть
-              существующие окна — обновите страницу и попробуйте снова.
-            </p>
-          ) : (
-            <>
+        {availabilityLoadError ? (
+          <p className={profileStyles.error}>
+            Не удалось загрузить текущее расписание: {availabilityLoadError}. Расписание не будет изменено при сохранении — обновите
+            страницу, чтобы его отредактировать.
+          </p>
+        ) : !availabilityReady ? (
+          <p className={profileStyles.subtitle}>Загрузка расписания…</p>
+        ) : (
+          <>
               {windows.map((w, i) => (
                 <div className={styles.weekdayRow} key={i}>
                   <select
@@ -366,28 +425,21 @@ export function ListingEditScreen({
                 Добавить окно
               </button>
 
-              {availabilityError && <p className={profileStyles.error}>{availabilityError}</p>}
-            </>
-          )}
+          </>
+        )}
+      </div>
 
-          <div className={profileStyles.formActions}>
-            <button
-              type="button"
-              className={profileStyles.buttonPrimary}
-              onClick={() => void handleSaveAvailability()}
-              disabled={savingAvailability || !!availabilityLoadError}
-            >
-              {savingAvailability ? "Сохранение…" : "Сохранить расписание"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {listingId === null && (
+      {error && (
         <div className={profileStyles.card}>
-          <p className={profileStyles.subtitle}>Сохраните объявление, чтобы добавить фото, видео и расписание.</p>
+          <p className={profileStyles.error}>{error}</p>
         </div>
       )}
+
+      <div className={profileStyles.formActions}>
+        <button type="button" className={profileStyles.buttonPrimary} onClick={() => void handleSave()} disabled={saving}>
+          {saving ? "Сохранение…" : "Сохранить"}
+        </button>
+      </div>
     </div>
   );
 }

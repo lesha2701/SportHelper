@@ -305,6 +305,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
         return profile
 
     import app.repositories.login_tokens as login_tokens_module
+    import app.repositories.search as search_module
 
     login_tokens_store: dict[str, dict] = {}
 
@@ -329,7 +330,19 @@ def client(monkeypatch: pytest.MonkeyPatch):
         entry = login_tokens_store.get(token)
         return entry is not None and entry["ttl"] > 0
 
+    async def fake_search_all(conn, user_id, query):
+        # Only teams are backed by an in-memory store here; the real SQL is
+        # exercised against the dev database (see the search route).
+        needle = query.lower()
+        my_team_ids = {tid for (tid, uid) in members_store if uid == user_id}
+        return [
+            {"type": "team", "id": t["id"], "title": t["name"], "subtitle": t.get("sport"), "team_id": t["id"], "on_date": None}
+            for t in teams_store.values()
+            if t["id"] in my_team_ids and needle in t["name"].lower()
+        ]
+
     monkeypatch.setattr(login_tokens_module, "create", fake_login_create)
+    monkeypatch.setattr(search_module, "search_all", fake_search_all)
     monkeypatch.setattr(login_tokens_module, "confirm", fake_login_confirm)
     monkeypatch.setattr(login_tokens_module, "consume", fake_login_consume)
     monkeypatch.setattr(login_tokens_module, "is_pending", fake_login_is_pending)
@@ -1291,7 +1304,19 @@ def client(monkeypatch: pytest.MonkeyPatch):
         for record in trainings_store.values():
             if not (date_from <= record["training_date"] <= date_to):
                 continue
-            if record["type"] == "personal":
+            booking = next(
+                (
+                    b
+                    for b in bookings_store.values()
+                    if b.get("training_id") == record["id"]
+                    and b["coach_user_id"] == user_id
+                    and b["status"] == "confirmed"
+                ),
+                None,
+            )
+            if booking is not None:
+                pass
+            elif record["type"] == "personal":
                 if record["created_by"] != user_id:
                     continue
             elif record.get("team_id") not in my_team_ids:
@@ -1299,6 +1324,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
             team = teams_store.get(record.get("team_id"))
             result.append(
                 {
+                    "booked_athlete_name": "Booked Athlete" if booking is not None else None,
                     "id": record["id"],
                     "type": record["type"],
                     "training_date": record["training_date"],
@@ -1406,7 +1432,14 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(trainings_module, "list_recurrence_group", fake_list_recurrence_group)
     monkeypatch.setattr(trainings_module, "list_team_trainings", fake_list_team_trainings)
     monkeypatch.setattr(trainings_module, "list_personal_trainings", fake_list_personal_trainings)
+    async def fake_is_booked_coach(conn, training_id, user_id):
+        return any(
+            b.get("training_id") == training_id and b["coach_user_id"] == user_id and b["status"] == "confirmed"
+            for b in bookings_store.values()
+        )
+
     monkeypatch.setattr(trainings_module, "list_calendar_trainings", fake_list_calendar_trainings)
+    monkeypatch.setattr(trainings_module, "is_booked_coach", fake_is_booked_coach)
     monkeypatch.setattr(trainings_module, "count_team_trainings_summary", fake_count_team_trainings_summary)
     monkeypatch.setattr(trainings_module, "team_player_attendance", fake_team_player_attendance)
     monkeypatch.setattr(trainings_module, "player_attendance_summary", fake_player_attendance_summary)
@@ -2279,7 +2312,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(coach_listings_module, "replace_availability", fake_replace_listing_availability)
     # coach_listings_module.has_overlap is a plain function — not faked, runs for real in tests.
 
-    async def fake_list_listed(conn, *, sport=None, location=None, max_price=None, min_rating=None, training_format=None, min_experience_years=None):
+    async def fake_list_listed(conn, *, sport=None, location=None, min_price=None, max_price=None, min_rating=None, training_format=None, min_experience_years=None):
         cards = []
         for listing in listings_store.values():
             if not listing.get("is_listed"):
@@ -2290,6 +2323,8 @@ def client(monkeypatch: pytest.MonkeyPatch):
             if sport and sport.lower() not in profile["sport"].lower():
                 continue
             if location and (not listing.get("location") or location.lower() not in listing["location"].lower()):
+                continue
+            if min_price is not None and (listing.get("price_per_session") is None or float(listing["price_per_session"]) < float(min_price)):
                 continue
             if max_price is not None and listing.get("price_per_session") is not None and float(listing["price_per_session"]) > float(max_price):
                 continue

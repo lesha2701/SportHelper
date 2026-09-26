@@ -185,6 +185,17 @@
   border-color: var(--color-primary);
 }
 
+.priceInputRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.priceDash {
+  color: var(--color-text-tertiary);
+}
+
 .priceValueRow {
   display: flex;
   justify-content: space-between;

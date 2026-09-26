@@ -10,6 +10,7 @@ import type { CoachListingProfile } from "../../types/coachListing";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
+import { photoVideoGallery } from "../shared/MediaLightbox";
 
 const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -77,10 +78,19 @@ export function ListingPublicProfileScreen({
                 </div>
               </div>
 
-              {listing.photoFileId && (
-                <AuthenticatedImage token={token} fileId={listing.photoFileId} alt={listing.title} className={styles.listingPhoto} />
-              )}
-              {listing.videoFileId && <AuthenticatedVideo token={token} fileId={listing.videoFileId} className={styles.listingVideo} />}
+              {(() => {
+                const g = photoVideoGallery(listing.photoFileId, listing.videoFileId, listing.title);
+                return (
+                  <>
+                    {listing.photoFileId && (
+                      <AuthenticatedImage token={token} fileId={listing.photoFileId} alt={listing.title} className={styles.listingPhoto} zoomable gallery={g.items} galleryIndex={g.photoIndex} />
+                    )}
+                    {listing.videoFileId && (
+                      <AuthenticatedVideo token={token} fileId={listing.videoFileId} className={styles.listingVideo} zoomable gallery={g.items} galleryIndex={g.videoIndex} />
+                    )}
+                  </>
+                );
+              })()}
 
               {listing.description && (
                 <div className={profileStyles.row}>

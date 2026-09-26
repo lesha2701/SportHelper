@@ -542,3 +542,27 @@ def test_listing_schema_rejects_is_listed_without_price(logged_in_client) -> Non
         json=_listing_payload(is_listed=True, price_per_session=None),
     )
     assert resp.status_code == 422
+
+
+def test_list_listings_filters_by_min_and_max_price(logged_in_client, login_as) -> None:
+    client, coach_token = logged_in_client
+    headers = {"Authorization": f"Bearer {coach_token}"}
+    _create_coach_profile(client, coach_token)
+    for title, price in (("Дёшево", 500), ("Средне", 1500), ("Дорого", 4000)):
+        listing = client.post(
+            "/api/coach-listings", headers=headers, json=_listing_payload(title=title, price_per_session=price)
+        ).json()
+        client.put(
+            f"/api/coach-listings/{listing['id']}/availability",
+            headers=headers,
+            json=[{"weekday": 0, "start_time": "10:00:00", "end_time": "12:00:00"}],
+        )
+        publish = _listing_payload(title=title, price_per_session=price, is_listed=True)
+        assert client.put(f"/api/coach-listings/{listing['id']}", headers=headers, json=publish).status_code == 200
+
+    def titles(**params) -> list[str]:
+        return sorted(c["title"] for c in client.get("/api/coach-listings", params=params, headers=headers).json())
+
+    assert titles(min_price=1000) == ["Дорого", "Средне"]
+    assert titles(min_price=1000, max_price=2000) == ["Средне"]
+    assert titles(max_price=1000) == ["Дёшево"]

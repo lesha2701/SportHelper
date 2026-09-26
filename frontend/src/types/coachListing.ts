@@ -215,6 +215,7 @@ export function mapOpenSlotDto(dto: OpenSlotDto): OpenSlot {
 export interface CoachListingFilters {
   sport?: string;
   location?: string;
+  min_price?: number;
   max_price?: number;
   min_rating?: number;
   format?: "online" | "offline";

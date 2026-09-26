@@ -73,7 +73,7 @@ export function CoachPublicProfileScreen({
             <div className={profileStyles.card}>
               <div className={styles.profileHero}>
                 {profile.avatarFileId ? (
-                  <AuthenticatedImage token={token} fileId={profile.avatarFileId} alt="" className={styles.profileAvatarLg} />
+                  <AuthenticatedImage token={token} fileId={profile.avatarFileId} alt="" className={styles.profileAvatarLg} zoomable />
                 ) : profile.photoUrl ? (
                   <img className={styles.profileAvatarLg} src={profile.photoUrl} alt="" />
                 ) : (

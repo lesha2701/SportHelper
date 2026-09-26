@@ -14,7 +14,7 @@ export interface AuthResult {
 
 export async function loginWithTelegram(initDataRaw: string): Promise<AuthResult> {
   const dto = await apiRequest<AuthResponseDto>("/api/auth/telegram", {
-    method: "POST",
+    method: "POST", silent: true,
     body: { init_data: initDataRaw },
   });
   return { accessToken: dto.access_token, user: mapUserDto(dto.user) };
@@ -25,7 +25,7 @@ export async function loginWithTelegram(initDataRaw: string): Promise<AuthResult
  * only exists on the backend when DEV_AUTH_ENABLED is set, see
  * docs/dev-notes.md. */
 export async function devLogin(): Promise<AuthResult> {
-  const dto = await apiRequest<AuthResponseDto>("/api/auth/dev-login", { method: "POST" });
+  const dto = await apiRequest<AuthResponseDto>("/api/auth/dev-login", { method: "POST", silent: true });
   return { accessToken: dto.access_token, user: mapUserDto(dto.user) };
 }
 
@@ -34,7 +34,7 @@ export async function devLogin(): Promise<AuthResult> {
  * two distinct browser tabs. Opt in by loading the app with `?devUser=2`
  * in the URL — see AuthContext. */
 export async function devLogin2(): Promise<AuthResult> {
-  const dto = await apiRequest<AuthResponseDto>("/api/auth/dev-login-2", { method: "POST" });
+  const dto = await apiRequest<AuthResponseDto>("/api/auth/dev-login-2", { method: "POST", silent: true });
   return { accessToken: dto.access_token, user: mapUserDto(dto.user) };
 }
 
@@ -52,7 +52,7 @@ export interface BrowserLoginStart {
 export async function startBrowserLogin(): Promise<BrowserLoginStart> {
   const dto = await apiRequest<{ token: string; bot_url: string; expires_in: number }>(
     "/api/auth/browser/start",
-    { method: "POST" },
+    { method: "POST", silent: true },
   );
   return { token: dto.token, botUrl: dto.bot_url, expiresIn: dto.expires_in };
 }
@@ -64,7 +64,7 @@ export type BrowserLoginPoll =
 
 export async function pollBrowserLogin(token: string): Promise<BrowserLoginPoll> {
   const dto = await apiRequest<{ status: string; auth: AuthResponseDto | null }>("/api/auth/browser/poll", {
-    method: "POST",
+    method: "POST", silent: true,
     body: { token },
   });
   if (dto.status === "ok" && dto.auth) {

@@ -91,7 +91,7 @@ function ListingDetailPanel({
     <div className={libStyles.detailPanel}>
       <div className={libStyles.detailMedia}>
         {listing.photoFileId ? (
-          <AuthenticatedImage token={token} fileId={listing.photoFileId} alt={listing.title} className={libStyles.detailMediaFill} />
+          <AuthenticatedImage token={token} fileId={listing.photoFileId} alt={listing.title} className={libStyles.detailMediaFill} zoomable />
         ) : (
           <Icon name="image" size={28} />
         )}
@@ -158,13 +158,24 @@ function loadStoredLayout(): ListingsLayout {
   }
 }
 
-export function CoachMarketplaceScreen({ token }: { token: string }) {
+export function CoachMarketplaceScreen({
+  token,
+  initialCoachUserId = null,
+}: {
+  token: string;
+  /** Opens straight on this coach's public profile (e.g. from global search). */
+  initialCoachUserId?: string | null;
+}) {
   const isDesktop = useIsDesktop();
-  const [view, setView] = useState<View>({ screen: "list" });
+  const [view, setView] = useState<View>(
+    initialCoachUserId ? { screen: "coachProfile", coachUserId: initialCoachUserId } : { screen: "list" },
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [state, setState] = useState<ListState>({ status: "loading" });
   const [location, setLocation] = useState("");
-  const [maxPrice, setMaxPrice] = useState(MAX_PRICE_CEILING);
+  // Text, not numbers, so a field can be empty ('no limit') and typed values can exceed the slider's range.
+  const [minPriceText, setMinPriceText] = useState("");
+  const [maxPriceText, setMaxPriceText] = useState("");
   const [minRating, setMinRating] = useState<number | undefined>(undefined);
   const [onlineOnly, setOnlineOnly] = useState(false);
   const [listingsLayout, setListingsLayout] = useState<ListingsLayout>(loadStoredLayout);
@@ -198,16 +209,25 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const applyFilters = (overrides: Partial<{ location: string; maxPrice: number; minRating?: number; onlineOnly: boolean }> = {}) => {
+  const parsePrice = (text: string): number | undefined => {
+    const value = Number(text.replace(",", "."));
+    return text.trim() !== "" && Number.isFinite(value) && value >= 0 ? value : undefined;
+  };
+
+  const applyFilters = (
+    overrides: Partial<{ location: string; minPriceText: string; maxPriceText: string; minRating?: number; onlineOnly: boolean }> = {},
+  ) => {
     const next = {
       location: overrides.location ?? location,
-      maxPrice: overrides.maxPrice ?? maxPrice,
+      minPrice: parsePrice(overrides.minPriceText ?? minPriceText),
+      maxPrice: parsePrice(overrides.maxPriceText ?? maxPriceText),
       minRating: "minRating" in overrides ? overrides.minRating : minRating,
       onlineOnly: overrides.onlineOnly ?? onlineOnly,
     };
     load({
       location: next.location.trim() || undefined,
-      max_price: next.maxPrice < MAX_PRICE_CEILING ? next.maxPrice : undefined,
+      min_price: next.minPrice,
+      max_price: next.maxPrice,
       min_rating: next.minRating,
       format: next.onlineOnly ? "online" : undefined,
     });
@@ -215,7 +235,8 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
 
   const resetFilters = () => {
     setLocation("");
-    setMaxPrice(MAX_PRICE_CEILING);
+    setMinPriceText("");
+    setMaxPriceText("");
     setMinRating(undefined);
     setOnlineOnly(false);
     load({});
@@ -296,9 +317,33 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
           </div>
 
           <div className={styles.filterField}>
-            <div className={styles.priceValueRow}>
-              <span className={styles.filterFieldLabel}>Цена до</span>
-              <span className={styles.priceValue}>{maxPrice >= MAX_PRICE_CEILING ? "Любая" : `${maxPrice} ₽`}</span>
+            <span className={styles.filterFieldLabel}>Цена, ₽</span>
+            <div className={styles.priceInputRow}>
+              <input
+                className={styles.filterFieldInput}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                placeholder="От"
+                aria-label="Минимальная цена"
+                value={minPriceText}
+                onChange={(e) => setMinPriceText(e.target.value)}
+                onBlur={() => applyFilters()}
+                onKeyDown={(e) => e.key === "Enter" && applyFilters()}
+              />
+              <span className={styles.priceDash}>—</span>
+              <input
+                className={styles.filterFieldInput}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                placeholder="До"
+                aria-label="Максимальная цена"
+                value={maxPriceText}
+                onChange={(e) => setMaxPriceText(e.target.value)}
+                onBlur={() => applyFilters()}
+                onKeyDown={(e) => e.key === "Enter" && applyFilters()}
+              />
             </div>
             <input
               className={styles.priceSlider}
@@ -306,10 +351,14 @@ export function CoachMarketplaceScreen({ token }: { token: string }) {
               min={0}
               max={MAX_PRICE_CEILING}
               step={100}
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(Number(e.target.value))}
+              value={Math.min(parsePrice(maxPriceText) ?? MAX_PRICE_CEILING, MAX_PRICE_CEILING)}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                setMaxPriceText(value >= MAX_PRICE_CEILING ? "" : String(value));
+              }}
               onMouseUp={() => applyFilters()}
               onTouchEnd={() => applyFilters()}
+              onKeyUp={() => applyFilters()}
             />
           </div>
 

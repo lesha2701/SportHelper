@@ -97,9 +97,9 @@ function DetailPanel({
     <div className={libStyles.detailPanel}>
       <div className={libStyles.detailMedia}>
         {exercise.videoFileId ? (
-          <AuthenticatedVideo token={token} fileId={exercise.videoFileId} className={libStyles.detailMediaFill} />
+          <AuthenticatedVideo token={token} fileId={exercise.videoFileId} className={libStyles.detailMediaFill} zoomable />
         ) : exercise.photoFileId ? (
-          <AuthenticatedImage token={token} fileId={exercise.photoFileId} alt={exercise.name} className={libStyles.detailMediaFill} />
+          <AuthenticatedImage token={token} fileId={exercise.photoFileId} alt={exercise.name} className={libStyles.detailMediaFill} zoomable />
         ) : (
           <Icon name="video" size={28} />
         )}

@@ -12,6 +12,7 @@ import type { Training } from "../../types/training";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 import libraryStyles from "../library/library.module.css";
+import { photoVideoGallery } from "../shared/MediaLightbox";
 
 type LoadState =
   | { status: "loading" }
@@ -192,8 +193,19 @@ export function ReportScreen({
 
       {report && (report.photoFileId || report.videoFileId) && (
         <div className={profileStyles.card}>
-          {report.photoFileId && <AuthenticatedImage token={token} fileId={report.photoFileId} alt="Фото отчёта" className={libraryStyles.exercisePhoto} />}
-          {report.videoFileId && <AuthenticatedVideo token={token} fileId={report.videoFileId} className={libraryStyles.exerciseVideo} />}
+          {(() => {
+            const g = photoVideoGallery(report.photoFileId, report.videoFileId, "Фото отчёта");
+            return (
+              <>
+                {report.photoFileId && (
+                  <AuthenticatedImage token={token} fileId={report.photoFileId} alt="Фото отчёта" className={libraryStyles.exercisePhoto} zoomable gallery={g.items} galleryIndex={g.photoIndex} />
+                )}
+                {report.videoFileId && (
+                  <AuthenticatedVideo token={token} fileId={report.videoFileId} className={libraryStyles.exerciseVideo} zoomable gallery={g.items} galleryIndex={g.videoIndex} />
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
 

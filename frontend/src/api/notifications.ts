@@ -10,7 +10,7 @@ export async function setNotificationPreference(
   preference: NotificationPreference,
 ): Promise<NotificationPreference[]> {
   return apiRequest<NotificationPreference[]>("/api/notifications/preferences", {
-    method: "PUT",
+    method: "PUT", silent: true,
     token,
     body: { preferences: [preference] },
   });
@@ -23,12 +23,12 @@ export async function listNotifications(token: string): Promise<NotificationItem
 
 export async function markNotificationRead(token: string, notificationId: string): Promise<NotificationItem> {
   const dto = await apiRequest<NotificationItemDto>(`/api/notifications/${notificationId}/read`, {
-    method: "POST",
+    method: "POST", silent: true,
     token,
   });
   return mapNotificationItemDto(dto);
 }
 
 export async function markAllNotificationsRead(token: string): Promise<void> {
-  await apiRequest(`/api/notifications/read-all`, { method: "POST", token });
+  await apiRequest(`/api/notifications/read-all`, { method: "POST", silent: true, token });
 }

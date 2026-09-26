@@ -12,7 +12,7 @@ export function Onboarding({ onChoosePlayer, onChooseCoach }: OnboardingProps) {
       <div className={styles.card}>
         <h1 className={styles.pageHeading}>Добро пожаловать!</h1>
         <p className={styles.subtitle}>
-          Расскажите, кто вы в TeamFlow Sports. Позже можно завести оба профиля и переключаться между
+          Расскажите, кто вы в SportArenaGlobal. Позже можно завести оба профиля и переключаться между
           ними.
         </p>
         <div className={styles.onboardingChoices}>

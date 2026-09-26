@@ -201,7 +201,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
         </svg>
         <div className={styles.teamHeroLogo}>
           {team.logoFileId ? (
-            <AuthenticatedImage token={token} fileId={team.logoFileId} alt="" className={styles.teamHeroLogoImg} />
+            <AuthenticatedImage token={token} fileId={team.logoFileId} alt="" className={styles.teamHeroLogoImg} zoomable />
           ) : (
             team.name.charAt(0).toUpperCase()
           )}

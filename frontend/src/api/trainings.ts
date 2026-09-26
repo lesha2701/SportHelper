@@ -16,12 +16,12 @@ import {
 } from "../types/training";
 
 export async function createTeamTraining(token: string, teamId: string, input: TrainingCreateInput): Promise<Training[]> {
-  const dtos = await apiRequest<TrainingDto[]>(`/api/teams/${teamId}/trainings`, { method: "POST", token, body: input });
+  const dtos = await apiRequest<TrainingDto[]>(`/api/teams/${teamId}/trainings`, { method: "POST", successMessage: "Тренировка создана", token, body: input });
   return dtos.map(mapTrainingDto);
 }
 
 export async function createPersonalTraining(token: string, input: TrainingCreateInput): Promise<Training[]> {
-  const dtos = await apiRequest<TrainingDto[]>("/api/trainings/personal", { method: "POST", token, body: input });
+  const dtos = await apiRequest<TrainingDto[]>("/api/trainings/personal", { method: "POST", successMessage: "Тренировка создана", token, body: input });
   return dtos.map(mapTrainingDto);
 }
 
@@ -41,16 +41,16 @@ export async function getTraining(token: string, trainingId: string): Promise<Tr
 }
 
 export async function updateTraining(token: string, trainingId: string, input: TrainingUpdateInput): Promise<Training> {
-  const dto = await apiRequest<TrainingDto>(`/api/trainings/${trainingId}`, { method: "PUT", token, body: input });
+  const dto = await apiRequest<TrainingDto>(`/api/trainings/${trainingId}`, { method: "PUT", successMessage: "Тренировка сохранена", token, body: input });
   return mapTrainingDto(dto);
 }
 
 export async function deleteTraining(token: string, trainingId: string): Promise<void> {
-  await apiRequest(`/api/trainings/${trainingId}`, { method: "DELETE", token });
+  await apiRequest(`/api/trainings/${trainingId}`, { method: "DELETE", successMessage: "Тренировка удалена", token });
 }
 
 export async function cancelTrainingSeries(token: string, trainingId: string): Promise<void> {
-  await apiRequest(`/api/trainings/${trainingId}/cancel-series`, { method: "POST", token });
+  await apiRequest(`/api/trainings/${trainingId}/cancel-series`, { method: "POST", successMessage: "Серия тренировок отменена", token });
 }
 
 export async function getAttendance(token: string, trainingId: string): Promise<Attendance[]> {
@@ -65,7 +65,7 @@ export async function setAttendanceStatus(
   status: AttendanceStatus,
 ): Promise<Attendance> {
   const dto = await apiRequest<AttendanceDto>(`/api/trainings/${trainingId}/attendance/${userId}`, {
-    method: "PATCH",
+    method: "PATCH", silent: true,
     token,
     body: { status },
   });
@@ -83,7 +83,7 @@ export async function submitTrainingFeedback(
   input: TrainingFeedbackInput,
 ): Promise<TrainingFeedback> {
   const dto = await apiRequest<TrainingFeedbackDto>(`/api/trainings/${trainingId}/feedback`, {
-    method: "POST",
+    method: "POST", successMessage: "Спасибо за отзыв",
     token,
     body: input,
   });
@@ -92,7 +92,7 @@ export async function submitTrainingFeedback(
 
 export async function skipTrainingFeedback(token: string, trainingId: string): Promise<TrainingFeedback> {
   const dto = await apiRequest<TrainingFeedbackDto>(`/api/trainings/${trainingId}/feedback/skip`, {
-    method: "POST",
+    method: "POST", silent: true,
     token,
   });
   return mapTrainingFeedbackDto(dto);

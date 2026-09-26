@@ -238,7 +238,7 @@ export function ProfileSummary({
             )}
             <div className={styles.heroRingAvatar}>
               {avatarFileId ? (
-                <AuthenticatedImage token={token} fileId={avatarFileId} alt="" className={styles.heroRingAvatarImg} />
+                <AuthenticatedImage token={token} fileId={avatarFileId} alt="" className={styles.heroRingAvatarImg} zoomable />
               ) : photoUrl ? (
                 <img className={styles.heroRingAvatarImg} src={photoUrl} alt="" />
               ) : (

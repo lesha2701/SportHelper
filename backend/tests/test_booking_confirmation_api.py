@@ -338,3 +338,21 @@ def test_confirm_and_decline_notify_athlete(logged_in_client, login_as) -> None:
 
     decided_bodies = {n["body"] for n in client.notifications_store.values() if n["category"] == "booking_decided"}
     assert any("отклонена" in body for body in decided_bodies)
+
+
+def test_confirmed_booking_appears_in_coach_calendar_and_is_viewable(logged_in_client, login_as) -> None:
+    client, coach_token = logged_in_client
+    listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as)
+    coach_headers = {"Authorization": f"Bearer {coach_token}"}
+    confirmed = client.post(f"/api/bookings/{booking['id']}/confirm", headers=coach_headers).json()
+
+    starts = datetime.fromisoformat(booking["starts_at"])
+    params = {"date_from": (starts.date() - timedelta(days=1)).isoformat(), "date_to": (starts.date() + timedelta(days=1)).isoformat()}
+    for headers in (coach_headers, {"Authorization": f"Bearer {athlete_token}"}):
+        events = client.get("/api/calendar", params=params, headers=headers).json()
+        assert [e["id"] for e in events if e["type"] == "training"] == [confirmed["training_id"]]
+
+    # The coach can open it (read-only), but not edit the athlete's training.
+    assert client.get(f"/api/trainings/{confirmed['training_id']}", headers=coach_headers).status_code == 200
+    put = client.delete(f"/api/trainings/{confirmed['training_id']}", headers=coach_headers)
+    assert put.status_code == 403

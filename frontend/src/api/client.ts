@@ -1,3 +1,5 @@
+import { toast } from "../toast";
+
 const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 export class ApiError extends Error {
@@ -42,13 +44,41 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return data as T;
 }
 
-interface RequestOptions {
+interface ToastOptions {
+  /** Toast shown when a change (anything but GET) succeeds. */
+  successMessage?: string;
+  /** No toast at all, neither success nor the automatic error one. */
+  silent?: boolean;
+}
+
+interface RequestOptions extends ToastOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   token?: string | null;
 }
 
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+/** Every failed change (POST/PUT/PATCH/DELETE/upload) tells the user why,
+ * so a click never ends in silence; successes toast only when the caller
+ * gave a message. */
+async function withToasts<T>(run: () => Promise<T>, options: ToastOptions, isChange: boolean): Promise<T> {
+  try {
+    const result = await run();
+    if (isChange && !options.silent && options.successMessage) toast.success(options.successMessage);
+    return result;
+  } catch (error) {
+    // 401 is handled by the auth flow (re-login), not something to shout about.
+    if (isChange && !options.silent && !(error instanceof ApiError && error.status === 401)) {
+      toast.error(error instanceof ApiError ? error.message : "Не удалось выполнить действие");
+    }
+    throw error;
+  }
+}
+
+export function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return withToasts(() => doRequest<T>(path, options), options, (options.method ?? "GET") !== "GET");
+}
+
+async function doRequest<T>(path: string, options: RequestOptions): Promise<T> {
   const headers: Record<string, string> = {};
   if (options.body !== undefined) {
     headers["Content-Type"] = "application/json";
@@ -74,7 +104,14 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 /** Like apiRequest, but sends a FormData body (multipart/form-data) instead
  * of JSON — for file uploads. The browser sets the Content-Type boundary
  * header itself, so it must not be set manually here. */
-export async function apiUpload<T>(
+export function apiUpload<T>(
+  path: string,
+  options: ToastOptions & { token: string; formData: FormData; method?: "POST" | "PUT" },
+): Promise<T> {
+  return withToasts(() => doUpload<T>(path, options), options, true);
+}
+
+async function doUpload<T>(
   path: string,
   options: { token: string; formData: FormData; method?: "POST" | "PUT" },
 ): Promise<T> {

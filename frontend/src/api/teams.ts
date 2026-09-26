@@ -24,7 +24,7 @@ export async function listMyTeams(token: string): Promise<Team[]> {
 }
 
 export async function createTeam(token: string, input: TeamInput): Promise<Team> {
-  const dto = await apiRequest<TeamDto>("/api/teams", { method: "POST", token, body: input });
+  const dto = await apiRequest<TeamDto>("/api/teams", { method: "POST", successMessage: "Команда создана", token, body: input });
   return mapTeamDto(dto);
 }
 
@@ -34,14 +34,14 @@ export async function getTeam(token: string, teamId: string): Promise<Team> {
 }
 
 export async function updateTeam(token: string, teamId: string, input: TeamInput): Promise<Team> {
-  const dto = await apiRequest<TeamDto>(`/api/teams/${teamId}`, { method: "PUT", token, body: input });
+  const dto = await apiRequest<TeamDto>(`/api/teams/${teamId}`, { method: "PUT", successMessage: "Команда сохранена", token, body: input });
   return mapTeamDto(dto);
 }
 
 export async function uploadTeamLogo(token: string, teamId: string, file: File): Promise<Team> {
   const formData = new FormData();
   formData.append("file", file);
-  const dto = await apiUpload<TeamDto>(`/api/teams/${teamId}/logo`, { token, formData });
+  const dto = await apiUpload<TeamDto>(`/api/teams/${teamId}/logo`, { token, formData, successMessage: "Логотип обновлён" });
   return mapTeamDto(dto);
 }
 
@@ -62,7 +62,7 @@ export async function updateMember(
   input: { role?: TeamRole | null; position?: string | null },
 ): Promise<TeamMember> {
   const dto = await apiRequest<TeamMemberDto>(`/api/teams/${teamId}/members/${userId}`, {
-    method: "PATCH",
+    method: "PATCH", successMessage: "Данные участника сохранены",
     token,
     body: input,
   });
@@ -70,15 +70,15 @@ export async function updateMember(
 }
 
 export async function removeMember(token: string, teamId: string, userId: string): Promise<void> {
-  await apiRequest(`/api/teams/${teamId}/members/${userId}`, { method: "DELETE", token });
+  await apiRequest(`/api/teams/${teamId}/members/${userId}`, { method: "DELETE", successMessage: "Участник удалён", token });
 }
 
 export async function blockMember(token: string, teamId: string, userId: string): Promise<void> {
-  await apiRequest(`/api/teams/${teamId}/members/${userId}/block`, { method: "POST", token });
+  await apiRequest(`/api/teams/${teamId}/members/${userId}/block`, { method: "POST", successMessage: "Участник заблокирован", token });
 }
 
 export async function leaveTeam(token: string, teamId: string): Promise<void> {
-  await apiRequest(`/api/teams/${teamId}/leave`, { method: "POST", token });
+  await apiRequest(`/api/teams/${teamId}/leave`, { method: "POST", successMessage: "Вы вышли из команды", token });
 }
 
 export async function transferOwnership(
@@ -88,7 +88,7 @@ export async function transferOwnership(
   confirmationPhrase: string,
 ): Promise<void> {
   await apiRequest(`/api/teams/${teamId}/transfer-ownership`, {
-    method: "POST",
+    method: "POST", successMessage: "Права на команду переданы",
     token,
     body: { to_user_id: toUserId, confirmation_phrase: confirmationPhrase },
   });
@@ -96,7 +96,7 @@ export async function transferOwnership(
 
 export async function createInvite(token: string, teamId: string, kind: InviteKind): Promise<Invite> {
   const dto = await apiRequest<InviteDto>(`/api/teams/${teamId}/invites`, {
-    method: "POST",
+    method: "POST", successMessage: "Приглашение создано",
     token,
     body: { kind },
   });
@@ -114,11 +114,11 @@ export async function listApplications(token: string, teamId: string): Promise<J
 }
 
 export async function acceptApplication(token: string, teamId: string, requestId: string): Promise<void> {
-  await apiRequest(`/api/teams/${teamId}/applications/${requestId}/accept`, { method: "POST", token });
+  await apiRequest(`/api/teams/${teamId}/applications/${requestId}/accept`, { method: "POST", successMessage: "Заявка принята", token });
 }
 
 export async function rejectApplication(token: string, teamId: string, requestId: string): Promise<void> {
-  await apiRequest(`/api/teams/${teamId}/applications/${requestId}/reject`, { method: "POST", token });
+  await apiRequest(`/api/teams/${teamId}/applications/${requestId}/reject`, { method: "POST", successMessage: "Заявка отклонена", token });
 }
 
 export async function previewInvite(token: string, inviteToken: string): Promise<Team> {
@@ -134,7 +134,7 @@ export interface ApplyResult {
 export async function applyViaInvite(token: string, inviteToken: string): Promise<ApplyResult> {
   const dto = await apiRequest<{ status: "pending" | "joined"; team: TeamDto }>(
     `/api/invites/${inviteToken}/apply`,
-    { method: "POST", token },
+    { method: "POST", successMessage: "Заявка на вступление отправлена", token },
   );
   return { status: dto.status, team: mapTeamDto(dto.team) };
 }

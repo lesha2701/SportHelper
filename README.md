@@ -1,4 +1,4 @@
-# TeamFlow Sports
+# SportArenaGlobal
 
 Telegram-бот и Telegram Mini App для управления спортивными командами (баскетбол, футбол, волейбол, хоккей и другие командные виды спорта).
 

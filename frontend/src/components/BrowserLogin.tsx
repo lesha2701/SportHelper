@@ -61,7 +61,7 @@ export function BrowserLogin() {
 
   return (
     <div className={styles.wrapper}>
-      <h2 className={styles.title}>Вход в TeamFlow Sports</h2>
+      <h2 className={styles.title}>Вход в SportArenaGlobal</h2>
       <p className={styles.description}>
         Откройте бота в Telegram и подтвердите вход — эта страница обновится автоматически.
       </p>

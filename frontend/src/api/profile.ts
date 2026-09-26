@@ -14,16 +14,16 @@ export async function fetchProfileMe(token: string): Promise<ProfileMe> {
 }
 
 export async function savePlayerProfile(token: string, input: PlayerProfileInput): Promise<void> {
-  await apiRequest("/api/profile/player", { method: "PUT", token, body: input });
+  await apiRequest("/api/profile/player", { method: "PUT", successMessage: "Профиль игрока сохранён", token, body: input });
 }
 
 export async function saveCoachProfile(token: string, input: CoachProfileInput): Promise<void> {
-  await apiRequest("/api/profile/coach", { method: "PUT", token, body: input });
+  await apiRequest("/api/profile/coach", { method: "PUT", successMessage: "Профиль тренера сохранён", token, body: input });
 }
 
 export async function switchActiveMode(token: string, mode: ActiveMode): Promise<ProfileMe> {
   const dto = await apiRequest<ProfileMeDto>("/api/profile/active-mode", {
-    method: "POST",
+    method: "POST", silent: true,
     token,
     body: { mode },
   });

@@ -12,22 +12,22 @@ export async function getExercise(token: string, exerciseId: string): Promise<Ex
 }
 
 export async function createExercise(token: string, input: ExerciseInput): Promise<Exercise> {
-  const dto = await apiRequest<ExerciseDto>("/api/exercises", { method: "POST", token, body: input });
+  const dto = await apiRequest<ExerciseDto>("/api/exercises", { method: "POST", successMessage: "Упражнение создано", token, body: input });
   return mapExerciseDto(dto);
 }
 
 export async function updateExercise(token: string, exerciseId: string, input: ExerciseInput): Promise<Exercise> {
-  const dto = await apiRequest<ExerciseDto>(`/api/exercises/${exerciseId}`, { method: "PUT", token, body: input });
+  const dto = await apiRequest<ExerciseDto>(`/api/exercises/${exerciseId}`, { method: "PUT", successMessage: "Упражнение сохранено", token, body: input });
   return mapExerciseDto(dto);
 }
 
 export async function deleteExercise(token: string, exerciseId: string): Promise<void> {
-  await apiRequest(`/api/exercises/${exerciseId}`, { method: "DELETE", token });
+  await apiRequest(`/api/exercises/${exerciseId}`, { method: "DELETE", successMessage: "Упражнение удалено", token });
 }
 
 export async function shareExercise(token: string, exerciseId: string, teamId: string): Promise<Exercise> {
   const dto = await apiRequest<ExerciseDto>(`/api/exercises/${exerciseId}/share`, {
-    method: "POST",
+    method: "POST", successMessage: "Упражнение доступно команде",
     token,
     body: { team_id: teamId },
   });
@@ -36,7 +36,7 @@ export async function shareExercise(token: string, exerciseId: string, teamId: s
 
 export async function unshareExercise(token: string, exerciseId: string, teamId: string): Promise<Exercise> {
   const dto = await apiRequest<ExerciseDto>(`/api/exercises/${exerciseId}/share/${teamId}`, {
-    method: "DELETE",
+    method: "DELETE", successMessage: "Доступ команды к упражнению закрыт",
     token,
   });
   return mapExerciseDto(dto);

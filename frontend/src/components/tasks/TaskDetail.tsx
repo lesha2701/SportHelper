@@ -20,6 +20,7 @@ import { TASK_STATUS_LABELS, TASK_TARGET_LABELS, type Task, type TaskAssignment 
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 import libraryStyles from "../library/library.module.css";
+import { photoVideoGallery } from "../shared/MediaLightbox";
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; task: Task };
 
@@ -219,8 +220,19 @@ export function TaskDetail({
       )}
       {(a.photoFileId || a.videoFileId) && (
         <>
-          {a.photoFileId && <AuthenticatedImage token={token} fileId={a.photoFileId} alt="Фото отчёта" className={libraryStyles.exercisePhoto} />}
-          {a.videoFileId && <AuthenticatedVideo token={token} fileId={a.videoFileId} className={libraryStyles.exerciseVideo} />}
+          {(() => {
+            const g = photoVideoGallery(a.photoFileId, a.videoFileId, "Фото отчёта");
+            return (
+              <>
+                {a.photoFileId && (
+                  <AuthenticatedImage token={token} fileId={a.photoFileId} alt="Фото отчёта" className={libraryStyles.exercisePhoto} zoomable gallery={g.items} galleryIndex={g.photoIndex} />
+                )}
+                {a.videoFileId && (
+                  <AuthenticatedVideo token={token} fileId={a.videoFileId} className={libraryStyles.exerciseVideo} zoomable gallery={g.items} galleryIndex={g.videoIndex} />
+                )}
+              </>
+            );
+          })()}
         </>
       )}
       {a.coachComment && (

@@ -8,7 +8,7 @@ export async function getReport(token: string, trainingId: string): Promise<Repo
 
 export async function submitReport(token: string, trainingId: string, textReport: string): Promise<Report> {
   const dto = await apiRequest<ReportDto>(`/api/trainings/${trainingId}/report`, {
-    method: "POST",
+    method: "POST", successMessage: "Отчёт отправлен",
     token,
     body: { text_report: textReport },
   });
@@ -22,7 +22,7 @@ export async function reviewReport(
   coachComment: string | null,
 ): Promise<Report> {
   const dto = await apiRequest<ReportDto>(`/api/trainings/${trainingId}/report/review`, {
-    method: "POST",
+    method: "POST", successMessage: "Комментарий к отчёту сохранён",
     token,
     body: { decision, coach_comment: coachComment },
   });

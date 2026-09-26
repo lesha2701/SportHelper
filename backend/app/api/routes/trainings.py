@@ -69,7 +69,9 @@ async def _resolve_responsible_user_id(
 
 async def _check_view_access(conn: asyncpg.Connection, training: dict, user_id: UUID) -> None:
     if training["type"] == "personal":
-        if training["created_by"] != user_id:
+        if training["created_by"] != user_id and not await trainings_repo.is_booked_coach(
+            conn, training["id"], user_id
+        ):
             raise ForbiddenError("you do not have access to this training")
     else:
         member = await teams_repo.get_member(conn, training["team_id"], user_id)

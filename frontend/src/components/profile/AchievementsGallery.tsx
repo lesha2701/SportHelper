@@ -6,6 +6,7 @@ import { AuthenticatedVideo } from "../shared/AuthenticatedVideo";
 import { Icon } from "../shared/Icon";
 import type { ProfileMedia } from "../../types/profileMedia";
 import styles from "./profile.module.css";
+import type { LightboxItem } from "../shared/MediaLightbox";
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; items: ProfileMedia[] };
 
@@ -72,6 +73,12 @@ export function AchievementsGallery({ token, userId, editable }: { token: string
 
   if (state.items.length === 0 && !editable) return null;
 
+  const gallery: LightboxItem[] = state.items.map((m) => ({
+    kind: m.mediaType === "photo" ? "image" : "video",
+    fileId: m.fileId,
+    alt: m.caption ?? "Достижение",
+  }));
+
   return (
     <div className={styles.card}>
       <h2 className={styles.title}>Достижения</h2>
@@ -79,12 +86,12 @@ export function AchievementsGallery({ token, userId, editable }: { token: string
       {state.items.length === 0 && !editable && <p className={styles.subtitle}>Пока ничего не добавлено.</p>}
 
       <div className={styles.mediaGrid}>
-        {state.items.map((item) => (
+        {state.items.map((item, galleryIndex) => (
           <div className={styles.mediaTile} key={item.id}>
             {item.mediaType === "photo" ? (
-              <AuthenticatedImage token={token} fileId={item.fileId} alt={item.caption ?? "Достижение"} className={styles.mediaTileMedia} />
+              <AuthenticatedImage token={token} fileId={item.fileId} alt={item.caption ?? "Достижение"} className={styles.mediaTileMedia} zoomable gallery={gallery} galleryIndex={galleryIndex} />
             ) : (
-              <AuthenticatedVideo token={token} fileId={item.fileId} className={styles.mediaTileMedia} />
+              <AuthenticatedVideo token={token} fileId={item.fileId} className={styles.mediaTileMedia} zoomable gallery={gallery} galleryIndex={galleryIndex} />
             )}
             {editable && (
               <button

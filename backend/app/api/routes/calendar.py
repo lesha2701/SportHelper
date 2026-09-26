@@ -47,7 +47,11 @@ async def get_calendar(
                 type="training",
                 date=t["training_date"],
                 time=t["start_time"],
-                title=_TRAINING_TITLES[t["type"]],
+                title=(
+                    f"Сессия с {t['booked_athlete_name']}"
+                    if t.get("booked_athlete_name")
+                    else _TRAINING_TITLES[t["type"]]
+                ),
                 team_id=t["team_id"],
                 team_name=t["team_name"],
                 status=t["status"],

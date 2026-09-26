@@ -1,4 +1,4 @@
-# TeamFlow Sports — Frontend
+# SportArenaGlobal — Frontend
 
 Telegram Mini App (React + TypeScript + Vite). See the [repository root README](../README.md) for the full run instructions.
 

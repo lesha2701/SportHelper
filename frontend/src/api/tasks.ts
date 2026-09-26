@@ -16,7 +16,7 @@ import {
 } from "../types/task";
 
 export async function createTask(token: string, teamId: string, input: TaskCreateInput): Promise<Task> {
-  const dto = await apiRequest<TaskDto>(`/api/teams/${teamId}/tasks`, { method: "POST", token, body: input });
+  const dto = await apiRequest<TaskDto>(`/api/teams/${teamId}/tasks`, { method: "POST", successMessage: "Задание создано", token, body: input });
   return mapTaskDto(dto);
 }
 
@@ -36,21 +36,21 @@ export async function getTask(token: string, taskId: string): Promise<Task> {
 }
 
 export async function updateTask(token: string, taskId: string, input: TaskUpdateInput): Promise<Task> {
-  const dto = await apiRequest<TaskDto>(`/api/tasks/${taskId}`, { method: "PUT", token, body: input });
+  const dto = await apiRequest<TaskDto>(`/api/tasks/${taskId}`, { method: "PUT", successMessage: "Задание сохранено", token, body: input });
   return mapTaskDto(dto);
 }
 
 export async function deleteTask(token: string, taskId: string): Promise<void> {
-  await apiRequest(`/api/tasks/${taskId}`, { method: "DELETE", token });
+  await apiRequest(`/api/tasks/${taskId}`, { method: "DELETE", successMessage: "Задание удалено", token });
 }
 
 export async function startTask(token: string, taskId: string): Promise<TaskAssignment> {
-  const dto = await apiRequest<TaskAssignmentDto>(`/api/tasks/${taskId}/start`, { method: "POST", token });
+  const dto = await apiRequest<TaskAssignmentDto>(`/api/tasks/${taskId}/start`, { method: "POST", successMessage: "Задание взято в работу", token });
   return mapTaskAssignmentDto(dto);
 }
 
 export async function submitTask(token: string, taskId: string, input: TaskSubmitInput): Promise<TaskAssignment> {
-  const dto = await apiRequest<TaskAssignmentDto>(`/api/tasks/${taskId}/submit`, { method: "POST", token, body: input });
+  const dto = await apiRequest<TaskAssignmentDto>(`/api/tasks/${taskId}/submit`, { method: "POST", successMessage: "Отчёт по заданию отправлен", token, body: input });
   return mapTaskAssignmentDto(dto);
 }
 
@@ -76,7 +76,7 @@ export async function reviewTask(
   coachComment: string | null,
 ): Promise<TaskAssignment> {
   const dto = await apiRequest<TaskAssignmentDto>(`/api/tasks/${taskId}/review/${userId}`, {
-    method: "POST",
+    method: "POST", successMessage: "Проверка сохранена",
     token,
     body: { decision, coach_comment: coachComment },
   });

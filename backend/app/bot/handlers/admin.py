@@ -92,7 +92,7 @@ def _pagination_keyboard(prefix: str, page: int, total: int) -> InlineKeyboardMa
 
 
 _MENU_TEXT = (
-    "<b>Административное меню TeamFlow Sports</b>\n\n"
+    "<b>Административное меню SportArenaGlobal</b>\n\n"
     "/stats — общая статистика проекта\n"
     "/users [страница] — список пользователей\n"
     "/teams [страница] — список команд\n"
@@ -267,7 +267,7 @@ def register(settings: Settings, pool: asyncpg.Pool) -> Router:
         if banned:
             with suppress(TelegramAPIError):
                 await message.bot.send_message(
-                    telegram_id, "Ваш доступ к TeamFlow Sports заблокирован администратором."
+                    telegram_id, "Ваш доступ к SportArenaGlobal заблокирован администратором."
                 )
 
     @router.message(Command("ban"))

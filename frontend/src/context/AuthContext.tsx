@@ -22,7 +22,7 @@ interface AuthContextValue {
   logout: () => void;
 }
 
-const SESSION_KEY = "teamflow.session";
+const SESSION_KEY = "sportarenaglobal.session";
 
 function readStoredToken(): string | null {
   try {

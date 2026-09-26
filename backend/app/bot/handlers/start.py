@@ -23,7 +23,7 @@ def _build_keyboard(mini_app_url: str, invite_token: str | None) -> InlineKeyboa
         return None
     url = build_mini_app_url(mini_app_url, {"invite": invite_token} if invite_token else {})
     return InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="Открыть TeamFlow Sports", web_app=WebAppInfo(url=url))]]
+        inline_keyboard=[[InlineKeyboardButton(text="Открыть SportArenaGlobal", web_app=WebAppInfo(url=url))]]
     )
 
 
@@ -40,7 +40,7 @@ def register(router_settings: Settings, pool: asyncpg.Pool | None = None) -> Rou
             inline_keyboard=[[InlineKeyboardButton(text="Подтвердить вход", callback_data=_LOGIN_CALLBACK + token)]]
         )
         await message.answer(
-            "Вход в <b>TeamFlow Sports</b> в браузере.\n\nЕсли это вы — подтвердите вход. "
+            "Вход в <b>SportArenaGlobal</b> в браузере.\n\nЕсли это вы — подтвердите вход. "
             "Если нет — просто проигнорируйте сообщение.",
             reply_markup=keyboard,
         )
@@ -82,10 +82,10 @@ def register(router_settings: Settings, pool: asyncpg.Pool | None = None) -> Rou
 
         keyboard = _build_keyboard(router_settings.mini_app_url, invite_token)
         text = (
-            "Вас пригласили в команду в <b>TeamFlow Sports</b>.\n\nНажмите кнопку ниже, чтобы открыть "
+            "Вас пригласили в команду в <b>SportArenaGlobal</b>.\n\nНажмите кнопку ниже, чтобы открыть "
             "приглашение."
             if invite_token
-            else "Добро пожаловать в <b>TeamFlow Sports</b> — приложение для управления "
+            else "Добро пожаловать в <b>SportArenaGlobal</b> — приложение для управления "
             "спортивными командами.\n\nНажмите кнопку ниже, чтобы открыть приложение."
         )
         await message.answer(text, reply_markup=keyboard)
@@ -94,7 +94,7 @@ def register(router_settings: Settings, pool: asyncpg.Pool | None = None) -> Rou
     async def handle_start(message: Message) -> None:
         keyboard = _build_keyboard(router_settings.mini_app_url, invite_token=None)
         await message.answer(
-            "Добро пожаловать в <b>TeamFlow Sports</b> — приложение для управления "
+            "Добро пожаловать в <b>SportArenaGlobal</b> — приложение для управления "
             "спортивными командами.\n\nНажмите кнопку ниже, чтобы открыть приложение.",
             reply_markup=keyboard,
         )

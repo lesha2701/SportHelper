@@ -17,6 +17,7 @@ import { PlayerStatsScreen } from "./components/stats/PlayerStatsScreen";
 import { CoachMarketplaceScreen } from "./components/coaches/CoachMarketplaceScreen";
 import { IncomingBookingsScreen } from "./components/coaches/IncomingBookingsScreen";
 import { MyBookingsSection } from "./components/coaches/MyBookingsSection";
+import { searchAll, type SearchResult } from "./api/search";
 import { NotificationsScreen } from "./components/notifications/NotificationsScreen";
 import { StateScreen } from "./components/StateScreen";
 import type { NavItem } from "./components/nav/BottomNav";
@@ -173,6 +174,7 @@ function playerTopBar(tab: PlayerTab, onCreateTraining: () => void): TopBarConfi
 }
 
 function CoachTabContent({
+  initialCoachUserId,
   tab,
   token,
   userId,
@@ -183,6 +185,7 @@ function CoachTabContent({
   onOpenNotifications,
   unreadNotifications,
 }: {
+  initialCoachUserId: string | null;
   tab: CoachTab;
   token: string;
   userId: string;
@@ -212,7 +215,7 @@ function CoachTabContent({
     case "calendar":
       return <CalendarScreen token={token} />;
     case "coaches":
-      return <CoachMarketplaceScreen token={token} />;
+      return <CoachMarketplaceScreen key={initialCoachUserId ?? "list"} token={token} initialCoachUserId={initialCoachUserId} />;
     case "profile":
       return (
         <ProfileScreen
@@ -295,6 +298,8 @@ function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | 
   }, [state]);
 
   const [overlay, setOverlay] = useState<Overlay>(null);
+  // Set when a search result opens a coach's profile in the marketplace tab.
+  const [marketplaceCoachId, setMarketplaceCoachId] = useState<string | null>(null);
 
   // A Telegram notification button (or a page freshly opened with
   // ?open=&id= from anywhere else) should jump straight to the relevant
@@ -395,6 +400,41 @@ function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | 
   }
 
   const hasOverlay = overlayContent !== null;
+  const handleSearchSelect = (result: SearchResult) => {
+    switch (result.type) {
+      case "team":
+        setOverlay({ kind: "team", teamId: result.id });
+        break;
+      case "player":
+        // A teammate has no public profile of their own — land on the shared team.
+        if (result.teamId) setOverlay({ kind: "team", teamId: result.teamId });
+        break;
+      case "training":
+        setOverlay({ kind: "training-detail", trainingId: result.id });
+        break;
+      case "match":
+        setOverlay({ kind: "match-detail", matchId: result.id });
+        break;
+      case "task":
+        setOverlay({ kind: "task-detail", taskId: result.id });
+        break;
+      case "coach":
+        setOverlay(null);
+        setMarketplaceCoachId(result.id);
+        if (isCoachMode) setCoachTab("coaches");
+        else setPlayerTab("coaches");
+        break;
+      case "exercise":
+        setOverlay(null);
+        setCoachTab("library");
+        break;
+    }
+  };
+  const searchConfig = {
+    run: (query: string) =>
+      searchAll(token, query).then((found) => (isCoachMode ? found : found.filter((r) => r.type !== "exercise"))),
+    onSelect: handleSearchSelect,
+  };
   const onCreateTraining = () => setOverlay({ kind: "training-create" });
   const onOpenTeam = primaryTeam ? () => setOverlay({ kind: "team", teamId: primaryTeam.id }) : undefined;
 
@@ -406,6 +446,7 @@ function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | 
         activeTab={coachTab}
         onChangeTab={(tab) => {
           setOverlay(null);
+          setMarketplaceCoachId(null);
           setCoachTab(tab);
         }}
         hasOverlay={hasOverlay}
@@ -423,11 +464,13 @@ function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | 
                 ...coachTopBar(coachTab, onCreateTraining),
                 unreadNotifications,
                 onOpenNotifications: () => setOverlay({ kind: "notifications" }),
+                search: searchConfig,
               }
         }
       >
         {overlayContent ?? (
           <CoachTabContent
+            initialCoachUserId={marketplaceCoachId}
             tab={coachTab}
             token={token}
             userId={myUserId ?? ""}
@@ -449,6 +492,7 @@ function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | 
       activeTab={playerTab}
       onChangeTab={(tab) => {
         setOverlay(null);
+        setMarketplaceCoachId(null);
         setPlayerTab(tab);
       }}
       hasOverlay={hasOverlay}
@@ -466,6 +510,7 @@ function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | 
               ...playerTopBar(playerTab, onCreateTraining),
               unreadNotifications,
               onOpenNotifications: () => setOverlay({ kind: "notifications" }),
+              search: searchConfig,
             }
       }
     >
@@ -491,7 +536,9 @@ function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | 
               onCreateTraining={() => setOverlay({ kind: "training-create" })}
             />
           )}
-          {playerTab === "coaches" && <CoachMarketplaceScreen token={token} />}
+          {playerTab === "coaches" && (
+            <CoachMarketplaceScreen key={marketplaceCoachId ?? "list"} token={token} initialCoachUserId={marketplaceCoachId} />
+          )}
           {playerTab === "profile" && (
             <ProfileScreen
               token={token}

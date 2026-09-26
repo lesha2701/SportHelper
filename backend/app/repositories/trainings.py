@@ -141,15 +141,23 @@ async def list_personal_trainings(conn: asyncpg.Connection, owner_id: UUID) -> l
 async def list_calendar_trainings(
     conn: asyncpg.Connection, user_id: UUID, date_from: date, date_to: date
 ) -> list[dict[str, Any]]:
+    """Trainings on this user's calendar: their own personal ones, their
+    teams' ones, and — for coaches — the personal sessions athletes booked
+    with them (`booked_athlete_name` is set for those)."""
     rows = await conn.fetch(
         """
-        SELECT t.id, t.type, t.training_date, t.start_time, t.status, t.team_id, tm.name AS team_name
+        SELECT t.id, t.type, t.training_date, t.start_time, t.status, t.team_id, tm.name AS team_name,
+               CASE WHEN bk.id IS NOT NULL
+                    THEN au.first_name || COALESCE(' ' || au.last_name, '') END AS booked_athlete_name
         FROM trainings t
         LEFT JOIN teams tm ON tm.id = t.team_id
+        LEFT JOIN bookings bk ON bk.training_id = t.id AND bk.coach_user_id = $1 AND bk.status = 'confirmed'
+        LEFT JOIN users au ON au.id = bk.athlete_user_id
         WHERE t.deleted_at IS NULL
           AND t.training_date BETWEEN $2 AND $3
           AND (
             (t.type = 'personal' AND t.created_by = $1)
+            OR bk.id IS NOT NULL
             OR (t.team_id IS NOT NULL AND t.team_id IN (SELECT team_id FROM team_members WHERE user_id = $1))
           )
         ORDER BY t.training_date, t.start_time
@@ -159,6 +167,16 @@ async def list_calendar_trainings(
         date_to,
     )
     return [dict(row) for row in rows]
+
+
+async def is_booked_coach(conn: asyncpg.Connection, training_id: UUID, user_id: UUID) -> bool:
+    """Whether this user is the coach of a confirmed booking behind the training."""
+    row = await conn.fetchrow(
+        "SELECT 1 FROM bookings WHERE training_id = $1 AND coach_user_id = $2 AND status = 'confirmed'",
+        training_id,
+        user_id,
+    )
+    return row is not None
 
 
 async def count_team_trainings_summary(conn: asyncpg.Connection, team_id: UUID) -> dict[str, Any]:

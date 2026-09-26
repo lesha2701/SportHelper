@@ -24,6 +24,7 @@ from app.api.routes import (
     metrics,
     notifications,
     players,
+    search,
     plans,
     profile,
     profile_media,
@@ -75,7 +76,7 @@ def _attach_error_log_handler(pool: asyncpg.Pool) -> None:
 async def lifespan(app: FastAPI):
     settings = get_settings()
     configure_logging(settings.app_mode)
-    logger.info("Starting TeamFlow Sports backend (mode=%s)", settings.app_mode)
+    logger.info("Starting SportArenaGlobal backend (mode=%s)", settings.app_mode)
 
     pool = await create_pool(settings)
     await run_migrations(pool)
@@ -100,9 +101,9 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="TeamFlow Sports API",
+        title="SportArenaGlobal API",
         version="0.1.0",
-        description="Backend API for the TeamFlow Sports Telegram Mini App.",
+        description="Backend API for the SportArenaGlobal Telegram Mini App.",
         lifespan=lifespan,
     )
 
@@ -180,6 +181,7 @@ def create_app() -> FastAPI:
     app.include_router(coach_listings.router)
     app.include_router(coaches.router)
     app.include_router(players.router)
+    app.include_router(search.router)
     app.include_router(metrics.router)
     app.include_router(metrics.metric_router)
     app.include_router(stats.router)

@@ -265,6 +265,7 @@ async def upload_listing_video(
 async def list_listings(
     sport: str | None = None,
     location: str | None = None,
+    min_price: float | None = None,
     max_price: float | None = None,
     min_rating: float | None = None,
     format: str | None = None,
@@ -276,6 +277,7 @@ async def list_listings(
         conn,
         sport=sport,
         location=location,
+        min_price=min_price,
         max_price=max_price,
         min_rating=min_rating,
         training_format=format,

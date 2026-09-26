@@ -17,15 +17,15 @@ export async function getTemplate(token: string, templateId: string): Promise<Ta
 }
 
 export async function createTemplate(token: string, input: TaskTemplateInput): Promise<TaskTemplate> {
-  const dto = await apiRequest<TaskTemplateDto>("/api/task-templates", { method: "POST", token, body: input });
+  const dto = await apiRequest<TaskTemplateDto>("/api/task-templates", { method: "POST", successMessage: "Шаблон создан", token, body: input });
   return mapTaskTemplateDto(dto);
 }
 
 export async function updateTemplate(token: string, templateId: string, input: TaskTemplateInput): Promise<TaskTemplate> {
-  const dto = await apiRequest<TaskTemplateDto>(`/api/task-templates/${templateId}`, { method: "PUT", token, body: input });
+  const dto = await apiRequest<TaskTemplateDto>(`/api/task-templates/${templateId}`, { method: "PUT", successMessage: "Шаблон сохранён", token, body: input });
   return mapTaskTemplateDto(dto);
 }
 
 export async function deleteTemplate(token: string, templateId: string): Promise<void> {
-  await apiRequest(`/api/task-templates/${templateId}`, { method: "DELETE", token });
+  await apiRequest(`/api/task-templates/${templateId}`, { method: "DELETE", successMessage: "Шаблон удалён", token });
 }

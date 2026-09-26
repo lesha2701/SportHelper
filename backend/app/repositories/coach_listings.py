@@ -173,6 +173,7 @@ async def list_listed(
     *,
     sport: str | None = None,
     location: str | None = None,
+    min_price: float | None = None,
     max_price: float | None = None,
     min_rating: float | None = None,
     training_format: str | None = None,
@@ -189,6 +190,8 @@ async def list_listed(
         add("cp.sport ILIKE '%' || ${} || '%'", sport)
     if location:
         add("cl.location ILIKE '%' || ${} || '%'", location)
+    if min_price is not None:
+        add("cl.price_per_session >= ${}", min_price)
     if max_price is not None:
         add("cl.price_per_session <= ${}", max_price)
     if min_experience_years is not None:

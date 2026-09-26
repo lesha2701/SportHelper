@@ -10,7 +10,7 @@ import {
 } from "../types/match";
 
 export async function createMatch(token: string, teamId: string, input: MatchCreateInput): Promise<Match> {
-  const dto = await apiRequest<MatchDto>(`/api/teams/${teamId}/matches`, { method: "POST", token, body: input });
+  const dto = await apiRequest<MatchDto>(`/api/teams/${teamId}/matches`, { method: "POST", successMessage: "Матч создан", token, body: input });
   return mapMatchDto(dto);
 }
 
@@ -25,20 +25,20 @@ export async function getMatch(token: string, matchId: string): Promise<Match> {
 }
 
 export async function updateMatch(token: string, matchId: string, input: MatchUpdateInput): Promise<Match> {
-  const dto = await apiRequest<MatchDto>(`/api/matches/${matchId}`, { method: "PUT", token, body: input });
+  const dto = await apiRequest<MatchDto>(`/api/matches/${matchId}`, { method: "PUT", successMessage: "Матч сохранён", token, body: input });
   return mapMatchDto(dto);
 }
 
 export async function deleteMatch(token: string, matchId: string): Promise<void> {
-  await apiRequest(`/api/matches/${matchId}`, { method: "DELETE", token });
+  await apiRequest(`/api/matches/${matchId}`, { method: "DELETE", successMessage: "Матч удалён", token });
 }
 
 export async function setMatchRoster(token: string, matchId: string, input: MatchRosterInput): Promise<Match> {
-  const dto = await apiRequest<MatchDto>(`/api/matches/${matchId}/roster`, { method: "PUT", token, body: input });
+  const dto = await apiRequest<MatchDto>(`/api/matches/${matchId}/roster`, { method: "PUT", successMessage: "Состав сохранён", token, body: input });
   return mapMatchDto(dto);
 }
 
 export async function setMatchResult(token: string, matchId: string, input: MatchResultInput): Promise<Match> {
-  const dto = await apiRequest<MatchDto>(`/api/matches/${matchId}/result`, { method: "POST", token, body: input });
+  const dto = await apiRequest<MatchDto>(`/api/matches/${matchId}/result`, { method: "POST", successMessage: "Результат матча сохранён", token, body: input });
   return mapMatchDto(dto);
 }

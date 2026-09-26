@@ -21,6 +21,7 @@ import type { Team } from "../../types/team";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 import libraryStyles from "./library.module.css";
+import { photoVideoGallery } from "../shared/MediaLightbox";
 
 type LoadState =
   | { status: "loading" }
@@ -143,10 +144,19 @@ export function ExerciseDetail({
         <h1 className={profileStyles.title}>{exercise.name}</h1>
         <p className={profileStyles.subtitle}>{exercise.sport}</p>
 
-        {exercise.photoFileId && (
-          <AuthenticatedImage token={token} fileId={exercise.photoFileId} alt={exercise.name} className={libraryStyles.exercisePhoto} />
-        )}
-        {exercise.videoFileId && <AuthenticatedVideo token={token} fileId={exercise.videoFileId} className={libraryStyles.exerciseVideo} />}
+        {(() => {
+          const g = photoVideoGallery(exercise.photoFileId, exercise.videoFileId, exercise.name);
+          return (
+            <>
+              {exercise.photoFileId && (
+                <AuthenticatedImage token={token} fileId={exercise.photoFileId} alt={exercise.name} className={libraryStyles.exercisePhoto} zoomable gallery={g.items} galleryIndex={g.photoIndex} />
+              )}
+              {exercise.videoFileId && (
+                <AuthenticatedVideo token={token} fileId={exercise.videoFileId} className={libraryStyles.exerciseVideo} zoomable gallery={g.items} galleryIndex={g.videoIndex} />
+              )}
+            </>
+          );
+        })()}
 
         {exercise.description && (
           <div className={profileStyles.row}>

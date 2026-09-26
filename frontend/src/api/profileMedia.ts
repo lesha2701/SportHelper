@@ -10,7 +10,7 @@ export async function uploadProfilePhoto(token: string, file: File, caption?: st
   const formData = new FormData();
   formData.append("file", file);
   if (caption) formData.append("caption", caption);
-  const dto = await apiUpload<ProfileMediaDto>("/api/profile/media/photo", { token, formData });
+  const dto = await apiUpload<ProfileMediaDto>("/api/profile/media/photo", { token, formData, successMessage: "Фото добавлено" });
   return mapProfileMediaDto(dto);
 }
 
@@ -18,10 +18,10 @@ export async function uploadProfileVideo(token: string, file: File, caption?: st
   const formData = new FormData();
   formData.append("file", file);
   if (caption) formData.append("caption", caption);
-  const dto = await apiUpload<ProfileMediaDto>("/api/profile/media/video", { token, formData });
+  const dto = await apiUpload<ProfileMediaDto>("/api/profile/media/video", { token, formData, successMessage: "Видео добавлено" });
   return mapProfileMediaDto(dto);
 }
 
 export async function deleteProfileMedia(token: string, mediaId: string): Promise<void> {
-  await apiRequest(`/api/profile/media/${mediaId}`, { method: "DELETE", token });
+  await apiRequest(`/api/profile/media/${mediaId}`, { method: "DELETE", successMessage: "Удалено", token });
 }
