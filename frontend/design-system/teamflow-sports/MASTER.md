@@ -1,4 +1,4 @@
-# SportArenaGlobal — Design System (MASTER)
+# SportArena Global — Design System (MASTER)
 
 Дата: 2026-07-18. Редизайн палитры и типографики (заменяет предыдущую тёмную
 тему на оранжевом акценте «Ignite Orange»). Источник — дизайн-система

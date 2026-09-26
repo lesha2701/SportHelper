@@ -34,9 +34,7 @@
 
 .brandName {
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.05;
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 800;

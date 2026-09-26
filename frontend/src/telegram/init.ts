@@ -7,7 +7,7 @@ export interface TelegramEnv {
 
 /**
  * Initializes the Telegram Mini Apps SDK and returns the raw initData
- * string to send to the backend for verification. SportArenaGlobal uses its
+ * string to send to the backend for verification. SportArena Global uses its
  * own light, neutral design system rather than Telegram's theme params, so
  * no theme/CSS-var binding happens here — only lifecycle (mount/ready).
  *

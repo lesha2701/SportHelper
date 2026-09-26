@@ -1,4 +1,4 @@
--- SportArenaGlobal — baseline schema for a fresh database.
+-- SportArena Global — baseline schema for a fresh database.
 -- Applied automatically on startup when the "schema_versions" table is missing.
 -- For an already existing database, sequential files in database/patches/ are
 -- applied instead (see app/database.py).

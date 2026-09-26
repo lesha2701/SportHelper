@@ -76,7 +76,7 @@ def _attach_error_log_handler(pool: asyncpg.Pool) -> None:
 async def lifespan(app: FastAPI):
     settings = get_settings()
     configure_logging(settings.app_mode)
-    logger.info("Starting SportArenaGlobal backend (mode=%s)", settings.app_mode)
+    logger.info("Starting SportArena Global backend (mode=%s)", settings.app_mode)
 
     pool = await create_pool(settings)
     await run_migrations(pool)
@@ -101,9 +101,9 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="SportArenaGlobal API",
+        title="SportArena Global API",
         version="0.1.0",
-        description="Backend API for the SportArenaGlobal Telegram Mini App.",
+        description="Backend API for the SportArena Global Telegram Mini App.",
         lifespan=lifespan,
     )
 

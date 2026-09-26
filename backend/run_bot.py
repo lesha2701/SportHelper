@@ -20,7 +20,7 @@ logger = logging.getLogger("teamflow.bot")
 async def main() -> None:
     settings = get_settings()
     configure_logging(settings.app_mode)
-    logger.info("Starting SportArenaGlobal bot (mode=%s)", settings.app_mode)
+    logger.info("Starting SportArena Global bot (mode=%s)", settings.app_mode)
 
     # The bot runs as its own process (separate from the FastAPI backend),
     # so admin commands need their own pool to read/write Postgres directly.
