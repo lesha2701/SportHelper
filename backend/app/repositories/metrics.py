@@ -2,6 +2,7 @@
 parameterized."""
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 from uuid import UUID
 
@@ -60,5 +61,25 @@ async def list_for_user(conn: asyncpg.Connection, user_id: UUID) -> list[dict[st
         ORDER BY recorded_date DESC, created_at DESC
         """,
         user_id,
+    )
+    return [dict(row) for row in rows]
+
+
+async def list_recent_for_user(
+    conn: asyncpg.Connection, user_id: UUID, since: date, limit: int
+) -> list[dict[str, Any]]:
+    """Bounded variant of list_for_user for AI context: only readings since
+    `since`, newest first, capped at `limit`."""
+    rows = await conn.fetch(
+        """
+        SELECT name, unit, value, recorded_date, higher_is_better
+        FROM player_metrics
+        WHERE user_id = $1 AND deleted_at IS NULL AND recorded_date >= $2
+        ORDER BY recorded_date DESC, created_at DESC
+        LIMIT $3
+        """,
+        user_id,
+        since,
+        limit,
     )
     return [dict(row) for row in rows]

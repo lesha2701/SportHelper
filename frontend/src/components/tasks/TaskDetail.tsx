@@ -21,6 +21,7 @@ import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 import libraryStyles from "../library/library.module.css";
 import { photoVideoGallery } from "../shared/MediaLightbox";
+import { NextStepCard } from "../shared/NextStepCard";
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; task: Task };
 
@@ -33,14 +34,15 @@ function formatDeadline(iso: string | null): string | null {
 export function TaskDetail({
   token,
   taskId,
-  canManage,
+  canManage: canManageProp,
   onBack,
   onEdit,
   onDeleted,
 }: {
   token: string;
   taskId: string;
-  canManage: boolean;
+  /** A fixed answer, or a predicate over the task's team (when the caller can't know the team yet — search, notifications). */
+  canManage: boolean | ((teamId: string) => boolean);
   onBack: () => void;
   onEdit: (task: Task) => void;
   onDeleted: () => void;
@@ -53,6 +55,9 @@ export function TaskDetail({
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  // In-place "what next" cards after the player submits / the coach reviews.
+  const [justSubmitted, setJustSubmitted] = useState(false);
+  const [lastReview, setLastReview] = useState<{ name: string; decision: "accepted" | "needs_revision"; nextUserId: string | null } | null>(null);
 
   const [comment, setComment] = useState("");
   const [sets, setSets] = useState("");
@@ -74,6 +79,9 @@ export function TaskDetail({
   }, [token, taskId]);
 
   useEffect(load, [load]);
+
+  const canManage =
+    typeof canManageProp === "function" ? state.status === "ready" && canManageProp(state.task.teamId) : canManageProp;
 
   useEffect(() => {
     if (state.status !== "ready") return;
@@ -129,6 +137,7 @@ export function TaskDetail({
         difficulty: difficulty ? Number(difficulty) : null,
         wellbeing: wellbeing ? Number(wellbeing) : null,
       });
+      setJustSubmitted(true);
       load();
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Не удалось отправить отчёт");
@@ -168,6 +177,14 @@ export function TaskDetail({
     setActionError(null);
     try {
       await reviewTask(token, task.id, userId, decision, coachComment.trim() || null);
+      // The next report waiting for a decision, if the data on screen already tells us (no extra lookups).
+      const reviewed = task.assignments.find((a) => a.userId === userId);
+      const next = task.assignments.find((a) => a.userId !== userId && a.status === "submitted");
+      setLastReview({
+        name: `${reviewed?.firstName ?? ""} ${reviewed?.lastName ?? ""}`.trim(),
+        decision,
+        nextUserId: next?.userId ?? null,
+      });
       setCoachComment("");
       setExpandedUserId(null);
       load();
@@ -307,9 +324,34 @@ export function TaskDetail({
         </div>
       )}
 
+      {canManage && lastReview && (
+        <NextStepCard
+          title={lastReview.decision === "accepted" ? "Отчёт принят" : "Отчёт возвращён на доработку"}
+          message={
+            lastReview.nextUserId
+              ? `${lastReview.name || "Игрок"} получит ваше решение. Есть ещё отчёты, ожидающие проверки.`
+              : `${lastReview.name || "Игрок"} получит ваше решение. Все отправленные отчёты проверены.`
+          }
+          primary={
+            lastReview.nextUserId
+              ? { label: "Следующий отчёт", onClick: () => { setExpandedUserId(lastReview.nextUserId); setLastReview(null); } }
+              : { label: "К заданию", onClick: () => setLastReview(null) }
+          }
+          secondary={
+            lastReview.nextUserId
+              ? { label: "К заданию", onClick: () => setLastReview(null) }
+              : { label: "К списку заданий", onClick: onBack }
+          }
+        />
+      )}
+
       {canManage && (
         <div className={profileStyles.card}>
-          <span className={profileStyles.title}>Игроки ({task.assignments.length})</span>
+          <span className={profileStyles.title}>
+            Игроки ({task.assignments.length})
+            {task.assignments.some((a) => a.status === "submitted") &&
+              ` · ждут проверки: ${task.assignments.filter((a) => a.status === "submitted").length}`}
+          </span>
           {task.assignments.map((a) => (
             <div key={a.userId}>
               <button
@@ -344,6 +386,15 @@ export function TaskDetail({
             </div>
           ))}
         </div>
+      )}
+
+      {!canManage && myAssignment && justSubmitted && myAssignment.status === "submitted" && (
+        <NextStepCard
+          title="Отчёт отправлен тренеру"
+          message="Тренер проверит его, и вы получите ответ. Пока можно посмотреть другие задания."
+          primary={{ label: "К моим заданиям", onClick: onBack }}
+          secondary={{ label: "Остаться в задании", onClick: () => setJustSubmitted(false) }}
+        />
       )}
 
       {!canManage && myAssignment && (

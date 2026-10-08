@@ -1,19 +1,25 @@
 // frontend/src/components/coaches/ReviewModal.tsx
 import { useState } from "react";
-import { reviewBooking } from "../../api/bookings";
 import { ApiError } from "../../api/client";
-import type { Booking } from "../../types/booking";
+import type { ReviewInput } from "../../types/booking";
 import profileStyles from "../profile/profile.module.css";
 import styles from "./coaches.module.css";
 
+/** Stars + a short comment. Used both for the athlete's review of a coach and
+ * the coach's review of an athlete — the caller supplies the wording and the
+ * API call. */
 export function ReviewModal({
-  token,
-  booking,
+  title,
+  hint,
+  submit,
+  skipLabel = "Отмена",
   onClose,
   onSubmitted,
 }: {
-  token: string;
-  booking: Booking;
+  title: string;
+  hint?: string;
+  submit: (input: ReviewInput) => Promise<void>;
+  skipLabel?: string;
   onClose: () => void;
   onSubmitted: () => void;
 }) {
@@ -26,7 +32,7 @@ export function ReviewModal({
     setSaving(true);
     setError(null);
     try {
-      await reviewBooking(token, booking.id, { rating, text: text.trim() || null });
+      await submit({ rating, text: text.trim() || null });
       onSubmitted();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Не удалось отправить отзыв");
@@ -36,9 +42,10 @@ export function ReviewModal({
   };
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
-        <h2 className={profileStyles.title}>Отзыв о тренере {booking.coachFullName}</h2>
+    <div className={styles.modalOverlay} onClick={saving ? undefined : onClose}>
+      <div className={styles.modalCard} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title}>
+        <h2 className={profileStyles.title}>{title}</h2>
+        {hint && <p className={profileStyles.subtitle}>{hint}</p>}
 
         <div className={styles.ratingPicker}>
           {[1, 2, 3, 4, 5].map((n) => (
@@ -47,7 +54,8 @@ export function ReviewModal({
               type="button"
               className={n <= rating ? `${styles.ratingStar} ${styles.ratingStarFilled}` : styles.ratingStar}
               onClick={() => setRating(n)}
-              aria-label={`${n} звёзд`}
+              aria-label={`${n} из 5`}
+              aria-pressed={n === rating}
             >
               ★
             </button>
@@ -66,7 +74,7 @@ export function ReviewModal({
             {saving ? "Отправка…" : "Отправить отзыв"}
           </button>
           <button type="button" className={profileStyles.buttonSecondary} onClick={onClose} disabled={saving}>
-            Отмена
+            {skipLabel}
           </button>
         </div>
       </div>

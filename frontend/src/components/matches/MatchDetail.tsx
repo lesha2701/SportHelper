@@ -9,23 +9,28 @@ import { MATCH_RESULT_LABELS, MATCH_STATUS_LABELS, type Match } from "../../type
 import type { TeamMember } from "../../types/team";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
+import { toast } from "../../toast";
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; match: Match };
 
 export function MatchDetail({
   token,
   matchId,
-  canManage,
+  canManage: canManageProp,
   onBack,
   onEdit,
   onDeleted,
+  onOpenStats,
 }: {
   token: string;
   matchId: string;
-  canManage: boolean;
+  /** A fixed answer, or a predicate over the match's team (when the caller can't know the team yet — search, notifications). */
+  canManage: boolean | ((teamId: string) => boolean);
   onBack: () => void;
   onEdit: (match: Match) => void;
   onDeleted: () => void;
+  /** Jumps to the team statistics (offered once a result is saved, since it feeds them). */
+  onOpenStats?: () => void;
 }) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -50,6 +55,9 @@ export function MatchDetail({
   }, [token, matchId]);
 
   useEffect(load, [load]);
+
+  const canManage =
+    typeof canManageProp === "function" ? state.status === "ready" && canManageProp(state.match.teamId) : canManageProp;
 
   useEffect(() => {
     if (!canManage || state.status !== "ready") return;
@@ -138,6 +146,7 @@ export function MatchDetail({
         opponent_score: Number(opponentScore),
         comment: resultComment.trim() || null,
       });
+      toast.success("Результат сохранён", onOpenStats ? { label: "Посмотреть статистику", onClick: onOpenStats } : undefined);
       setEditingResult(false);
       load();
     } catch (err) {

@@ -227,3 +227,19 @@ async def schedule_booking_decided_notification(
         entity_id=booking["id"],
         send_at=datetime.now(timezone.utc),
     )
+
+
+async def schedule_review_requested_notification(conn: asyncpg.Connection, booking: dict[str, Any]) -> None:
+    """Asks the athlete to review their coach once the coach has marked the
+    session as conducted. Opens the booking's review form via the usual
+    notification deep link (category + booking id)."""
+    await _notify_recipients(
+        conn,
+        recipient_ids=[booking["athlete_user_id"]],
+        category="review_requested",
+        title="Оставьте отзыв о тренере",
+        body=f"Занятие с тренером {booking['coach_full_name']} прошло. Поставьте оценку и напишите пару слов.",
+        entity_type="booking",
+        entity_id=booking["id"],
+        send_at=datetime.now(timezone.utc),
+    )

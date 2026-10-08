@@ -358,7 +358,9 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
 
       {tab === "tasks" && <TeamTasksTab token={token} teamId={teamId} canManage={isCoachStaff} />}
 
-      {tab === "matches" && <TeamMatchesTab token={token} teamId={teamId} canManage={isCoachStaff} />}
+      {tab === "matches" && (
+        <TeamMatchesTab token={token} teamId={teamId} canManage={isCoachStaff} onOpenStats={isCoachStaff ? () => setTab("stats") : undefined} />
+      )}
 
       {tab === "stats" && isCoachStaff && <TeamStatsTab token={token} teamId={teamId} />}
 
@@ -376,7 +378,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
           {isCaptain && team.status === "without_coach" && (
             <InviteSection token={token} teamId={teamId} kind="head_coach" title="Пригласить нового тренера" />
           )}
-          {isCoachStaff && <ApplicationsSection token={token} teamId={teamId} onChanged={load} />}
+          {isCoachStaff && <ApplicationsSection token={token} teamId={teamId} onChanged={load} onOpenRoster={() => setTab("roster")} />}
 
           <div className={profileStyles.card}>
             {isHeadCoach && (

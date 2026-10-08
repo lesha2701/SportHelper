@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Icon, type IconName } from "../shared/Icon";
+import { WelcomeGuide } from "../welcome/WelcomeGuide";
 import styles from "../teams/teams.module.css";
 import profileStyles from "./profile.module.css";
 
@@ -105,7 +107,15 @@ const SECTIONS: HelpSection[] = [
   },
 ];
 
-export function HelpScreen({ onBack }: { onBack: () => void }) {
+export function HelpScreen({
+  onBack,
+  roles,
+}: {
+  onBack: () => void;
+  roles?: { player: boolean; coach: boolean };
+}) {
+  const [showGuide, setShowGuide] = useState(false);
+
   return (
     <div className={profileStyles.screen}>
       <div className={styles.headerRow}>
@@ -123,6 +133,18 @@ export function HelpScreen({ onBack }: { onBack: () => void }) {
           разделе.
         </p>
       </div>
+
+      <div className={profileStyles.card}>
+        <button type="button" className={profileStyles.buttonSecondary} onClick={() => setShowGuide(true)}>
+          <Icon name="sparkles" size={16} />
+          Как работает SportArena
+        </button>
+        <p className={profileStyles.subtitle} style={{ margin: 0 }}>
+          Короткое знакомство с приложением — можно пересмотреть в любой момент.
+        </p>
+      </div>
+
+      {showGuide && <WelcomeGuide manual roles={roles} onFinish={() => setShowGuide(false)} />}
 
       {SECTIONS.map((section) => (
         <div className={profileStyles.card} key={section.title}>

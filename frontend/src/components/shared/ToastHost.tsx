@@ -21,6 +21,18 @@ export function ToastHost() {
             <Icon name={item.kind === "error" ? "alert-triangle" : "check-circle"} size={18} />
           </span>
           <span className={styles.message}>{item.message}</span>
+          {item.action && (
+            <button
+              type="button"
+              className={styles.action}
+              onClick={() => {
+                dismissToast(item.id);
+                item.action?.onClick();
+              }}
+            >
+              {item.action.label}
+            </button>
+          )}
           <button type="button" className={styles.close} onClick={() => dismissToast(item.id)} aria-label="Закрыть">
             <Icon name="x" size={14} />
           </button>

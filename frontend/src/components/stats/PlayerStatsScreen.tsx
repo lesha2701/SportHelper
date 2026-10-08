@@ -16,6 +16,7 @@ import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 import dashStyles from "../dashboard/dashboard.module.css";
 import statsStyles from "./stats.module.css";
+import { navigateApp } from "../../appNav";
 
 const RING_RADIUS = 68;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
@@ -97,6 +98,9 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
     }
   };
 
+  const hasActivity =
+    stats.trainingsTotal > 0 || stats.tasksTotal > 0 || stats.matchesHistory.length > 0 || stats.metrics.length > 0;
+
   return (
     <div className={styles.screen}>
       <div className={styles.headerRow}>
@@ -109,6 +113,8 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
       <h1 className={profileStyles.pageHeading}>Статистика</h1>
 
       <div className={dashStyles.bento}>
+        {hasActivity ? (
+          <>
         <div className={`${statsStyles.ringCard} ${dashStyles.span5}`}>
           <div className={statsStyles.ringWrap}>
             <svg width="150" height="150" viewBox="0 0 150 150" className={statsStyles.ringSvg}>
@@ -143,6 +149,20 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
           <StatTile value={`${Math.round(stats.trainingMinutes / 60)} ч`} label="Тренировочное время" />
           <StatTile value={stats.personalTrainingsCount} label="Личных тренировок" />
         </div>
+          </>
+        ) : (
+          <div className={`${dashStyles.card} ${dashStyles.span12}`}>
+            <h3 className={dashStyles.cardTitle}>Статистика появится позже</h3>
+            <p className={profileStyles.subtitle}>
+              Она соберётся после первых тренировок, матчей или отчётов по заданиям. Показатели можно добавлять и сейчас — ниже.
+            </p>
+            {userId === myUserId && (
+              <button type="button" className={profileStyles.buttonPrimary} onClick={() => navigateApp({ kind: "training-create" })}>
+                Запланировать тренировку
+              </button>
+            )}
+          </div>
+        )}
 
         {userId === myUserId && (
           <div className={`${statsStyles.aiCard} ${dashStyles.span4}`}>

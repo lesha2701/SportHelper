@@ -17,6 +17,8 @@ const CATEGORY_ICON: Record<NotificationCategory, IconName> = {
   new_match: "trophy",
   booking_requested: "inbox",
   booking_decided: "inbox",
+  review_requested: "award",
+  training_nudge: "dumbbell",
 };
 
 function formatSendAt(iso: string): string {

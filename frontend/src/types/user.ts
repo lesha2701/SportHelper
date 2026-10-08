@@ -9,6 +9,9 @@ export interface User {
   languageCode: string | null;
   createdAt: string;
   lastLoginAt: string | null;
+  /** Welcome-guide version this account has finished; due while < currentOnboardingVersion. */
+  completedOnboardingVersion: number;
+  currentOnboardingVersion: number;
 }
 
 /** Shape returned by the backend (snake_case), before mapping to `User`. */
@@ -23,6 +26,8 @@ export interface UserDto {
   language_code: string | null;
   created_at: string;
   last_login_at: string | null;
+  completed_onboarding_version: number;
+  current_onboarding_version: number;
 }
 
 export function mapUserDto(dto: UserDto): User {
@@ -37,5 +42,12 @@ export function mapUserDto(dto: UserDto): User {
     languageCode: dto.language_code,
     createdAt: dto.created_at,
     lastLoginAt: dto.last_login_at,
+    completedOnboardingVersion: dto.completed_onboarding_version ?? 0,
+    currentOnboardingVersion: dto.current_onboarding_version ?? 0,
   };
+}
+
+/** Whether the welcome guide should be shown automatically. */
+export function isOnboardingDue(user: User): boolean {
+  return user.completedOnboardingVersion < user.currentOnboardingVersion;
 }

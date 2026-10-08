@@ -168,3 +168,55 @@ async def set_preference(conn: asyncpg.Connection, user_id: UUID, category: str,
         category,
         enabled,
     )
+
+
+async def list_nudge_candidates(
+    conn: asyncpg.Connection,
+    *,
+    inactive_before: datetime,
+    min_gap_after: datetime,
+    max_unanswered: int,
+    limit: int,
+) -> list[dict[str, Any]]:
+    """Users who should get a "time to train" nudge right now:
+
+    * not banned, and not active since `inactive_before` (last_login_at);
+    * players or profile-less newcomers — coach-only accounts are skipped;
+    * the category isn't switched off in their notification settings;
+    * no nudge already queued/sent after `min_gap_after` (the minimum gap);
+    * fewer than `max_unanswered` nudges since they last opened the app, so
+      someone who has gone quiet (or blocked the bot) isn't nagged forever.
+    """
+    rows = await conn.fetch(
+        """
+        SELECT u.id AS user_id, (pp.user_id IS NOT NULL) AS has_player_profile
+        FROM users u
+        LEFT JOIN player_profiles pp ON pp.user_id = u.id
+        LEFT JOIN coach_profiles cp ON cp.user_id = u.id
+        WHERE u.is_banned = FALSE
+          AND COALESCE(u.last_login_at, u.created_at) < $1
+          AND (pp.user_id IS NOT NULL OR cp.user_id IS NULL)
+          AND NOT EXISTS (
+              SELECT 1 FROM notification_preferences np
+              WHERE np.user_id = u.id AND np.category = 'training_nudge' AND np.enabled = FALSE
+          )
+          AND NOT EXISTS (
+              SELECT 1 FROM notifications n
+              WHERE n.user_id = u.id AND n.category = 'training_nudge'
+                AND n.status IN ('pending', 'sent') AND n.send_at > $2
+          )
+          AND (
+              SELECT COUNT(*) FROM notifications n
+              WHERE n.user_id = u.id AND n.category = 'training_nudge'
+                AND n.status IN ('pending', 'sent', 'failed')
+                AND n.send_at > COALESCE(u.last_login_at, u.created_at)
+          ) < $3
+        ORDER BY COALESCE(u.last_login_at, u.created_at)
+        LIMIT $4
+        """,
+        inactive_before,
+        min_gap_after,
+        max_unanswered,
+        limit,
+    )
+    return [dict(row) for row in rows]

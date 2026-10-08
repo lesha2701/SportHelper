@@ -42,11 +42,22 @@ export function ProfileScreen({
   }
 
   if (showHelp) {
-    return <HelpScreen onBack={() => setShowHelp(false)} />;
+    return (
+      <HelpScreen
+        onBack={() => setShowHelp(false)}
+        roles={{ player: state.data.player !== null, coach: state.data.coach !== null }}
+      />
+    );
   }
 
   if (showSettings) {
-    return <SettingsScreen token={token} onBack={() => setShowSettings(false)} />;
+    return (
+      <SettingsScreen
+        token={token}
+        onBack={() => setShowSettings(false)}
+        roles={{ player: state.data.player !== null, coach: state.data.coach !== null }}
+      />
+    );
   }
 
   if (showMarketplaceSettings) {

@@ -48,7 +48,11 @@ class BookingOut(BaseModel):
     training_id: UUID | None
     training_plan_id: UUID | None
     training_plan_name: str | None
+    # "scheduled" / "completed" / "cancelled" of the linked session (None while pending).
+    training_status: str | None = None
     has_review: bool
+    # The coach's review of the athlete exists (only meaningful for the coach).
+    has_player_review: bool = False
 
 
 class PendingBookingOut(BaseModel):
@@ -63,6 +67,9 @@ class PendingBookingOut(BaseModel):
     price_per_session: float | None
     currency: str
     created_at: datetime
+    # How other coaches rated this athlete; None/0 while they have no reviews.
+    athlete_rating_average: float | None = None
+    athlete_review_count: int = 0
 
 
 class BookingPlanIn(BaseModel):
@@ -79,3 +86,17 @@ class ReviewOut(BaseModel):
     booking_id: UUID
     rating: int
     text: str | None
+
+
+class PlayerReviewOut(BaseModel):
+    id: UUID
+    coach_name: str
+    rating: int
+    text: str | None
+    created_at: datetime
+
+
+class PlayerReviewsOut(BaseModel):
+    average: float | None
+    count: int
+    reviews: list[PlayerReviewOut]

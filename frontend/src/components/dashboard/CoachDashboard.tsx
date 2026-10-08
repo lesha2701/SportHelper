@@ -15,9 +15,11 @@ import type { PlayerActivity, TeamStats } from "../../types/stats";
 import { formatRate } from "../../types/stats";
 import type { Match } from "../../types/match";
 import styles from "./dashboard.module.css";
+import profileStyles from "../profile/profile.module.css";
+import { navigateApp } from "../../appNav";
+import { WeekOverview } from "./WeekOverview";
 
 const COACH_STAFF_ROLES = new Set<string>(["head_coach", "assistant_coach"]);
-const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const WAVE_PATH = "M-20 90 C 60 40, 140 140, 220 60 S 380 20, 440 70";
 
 function toIso(d: Date): string {
@@ -124,11 +126,18 @@ export function CoachDashboard({
   }
   if (state.status === "empty") {
     return (
-      <StateScreen
-        kind="empty"
-        title="Пока нет команд"
-        description="Создайте команду на вкладке «Команды», чтобы видеть здесь тренировки, нагрузку и задачи."
-      />
+      <>
+        <StateScreen
+          kind="empty"
+          title="Пока нет команд"
+          description="Создайте команду, чтобы видеть здесь тренировки, нагрузку и задачи."
+        />
+        <div style={{ display: "flex", justifyContent: "center", paddingBottom: 24 }}>
+          <button type="button" className={profileStyles.buttonPrimary} style={{ width: "auto", padding: "13px 24px" }} onClick={() => navigateApp({ kind: "tab", tab: "teams" })}>
+            Создать команду
+          </button>
+        </div>
+      </>
     );
   }
 
@@ -237,30 +246,7 @@ export function CoachDashboard({
         </div>
 
         <div className={`${styles.card} ${styles.span8}`}>
-          <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Эта неделя</h3>
-          </div>
-          <div className={styles.weekGrid}>
-            {weekDays.map((d) => {
-              const iso = toIso(d);
-              const isToday = iso === today;
-              const dayEvents = (eventsByDay.get(iso) ?? []).slice(0, 3);
-              return (
-                <div key={iso} className={isToday ? `${styles.weekCol} ${styles.weekColToday}` : styles.weekCol}>
-                  <div className={styles.weekColHead}>
-                    <span className={styles.weekColWd}>{WEEKDAY_LABELS[d.getDay() === 0 ? 6 : d.getDay() - 1]}</span>
-                    <span className={isToday ? `${styles.weekColNum} ${styles.weekColNumToday}` : styles.weekColNum}>{d.getDate()}</span>
-                  </div>
-                  {dayEvents.map((e) => (
-                    <button key={e.id} type="button" className={styles.weekEvent} onClick={() => onOpenEvent(e)}>
-                      <span className={styles.weekEventTime}>{e.time ? e.time.slice(0, 5) : ""}</span>
-                      <span className={styles.weekEventTitle}>{e.title}</span>
-                    </button>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
+          <WeekOverview weekDays={weekDays} events={events} today={today} onOpenEvent={onOpenEvent} />
         </div>
 
         <div className={`${styles.card} ${styles.span4}`}>

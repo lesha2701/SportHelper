@@ -88,6 +88,20 @@ class Settings(BaseSettings):
     notification_retry_delay_seconds: int = Field(default=60, alias="NOTIFICATION_RETRY_DELAY_SECONDS")
     task_deadline_reminder_hours_before: int = Field(default=24, alias="TASK_DEADLINE_REMINDER_HOURS_BEFORE")
 
+    # "Time to train" re-engagement nudges (app/services/nudges.py).
+    nudge_enabled: bool = Field(default=True, alias="NUDGE_ENABLED")
+    # Users have no stored timezone, so the send window is in one project-wide zone.
+    nudge_timezone: str = Field(default="Europe/Moscow", alias="NUDGE_TIMEZONE")
+    nudge_window_start_hour: int = Field(default=17, alias="NUDGE_WINDOW_START_HOUR")
+    nudge_window_end_hour: int = Field(default=20, alias="NUDGE_WINDOW_END_HOUR")
+    # At most one nudge per this many hours per user (40h ~ "every other day" with a daily window).
+    nudge_min_interval_hours: int = Field(default=40, alias="NUDGE_MIN_INTERVAL_HOURS")
+    # Don't nudge someone who opened the app within this many hours.
+    nudge_inactive_after_hours: int = Field(default=24, alias="NUDGE_INACTIVE_AFTER_HOURS")
+    # After this many nudges in a row without the user coming back, stop until they do.
+    nudge_max_unanswered: int = Field(default=3, alias="NUDGE_MAX_UNANSWERED")
+    nudge_batch_size: int = Field(default=200, alias="NUDGE_BATCH_SIZE")
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

@@ -114,7 +114,7 @@ export async function listApplications(token: string, teamId: string): Promise<J
 }
 
 export async function acceptApplication(token: string, teamId: string, requestId: string): Promise<void> {
-  await apiRequest(`/api/teams/${teamId}/applications/${requestId}/accept`, { method: "POST", successMessage: "Заявка принята", token });
+  await apiRequest(`/api/teams/${teamId}/applications/${requestId}/accept`, { method: "POST", silent: true, token });
 }
 
 export async function rejectApplication(token: string, teamId: string, requestId: string): Promise<void> {

@@ -23,6 +23,7 @@ from app.api.routes import (
     matches,
     metrics,
     notifications,
+    onboarding,
     players,
     search,
     plans,
@@ -187,6 +188,9 @@ def create_app() -> FastAPI:
     app.include_router(stats.router)
     app.include_router(ai.router)
     app.include_router(ai.team_ai_router)
+    app.include_router(ai.training_ai_router)
+    app.include_router(ai.privacy_router)
+    app.include_router(onboarding.router)
     app.include_router(bookings.router)
 
     return app

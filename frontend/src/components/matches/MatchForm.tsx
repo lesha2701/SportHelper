@@ -3,6 +3,8 @@ import { createMatch, updateMatch } from "../../api/matches";
 import { ApiError } from "../../api/client";
 import type { Match } from "../../types/match";
 import profileStyles from "../profile/profile.module.css";
+import { navigateApp } from "../../appNav";
+import { toast } from "../../toast";
 
 interface MatchFormProps {
   token: string;
@@ -45,6 +47,7 @@ export function MatchForm({ token, teamId, initial, onSaved, onCancel }: MatchFo
       }
 
       const match = await createMatch(token, teamId, commonFields);
+      toast.success("Матч создан", { label: "Посмотреть в календаре", onClick: () => navigateApp({ kind: "tab", tab: "calendar" }) });
       onSaved(match);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Не удалось сохранить матч");

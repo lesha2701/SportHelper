@@ -205,6 +205,7 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
       )}
 
       {state.status === "ready" && mode !== "week" && visibleEvents.length === 0 && (
+        <>
         <StateScreen
           kind="empty"
           title={mode === "overdue" ? "Просроченных нет" : "Пока ничего нет"}
@@ -214,6 +215,12 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
               : "Здесь появятся тренировки, матчи и дедлайны заданий."
           }
         />
+        {mode !== "overdue" && onCreateTraining && (
+          <button type="button" className={profileStyles.buttonPrimary} onClick={onCreateTraining}>
+            Запланировать тренировку
+          </button>
+        )}
+        </>
       )}
 
       {state.status === "ready" && mode !== "week" && visibleEvents.length > 0 && (

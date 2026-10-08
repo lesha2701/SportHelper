@@ -16,12 +16,12 @@ import {
 } from "../types/training";
 
 export async function createTeamTraining(token: string, teamId: string, input: TrainingCreateInput): Promise<Training[]> {
-  const dtos = await apiRequest<TrainingDto[]>(`/api/teams/${teamId}/trainings`, { method: "POST", successMessage: "Тренировка создана", token, body: input });
+  const dtos = await apiRequest<TrainingDto[]>(`/api/teams/${teamId}/trainings`, { method: "POST", silent: true, token, body: input });
   return dtos.map(mapTrainingDto);
 }
 
 export async function createPersonalTraining(token: string, input: TrainingCreateInput): Promise<Training[]> {
-  const dtos = await apiRequest<TrainingDto[]>("/api/trainings/personal", { method: "POST", successMessage: "Тренировка создана", token, body: input });
+  const dtos = await apiRequest<TrainingDto[]>("/api/trainings/personal", { method: "POST", silent: true, token, body: input });
   return dtos.map(mapTrainingDto);
 }
 

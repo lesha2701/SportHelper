@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
@@ -29,14 +30,21 @@ from app.config import Settings
 from app.core.exceptions import AIServiceError
 from app.integrations.yandex_ai import YandexAIClient, YandexAIError
 from app.repositories import exercises as exercises_repo
+from app.repositories import matches as matches_repo
+from app.repositories import metrics as metrics_repo
 from app.repositories import plans as plans_repo
+from app.repositories import profiles as profiles_repo
 from app.repositories import reports as reports_repo
+from app.repositories import tasks as tasks_repo
 from app.repositories import teams as teams_repo
+from app.repositories import training_feedback as training_feedback_repo
 from app.repositories import trainings as trainings_repo
 from app.schemas.ai import (
     PersonalTrainingDraftIn,
     PersonalTrainingDraftOut,
     PersonalTrainingExerciseDraft,
+    PlayerAnalysisPlanStepOut,
+    PlayerPreSessionAnalysisOut,
     TaskDraftIn,
     TaskDraftOut,
     TrainingPlanDraftIn,
@@ -435,3 +443,256 @@ async def build_progress_analysis(conn: asyncpg.Connection, settings: Settings, 
         stats_summary=_format_player_stats(stats),
     )
     return text.strip()
+
+
+# --- Coach's pre-session analysis of an athlete ------------------------------
+#
+# The caller (app/api/routes/ai.py) has already proven that the requester is the
+# coach of a confirmed booking behind this personal training AND that the
+# athlete opted in. This function only assembles a bounded, minimal context
+# and talks to the model. What is deliberately NOT sent: the athlete's name,
+# Telegram id/username, any user/file ids, photo/video files, other coaches'
+# private notes beyond their review comments, or opponent names.
+
+_ANALYSIS_TRAININGS_LIMIT = 10
+_ANALYSIS_TASKS_LIMIT = 8
+_ANALYSIS_FEEDBACK_LIMIT = 5
+_ANALYSIS_MATCHES_LIMIT = 5
+_ANALYSIS_METRICS_ROWS_LIMIT = 60
+_ANALYSIS_METRICS_PER_NAME = 5
+_ANALYSIS_METRICS_PERIOD_DAYS = 365
+_ANALYSIS_EXERCISES_LIMIT = 30
+_ANALYSIS_EXERCISE_GOAL_CHARS = 80
+
+_TRAINING_TYPE_LABELS = {"team": "командная", "independent": "самостоятельная", "personal": "личная"}
+_ATTENDANCE_LABELS = {"present": "присутствовал", "absent": "отсутствовал"}
+_ASSIGNMENT_STATUS_LABELS = {
+    "assigned": "назначено",
+    "viewed": "просмотрено",
+    "in_progress": "в работе",
+    "submitted": "сдано на проверку",
+    "accepted": "принято",
+    "needs_revision": "возвращено на доработку",
+    "overdue": "просрочено",
+    "missed": "пропущено",
+    "cancelled": "отменено",
+}
+_DATA_LIMITED_BELOW = 6
+
+
+def _clip(text: Any, limit: int) -> str:
+    value = " ".join(str(text).split())
+    return value if len(value) <= limit else value[: limit - 1] + "…"
+
+
+def _lines_or_dash(lines: list[str], empty: str = "данных нет") -> str:
+    return "\n".join(f"- {line}" for line in lines) if lines else empty
+
+
+def _format_recent_trainings(rows: list[dict]) -> list[str]:
+    lines = []
+    for r in rows:
+        parts = [
+            f"{r['training_date']}",
+            _TRAINING_TYPE_LABELS.get(r["type"], r["type"]),
+            f"{r['duration_minutes']} мин",
+        ]
+        if r["type"] != "personal":
+            parts.append(_ATTENDANCE_LABELS.get(r.get("attendance_status") or "", "посещаемость не отмечена"))
+        if r.get("description"):
+            parts.append(f"содержание: {_clip(r['description'], 200)}")
+        lines.append(", ".join(parts))
+    return lines
+
+
+def _format_recent_tasks(rows: list[dict]) -> list[str]:
+    lines = []
+    for r in rows:
+        parts = [f"«{_clip(r['title'], 80)}»", _ASSIGNMENT_STATUS_LABELS.get(r["status"], r["status"])]
+        if r.get("metric_value") is not None and r.get("metric_name"):
+            parts.append(f"{r['metric_name']}: {r['metric_value']}{r.get('metric_unit') or ''}")
+        if r.get("difficulty") is not None:
+            parts.append(f"сложность {r['difficulty']}/10")
+        if r.get("wellbeing") is not None:
+            parts.append(f"самочувствие {r['wellbeing']}/5")
+        if r.get("comment"):
+            parts.append(f"отчёт игрока: {_clip(r['comment'], 200)}")
+        if r.get("coach_comment"):
+            parts.append(f"комментарий проверяющего: {_clip(r['coach_comment'], 200)}")
+        lines.append(", ".join(parts))
+    return lines
+
+
+def _format_recent_feedback(rows: list[dict]) -> list[str]:
+    lines = []
+    for r in rows:
+        parts = [f"{r['training_date']}"]
+        if r.get("wellbeing") is not None:
+            parts.append(f"самочувствие {r['wellbeing']}/5")
+        if r.get("difficulty") is not None:
+            parts.append(f"нагрузка {r['difficulty']}/10")
+        if r.get("comment"):
+            parts.append(f"комментарий: {_clip(r['comment'], 200)}")
+        lines.append(", ".join(parts))
+    return lines
+
+
+def _format_metrics(rows: list[dict]) -> list[str]:
+    by_name: dict[str, list[dict]] = {}
+    for r in rows:  # already newest first
+        by_name.setdefault(r["name"], []).append(r)
+    lines = []
+    for name, readings in by_name.items():
+        recent = readings[:_ANALYSIS_METRICS_PER_NAME]
+        unit = recent[0].get("unit") or ""
+        values = ", ".join(f"{r['recorded_date']}: {r['value']}{unit}" for r in recent)
+        direction = ""
+        if recent[0].get("higher_is_better") is not None:
+            direction = " (чем больше, тем лучше)" if recent[0]["higher_is_better"] else " (чем меньше, тем лучше)"
+        lines.append(f"{name}{direction}: {values}")
+    return lines
+
+
+def _format_recent_matches(rows: list[dict]) -> list[str]:
+    lines = []
+    for m in rows:
+        if m.get("our_score") is None or m.get("opponent_score") is None:
+            continue
+        outcome = "победа" if m["our_score"] > m["opponent_score"] else "поражение" if m["our_score"] < m["opponent_score"] else "ничья"
+        lines.append(f"{m['match_date']}: {m['our_score']}:{m['opponent_score']} ({outcome})")
+    return lines
+
+
+def _format_session_info(booking: dict, training: dict) -> str:
+    fmt = "онлайн" if booking["format"] == "online" else "очно"
+    parts = [
+        f"дата: {training['training_date']}, время: {str(training['start_time'])[:5]}",
+        f"длительность: {training['duration_minutes']} мин",
+        f"формат: {fmt}",
+    ]
+    if booking.get("athlete_notes"):
+        parts.append(f"пожелания игрока: {_clip(booking['athlete_notes'], 400)}")
+    return "; ".join(parts)
+
+
+def _string_list(value: Any, limit: int) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    items = [_clip(v, 400) for v in value if isinstance(v, (str, int, float)) and str(v).strip()]
+    return items[:limit]
+
+
+async def build_player_pre_session_analysis(
+    conn: asyncpg.Connection,
+    settings: Settings,
+    *,
+    coach_id: UUID,
+    player_user_id: UUID,
+    training: dict,
+    booking: dict,
+) -> PlayerPreSessionAnalysisOut:
+    player_profile = await profiles_repo.get_player_profile(conn, player_user_id) or {}
+    coach_profile = await profiles_repo.get_coach_profile(conn, coach_id) or {}
+
+    attendance = await trainings_repo.player_attendance_summary(conn, player_user_id)
+    counts = await trainings_repo.player_training_counts(conn, player_user_id)
+    task_summary = await tasks_repo.player_task_summary(conn, player_user_id)
+    trainings = await trainings_repo.list_recent_for_player(conn, player_user_id, _ANALYSIS_TRAININGS_LIMIT)
+    tasks = await tasks_repo.list_recent_assignments_for_player(conn, player_user_id, _ANALYSIS_TASKS_LIMIT)
+    feedback = await training_feedback_repo.list_recent_for_user(conn, player_user_id, _ANALYSIS_FEEDBACK_LIMIT)
+    since = date.today() - timedelta(days=_ANALYSIS_METRICS_PERIOD_DAYS)
+    metrics = await metrics_repo.list_recent_for_user(conn, player_user_id, since, _ANALYSIS_METRICS_ROWS_LIMIT)
+    matches = await matches_repo.player_match_history(conn, player_user_id, limit=_ANALYSIS_MATCHES_LIMIT)
+
+    sport = player_profile.get("sport") or coach_profile.get("sport")
+    owned = await exercises_repo.list_owned(conn, coach_id)
+    library = [e for e in owned if sport and (e["sport"] or "").strip().lower() == str(sport).strip().lower()]
+    library = library[:_ANALYSIS_EXERCISES_LIMIT]
+    library_names = {str(e["id"]): e["name"] for e in library}
+
+    # Personal sessions are context but not "signal": most are booking
+    # boilerplate, so they don't count towards having enough data.
+    data_points = (
+        len([t for t in trainings if t["type"] != "personal"]) + len(tasks) + len(feedback) + len(metrics) + len(matches)
+    )
+    data_sufficiency = (
+        "insufficient" if data_points == 0 else "limited" if data_points < _DATA_LIMITED_BELOW else "sufficient"
+    )
+    data_level = {
+        "insufficient": "почти нет данных об активности игрока (есть только профиль) — скажи об этом в data_notes",
+        "limited": "данных немного — скажи об этом в data_notes и давай осторожные рекомендации",
+        "sufficient": "данных достаточно для содержательного анализа",
+    }[data_sufficiency]
+
+    stats_lines = [
+        f"Командных тренировок посещено: {attendance['present_count']} из {attendance['total_count']}",
+        f"Личных тренировок: {counts['personal_count']} (суммарно {counts['personal_minutes']} мин)",
+        f"Задания: принято {task_summary['completed']} из {task_summary['total']}, просрочено {task_summary['overdue']}",
+    ]
+    exercises_list = (
+        "\n".join(
+            f"{e['id']} | {_clip(e['name'], 80)} | {_clip(e['goal'], _ANALYSIS_EXERCISE_GOAL_CHARS) if e.get('goal') else _DASH}"
+            for e in library
+        )
+        if library
+        else "в библиотеке тренера нет упражнений по этому виду спорта"
+    )
+
+    text = await _call_ai(
+        settings,
+        "player_pre_session",
+        session_info=_format_session_info(booking, training),
+        sport=_or_dash(sport),
+        age=_or_dash(player_profile.get("age")),
+        height_cm=_or_dash(player_profile.get("height_cm")),
+        weight_kg=_or_dash(player_profile.get("weight_kg")),
+        level=_or_dash(player_profile.get("level")),
+        position=_or_dash(player_profile.get("position")),
+        goals=_or_dash(player_profile.get("goals")),
+        load_restrictions=_or_dash(player_profile.get("load_restrictions")),
+        data_level=data_level,
+        stats_summary="\n".join(f"- {line}" for line in stats_lines),
+        recent_trainings=_lines_or_dash(_format_recent_trainings(trainings)),
+        recent_tasks=_lines_or_dash(_format_recent_tasks(tasks)),
+        recent_feedback=_lines_or_dash(_format_recent_feedback(feedback)),
+        metrics_summary=_lines_or_dash(_format_metrics(metrics)),
+        recent_matches=_lines_or_dash(_format_recent_matches(matches)),
+        exercises_list=exercises_list,
+    )
+    data = _parse_json_object(text)
+
+    plan: list[PlayerAnalysisPlanStepOut] = []
+    for raw in (data.get("session_plan") or [])[:5]:
+        if not isinstance(raw, dict):
+            continue
+        description = _coerce_text(raw.get("description"))
+        if not description:
+            continue
+        # A library reference is only kept if the id really is one of this
+        # coach's exercises that we sent; the name always comes from our data.
+        raw_id = str(raw.get("exercise_id") or "").strip().lower()
+        known_id = next((k for k in library_names if k.lower() == raw_id), None) if raw_id else None
+        plan.append(
+            PlayerAnalysisPlanStepOut(
+                stage=_clip(_coerce_text(raw.get("stage")) or "Блок занятия", 60),
+                description=_clip(description, 500),
+                exercise_id=UUID(known_id) if known_id else None,
+                exercise_name=library_names[known_id] if known_id else None,
+            )
+        )
+
+    analysis = PlayerPreSessionAnalysisOut(
+        summary=_clip(_coerce_text(data.get("summary")) or "", 800),
+        strengths=_string_list(data.get("strengths"), 4),
+        attention_points=_string_list(data.get("attention_points"), 4),
+        recent_dynamics=_string_list(data.get("recent_dynamics"), 4),
+        recommendations=_string_list(data.get("recommendations"), 5),
+        session_focus=_clip(_coerce_text(data.get("session_focus")) or "", 400) or None,
+        session_plan=plan,
+        data_sufficiency=data_sufficiency,  # type: ignore[arg-type]
+        data_notes=_clip(_coerce_text(data.get("data_notes")) or "", 500) or None,
+        generated_at=datetime.now(timezone.utc),
+    )
+    if not analysis.summary and not analysis.recommendations and not analysis.session_plan:
+        raise AIServiceError("ИИ вернул ответ в неожиданном формате, попробуйте ещё раз")
+    return analysis

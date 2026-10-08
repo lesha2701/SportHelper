@@ -30,6 +30,7 @@ from app.repositories import notifications as notifications_repo
 from app.repositories import tasks as tasks_repo
 from app.repositories import users as users_repo
 from app.services import notifications as notifications_service
+from app.services import nudges as nudges_service
 
 logger = logging.getLogger("teamflow.background")
 
@@ -109,10 +110,29 @@ async def purge_soft_deleted_files(conn: asyncpg.Connection, settings: Settings)
         logger.info("Purged retained file %s", file_record["id"])
 
 
+# Checking who needs a nudge is a (cheap but non-trivial) query over all users;
+# the send window is hours wide, so there's no need to run it on every 30s tick.
+_NUDGE_CHECK_EVERY = timedelta(minutes=10)
+_last_nudge_check: datetime | None = None
+
+
+async def schedule_training_nudges(conn: asyncpg.Connection, settings: Settings) -> None:
+    global _last_nudge_check
+    now = datetime.now(timezone.utc)
+    if _last_nudge_check is not None and now - _last_nudge_check < _NUDGE_CHECK_EVERY:
+        return
+    _last_nudge_check = now
+    try:
+        await nudges_service.schedule_training_nudges(conn, settings, now=now)
+    except Exception:  # noqa: BLE001 - nudges are optional; they must never block real notifications
+        logger.exception("Failed to schedule training nudges")
+
+
 async def run_tick(pool: asyncpg.Pool, bot: Bot, settings: Settings) -> None:
     async with pool.acquire() as conn:
         await sweep_overdue_tasks(conn)
         await sweep_expired_bookings(conn)
+        await schedule_training_nudges(conn, settings)
         await send_due_notifications(conn, bot, settings)
         await purge_soft_deleted_files(conn, settings)
 

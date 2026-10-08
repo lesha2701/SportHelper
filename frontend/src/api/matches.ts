@@ -10,7 +10,7 @@ import {
 } from "../types/match";
 
 export async function createMatch(token: string, teamId: string, input: MatchCreateInput): Promise<Match> {
-  const dto = await apiRequest<MatchDto>(`/api/teams/${teamId}/matches`, { method: "POST", successMessage: "Матч создан", token, body: input });
+  const dto = await apiRequest<MatchDto>(`/api/teams/${teamId}/matches`, { method: "POST", silent: true, token, body: input });
   return mapMatchDto(dto);
 }
 
@@ -39,6 +39,6 @@ export async function setMatchRoster(token: string, matchId: string, input: Matc
 }
 
 export async function setMatchResult(token: string, matchId: string, input: MatchResultInput): Promise<Match> {
-  const dto = await apiRequest<MatchDto>(`/api/matches/${matchId}/result`, { method: "POST", successMessage: "Результат матча сохранён", token, body: input });
+  const dto = await apiRequest<MatchDto>(`/api/matches/${matchId}/result`, { method: "POST", silent: true, token, body: input });
   return mapMatchDto(dto);
 }

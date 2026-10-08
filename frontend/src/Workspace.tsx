@@ -18,6 +18,8 @@ import { CoachMarketplaceScreen } from "./components/coaches/CoachMarketplaceScr
 import { IncomingBookingsScreen } from "./components/coaches/IncomingBookingsScreen";
 import { MyBookingsSection } from "./components/coaches/MyBookingsSection";
 import { searchAll, type SearchResult } from "./api/search";
+import { subscribeAppNav } from "./appNav";
+import { notificationToOverlay, type Overlay } from "./overlay";
 import { NotificationsScreen } from "./components/notifications/NotificationsScreen";
 import { StateScreen } from "./components/StateScreen";
 import type { NavItem } from "./components/nav/BottomNav";
@@ -28,7 +30,6 @@ import { listMyTeams } from "./api/teams";
 import { listCoachPendingBookings } from "./api/bookings";
 import { listNotifications } from "./api/notifications";
 import { TEAM_ROLE_LABELS, type Team } from "./types/team";
-import type { Training } from "./types/training";
 import type { CalendarEvent } from "./types/calendar";
 import type { NotificationCategory } from "./types/notification";
 
@@ -93,19 +94,6 @@ const PLAYER_NAV_ITEMS: NavItem<PlayerTab>[] = [
   { key: "profile", label: "Профиль", icon: "user" },
 ];
 
-type Overlay =
-  | { kind: "team"; teamId: string }
-  | { kind: "training-create" }
-  | { kind: "training-edit"; training: Training }
-  | { kind: "training-detail"; trainingId: string }
-  | { kind: "match-detail"; matchId: string }
-  | { kind: "task-detail"; taskId: string }
-  | { kind: "my-stats" }
-  | { kind: "notifications" }
-  | { kind: "incoming-bookings" }
-  | { kind: "my-bookings" }
-  | null;
-
 function calendarEventToOverlay(event: CalendarEvent): Overlay {
   switch (event.type) {
     case "training":
@@ -114,30 +102,6 @@ function calendarEventToOverlay(event: CalendarEvent): Overlay {
       return { kind: "match-detail", matchId: event.id };
     case "task_deadline":
       return { kind: "task-detail", taskId: event.id };
-  }
-}
-
-/** Where a notification's "Открыть в приложении" button (Telegram) or its
- * row on the in-app bell screen should navigate to. booking_requested (the
- * coach's inbox) and booking_decided (the athlete's own bookings) share
- * entity_type "booking" but need different screens, which is why this
- * switches on `category` rather than `entity_type`. */
-function notificationToOverlay(category: NotificationCategory, entityId: string): Overlay {
-  switch (category) {
-    case "training_reminder":
-    case "new_training":
-      return { kind: "training-detail", trainingId: entityId };
-    case "new_match":
-      return { kind: "match-detail", matchId: entityId };
-    case "task_deadline":
-    case "new_task":
-      return { kind: "task-detail", taskId: entityId };
-    case "booking_requested":
-      return { kind: "incoming-bookings" };
-    case "booking_decided":
-      return { kind: "my-bookings" };
-    default:
-      return null;
   }
 }
 
@@ -228,7 +192,15 @@ function CoachTabContent({
   }
 }
 
-function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | null }) {
+function MainContent({
+  token,
+  deepLink,
+  initialTeamId,
+}: {
+  token: string;
+  deepLink: DeepLink | null;
+  initialTeamId?: string | null;
+}) {
   const { state } = useProfile();
   const { state: authState } = useAuth();
   const myUserId = authState.status === "ready" ? authState.user.id : null;
@@ -298,6 +270,9 @@ function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | 
   }, [state]);
 
   const [overlay, setOverlay] = useState<Overlay>(null);
+  const closeOverlay = () => setOverlay(overlay?.backTo ?? null);
+  const isStaffOfTeam = (teamId: string) =>
+    (teams ?? []).some((t) => t.id === teamId && (t.myRole === "head_coach" || t.myRole === "assistant_coach"));
   // Set when a search result opens a coach's profile in the marketplace tab.
   const [marketplaceCoachId, setMarketplaceCoachId] = useState<string | null>(null);
 
@@ -313,15 +288,22 @@ function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | 
     if (target) setOverlay(target);
   }, [deepLink]);
 
+  const initialTeamAppliedRef = useRef(false);
+  useEffect(() => {
+    if (!initialTeamId || initialTeamAppliedRef.current) return;
+    initialTeamAppliedRef.current = true;
+    setOverlay({ kind: "team", teamId: initialTeamId });
+  }, [initialTeamId]);
+
   // Computed once so both the coach and player AppShell branches below
   // render the same overlay content — desktop keeps the sidebar mounted
   // around it, mobile (via AppShell's hasOverlay branch) still shows it
   // full-screen exactly as before.
   let overlayContent: ReactNode = null;
   if (overlay?.kind === "my-stats" && myUserId) {
-    overlayContent = <PlayerStatsScreen token={token} userId={myUserId} onBack={() => setOverlay(null)} />;
+    overlayContent = <PlayerStatsScreen token={token} userId={myUserId} onBack={closeOverlay} />;
   } else if (overlay?.kind === "team") {
-    overlayContent = <TeamDetailScreen token={token} teamId={overlay.teamId} onBack={() => setOverlay(null)} />;
+    overlayContent = <TeamDetailScreen token={token} teamId={overlay.teamId} onBack={closeOverlay} />;
   } else if (overlay?.kind === "training-create") {
     overlayContent = (
       <TrainingForm
@@ -352,7 +334,7 @@ function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | 
       <TrainingDetail
         token={token}
         trainingId={overlay.trainingId}
-        onBack={() => setOverlay(null)}
+        onBack={closeOverlay}
         onEdit={(training) => setOverlay({ kind: "training-edit", training })}
       />
     );
@@ -361,10 +343,10 @@ function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | 
       <MatchDetail
         token={token}
         matchId={overlay.matchId}
-        canManage={false}
-        onBack={() => setOverlay(null)}
+        canManage={isStaffOfTeam}
+        onBack={closeOverlay}
         onEdit={() => {}}
-        onDeleted={() => setOverlay(null)}
+        onDeleted={closeOverlay}
       />
     );
   } else if (overlay?.kind === "task-detail") {
@@ -372,10 +354,10 @@ function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | 
       <TaskDetail
         token={token}
         taskId={overlay.taskId}
-        canManage={false}
-        onBack={() => setOverlay(null)}
+        canManage={isStaffOfTeam}
+        onBack={closeOverlay}
         onEdit={() => {}}
-        onDeleted={() => setOverlay(null)}
+        onDeleted={closeOverlay}
       />
     );
   } else if (overlay?.kind === "notifications") {
@@ -389,17 +371,53 @@ function MainContent({ token, deepLink }: { token: string; deepLink: DeepLink | 
         onOpen={(notification) => {
           setUnreadNotifications((prev) => Math.max(0, prev - (notification.readAt ? 0 : 1)));
           const target = notificationToOverlay(notification.category, notification.entityId);
-          setOverlay(target);
+          setOverlay(target ? { ...target, backTo: { kind: "notifications" } } : null);
         }}
       />
     );
   } else if (overlay?.kind === "incoming-bookings") {
-    overlayContent = <IncomingBookingsScreen token={token} onBack={() => setOverlay(null)} />;
+    overlayContent = <IncomingBookingsScreen token={token} onBack={closeOverlay} focusBookingId={overlay.focusBookingId} />;
   } else if (overlay?.kind === "my-bookings") {
-    overlayContent = <MyBookingsSection token={token} onBack={() => setOverlay(null)} />;
+    overlayContent = (
+      <MyBookingsSection
+        token={token}
+        onBack={closeOverlay}
+        reviewBookingId={overlay.reviewBookingId}
+        focusBookingId={overlay.focusBookingId}
+      />
+    );
   }
 
   const hasOverlay = overlayContent !== null;
+
+  // Anything in the app can send the user elsewhere (a toast action, a success
+  // card's button, an empty state) without knowing the shell's layout.
+  useEffect(
+    () =>
+      subscribeAppNav((target) => {
+        switch (target.kind) {
+          case "tab":
+            setOverlay(null);
+            setMarketplaceCoachId(null);
+            if (isCoachMode) setCoachTab(target.tab);
+            else setPlayerTab(target.tab);
+            break;
+          case "training":
+            setOverlay({ kind: "training-detail", trainingId: target.trainingId });
+            break;
+          case "training-create":
+            setOverlay({ kind: "training-create" });
+            break;
+          case "my-bookings":
+            setOverlay({ kind: "my-bookings" });
+            break;
+          case "incoming-bookings":
+            setOverlay({ kind: "incoming-bookings" });
+            break;
+        }
+      }),
+    [isCoachMode],
+  );
   const handleSearchSelect = (result: SearchResult) => {
     switch (result.type) {
       case "team":
@@ -557,10 +575,14 @@ export function Workspace({ token }: { token: string }) {
   const [inviteToken, setInviteToken] = useState<string | null>(readInviteToken);
   const [deepLink] = useState<DeepLink | null>(readNotificationDeepLink);
 
-  const clearInvite = () => {
+  // Set when the person has just joined a team through an invite: the app opens straight on it.
+  const [teamToOpen, setTeamToOpen] = useState<string | null>(null);
+
+  const clearInvite = (teamId?: string) => {
     const url = new URL(window.location.href);
     url.searchParams.delete("invite");
     window.history.replaceState({}, "", url.toString());
+    if (teamId) setTeamToOpen(teamId);
     setInviteToken(null);
   };
 
@@ -580,7 +602,7 @@ export function Workspace({ token }: { token: string }) {
       {inviteToken ? (
         <InviteAcceptScreenGate token={token} inviteToken={inviteToken} onDone={clearInvite} />
       ) : (
-        <MainContent token={token} deepLink={deepLink} />
+        <MainContent token={token} deepLink={deepLink} initialTeamId={teamToOpen} />
       )}
     </ProfileProvider>
   );
@@ -596,7 +618,7 @@ function InviteAcceptScreenGate({
 }: {
   token: string;
   inviteToken: string;
-  onDone: () => void;
+  onDone: (teamId?: string) => void;
 }) {
   const { state } = useProfile();
 

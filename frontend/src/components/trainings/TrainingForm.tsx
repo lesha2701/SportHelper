@@ -13,6 +13,8 @@ import type { Training, TrainingUpdateInput } from "../../types/training";
 import profileStyles from "../profile/profile.module.css";
 import styles from "./training.module.css";
 import aiStyles from "../stats/stats.module.css";
+import { navigateApp } from "../../appNav";
+import { toast } from "../../toast";
 
 interface TrainingFormProps {
   token: string;
@@ -234,6 +236,10 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
         mode === "team" && teamId
           ? await createTeamTraining(token, teamId, createInput)
           : await createPersonalTraining(token, createInput);
+      toast.success(trainings.length > 1 ? `Создано тренировок: ${trainings.length}` : "Тренировка создана", {
+        label: "Посмотреть в календаре",
+        onClick: () => navigateApp({ kind: "tab", tab: "calendar" }),
+      });
       onSaved(trainings);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Не удалось сохранить тренировку");

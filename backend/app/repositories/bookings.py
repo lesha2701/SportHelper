@@ -14,7 +14,8 @@ _BOOKING_FIELDS = (
     "b.athlete_user_id, u.first_name || COALESCE(' ' || u.last_name, '') AS athlete_full_name, "
     "b.athlete_notes, "
     "b.starts_at, b.duration_minutes, b.format, b.price_per_session, b.currency, "
-    "b.status, b.training_id, t.plan_id AS training_plan_id, tp.name AS training_plan_name"
+    "b.status, b.training_id, t.plan_id AS training_plan_id, tp.name AS training_plan_name, "
+    "t.status AS training_status"
 )
 # Every _BOOKING_FIELDS query needs this pair of joins for the linked
 # training's plan — a booking's training_id is only set once confirmed, so
@@ -85,6 +86,7 @@ async def create_booking(
     # No Training exists yet for a freshly created (pending) booking.
     result["training_plan_id"] = None
     result["training_plan_name"] = None
+    result["training_status"] = None
     return result
 
 
@@ -151,9 +153,56 @@ async def has_booking_between(conn: asyncpg.Connection, coach_user_id: UUID, ath
     )
 
 
+async def get_confirmed_for_training(
+    conn: asyncpg.Connection, training_id: UUID, coach_user_id: UUID
+) -> dict[str, Any] | None:
+    """The confirmed booking behind a personal training, only if `coach_user_id`
+    is its coach. This is the sole proof that a coach is "the coach of this
+    personal training": the training itself belongs to the athlete."""
+    row = await conn.fetchrow(
+        """
+        SELECT b.id, b.athlete_user_id, b.coach_user_id, b.starts_at, b.duration_minutes, b.format,
+               b.athlete_notes, cl.title AS listing_title
+        FROM bookings b
+        LEFT JOIN coach_listings cl ON cl.id = b.listing_id
+        WHERE b.training_id = $1 AND b.coach_user_id = $2 AND b.status = 'confirmed'
+        """,
+        training_id,
+        coach_user_id,
+    )
+    return dict(row) if row else None
+
+
 def is_completed(booking: dict[str, Any]) -> bool:
+    """Whether the session counts as conducted — the moment reviews open for
+    both sides. Either the coach marked it conducted ("Тренировка проведена",
+    which sets the linked training to 'completed') or its scheduled end has
+    passed. A cancelled training never counts."""
+    if booking["status"] != "confirmed" or booking.get("training_status") == "cancelled":
+        return False
+    if booking.get("training_status") == "completed":
+        return True
     ends_at = booking["starts_at"] + timedelta(minutes=booking["duration_minutes"])
-    return booking["status"] == "confirmed" and datetime.now(ends_at.tzinfo) > ends_at
+    return datetime.now(ends_at.tzinfo) > ends_at
+
+
+async def get_for_coach_by_training(conn: asyncpg.Connection, training_id: UUID, coach_user_id: UUID) -> dict[str, Any] | None:
+    """The coach's confirmed booking behind a personal training, in the full
+    booking shape (same proof of "is the coach of this session" as
+    get_confirmed_for_training)."""
+    row = await conn.fetchrow(
+        f"""
+        SELECT {_BOOKING_FIELDS} FROM bookings b
+        JOIN coach_profiles cp ON cp.user_id = b.coach_user_id
+        JOIN users u ON u.id = b.athlete_user_id
+        LEFT JOIN coach_listings cl ON cl.id = b.listing_id
+        {_BOOKING_PLAN_JOINS}
+        WHERE b.training_id = $1 AND b.coach_user_id = $2 AND b.status = 'confirmed'
+        """,
+        training_id,
+        coach_user_id,
+    )
+    return dict(row) if row else None
 
 
 async def confirm_booking(conn: asyncpg.Connection, *, booking_id: UUID, coach_user_id: UUID) -> dict[str, Any] | None:
@@ -229,7 +278,11 @@ async def list_pending_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) 
         """
         SELECT b.id, cl.title AS listing_title, b.athlete_user_id, b.starts_at, b.duration_minutes, b.format,
                b.price_per_session, b.currency, b.created_at, b.athlete_notes,
-               u.first_name || COALESCE(' ' || u.last_name, '') AS athlete_full_name
+               u.first_name || COALESCE(' ' || u.last_name, '') AS athlete_full_name,
+               (SELECT AVG(rating)::float FROM player_reviews pr WHERE pr.athlete_user_id = b.athlete_user_id)
+                   AS athlete_rating_average,
+               (SELECT COUNT(*) FROM player_reviews pr WHERE pr.athlete_user_id = b.athlete_user_id)
+                   AS athlete_review_count
         FROM bookings b
         JOIN users u ON u.id = b.athlete_user_id
         LEFT JOIN coach_listings cl ON cl.id = b.listing_id

@@ -14,6 +14,8 @@ def test_default_preferences_are_enabled(logged_in_client) -> None:
         "new_task": True,
         "booking_requested": True,
         "booking_decided": True,
+        "review_requested": True,
+        "training_nudge": True,
     }
 
 

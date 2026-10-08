@@ -61,3 +61,19 @@ async def mark_skipped(conn: asyncpg.Connection, training_id: UUID, user_id: UUI
         user_id,
     )
     return dict(row)
+
+
+async def list_recent_for_user(conn: asyncpg.Connection, user_id: UUID, limit: int) -> list[dict[str, Any]]:
+    rows = await conn.fetch(
+        """
+        SELECT t.training_date, f.wellbeing, f.difficulty, left(f.comment, 300) AS comment
+        FROM training_feedback f
+        JOIN trainings t ON t.id = f.training_id AND t.deleted_at IS NULL
+        WHERE f.user_id = $1 AND f.skipped = FALSE
+        ORDER BY t.training_date DESC
+        LIMIT $2
+        """,
+        user_id,
+        limit,
+    )
+    return [dict(row) for row in rows]

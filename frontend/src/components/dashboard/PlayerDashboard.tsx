@@ -12,8 +12,8 @@ import { MATCH_RESULT_LABELS } from "../../types/match";
 import { formatRate, type PlayerStats } from "../../types/stats";
 import styles from "./dashboard.module.css";
 import aiStyles from "../stats/stats.module.css";
+import { WeekOverview } from "./WeekOverview";
 
-const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const WAVE_PATH = "M-20 90 C 60 40, 140 140, 220 60 S 380 20, 440 70";
 
 function toIso(d: Date): string {
@@ -178,30 +178,7 @@ export function PlayerDashboard({
         </div>
 
         <div className={`${styles.card} ${styles.span8}`}>
-          <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Эта неделя</h3>
-          </div>
-          <div className={styles.weekGrid}>
-            {weekDays.map((d) => {
-              const iso = toIso(d);
-              const isToday = iso === today;
-              const dayEvents = (eventsByDay.get(iso) ?? []).slice(0, 3);
-              return (
-                <div key={iso} className={isToday ? `${styles.weekCol} ${styles.weekColToday}` : styles.weekCol}>
-                  <div className={styles.weekColHead}>
-                    <span className={styles.weekColWd}>{WEEKDAY_LABELS[d.getDay() === 0 ? 6 : d.getDay() - 1]}</span>
-                    <span className={isToday ? `${styles.weekColNum} ${styles.weekColNumToday}` : styles.weekColNum}>{d.getDate()}</span>
-                  </div>
-                  {dayEvents.map((e) => (
-                    <button key={e.id} type="button" className={styles.weekEvent} onClick={() => onOpenEvent(e)}>
-                      <span className={styles.weekEventTime}>{e.time ? e.time.slice(0, 5) : ""}</span>
-                      <span className={styles.weekEventTitle}>{e.title}</span>
-                    </button>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
+          <WeekOverview weekDays={weekDays} events={events} today={today} onOpenEvent={onOpenEvent} />
         </div>
 
         <div className={`${aiStyles.aiCard} ${styles.span4}`}>

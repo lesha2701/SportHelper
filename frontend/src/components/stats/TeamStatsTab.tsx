@@ -86,6 +86,16 @@ export function TeamStatsTab({ token, teamId }: { token: string; teamId: string 
 
   const { stats } = state;
 
+  if (stats.trainingsCompleted === 0 && stats.tasksTotal === 0 && stats.matchesPlayed === 0) {
+    return (
+      <StateScreen
+        kind="empty"
+        title="Статистика пока пуста"
+        description="Она появится после первых проведённых тренировок, матчей или отчётов по заданиям — загляните на соседние вкладки команды."
+      />
+    );
+  }
+
   const attentionPlayers = dedupeByUser([...stats.frequentAbsencePlayers, ...stats.lowActivityPlayers]);
 
   return (

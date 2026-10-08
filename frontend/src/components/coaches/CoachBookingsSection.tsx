@@ -8,6 +8,7 @@ import type { Booking } from "../../types/booking";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
+import { CoachSessionActions } from "./CoachSessionActions";
 import { PlanPickerModal } from "./PlanPickerModal";
 import { PlayerPublicProfileScreen } from "./PlayerPublicProfileScreen";
 
@@ -18,12 +19,16 @@ function BookingCard({
   booking,
   statusBadge,
   showPlanRow,
+  token,
+  onChange,
   onOpenPlayer,
   onOpenPlan,
 }: {
   booking: Booking;
   statusBadge: ReactNode;
   showPlanRow: boolean;
+  token: string;
+  onChange: (updated: Booking) => void;
   onOpenPlayer: (userId: string) => void;
   onOpenPlan: (booking: Booking) => void;
 }) {
@@ -52,6 +57,7 @@ function BookingCard({
           </button>
         </div>
       )}
+      <CoachSessionActions token={token} booking={booking} onChange={onChange} />
     </div>
   );
 }
@@ -109,6 +115,8 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
           booking={b}
           statusBadge={<span className={styles.bookingStatus}>Подтверждена</span>}
           showPlanRow
+          token={token}
+          onChange={updateBooking}
           onOpenPlayer={setViewingPlayerId}
           onOpenPlan={setPlanPickerFor}
         />
@@ -122,6 +130,8 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
           booking={b}
           statusBadge={<span className={styles.bookingStatusMuted}>{b.hasReview ? "Есть отзыв" : "Завершена"}</span>}
           showPlanRow
+          token={token}
+          onChange={updateBooking}
           onOpenPlayer={setViewingPlayerId}
           onOpenPlan={setPlanPickerFor}
         />
@@ -140,6 +150,8 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
                 </span>
               }
               showPlanRow={false}
+              token={token}
+              onChange={updateBooking}
               onOpenPlayer={setViewingPlayerId}
               onOpenPlan={setPlanPickerFor}
             />

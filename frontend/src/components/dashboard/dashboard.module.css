@@ -637,3 +637,84 @@
   text-transform: uppercase;
   color: var(--color-text);
 }
+
+/* Phone version of the week card: today's brief + a way into the calendar. */
+.todayBrief {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.todayDate {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  text-transform: capitalize;
+}
+
+.todayEmpty {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.todayList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.todayRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.todayRowIcon {
+  display: flex;
+  color: var(--color-primary);
+}
+
+.todayRowTime {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.todayRowTitle {
+  min-width: 0;
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.todayCalendarButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 14px;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}

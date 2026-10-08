@@ -6,6 +6,7 @@ import { Icon } from "../shared/Icon";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import profileStyles from "../profile/profile.module.css";
 import teamStyles from "./teams.module.css";
+import { navigateApp } from "../../appNav";
 
 export function MyTeamsSection({ token, onOpenTeam }: { token: string; onOpenTeam: (teamId: string) => void }) {
   const [teams, setTeams] = useState<Team[] | null>(null);
@@ -29,6 +30,11 @@ export function MyTeamsSection({ token, onOpenTeam }: { token: string; onOpenTea
         <p className={profileStyles.subtitle}>
           Вы пока не состоите ни в одной команде. Попросите тренера прислать ссылку-приглашение.
         </p>
+      )}
+      {teams.length === 0 && (
+        <button type="button" className={profileStyles.buttonSecondary} onClick={() => navigateApp({ kind: "tab", tab: "coaches" })}>
+          А пока — найти личного тренера
+        </button>
       )}
       <div className={teamStyles.cardGrid}>
         {teams.map((team) => (

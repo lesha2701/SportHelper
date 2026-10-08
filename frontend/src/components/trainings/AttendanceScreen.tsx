@@ -6,6 +6,7 @@ import { Icon } from "../shared/Icon";
 import type { Attendance } from "../../types/training";
 import styles from "../teams/teams.module.css";
 import trainingStyles from "./training.module.css";
+import profileStyles from "../profile/profile.module.css";
 
 type LoadState =
   | { status: "loading" }
@@ -94,6 +95,15 @@ export function AttendanceScreen({
           </span>
         </button>
       ))}
+
+      {canEdit && (
+        <>
+          <p className={styles.teamMeta}>Отметки сохраняются сразу.</p>
+          <button type="button" className={profileStyles.buttonPrimary} onClick={onBack}>
+            Готово — к тренировке
+          </button>
+        </>
+      )}
     </div>
   );
 }

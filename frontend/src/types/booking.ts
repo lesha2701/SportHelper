@@ -21,7 +21,9 @@ export interface BookingDto {
   training_id: string | null;
   training_plan_id: string | null;
   training_plan_name: string | null;
+  training_status: "scheduled" | "completed" | "cancelled" | null;
   has_review: boolean;
+  has_player_review: boolean;
 }
 
 export interface Booking {
@@ -43,7 +45,11 @@ export interface Booking {
   trainingId: string | null;
   trainingPlanId: string | null;
   trainingPlanName: string | null;
+  /** Status of the linked session; "completed" once the coach marked it conducted. */
+  trainingStatus: "scheduled" | "completed" | "cancelled" | null;
   hasReview: boolean;
+  /** The coach has already reviewed the player (coach side only). */
+  hasPlayerReview: boolean;
 }
 
 export function mapBookingDto(dto: BookingDto): Booking {
@@ -66,7 +72,9 @@ export function mapBookingDto(dto: BookingDto): Booking {
     trainingId: dto.training_id,
     trainingPlanId: dto.training_plan_id,
     trainingPlanName: dto.training_plan_name,
+    trainingStatus: dto.training_status ?? null,
     hasReview: dto.has_review,
+    hasPlayerReview: dto.has_player_review ?? false,
   };
 }
 
@@ -101,6 +109,8 @@ export interface PendingBookingDto {
   price_per_session: number | null;
   currency: string;
   created_at: string;
+  athlete_rating_average: number | null;
+  athlete_review_count: number;
 }
 
 export interface PendingBooking {
@@ -115,6 +125,9 @@ export interface PendingBooking {
   pricePerSession: number | null;
   currency: string;
   createdAt: string;
+  /** How other coaches rated this athlete (null while nobody has). */
+  athleteRatingAverage: number | null;
+  athleteReviewCount: number;
 }
 
 export function mapPendingBookingDto(dto: PendingBookingDto): PendingBooking {
@@ -130,5 +143,7 @@ export function mapPendingBookingDto(dto: PendingBookingDto): PendingBooking {
     pricePerSession: dto.price_per_session,
     currency: dto.currency,
     createdAt: dto.created_at,
+    athleteRatingAverage: dto.athlete_rating_average ?? null,
+    athleteReviewCount: dto.athlete_review_count ?? 0,
   };
 }

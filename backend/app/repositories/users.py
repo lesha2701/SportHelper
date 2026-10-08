@@ -10,7 +10,8 @@ from app.security.telegram_auth import TelegramUser
 
 _SELECT_FIELDS = (
     "id, telegram_id, username, first_name, last_name, photo_url, avatar_file_id, "
-    "language_code, is_banned, banned_at, active_mode, last_login_at, created_at, updated_at"
+    "language_code, is_banned, banned_at, active_mode, last_login_at, created_at, updated_at, "
+    "completed_onboarding_version"
 )
 
 
@@ -64,5 +65,38 @@ async def set_active_mode(
         f"UPDATE users SET active_mode = $2 WHERE id = $1 RETURNING {_SELECT_FIELDS}",
         user_id,
         mode,
+    )
+    return dict(row) if row else None
+
+
+async def get_ai_analysis_consent(conn: asyncpg.Connection, user_id: UUID) -> bool:
+    """Whether the user lets their personal coaches run AI analysis on their
+    sports data. Defaults to False (explicit opt-in)."""
+    value = await conn.fetchval(
+        "SELECT allow_ai_analysis_by_personal_coach FROM users WHERE id = $1", user_id
+    )
+    return bool(value)
+
+
+async def set_ai_analysis_consent(conn: asyncpg.Connection, user_id: UUID, allowed: bool) -> bool:
+    value = await conn.fetchval(
+        "UPDATE users SET allow_ai_analysis_by_personal_coach = $2 WHERE id = $1 "
+        "RETURNING allow_ai_analysis_by_personal_coach",
+        user_id,
+        allowed,
+    )
+    return bool(value)
+
+
+async def complete_onboarding(
+    conn: asyncpg.Connection, user_id: UUID, version: int
+) -> dict[str, Any] | None:
+    """Marks the welcome guide up to `version` as done. Never lowers the
+    stored value (e.g. a stale client can't make a user see v1 again)."""
+    row = await conn.fetchrow(
+        f"UPDATE users SET completed_onboarding_version = GREATEST(completed_onboarding_version, $2) "
+        f"WHERE id = $1 RETURNING {_SELECT_FIELDS}",
+        user_id,
+        version,
     )
     return dict(row) if row else None

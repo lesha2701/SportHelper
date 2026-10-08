@@ -247,6 +247,31 @@ async def player_training_counts(conn: asyncpg.Connection, user_id: UUID) -> dic
     return dict(row)
 
 
+async def list_recent_for_player(conn: asyncpg.Connection, user_id: UUID, limit: int) -> list[dict[str, Any]]:
+    """The player's most recent already-happened trainings (team, independent
+    and their own personal ones) with their attendance mark, newest first.
+    Only a short slice of a personal training's description is returned."""
+    rows = await conn.fetch(
+        """
+        SELECT t.training_date, t.type, t.status, t.duration_minutes,
+               a.status AS attendance_status,
+               CASE WHEN t.type = 'personal' THEN left(t.description, 300) END AS description
+        FROM trainings t
+        LEFT JOIN training_attendance a ON a.training_id = t.id AND a.user_id = $1
+        WHERE t.deleted_at IS NULL AND t.training_date <= CURRENT_DATE
+          AND (
+            (t.type = 'personal' AND t.created_by = $1)
+            OR t.team_id IN (SELECT team_id FROM team_members WHERE user_id = $1)
+          )
+        ORDER BY t.training_date DESC, t.start_time DESC
+        LIMIT $2
+        """,
+        user_id,
+        limit,
+    )
+    return [dict(row) for row in rows]
+
+
 async def player_attendance_history(conn: asyncpg.Connection, user_id: UUID) -> list[dict[str, Any]]:
     """Most-recent-first attendance rows for the player's team/independent
     trainings — the route walks this to compute a consecutive-presence

@@ -1,0 +1,546 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  background: var(--color-bg);
+}
+
+.panel {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) 20px calc(env(safe-area-inset-bottom, 0px) + 16px);
+}
+
+/* On a wide screen the guide is a centered card over a dimmed page instead of
+   a stretched full-bleed layout. */
+@media (min-width: 720px) {
+  .backdrop {
+    align-items: center;
+    background: rgba(0, 0, 0, 0.72);
+  }
+
+  .panel {
+    height: auto;
+    min-height: 600px;
+    max-height: min(720px, calc(100dvh - 48px));
+    padding: 22px 28px 24px;
+    border-radius: 28px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+  }
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 36px;
+}
+
+.dots {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-border-strong);
+  transition: width var(--transition-base), background-color var(--transition-base);
+}
+
+.dotDone {
+  background: var(--color-primary);
+  opacity: 0.55;
+}
+
+.dotActive {
+  width: 24px;
+  background: var(--color-primary);
+}
+
+.skip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  min-width: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.skip:hover {
+  color: var(--color-text);
+  background: var(--color-surface-alt);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+  animation: welcome-in 260ms var(--ease-out);
+}
+
+@keyframes welcome-in {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .body {
+    animation: none;
+  }
+  .dot {
+    transition: none;
+  }
+}
+
+.visual {
+  margin-bottom: 8px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 8vw, 34px);
+  line-height: 1.05;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.title:focus {
+  outline: none;
+}
+
+.lead {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.extra {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.primary,
+.back {
+  min-height: 50px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.primary {
+  flex: 1;
+  border: none;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.back {
+  flex: 0 0 auto;
+  padding: 0 20px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.primary:active,
+.back:active {
+  transform: scale(0.98);
+}
+
+.primary:focus-visible,
+.back:focus-visible,
+.skip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* --- visual compositions ------------------------------------------------- */
+
+.tile,
+.flowCard,
+.roleCard {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px;
+  border-radius: 18px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+}
+
+.tileIcon {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-glow);
+  color: var(--color-primary);
+}
+
+.tileLabel {
+  min-width: 0;
+  overflow-wrap: break-word;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+
+.tileWide {
+  grid-column: 1 / -1;
+}
+
+.tileAccent {
+  border-color: var(--color-primary);
+}
+
+.tileTag {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bento {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.heroMark {
+  width: 96px;
+  height: 96px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-family: var(--font-display);
+  font-size: 44px;
+  font-weight: 800;
+  box-shadow: 0 0 0 10px var(--color-primary-glow), 0 12px 32px rgba(217, 30, 43, 0.25);
+}
+
+.heroChips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.heroChips .tile {
+  padding: 8px 12px 8px 8px;
+  border-radius: 999px;
+}
+
+.heroChips .tileIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.flow {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  gap: 2px;
+}
+
+/* Cards share the row equally (no fixed width), so a 4-step chain still fits
+   a 320px phone; arrows take a small fixed slot. */
+.flowStep {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.flowCard {
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  padding: 10px 2px;
+  min-width: 0;
+}
+
+.flowCard .tileLabel {
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+
+.flowArrow {
+  display: flex;
+  align-items: center;
+  flex: 0 0 14px;
+  color: var(--color-primary);
+}
+
+@media (max-width: 359px) {
+  .flowCard .tileLabel {
+    font-size: 10px;
+  }
+  .flowCard .tileIcon {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+.aiBadge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--color-primary-glow);
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.roles {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.roleCard {
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 10px;
+  text-align: center;
+}
+
+.roleOwned {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.roleSwitch {
+  font-size: 22px;
+  color: var(--color-primary);
+}
+
+@media (max-height: 640px) {
+  .visual {
+    margin-bottom: 0;
+  }
+  .heroMark {
+    width: 72px;
+    height: 72px;
+    font-size: 32px;
+    border-radius: 22px;
+  }
+}
+
+/* "Who is this for" label above a step's title. */
+.kicker {
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-primary-glow);
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.points {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.points li {
+  position: relative;
+  padding-left: 22px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.points li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0.55em;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+/* Steps with a list are text-heavy: keep the picture compact. */
+.body:has(.points) .visual {
+  margin-bottom: 0;
+  transform-origin: top center;
+}
+
+.body:has(.points) .tile,
+.body:has(.points) .flowCard {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* Centre short steps vertically, but let long ones start at the top and scroll
+   (justify-content:center would push the top of an overflowing step out of reach). */
+.body > :first-child {
+  margin-top: auto;
+}
+
+.body > :last-child {
+  margin-bottom: auto;
+}
+
+.body:has(.points) .flowCard .tileLabel {
+  font-size: 10.5px;
+  letter-spacing: -0.01em;
+}
+
+/* In text-heavy steps the tiles are smaller so whole words fit (no mid-word breaks). */
+.body:has(.points) .tile {
+  padding: 8px 10px;
+  gap: 8px;
+}
+
+.body:has(.points) .tileIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+.body:has(.points) .tile .tileLabel {
+  font-size: 13px;
+  overflow-wrap: break-word;
+}
+
+.body:has(.points) .flowCard {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.body:has(.points) .flowCard .tileLabel {
+  font-size: 10px;
+  overflow-wrap: normal;
+}
+
+.body:has(.points) .flowArrow {
+  flex-basis: 10px;
+}
+
+.flowStep {
+  gap: 0;
+}
+
+.flowArrow {
+  flex-basis: 12px;
+  justify-content: center;
+}
+
+.body:has(.points) .flowArrow {
+  flex-basis: 12px;
+}
+
+.body:has(.points) .flowCard .tileLabel {
+  letter-spacing: -0.02em;
+}
+
+@media (max-width: 359px) {
+  .body:has(.points) .flowCard .tileLabel {
+    font-size: 9px;
+  }
+}

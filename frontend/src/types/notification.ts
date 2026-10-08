@@ -5,7 +5,9 @@ export type NotificationCategory =
   | "new_match"
   | "new_task"
   | "booking_requested"
-  | "booking_decided";
+  | "booking_decided"
+  | "review_requested"
+  | "training_nudge";
 
 export const NOTIFICATION_CATEGORY_LABELS: Record<NotificationCategory, string> = {
   training_reminder: "Напоминания о тренировках",
@@ -15,6 +17,8 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<NotificationCategory, string> 
   new_task: "Новые задания",
   booking_requested: "Новые заявки на тренировку (для тренера)",
   booking_decided: "Статус моих заявок на тренировку",
+  review_requested: "Просьба оставить отзыв о тренере",
+  training_nudge: "Напоминания «Пора потренироваться»",
 };
 
 export interface NotificationPreference {

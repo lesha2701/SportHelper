@@ -320,6 +320,45 @@ async def list_calendar_task_deadlines(
     return [dict(row) for row in rows]
 
 
+async def list_recent_assignments_for_player(
+    conn: asyncpg.Connection, user_id: UUID, limit: int
+) -> list[dict[str, Any]]:
+    """The player's latest task assignments with their report text and the
+    reviewer's comment. Deliberately text only: no photo/video file ids."""
+    rows = await conn.fetch(
+        """
+        SELECT t.title, a.status, t.deadline, left(a.comment, 400) AS comment, a.difficulty, a.wellbeing,
+               left(a.coach_comment, 400) AS coach_comment, a.metric_value, t.metric_name, t.metric_unit
+        FROM task_assignments a
+        JOIN tasks t ON t.id = a.task_id AND t.deleted_at IS NULL
+        WHERE a.user_id = $1
+        ORDER BY COALESCE(a.submitted_at, t.deadline, a.created_at) DESC
+        LIMIT $2
+        """,
+        user_id,
+        limit,
+    )
+    return [dict(row) for row in rows]
+
+
+async def count_open_assignments_for_users(conn: asyncpg.Connection, user_ids: list[UUID]) -> dict[UUID, int]:
+    """How many not-yet-finished task assignments each user has (one query for
+    the whole batch). Users with none are simply absent from the result."""
+    if not user_ids:
+        return {}
+    rows = await conn.fetch(
+        """
+        SELECT a.user_id, COUNT(*) AS open_count
+        FROM task_assignments a
+        JOIN tasks t ON t.id = a.task_id AND t.deleted_at IS NULL
+        WHERE a.user_id = ANY($1::uuid[]) AND a.status IN ('assigned', 'viewed', 'in_progress', 'needs_revision')
+        GROUP BY a.user_id
+        """,
+        user_ids,
+    )
+    return {row["user_id"]: row["open_count"] for row in rows}
+
+
 async def team_task_summary(conn: asyncpg.Connection, team_id: UUID) -> dict[str, Any]:
     row = await conn.fetchrow(
         """

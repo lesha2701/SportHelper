@@ -1,6 +1,7 @@
 // frontend/src/components/coaches/CoachMarketplaceScreen.tsx
 import { useEffect, useState } from "react";
 import { listListings } from "../../api/coachListings";
+import { navigateApp } from "../../appNav";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
@@ -286,11 +287,19 @@ export function CoachMarketplaceScreen({
           <p className={teamStyles.teamMeta}>
             Заявка{view.booking.listingTitle ? ` на «${view.booking.listingTitle}»` : ""} на{" "}
             {new Date(view.booking.startsAt).toLocaleString("ru-RU", { day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}{" "}
-            отправлена тренеру {view.booking.coachFullName}. Ждите подтверждения — статус можно посмотреть в «Мои
-            брони» в профиле.
+            отправлена тренеру {view.booking.coachFullName}. Тренер должен подтвердить запись — вы получите уведомление, а
+            статус всегда виден в «Мои брони».
           </p>
-          <button type="button" className={teamStyles.addButton} onClick={() => setView({ screen: "list" })}>
-            К списку тренеров
+          <button type="button" className={teamStyles.addButton} onClick={() => navigateApp({ kind: "my-bookings" })}>
+            Посмотреть заявку
+          </button>
+          <button
+            type="button"
+            className={profileStyles.buttonSecondary}
+            style={{ marginTop: 8 }}
+            onClick={() => setView({ screen: "list" })}
+          >
+            Вернуться к тренерам
           </button>
         </div>
       </div>

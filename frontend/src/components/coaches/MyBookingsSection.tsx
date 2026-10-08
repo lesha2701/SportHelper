@@ -1,7 +1,8 @@
 // frontend/src/components/coaches/MyBookingsSection.tsx
-import { useEffect, useState } from "react";
-import { listMyBookings } from "../../api/bookings";
+import { useEffect, useRef, useState } from "react";
+import { listMyBookings, reviewBooking } from "../../api/bookings";
 import { ApiError } from "../../api/client";
+import { navigateApp } from "../../appNav";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
 import { TrainingDetail } from "../trainings/TrainingDetail";
@@ -39,13 +40,49 @@ function CoachNameButton({ booking, onOpen }: { booking: Booking; onOpen: (coach
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 
-export function MyBookingsSection({ token, onBack }: { token: string; onBack: () => void }) {
+export function MyBookingsSection({
+  token,
+  onBack,
+  reviewBookingId,
+  focusBookingId,
+}: {
+  token: string;
+  onBack: () => void;
+  /** Opens this booking's review form right away (from a "leave a review" notification). */
+  reviewBookingId?: string;
+  /** Opened from a booking-status notification: a confirmed booking opens its training, any other is highlighted. */
+  focusBookingId?: string;
+}) {
   const [state, setState] = useState<{ status: "loading" } | { status: "error"; message: string } | { status: "ready"; bookings: Booking[] }>({
     status: "loading",
   });
   const [reviewing, setReviewing] = useState<Booking | null>(null);
   const [openTrainingId, setOpenTrainingId] = useState<string | null>(null);
   const [coachView, setCoachView] = useState<CoachView | null>(null);
+
+  const focusHandledRef = useRef(false);
+  useEffect(() => {
+    if (!focusBookingId || focusHandledRef.current || state.status !== "ready") return;
+    focusHandledRef.current = true;
+    const target = state.bookings.find((b) => b.id === focusBookingId);
+    if (target?.status === "confirmed" && target.trainingId) setOpenTrainingId(target.trainingId);
+  }, [focusBookingId, state]);
+
+  const focusProps = (b: Booking) =>
+    b.id === focusBookingId
+      ? {
+          ref: (el: HTMLDivElement | null) => el?.scrollIntoView({ block: "center" }),
+          style: { outline: "2px solid var(--color-primary)" } as const,
+        }
+      : {};
+
+  const reviewPromptedRef = useRef(false);
+  useEffect(() => {
+    if (!reviewBookingId || reviewPromptedRef.current || state.status !== "ready") return;
+    reviewPromptedRef.current = true;
+    const target = state.bookings.find((b) => b.id === reviewBookingId);
+    if (target && target.isCompleted && !target.hasReview) setReviewing(target);
+  }, [reviewBookingId, state]);
 
   useEffect(() => {
     listMyBookings(token)
@@ -146,7 +183,7 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
         <>
           <h2 className={profileStyles.title}>Ожидают подтверждения</h2>
           {pending.map((b) => (
-            <div className={profileStyles.card} key={b.id}>
+            <div className={profileStyles.card} key={b.id} {...focusProps(b)}>
               <div className={styles.bookingCardTop}>
                 <div>
                   <CoachNameButton booking={b} onOpen={(coachUserId) => setCoachView({ screen: "profile", coachUserId })} />
@@ -160,13 +197,25 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
         </>
       )}
 
+      <p className={profileStyles.subtitle}>
+        Отзыв о тренере можно оставить после занятия — когда тренер отметит его проведённым или когда пройдёт время занятия.
+      </p>
+
       <h2 className={profileStyles.title}>Предстоящие</h2>
-      {upcoming.length === 0 && <p className={profileStyles.subtitle}>Нет предстоящих броней.</p>}
+      {upcoming.length === 0 && (
+        <div className={profileStyles.card}>
+          <p className={profileStyles.subtitle}>Нет предстоящих броней.</p>
+          <button type="button" className={profileStyles.buttonPrimary} onClick={() => navigateApp({ kind: "tab", tab: "coaches" })}>
+            Найти тренера
+          </button>
+        </div>
+      )}
       {upcoming.map((b) => (
         <div
           className={profileStyles.card}
           key={b.id}
-          style={b.trainingId ? { cursor: "pointer" } : undefined}
+          ref={focusProps(b).ref}
+          style={{ ...(b.trainingId ? { cursor: "pointer" } : {}), ...(focusProps(b).style ?? {}) }}
           onClick={() => b.trainingId && setOpenTrainingId(b.trainingId)}
         >
           <div className={styles.bookingCardTop}>
@@ -187,7 +236,8 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
         <div
           className={profileStyles.card}
           key={b.id}
-          style={b.trainingId ? { cursor: "pointer" } : undefined}
+          ref={focusProps(b).ref}
+          style={{ ...(b.trainingId ? { cursor: "pointer" } : {}), ...(focusProps(b).style ?? {}) }}
           onClick={() => b.trainingId && setOpenTrainingId(b.trainingId)}
         >
           <div className={styles.bookingCardTop}>
@@ -218,7 +268,7 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
         <>
           <h2 className={profileStyles.title}>Отклонённые</h2>
           {declinedOrExpired.map((b) => (
-            <div className={profileStyles.card} key={b.id}>
+            <div className={profileStyles.card} key={b.id} {...focusProps(b)}>
               <div className={styles.bookingCardTop}>
                 <div>
                   <CoachNameButton booking={b} onOpen={(coachUserId) => setCoachView({ screen: "profile", coachUserId })} />
@@ -236,8 +286,9 @@ export function MyBookingsSection({ token, onBack }: { token: string; onBack: ()
 
       {reviewing && (
         <ReviewModal
-          token={token}
-          booking={reviewing}
+          title={`Отзыв о тренере ${reviewing.coachFullName}`}
+          hint="Оцените занятие и, если хотите, напишите пару слов — это поможет другим игрокам."
+          submit={(input) => reviewBooking(token, reviewing.id, input)}
           onClose={() => setReviewing(null)}
           onSubmitted={() => {
             setReviewing(null);

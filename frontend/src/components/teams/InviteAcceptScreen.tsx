@@ -20,7 +20,8 @@ export function InviteAcceptScreen({
 }: {
   token: string;
   inviteToken: string;
-  onDone: () => void;
+  /** `teamId` is set when the person just joined and wants to see the team right away. */
+  onDone: (teamId?: string) => void;
 }) {
   const [state, setState] = useState<State>({ status: "loading" });
 
@@ -56,8 +57,12 @@ export function InviteAcceptScreen({
               ? `Теперь вы основной тренер команды «${state.team.name}».`
               : `Тренер команды «${state.team.name}» рассмотрит вашу заявку.`}
           </p>
-          <button type="button" className={profileStyles.buttonPrimary} onClick={onDone}>
-            Готово
+          <button
+            type="button"
+            className={profileStyles.buttonPrimary}
+            onClick={() => onDone(state.result === "joined" ? state.team.id : undefined)}
+          >
+            {state.result === "joined" ? "Открыть команду" : "Перейти в приложение"}
           </button>
         </div>
       </div>
@@ -83,7 +88,7 @@ export function InviteAcceptScreen({
       <div className={profileStyles.screen}>
         <div className={profileStyles.card}>
           <h1 className={profileStyles.pageHeading}>Вы уже в этой команде</h1>
-          <button type="button" className={profileStyles.buttonPrimary} onClick={onDone}>
+          <button type="button" className={profileStyles.buttonPrimary} onClick={() => onDone()}>
             Готово
           </button>
         </div>
@@ -125,7 +130,7 @@ export function InviteAcceptScreen({
                 ? "Стать основным тренером"
                 : "Подать заявку на вступление"}
           </button>
-          <button type="button" className={profileStyles.buttonSecondary} onClick={onDone} disabled={applying}>
+          <button type="button" className={profileStyles.buttonSecondary} onClick={() => onDone()} disabled={applying}>
             Отмена
           </button>
         </div>

@@ -93,14 +93,19 @@ class _FakeYandexAIClient:
         pass
 
     async def complete(self, *, system_prompt: str, user_prompt: str) -> str:
+        ai_prompts_sent.append((system_prompt, user_prompt))
         if _ai_response_queue:
             return _ai_response_queue.pop(0)
         return "Заглушка ответа ИИ."
 
 
+ai_prompts_sent: list[tuple[str, str]] = []  # (system, user) of every fake AI call
+
+
 @pytest.fixture(autouse=True)
 def _fake_ai(monkeypatch: pytest.MonkeyPatch):
     _ai_response_queue.clear()
+    ai_prompts_sent.clear()
     import app.services.ai as ai_service_module
 
     monkeypatch.setattr(ai_service_module, "YandexAIClient", _FakeYandexAIClient)
@@ -218,6 +223,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
             "is_banned": False,
             "banned_at": None,
             "active_mode": None,
+            "completed_onboarding_version": 0,
         }
         user.update(
             {
@@ -347,7 +353,15 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(login_tokens_module, "consume", fake_login_consume)
     monkeypatch.setattr(login_tokens_module, "is_pending", fake_login_is_pending)
     monkeypatch.setattr(users_module, "upsert_from_telegram", fake_upsert_from_telegram)
+    async def fake_complete_onboarding(conn, user_id, version):
+        for user in users_store.values():
+            if user["id"] == user_id:
+                user["completed_onboarding_version"] = max(user["completed_onboarding_version"], version)
+                return user
+        return None
+
     monkeypatch.setattr(users_module, "get_by_id", fake_get_by_id)
+    monkeypatch.setattr(users_module, "complete_onboarding", fake_complete_onboarding)
     monkeypatch.setattr(users_module, "set_active_mode", fake_set_active_mode)
     monkeypatch.setattr(profiles_module, "get_player_profile", fake_get_player_profile)
     monkeypatch.setattr(profiles_module, "get_coach_profile", fake_get_coach_profile)
@@ -403,6 +417,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
         plan = plans_store.get(plan_id) if plan_id else None
         view["training_plan_id"] = plan_id
         view["training_plan_name"] = plan["name"] if plan else None
+        view["training_status"] = training["status"] if training else None
         return view
 
     async def fake_create_booking(conn, *, listing_id, coach_user_id, athlete_user_id, starts_at, duration_minutes, format, price_per_session, currency, athlete_notes=None):
@@ -501,6 +516,8 @@ def client(monkeypatch: pytest.MonkeyPatch):
                     "athlete_user_id": b["athlete_user_id"],
                     "athlete_full_name": full_name,
                     "athlete_notes": b.get("athlete_notes"),
+                    "athlete_rating_average": _player_rating(b["athlete_user_id"])["average"],
+                    "athlete_review_count": _player_rating(b["athlete_user_id"])["count"],
                     "starts_at": b["starts_at"],
                     "duration_minutes": b["duration_minutes"],
                     "format": b["format"],
@@ -2414,6 +2431,155 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(coach_listings_module, "list_listed_for_coach", fake_list_listed_for_coach)
     monkeypatch.setattr(coach_listings_module, "compute_open_slots", fake_listing_compute_open_slots)
 
+    # --- AI pre-session analysis of an athlete (consent + stored result) ----------
+    import app.repositories.training_ai_analyses as analyses_module
+
+    consent_store: dict = {}  # user_id -> bool (missing == False, the default)
+    analyses_store: dict = {}  # training_id -> dict
+
+    async def fake_get_consent(conn, user_id):
+        return consent_store.get(user_id, False)
+
+    async def fake_set_consent(conn, user_id, allowed):
+        consent_store[user_id] = allowed
+        return allowed
+
+    async def fake_get_confirmed_for_training(conn, training_id, coach_user_id):
+        for b in bookings_store.values():
+            if b.get("training_id") == training_id and b["coach_user_id"] == coach_user_id and b["status"] == "confirmed":
+                return dict(b)
+        return None
+
+    async def fake_analyses_upsert(conn, *, training_id, coach_user_id, player_user_id, analysis_json):
+        record = {
+            "training_id": training_id, "coach_user_id": coach_user_id, "player_user_id": player_user_id,
+            "analysis_json": analysis_json, "generated_at": datetime.now(timezone.utc),
+        }
+        analyses_store[training_id] = record
+        return dict(record)
+
+    async def fake_analyses_get(conn, training_id, coach_user_id):
+        record = analyses_store.get(training_id)
+        return dict(record) if record and record["coach_user_id"] == coach_user_id else None
+
+    async def fake_analyses_delete_for_player(conn, player_user_id):
+        for key in [k for k, r in analyses_store.items() if r["player_user_id"] == player_user_id]:
+            del analyses_store[key]
+
+    async def fake_list_recent_for_player(conn, user_id, limit):
+        today = date.today()
+        rows = []
+        for r in trainings_store.values():
+            if r["training_date"] > today or not (r["type"] == "personal" and r["created_by"] == user_id):
+                continue
+            rows.append(
+                {
+                    "training_date": r["training_date"], "type": r["type"], "status": r["status"],
+                    "duration_minutes": r["duration_minutes"], "attendance_status": None,
+                    "description": (r.get("description") or "")[:300],
+                }
+            )
+        return sorted(rows, key=lambda x: x["training_date"], reverse=True)[:limit]
+
+    async def fake_list_recent_assignments(conn, user_id, limit):
+        rows = []
+        for (task_id, uid), a in task_assignments_store.items():
+            task = tasks_store.get(task_id)
+            if uid != user_id or task is None:
+                continue
+            rows.append(
+                {
+                    "title": task["title"], "status": a["status"], "deadline": task.get("deadline"),
+                    "comment": a["comment"], "difficulty": a["difficulty"], "wellbeing": a["wellbeing"],
+                    "coach_comment": a["coach_comment"], "metric_value": a["metric_value"],
+                    "metric_name": task.get("metric_name"), "metric_unit": task.get("metric_unit"),
+                }
+            )
+        return rows[:limit]
+
+    async def fake_list_recent_feedback(conn, user_id, limit):
+        rows = []
+        for (t_id, uid), f in training_feedback_store.items():
+            training = trainings_store.get(t_id)
+            if uid != user_id or training is None or f.get("skipped"):
+                continue
+            rows.append(
+                {
+                    "training_date": training["training_date"], "wellbeing": f["wellbeing"],
+                    "difficulty": f["difficulty"], "comment": f["comment"],
+                }
+            )
+        return rows[:limit]
+
+    async def fake_list_recent_metrics(conn, user_id, since, limit):
+        rows = [
+            {k: r[k] for k in ("name", "unit", "value", "recorded_date", "higher_is_better")}
+            for r in metrics_store.values()
+            if r["user_id"] == user_id and r["recorded_date"] >= since
+        ]
+        return sorted(rows, key=lambda r: r["recorded_date"], reverse=True)[:limit]
+
+    import app.repositories.bookings as bookings_module_ai
+    import app.repositories.metrics as metrics_module_ai
+
+    monkeypatch.setattr(users_module, "get_ai_analysis_consent", fake_get_consent)
+    monkeypatch.setattr(users_module, "set_ai_analysis_consent", fake_set_consent)
+    monkeypatch.setattr(bookings_module_ai, "get_confirmed_for_training", fake_get_confirmed_for_training)
+    monkeypatch.setattr(analyses_module, "upsert", fake_analyses_upsert)
+    monkeypatch.setattr(analyses_module, "get_for_training", fake_analyses_get)
+    monkeypatch.setattr(analyses_module, "delete_for_player", fake_analyses_delete_for_player)
+    monkeypatch.setattr(trainings_module, "list_recent_for_player", fake_list_recent_for_player)
+    monkeypatch.setattr(tasks_module, "list_recent_assignments_for_player", fake_list_recent_assignments)
+    monkeypatch.setattr(training_feedback_module, "list_recent_for_user", fake_list_recent_feedback)
+    monkeypatch.setattr(metrics_module_ai, "list_recent_for_user", fake_list_recent_metrics)
+
+    # --- coach reviews of athletes ---------------------------------------------------
+    import app.repositories.player_reviews as player_reviews_module
+
+    player_reviews_store: dict = {}  # booking_id -> dict
+
+    def _player_rating(athlete_user_id):
+        ratings = [r["rating"] for r in player_reviews_store.values() if r["athlete_user_id"] == athlete_user_id]
+        return {"average": (sum(ratings) / len(ratings)) if ratings else None, "count": len(ratings)}
+
+    async def fake_pr_get_by_booking(conn, booking_id):
+        r = player_reviews_store.get(booking_id)
+        return {k: r[k] for k in ("id", "booking_id", "rating", "text")} if r else None
+
+    async def fake_pr_create(conn, *, booking_id, coach_user_id, athlete_user_id, rating, text):
+        if booking_id in player_reviews_store:
+            return None
+        record = {
+            "id": uuid4(), "booking_id": booking_id, "coach_user_id": coach_user_id,
+            "athlete_user_id": athlete_user_id, "rating": rating, "text": text,
+            "created_at": datetime.now(timezone.utc),
+        }
+        player_reviews_store[booking_id] = record
+        return {k: record[k] for k in ("id", "booking_id", "rating", "text")}
+
+    async def fake_pr_summary(conn, athlete_user_id):
+        return _player_rating(athlete_user_id)
+
+    async def fake_pr_list(conn, athlete_user_id, limit=20):
+        rows = [r for r in player_reviews_store.values() if r["athlete_user_id"] == athlete_user_id]
+        return [
+            {"id": r["id"], "coach_name": coach_store[r["coach_user_id"]]["full_name"], "rating": r["rating"],
+             "text": r["text"], "created_at": r["created_at"]}
+            for r in sorted(rows, key=lambda r: r["created_at"], reverse=True)[:limit]
+        ]
+
+    async def fake_get_for_coach_by_training(conn, training_id, coach_user_id):
+        for b in bookings_store.values():
+            if b.get("training_id") == training_id and b["coach_user_id"] == coach_user_id and b["status"] == "confirmed":
+                return _booking_view(b)
+        return None
+
+    monkeypatch.setattr(player_reviews_module, "get_by_booking", fake_pr_get_by_booking)
+    monkeypatch.setattr(player_reviews_module, "create_review", fake_pr_create)
+    monkeypatch.setattr(player_reviews_module, "get_rating_summary", fake_pr_summary)
+    monkeypatch.setattr(player_reviews_module, "list_recent_for_player", fake_pr_list)
+    monkeypatch.setattr(bookings_module_ai, "get_for_coach_by_training", fake_get_for_coach_by_training)
+
     app = main_module.create_app()
 
     async def override_get_db():
@@ -2424,6 +2590,8 @@ def client(monkeypatch: pytest.MonkeyPatch):
     with TestClient(app) as test_client:
         test_client.notifications_store = notifications_store
         test_client.bookings_store = bookings_store
+        test_client.ai_analyses_store = analyses_store
+        test_client.player_reviews_store = player_reviews_store
         yield test_client
 
     get_settings.cache_clear()

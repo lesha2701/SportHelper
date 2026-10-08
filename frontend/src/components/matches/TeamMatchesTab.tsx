@@ -26,7 +26,17 @@ function matchCardColor(match: Match): string {
 
 type View = { screen: "list" } | { screen: "create" } | { screen: "edit"; match: Match } | { screen: "detail"; matchId: string };
 
-export function TeamMatchesTab({ token, teamId, canManage }: { token: string; teamId: string; canManage: boolean }) {
+export function TeamMatchesTab({
+  token,
+  teamId,
+  canManage,
+  onOpenStats,
+}: {
+  token: string;
+  teamId: string;
+  canManage: boolean;
+  onOpenStats?: () => void;
+}) {
   const [view, setView] = useState<View>({ screen: "list" });
   const [state, setState] = useState<ListState>({ status: "loading" });
 
@@ -71,6 +81,7 @@ export function TeamMatchesTab({ token, teamId, canManage }: { token: string; te
         onBack={() => setView({ screen: "list" })}
         onEdit={(match) => setView({ screen: "edit", match })}
         onDeleted={() => setView({ screen: "list" })}
+        onOpenStats={onOpenStats}
       />
     );
   }

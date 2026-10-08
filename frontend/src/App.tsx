@@ -1,10 +1,11 @@
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { BrowserLogin } from "./components/BrowserLogin";
 import { StateScreen } from "./components/StateScreen";
+import { OnboardingGate } from "./components/welcome/OnboardingGate";
 import { Workspace } from "./Workspace";
 
 function AuthGate() {
-  const { state, retry } = useAuth();
+  const { state, retry, updateUser } = useAuth();
 
   switch (state.status) {
     case "loading":
@@ -22,7 +23,11 @@ function AuthGate() {
       );
 
     case "ready":
-      return <Workspace token={state.token} />;
+      return (
+        <OnboardingGate token={state.token} user={state.user} onUserUpdated={updateUser}>
+          <Workspace token={state.token} />
+        </OnboardingGate>
+      );
   }
 }
 

@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 NotificationCategory = Literal[
     "training_reminder", "task_deadline", "new_training", "new_match", "new_task",
-    "booking_requested", "booking_decided",
+    "booking_requested", "booking_decided", "review_requested", "training_nudge",
 ]
 
 NOTIFICATION_CATEGORIES: tuple[NotificationCategory, ...] = (
@@ -19,6 +19,8 @@ NOTIFICATION_CATEGORIES: tuple[NotificationCategory, ...] = (
     "new_task",
     "booking_requested",
     "booking_decided",
+    "review_requested",
+    "training_nudge",
 )
 
 

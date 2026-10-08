@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
@@ -79,3 +80,43 @@ class TrainingEvaluationIn(BaseModel):
 
 class AITextOut(BaseModel):
     text: str
+
+
+class PlayerAnalysisPlanStepOut(BaseModel):
+    stage: str
+    description: str
+    # Only ever set to a real exercise from the requesting coach's own
+    # library (validated server-side); exercise_name is looked up from it,
+    # never taken from the model.
+    exercise_id: UUID | None = None
+    exercise_name: str | None = None
+
+
+class PlayerPreSessionAnalysisOut(BaseModel):
+    summary: str
+    strengths: list[str]
+    attention_points: list[str]
+    recent_dynamics: list[str]
+    recommendations: list[str]
+    session_focus: str | None
+    session_plan: list[PlayerAnalysisPlanStepOut]
+    # Computed from how much data there actually was, not self-reported by the model.
+    data_sufficiency: Literal["sufficient", "limited", "insufficient"]
+    data_notes: str | None
+    generated_at: datetime
+
+
+class PlayerAnalysisStatusOut(BaseModel):
+    # Whether the player currently lets their personal coaches use AI analysis.
+    allowed: bool
+    # The previously generated analysis; None unless `allowed` (it is never
+    # served after the player withdrew consent).
+    analysis: PlayerPreSessionAnalysisOut | None = None
+
+
+class PrivacySettingsOut(BaseModel):
+    allow_ai_analysis_by_personal_coach: bool
+
+
+class PrivacySettingsIn(BaseModel):
+    allow_ai_analysis_by_personal_coach: bool

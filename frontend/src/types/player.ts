@@ -47,3 +47,37 @@ export function mapPlayerPublicProfileDto(dto: PlayerPublicProfileDto): PlayerPu
     photoUrl: dto.photo_url,
   };
 }
+
+export interface PlayerReview {
+  id: string;
+  coachName: string;
+  rating: number;
+  text: string | null;
+  createdAt: string;
+}
+
+export interface PlayerReviews {
+  average: number | null;
+  count: number;
+  reviews: PlayerReview[];
+}
+
+export interface PlayerReviewsDto {
+  average: number | null;
+  count: number;
+  reviews: { id: string; coach_name: string; rating: number; text: string | null; created_at: string }[];
+}
+
+export function mapPlayerReviewsDto(dto: PlayerReviewsDto): PlayerReviews {
+  return {
+    average: dto.average,
+    count: dto.count,
+    reviews: dto.reviews.map((r) => ({
+      id: r.id,
+      coachName: r.coach_name,
+      rating: r.rating,
+      text: r.text,
+      createdAt: r.created_at,
+    })),
+  };
+}

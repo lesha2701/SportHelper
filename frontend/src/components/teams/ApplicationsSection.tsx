@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { acceptApplication, listApplications, rejectApplication } from "../../api/teams";
 import { ApiError } from "../../api/client";
+import { toast } from "../../toast";
 import type { JoinRequest } from "../../types/team";
 import profileStyles from "../profile/profile.module.css";
 import styles from "./teams.module.css";
@@ -9,9 +10,11 @@ interface ApplicationsSectionProps {
   token: string;
   teamId: string;
   onChanged: () => void;
+  /** Switches the team screen to its roster tab (where the accepted player now is). */
+  onOpenRoster?: () => void;
 }
 
-export function ApplicationsSection({ token, teamId, onChanged }: ApplicationsSectionProps) {
+export function ApplicationsSection({ token, teamId, onChanged, onOpenRoster }: ApplicationsSectionProps) {
   const [applications, setApplications] = useState<JoinRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +35,7 @@ export function ApplicationsSection({ token, teamId, onChanged }: ApplicationsSe
     try {
       await acceptApplication(token, teamId, requestId);
       setApplications((prev) => prev.filter((a) => a.id !== requestId));
+      toast.success("Игрок добавлен в команду", onOpenRoster ? { label: "Открыть состав", onClick: onOpenRoster } : undefined);
       onChanged();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Не удалось принять заявку");

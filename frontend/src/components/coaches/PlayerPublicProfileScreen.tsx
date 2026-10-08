@@ -1,16 +1,58 @@
 // frontend/src/components/coaches/PlayerPublicProfileScreen.tsx
 import { useEffect, useState } from "react";
-import { getPlayerPublicProfile } from "../../api/players";
+import { getPlayerPublicProfile, getPlayerReviews } from "../../api/players";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { AchievementsGallery } from "../profile/AchievementsGallery";
 import { SKILL_LEVEL_LABELS } from "../../types/profile";
-import type { PlayerPublicProfile } from "../../types/player";
+import type { PlayerPublicProfile, PlayerReviews } from "../../types/player";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
+
+const stars = (n: number) => "★".repeat(n) + "☆".repeat(5 - n);
+
+function PlayerReviewsCard({ token, playerUserId }: { token: string; playerUserId: string }) {
+  const [reviews, setReviews] = useState<PlayerReviews | null>(null);
+
+  useEffect(() => {
+    // Only coaches with a booking with this player may read it; anyone else just doesn't see the block.
+    getPlayerReviews(token, playerUserId)
+      .then(setReviews)
+      .catch(() => setReviews(null));
+  }, [token, playerUserId]);
+
+  if (reviews === null) return null;
+  return (
+    <div className={profileStyles.card}>
+      <h2 className={profileStyles.title}>Отзывы тренеров</h2>
+      {reviews.count === 0 ? (
+        <p className={profileStyles.subtitle}>О этом игроке пока нет отзывов.</p>
+      ) : (
+        <>
+          <p className={profileStyles.subtitle}>
+            Средняя оценка: <b>{reviews.average?.toFixed(1)}</b> из 5 · отзывов: {reviews.count}
+          </p>
+          {reviews.reviews.map((r) => (
+            <div className={styles.reviewItem} key={r.id}>
+              <div className={styles.reviewHead}>
+                <span>{r.coachName}</span>
+                <span className={styles.reviewStars} aria-label={`${r.rating} из 5`}>
+                  {stars(r.rating)}
+                </span>
+              </div>
+              {r.text && <p className={profileStyles.subtitle}>{r.text}</p>}
+              <p className={profileStyles.subtitle}>{new Date(r.createdAt).toLocaleDateString("ru-RU")}</p>
+            </div>
+          ))}
+        </>
+      )}
+      <p className={profileStyles.subtitle}>Отзывы оставляют тренеры после проведённых занятий; их видят только тренеры, у которых есть запись с этим игроком.</p>
+    </div>
+  );
+}
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; profile: PlayerPublicProfile };
 
@@ -119,6 +161,8 @@ export function PlayerPublicProfileScreen({
                 </div>
               )}
             </div>
+
+            <PlayerReviewsCard token={token} playerUserId={profile.userId} />
 
             <AchievementsGallery token={token} userId={profile.userId} editable={false} />
           </>

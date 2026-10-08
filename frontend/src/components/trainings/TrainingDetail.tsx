@@ -7,6 +7,11 @@ import { useAuth } from "../../context/AuthContext";
 import { StateScreen } from "../StateScreen";
 import { AttendanceScreen } from "./AttendanceScreen";
 import { ReportScreen } from "./ReportScreen";
+import { NextStepCard } from "../shared/NextStepCard";
+import { PlayerPublicProfileScreen } from "../coaches/PlayerPublicProfileScreen";
+import { AthleteSessionCard } from "./AthleteSessionCard";
+import { CoachSessionCard } from "./CoachSessionCard";
+import { PlayerAiAnalysisCard } from "./PlayerAiAnalysisCard";
 import { TrainingSessionScreen } from "./TrainingSessionScreen";
 import { PLAN_SECTIONS, PLAN_SECTION_LABELS, type Plan } from "../../types/plan";
 import { TRAINING_STATUS_LABELS, isTrainingOverdue, type Training, type TrainingFeedback, type TrainingStatus } from "../../types/training";
@@ -110,6 +115,10 @@ export function TrainingDetail({
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [plan, setPlan] = useState<Plan | null>(null);
   const [showAttendance, setShowAttendance] = useState(false);
+  // After "Отметить проведённой": the obvious next step is the attendance.
+  const [justCompleted, setJustCompleted] = useState(false);
+  // The coach opens the athlete's profile from a booked session.
+  const [viewingPlayerId, setViewingPlayerId] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
   const [cancelChoiceOpen, setCancelChoiceOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -170,15 +179,21 @@ export function TrainingDetail({
       .catch(() => setFeedbackState({ status: "error" }));
   }, [token, trainingId]);
 
+  // A personal training belongs to the athlete. If it's open and isn't mine,
+  // I'm the coach the athlete booked (the backend only lets those two in):
+  // read-only for me, and none of the athlete's own prompts apply.
+  const isBookedCoachViewer =
+    state.status === "ready" && state.training.type === "personal" && myUserId !== null && state.training.createdBy !== myUserId;
+
   const trainingStatus = state.status === "ready" ? state.training.status : null;
   useEffect(() => {
-    if (trainingStatus !== "completed") {
+    if (trainingStatus !== "completed" || isBookedCoachViewer) {
       setFeedbackState({ status: "ready", feedback: null });
       return;
     }
     loadFeedback();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trainingStatus, loadFeedback]);
+  }, [trainingStatus, isBookedCoachViewer, loadFeedback]);
 
   const trainingPlanId = state.status === "ready" ? state.training.planId : null;
   useEffect(() => {
@@ -217,14 +232,20 @@ export function TrainingDetail({
   }
 
   const { training } = state;
-  const canEdit = canEditProp ?? training.type === "personal";
+  const canEdit = !isBookedCoachViewer && (canEditProp ?? training.type === "personal");
 
   const isResponsible = myUserId !== null && training.responsibleUserId === myUserId;
   const canMarkAttendance = canEdit || (training.type === "independent" && isResponsible);
   const overdue = isTrainingOverdue(training);
+  // The session already happened (marked, or its date has passed) and someone can mark attendance.
+  const needsAttendance = canMarkAttendance && (training.status === "completed" || overdue);
 
   if (sessionActive && checklist) {
     return <TrainingSessionScreen checklist={checklist} onExit={() => setSessionActive(false)} />;
+  }
+
+  if (viewingPlayerId) {
+    return <PlayerPublicProfileScreen token={token} playerUserId={viewingPlayerId} onBack={() => setViewingPlayerId(null)} />;
   }
 
   if (showAttendance) {
@@ -240,6 +261,7 @@ export function TrainingDetail({
     try {
       await cancelTrainingSeries(token, training.id);
       setCancelChoiceOpen(false);
+      if (status === "completed") setJustCompleted(true);
       load();
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Не удалось отменить серию");
@@ -312,9 +334,9 @@ export function TrainingDetail({
     }
   };
 
-  const showFeedbackPrompt = training.status === "completed" && feedbackState.status === "ready" && feedbackState.feedback === null;
-  const showAiSection = training.status === "completed" && feedbackState.status === "ready" && feedbackState.feedback !== null;
-  const showFeedbackError = training.status === "completed" && feedbackState.status === "error";
+  const showFeedbackPrompt = !isBookedCoachViewer && training.status === "completed" && feedbackState.status === "ready" && feedbackState.feedback === null;
+  const showAiSection = !isBookedCoachViewer && training.status === "completed" && feedbackState.status === "ready" && feedbackState.feedback !== null;
+  const showFeedbackError = !isBookedCoachViewer && training.status === "completed" && feedbackState.status === "error";
 
   const toggleChecked = (index: number) => {
     setCheckedItems((prev) => {
@@ -382,14 +404,22 @@ export function TrainingDetail({
         )}
       </div>
 
+      {isBookedCoachViewer && <CoachSessionCard token={token} trainingId={training.id} onOpenPlayer={setViewingPlayerId} />}
+
+      {!isBookedCoachViewer && training.type === "personal" && <AthleteSessionCard token={token} trainingId={training.id} />}
+
+      {isBookedCoachViewer && <PlayerAiAnalysisCard token={token} trainingId={training.id} />}
+
       {checklist && (
         <div className={profileStyles.card}>
           <div className={styles.teamCardTop}>
             <h2 className={profileStyles.title}>Упражнения</h2>
-            <button type="button" className={profileStyles.buttonPrimary} style={{ flex: "0 0 auto", width: "auto", padding: "8px 16px" }} onClick={() => setSessionActive(true)}>
-              <Icon name="clock" size={15} />
-              Начать тренировку
-            </button>
+            {!isBookedCoachViewer && (
+              <button type="button" className={profileStyles.buttonPrimary} style={{ flex: "0 0 auto", width: "auto", padding: "8px 16px" }} onClick={() => setSessionActive(true)}>
+                <Icon name="clock" size={15} />
+                Начать тренировку
+              </button>
+            )}
           </div>
           {checklist.items.map((item, index) => {
             const done = checkedItems.has(index);
@@ -451,10 +481,24 @@ export function TrainingDetail({
         </div>
       )}
 
+      {justCompleted && canMarkAttendance && (training.type === "team" || training.type === "independent") && (
+        <NextStepCard
+          title="Тренировка отмечена проведённой"
+          message="Теперь отметьте, кто отсутствовал — остальные считаются присутствовавшими."
+          primary={{ label: "Отметить посещаемость", onClick: () => { setJustCompleted(false); setShowAttendance(true); } }}
+          secondary={{ label: "Позже", onClick: () => setJustCompleted(false) }}
+        />
+      )}
+
       {(training.type === "team" || training.type === "independent") && (
-        <div className={profileStyles.card}>
+        <div className={profileStyles.card} style={needsAttendance ? { border: "1px solid var(--color-primary)" } : undefined}>
+          {needsAttendance && (
+            <p className={profileStyles.subtitle}>
+              Занятие прошло — отметьте, кто отсутствовал. Неотмеченные считаются присутствовавшими.
+            </p>
+          )}
           <button type="button" className={profileStyles.buttonPrimary} onClick={() => setShowAttendance(true)}>
-            Посещаемость
+            {canMarkAttendance ? "Отметить посещаемость" : "Посещаемость"}
           </button>
           {training.type === "independent" && (
             <button type="button" className={profileStyles.buttonSecondary} onClick={() => setShowReport(true)}>
