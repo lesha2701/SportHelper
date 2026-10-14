@@ -13,6 +13,8 @@ import logging
 
 import asyncpg
 
+from app.core.logging import redact
+
 _MESSAGE_MAX_LENGTH = 2000
 
 
@@ -24,7 +26,7 @@ class DatabaseErrorLogHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
-            message = self.format(record)[:_MESSAGE_MAX_LENGTH]
+            message = redact(self.format(record))[:_MESSAGE_MAX_LENGTH]
         except Exception:  # noqa: BLE001 - formatting must never break logging
             return
         try:

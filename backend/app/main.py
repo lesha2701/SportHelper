@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.routes import (
+    admin,
     ai,
     auth,
     bookings,
@@ -40,9 +41,8 @@ from app.config import Settings, get_settings
 from app.core.error_log import attach_error_log_handler
 from app.core.exceptions import APIError
 from app.core.logging import configure_logging
-from app.core.rate_limit import RateLimiter, SlidingWindowLimiter
-from app.security.client import client_ip
-from app.security.tokens import hash_token
+from app.core.rate_limit import RateLimiter
+from app.security.client import rate_limit_key
 from app.database import create_pool, run_migrations
 from app.services.background import run_background_loop
 
@@ -83,7 +83,6 @@ async def lifespan(app: FastAPI):
     await run_migrations(pool)
     app.state.db_pool = pool
     app.state.rate_limiter = RateLimiter(settings.rate_limit_per_minute)
-    app.state.auth_limiter = SlidingWindowLimiter()
     if settings.jwt_secret == "change-me-to-a-long-random-string" and settings.app_mode == "main":
         logger.error("JWT_SECRET is still the default value — set a long random secret in .env")
     _attach_error_log_handler(pool)
@@ -109,6 +108,11 @@ def create_app() -> FastAPI:
         version="0.1.0",
         description="Backend API for the SportArena Global website.",
         lifespan=lifespan,
+        # Swagger can store a pasted session token and is a pure attack surface in
+        # production: API_DOCS_ENABLED defaults to off when APP_MODE=main.
+        docs_url="/docs" if settings.docs_enabled else None,
+        redoc_url="/redoc" if settings.docs_enabled else None,
+        openapi_url="/openapi.json" if settings.docs_enabled else None,
     )
 
     app.add_middleware(
@@ -135,10 +139,14 @@ def create_app() -> FastAPI:
         return await call_next(request)
 
     @app.middleware("http")
-    async def no_store_for_account_endpoints(request: Request, call_next):
-        # Responses of /api/auth/* carry a CSRF token or are personal: never cached by the browser or a proxy.
+    async def response_hardening(request: Request, call_next):
         response = await call_next(request)
-        if request.url.path.startswith("/api/auth/"):
+        # Uploaded files are served inline: never let a browser guess a type or frame the API.
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        # Responses of /api/auth/* carry a CSRF token or are personal: never cached by the browser or a proxy.
+        if request.url.path.startswith("/api/auth/") or request.url.path.startswith("/api/admin/"):
             response.headers["Cache-Control"] = "no-store"
         return response
 
@@ -147,19 +155,12 @@ def create_app() -> FastAPI:
         if request.url.path in _UNLIMITED_PATHS:
             return await call_next(request)
         limiter: RateLimiter = request.app.state.rate_limiter
-        # Prefer the signed-in session as the key: behind a reverse proxy
-        # every visitor shares one apparent IP, so an IP-only key would
-        # throttle the whole site for everyone once more than a few people
-        # use it. IP is the fallback for guests and the auth endpoints.
-        key = client_ip(request, settings)
-        auth_header = request.headers.get("Authorization", "")
-        session_token = (
-            auth_header.removeprefix("Bearer ")
-            if auth_header.startswith("Bearer ")
-            else request.cookies.get(settings.session_cookie_name)
-        )
-        if session_token:
-            key = f"session:{hash_token(session_token)[:16]}"
+        # A brake on overall request volume per client address. It is deliberately
+        # NOT keyed by anything the client sends (a session/bearer token would let
+        # an attacker mint a fresh bucket with every fake token). It is per
+        # process; the limits that matter for security (login, sign-up, password
+        # reset, MFA ...) are enforced in PostgreSQL and shared by all processes.
+        key = rate_limit_key(request, settings)
         if not limiter.check(key):
             return JSONResponse(
                 status_code=429,
@@ -180,6 +181,7 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=exc.status_code, content={"error": error}, headers=headers)
 
     app.include_router(auth.router)
+    app.include_router(admin.router)
     app.include_router(health.router)
     app.include_router(profile.router)
     app.include_router(teams.router)

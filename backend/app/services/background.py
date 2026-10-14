@@ -28,6 +28,7 @@ from app.repositories import auth_tokens as auth_tokens_repo
 from app.repositories import bookings as bookings_repo
 from app.repositories import files as files_repo
 from app.repositories import notifications as notifications_repo
+from app.repositories import rate_limits as rate_limits_repo
 from app.repositories import sessions as sessions_repo
 from app.repositories import tasks as tasks_repo
 from app.repositories import users as users_repo
@@ -142,8 +143,9 @@ async def purge_stale_auth_data(conn: asyncpg.Connection) -> None:
     """Expired sessions and spent/expired one-time links are dead weight."""
     sessions = await sessions_repo.purge_expired(conn)
     tokens = await auth_tokens_repo.purge_expired(conn)
+    hits = await rate_limits_repo.purge_old(conn)
     if sessions or tokens:
-        logger.info("Purged %d stale session(s) and %d one-time token(s)", sessions, tokens)
+        logger.info("Purged %d stale session(s) and %d one-time token(s) (%d rate-limit rows)", sessions, tokens, hits)
 
 
 async def process_account_deletions(conn: asyncpg.Connection, settings: Settings) -> None:

@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.services import email as email_service
 from app.services.email import OutgoingEmail
+from tests import real_db
 from tests.fake_auth import FakeAuthStore
 from tests.fake_auth import install as install_fake_auth
 
@@ -147,9 +148,13 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("APP_BASE_URL", "http://localhost:5173")
     # Hermetic: nothing in a developer's real .env may leak into the tests.
     for hermetic in ("CORS_ORIGINS", "COOKIE_SECURE", "COOKIE_SAMESITE", "COOKIE_DOMAIN", "TRUST_PROXY_HEADERS",
-                     "ADMIN_EMAILS", "ADMIN_TELEGRAM_IDS", "SESSION_LIFETIME_DAYS", "PASSWORD_BREACH_CHECK"):
+                     "ADMIN_EMAILS", "ADMIN_TELEGRAM_IDS", "SESSION_LIFETIME_DAYS", "PASSWORD_BREACH_CHECK",
+                     "TRUSTED_PROXY_CIDRS", "API_DOCS_ENABLED", "BEARER_AUTH_ENABLED"):
         monkeypatch.delenv(hermetic, raising=False)
     monkeypatch.setenv("CORS_ORIGINS", "http://localhost:5173")
+    # The test suite authenticates with `Authorization: Bearer <session>`; the
+    # production default is cookie-only (see tests/test_auth_hardening.py).
+    monkeypatch.setenv("BEARER_AUTH_ENABLED", "true")
     # Cheap Argon2 parameters keep hashing fast in tests (the hash is still
     # real Argon2id). Auth rate limits are switched back on by the tests that
     # exercise them; everything else registers many users from one "IP".
@@ -168,6 +173,16 @@ def client(monkeypatch: pytest.MonkeyPatch):
     # hit the real Yandex.Disk API.
     monkeypatch.setenv("YANDEX_DISK_OAUTH_TOKEN", "")
     get_settings.cache_clear()
+
+    if real_db.ENABLED:
+        # Same tests, real PostgreSQL (see tests/real_db.py).
+        real_client, cleanup = real_db.start(monkeypatch)
+        try:
+            yield real_client
+        finally:
+            cleanup()
+            get_settings.cache_clear()
+        return
 
     class FakePool:
         async def close(self) -> None:
@@ -2541,6 +2556,8 @@ def login_as(client: TestClient):
         username: str | None = None,
         last_name: str | None = None,
     ) -> str:
+        if real_db.ENABLED:
+            return real_db.make_user(client.real_dsn, user_number, first_name, username, last_name)
         store: FakeAuthStore = client.auth_store
         email = f"user{user_number}@fixtures.example.com"
         # Idempotent per number, like signing in again: the same person, a new session.
@@ -2569,3 +2586,45 @@ def login_as(client: TestClient):
         return token
 
     return _login
+
+
+_FAKE_INTERNALS = (
+    "auth_store", "bookings_store", "notifications_store", "ai_analyses_store", "player_reviews_store", ".outbox",
+    "asyncio.run(", "caplog", "dependency_overrides", "monkeypatch.setattr", "(None,",
+)
+
+
+def pytest_collection_modifyitems(config, items):
+    """With SAG_TEST_REAL_DB=1 the HTTP tests run against PostgreSQL; the ones that
+    reach into the in-memory fakes (or patch repositories) have nothing to hook
+    into there and are skipped - everything else must pass unchanged."""
+    if not real_db.ENABLED:
+        return
+    import inspect
+
+    skip = pytest.mark.skip(reason="reaches into the in-memory fakes; runs in the default (fake) mode")
+    for item in items:
+        function = getattr(item, "function", None)
+        if function is None:
+            continue
+        def source_of(obj) -> str:
+            try:
+                return inspect.getsource(obj)
+            except (OSError, TypeError):
+                return ""
+
+        sources = [source_of(function)]
+        module = inspect.getmodule(function)
+        seen: set[str] = set()
+        grew = True
+        while grew:  # helpers the test calls, and the helpers those call
+            grew = False
+            for name, helper in vars(module).items():
+                if name.startswith("_") and name not in seen and inspect.isfunction(helper) and any(name in text for text in sources):
+                    seen.add(name)
+                    sources.append(source_of(helper))
+                    grew = True
+        if item.module.__name__.rsplit(".", 1)[-1].startswith(("test_auth_", "test_admin_", "test_regression_")):
+            item.add_marker(skip)  # these have their own real-PostgreSQL counterparts (test_auth_postgres.py ...)
+        elif any(marker in text for text in sources for marker in _FAKE_INTERNALS):
+            item.add_marker(skip)

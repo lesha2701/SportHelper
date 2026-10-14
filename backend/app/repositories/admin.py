@@ -161,18 +161,21 @@ async def get_project_stats(conn: asyncpg.Connection) -> dict[str, Any]:
 async def record_audit(
     conn: asyncpg.Connection,
     *,
-    admin_telegram_id: int,
+    admin_telegram_id: int | None = None,
+    admin_user_id: UUID | None = None,
     action: str,
     target_type: str | None = None,
     target_id: str | None = None,
     details: dict[str, Any] | None = None,
 ) -> None:
+    """One of `admin_telegram_id` (bot administrators) / `admin_user_id` (website administrators)."""
     await conn.execute(
         """
-        INSERT INTO admin_audit_log (admin_telegram_id, action, target_type, target_id, details)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO admin_audit_log (admin_telegram_id, admin_user_id, action, target_type, target_id, details)
+        VALUES ($1, $2, $3, $4, $5, $6)
         """,
         admin_telegram_id,
+        admin_user_id,
         action,
         target_type,
         target_id,
@@ -184,5 +187,82 @@ async def list_recent_errors(conn: asyncpg.Connection, *, limit: int) -> list[di
     rows = await conn.fetch(
         "SELECT source, logger_name, message, created_at FROM error_log ORDER BY created_at DESC LIMIT $1",
         limit,
+    )
+    return [dict(row) for row in rows]
+
+
+# --- website administration (identified by user id, not Telegram id) --------------------
+
+_WEB_USER_FIELDS = "id, email, email_verified_at, first_name, last_name, is_banned, banned_at, last_login_at, created_at, deleted_at"
+
+
+async def count_web_users(conn: asyncpg.Connection, query: str | None = None) -> int:
+    return await conn.fetchval(
+        "SELECT COUNT(*) FROM users WHERE ($1::text IS NULL OR email ILIKE $1 OR first_name ILIKE $1 OR last_name ILIKE $1)",
+        _like(query),
+    )
+
+
+async def list_web_users(
+    conn: asyncpg.Connection, *, limit: int, offset: int, query: str | None = None
+) -> list[dict[str, Any]]:
+    rows = await conn.fetch(
+        f"""
+        SELECT {_WEB_USER_FIELDS}, (telegram_id IS NOT NULL) AS telegram_linked
+        FROM users
+        WHERE ($3::text IS NULL OR email ILIKE $3 OR first_name ILIKE $3 OR last_name ILIKE $3)
+        ORDER BY created_at DESC
+        LIMIT $1 OFFSET $2
+        """,
+        limit,
+        offset,
+        _like(query),
+    )
+    return [dict(row) for row in rows]
+
+
+def _like(query: str | None) -> str | None:
+    if not query or not query.strip():
+        return None
+    escaped = query.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+
+
+async def get_web_user(conn: asyncpg.Connection, user_id: UUID) -> dict[str, Any] | None:
+    row = await conn.fetchrow(
+        f"SELECT {_WEB_USER_FIELDS}, (telegram_id IS NOT NULL) AS telegram_linked FROM users WHERE id = $1", user_id
+    )
+    return dict(row) if row else None
+
+
+async def set_banned_by_id(conn: asyncpg.Connection, user_id: UUID, banned: bool) -> dict[str, Any] | None:
+    """Bans/unbans and, on a ban, ends every session of that user in the same transaction."""
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            f"""
+            UPDATE users SET is_banned = $2, banned_at = CASE WHEN $2 THEN now() ELSE NULL END
+            WHERE id = $1 AND deleted_at IS NULL
+            RETURNING {_WEB_USER_FIELDS}, (telegram_id IS NOT NULL) AS telegram_linked
+            """,
+            user_id,
+            banned,
+        )
+        if row is not None and banned:
+            await conn.execute(
+                "UPDATE user_sessions SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL", user_id
+            )
+    return dict(row) if row else None
+
+
+async def list_audit(conn: asyncpg.Connection, *, limit: int, offset: int) -> list[dict[str, Any]]:
+    rows = await conn.fetch(
+        """
+        SELECT a.id, a.action, a.target_type, a.target_id, a.details, a.created_at,
+               a.admin_telegram_id, a.admin_user_id, u.email AS admin_email
+        FROM admin_audit_log a LEFT JOIN users u ON u.id = a.admin_user_id
+        ORDER BY a.created_at DESC LIMIT $1 OFFSET $2
+        """,
+        limit,
+        offset,
     )
     return [dict(row) for row in rows]

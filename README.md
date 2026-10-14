@@ -137,7 +137,7 @@ Frontend поднимется на http://localhost:5173 — это обычны
 
 Чтобы показать локальный сайт с телефона или коллеге, можно поднять туннель (`ngrok http 5173` или `cloudflared tunnel --url http://localhost:5173 --protocol http2`); домены `*.ngrok-free.dev`, `*.ngrok-free.app` и `*.trycloudflare.com` уже разрешены в `frontend/vite.config.ts` (`server.allowedHosts`). После этого укажите выданный HTTPS-адрес в `APP_BASE_URL` и `CORS_ORIGINS` в `.env` и перезапустите backend (настройки читаются один раз при старте процесса).
 
-Для ручной проверки API (Swagger `/docs`, curl): выполните `POST /api/auth/login`, затем нажмите **Authorize** и вставьте возвращённый токен сессии (cookie `sag_session`) — Swagger шлёт его как HTTP Bearer, для Bearer CSRF-токен не нужен.
+Для ручной проверки API (Swagger `/docs`, curl): включите в `.env` `BEARER_AUTH_ENABLED=true`, выполните `POST /api/auth/login`, затем нажмите **Authorize** и вставьте значение cookie `sag_session` — Swagger шлёт его как HTTP Bearer, для Bearer CSRF-токен не нужен. В `APP_MODE=main` Swagger выключен.
 
 ### 7. Песочница и основной бот
 

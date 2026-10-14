@@ -32,6 +32,7 @@ from app.config import Settings
 from app.core.exceptions import APIError, ConflictError, ForbiddenError, NotFoundError, RateLimitedError, UnauthorizedError
 from app.repositories import accounts as accounts_repo
 from app.repositories import auth_tokens as tokens_repo
+from app.repositories import identities as identities_repo
 from app.repositories import mfa as mfa_repo
 from app.repositories import sessions as sessions_repo
 from app.repositories import users as users_repo
@@ -42,6 +43,7 @@ from app.schemas.auth import (
     ClaimIn,
     ClaimInspectOut,
     EmailIn,
+    IdentityOut,
     LoginIn,
     MessageOut,
     MfaCodeIn,
@@ -64,6 +66,7 @@ from app.security.client import describe_device
 from app.security.sessions import clear_session_cookie, set_session_cookie, start_session
 from app.security.tokens import csrf_token_for, generate_token, hash_token
 from app.services import accounts as svc
+from app.services import identities as identities_service
 from app.services import email_templates as templates
 
 logger = logging.getLogger("teamflow.auth")
@@ -100,7 +103,7 @@ async def register(
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> RegisterOut:
-    svc.enforce_rate_limit(request, settings, "register-ip", svc.ip_of(request, settings), limit=10, window_seconds=3600)
+    await svc.enforce_rate_limit(request, conn, settings, "register-ip", svc.ip_of(request, settings), limit=10, window_seconds=3600)
 
     first_name = svc.clean_name(payload.first_name, required=True, field="first_name", label="имя")
     last_name = svc.clean_name(payload.last_name, required=False, field="last_name", label="фамилию")
@@ -158,7 +161,7 @@ async def verify_email(
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> VerifyEmailOut:
-    svc.enforce_rate_limit(request, settings, "verify-ip", svc.ip_of(request, settings), limit=30, window_seconds=3600)
+    await svc.enforce_rate_limit(request, conn, settings, "verify-ip", svc.ip_of(request, settings), limit=30, window_seconds=3600)
     status, user = await accounts_repo.verify_email(conn, hash_token(payload.token))
     if status == "email_taken":
         raise ConflictError("Этот email уже привязан к другому аккаунту.", code="email_taken")
@@ -176,11 +179,11 @@ async def resend_verification(
     settings: Settings = Depends(get_settings_dep),
 ) -> MessageOut:
     ip = svc.ip_of(request, settings)
-    svc.enforce_rate_limit(request, settings, "resend-ip", ip, limit=10, window_seconds=3600)
+    await svc.enforce_rate_limit(request, conn, settings, "resend-ip", ip, limit=10, window_seconds=3600)
     email = svc.try_normalize_email(payload.email)
     if email is not None:
         # Per-address limit so the endpoint can't be used to mail-bomb someone.
-        svc.enforce_rate_limit(request, settings, "resend-email", email, limit=3, window_seconds=3600)
+        await svc.enforce_rate_limit(request, conn, settings, "resend-email", email, limit=3, window_seconds=3600)
         user = await users_repo.get_by_email(conn, email)
         if user is not None and user["email_verified_at"] is None and user.get("has_password"):
             await svc.send_verification(conn, background, settings, user, email, svc.safe_next(payload.next))
@@ -201,12 +204,12 @@ async def login(
     settings: Settings = Depends(get_settings_dep),
 ) -> AuthOut:
     ip = svc.ip_of(request, settings)
-    svc.enforce_rate_limit(request, settings, "login-ip", ip, limit=30, window_seconds=600)
+    await svc.enforce_rate_limit(request, conn, settings, "login-ip", ip, limit=30, window_seconds=600)
     email = svc.try_normalize_email(payload.email)
     if email is not None:
         # Also keyed by address (existing or not) so guessing is capped per
         # target regardless of how many IPs the attacker uses.
-        svc.enforce_rate_limit(request, settings, "login-email", email, limit=10, window_seconds=900)
+        await svc.enforce_rate_limit(request, conn, settings, "login-email", email, limit=10, window_seconds=900)
 
     bad_credentials = UnauthorizedError(_BAD_CREDENTIALS, code="invalid_credentials")
     creds = await users_repo.get_credentials_by_email(conn, email) if email else None
@@ -341,12 +344,12 @@ async def forgot_password(
     settings: Settings = Depends(get_settings_dep),
 ) -> MessageOut:
     ip = svc.ip_of(request, settings)
-    svc.enforce_rate_limit(request, settings, "forgot-ip", ip, limit=10, window_seconds=3600)
+    await svc.enforce_rate_limit(request, conn, settings, "forgot-ip", ip, limit=10, window_seconds=3600)
     email = svc.try_normalize_email(payload.email)
     if email is not None:
-        svc.enforce_rate_limit(request, settings, "forgot-email", email, limit=3, window_seconds=3600)
+        await svc.enforce_rate_limit(request, conn, settings, "forgot-email", email, limit=3, window_seconds=3600)
         user = await users_repo.get_by_email(conn, email)
-        if user is not None and user.get("deleted_at") is None and user.get("has_password"):
+        if user is not None and user.get("deleted_at") is None and (user.get("has_password") or user["email_verified_at"]):
             if user["email_verified_at"] is None:
                 # Recovering a never-confirmed account = confirming it first.
                 await svc.send_verification(conn, background, settings, user, email)
@@ -372,7 +375,7 @@ async def reset_password(
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> MessageOut:
-    svc.enforce_rate_limit(request, settings, "reset-ip", svc.ip_of(request, settings), limit=20, window_seconds=3600)
+    await svc.enforce_rate_limit(request, conn, settings, "reset-ip", svc.ip_of(request, settings), limit=20, window_seconds=3600)
     token_hash = hash_token(payload.token)
     pending = await tokens_repo.peek(conn, token_hash, "password_reset")
     if pending is None:
@@ -408,7 +411,7 @@ async def change_password(
     settings: Settings = Depends(get_settings_dep),
 ) -> MessageOut:
     user = ctx.user
-    svc.enforce_rate_limit(request, settings, "change-password", str(user["id"]), limit=10, window_seconds=3600)
+    await svc.enforce_rate_limit(request, conn, settings, "change-password", str(user["id"]), limit=10, window_seconds=3600)
     await _require_password(conn, user["id"], payload.current_password, settings)
     if payload.new_password == payload.current_password:
         raise svc.validation_error("Новый пароль должен отличаться от текущего.", "new_password")
@@ -445,7 +448,7 @@ async def change_email(
     settings: Settings = Depends(get_settings_dep),
 ) -> MessageOut:
     user = ctx.user
-    svc.enforce_rate_limit(request, settings, "change-email", str(user["id"]), limit=5, window_seconds=3600)
+    await svc.enforce_rate_limit(request, conn, settings, "change-email", str(user["id"]), limit=5, window_seconds=3600)
     await _require_password(conn, user["id"], payload.password, settings)
     new_email = svc.normalize_email(payload.new_email, field="new_email")
     if user.get("email") and new_email == user["email"].lower():
@@ -478,7 +481,7 @@ async def confirm_email_change(
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> VerifyEmailOut:
-    svc.enforce_rate_limit(request, settings, "confirm-email-ip", svc.ip_of(request, settings), limit=30, window_seconds=3600)
+    await svc.enforce_rate_limit(request, conn, settings, "confirm-email-ip", svc.ip_of(request, settings), limit=30, window_seconds=3600)
     status, user, old_email = await accounts_repo.confirm_email_change(conn, hash_token(payload.token))
     if status == "email_taken":
         raise ConflictError("Этот email уже привязан к другому аккаунту.", code="email_taken")
@@ -503,7 +506,7 @@ async def inspect_claim(
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> ClaimInspectOut:
-    svc.enforce_rate_limit(request, settings, "claim-ip", svc.ip_of(request, settings), limit=30, window_seconds=3600)
+    await svc.enforce_rate_limit(request, conn, settings, "claim-ip", svc.ip_of(request, settings), limit=30, window_seconds=3600)
     token = await tokens_repo.peek(conn, hash_token(payload.token), "telegram_claim")
     if token is None:
         return ClaimInspectOut(valid=False)
@@ -523,7 +526,7 @@ async def claim_account(
 ) -> RegisterOut:
     """Finishes the bot-started migration: the Telegram owner picks an email and
     a password for their EXISTING account (same id, same data)."""
-    svc.enforce_rate_limit(request, settings, "claim-ip", svc.ip_of(request, settings), limit=30, window_seconds=3600)
+    await svc.enforce_rate_limit(request, conn, settings, "claim-ip", svc.ip_of(request, settings), limit=30, window_seconds=3600)
     email = svc.normalize_email(payload.email)
     if not payload.accept_terms:
         raise svc.validation_error(
@@ -591,6 +594,44 @@ async def unlink_telegram(
 
 
 # ---------------------------------------------------------------------------
+# Linked external sign-in accounts (Yandex ID / VK ID - groundwork, see
+# services/identities.py: the OAuth exchange itself is not implemented yet)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/identities", response_model=list[IdentityOut])
+async def list_identities(
+    ctx: AuthContext = Depends(get_auth_context), conn: asyncpg.Connection = Depends(get_db)
+) -> list[IdentityOut]:
+    rows = await identities_repo.list_for_user(conn, ctx.user["id"])
+    return [
+        IdentityOut(
+            provider=r["provider"],
+            display_name=r["display_name"],
+            email=r["provider_email"],
+            linked_at=r["created_at"],
+            last_login_at=r["last_login_at"],
+        )
+        for r in rows
+    ]
+
+
+@router.delete("/identities/{provider}", response_model=MessageOut)
+async def unlink_identity(
+    provider: str, ctx: AuthContext = Depends(get_auth_context), conn: asyncpg.Connection = Depends(get_db)
+) -> MessageOut:
+    status = await identities_service.unlink_identity(conn, ctx.user, provider)
+    if status == "not_found":
+        raise NotFoundError("linked account not found")
+    if status == "last_login_method":
+        raise ConflictError(
+            "Это единственный способ входа. Сначала задайте пароль (через «Забыли пароль?») или привяжите другой аккаунт.",
+            code="last_login_method",
+        )
+    return MessageOut(message="Аккаунт отвязан.")
+
+
+# ---------------------------------------------------------------------------
 # Account deletion
 # ---------------------------------------------------------------------------
 
@@ -605,7 +646,7 @@ async def request_account_deletion(
     settings: Settings = Depends(get_settings_dep),
 ) -> MessageOut:
     user = ctx.user
-    svc.enforce_rate_limit(request, settings, "delete-account", str(user["id"]), limit=5, window_seconds=3600)
+    await svc.enforce_rate_limit(request, conn, settings, "delete-account", str(user["id"]), limit=5, window_seconds=3600)
     await _require_password(conn, user["id"], payload.password, settings)
     await users_repo.request_deletion(conn, user["id"])
     if user.get("email"):
@@ -674,7 +715,7 @@ async def mfa_enable(
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> MfaEnableOut:
-    svc.enforce_rate_limit(request, settings, "mfa", str(ctx.user["id"]), limit=10, window_seconds=600)
+    await svc.enforce_rate_limit(request, conn, settings, "mfa", str(ctx.user["id"]), limit=10, window_seconds=600)
     mfa = await mfa_repo.get(conn, ctx.user["id"])
     if mfa is None or mfa["enabled_at"]:
         raise APIError("Сначала начните настройку двухфакторной защиты.", code="mfa_not_started", status_code=409)
@@ -696,7 +737,7 @@ async def mfa_verify(
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> MessageOut:
-    svc.enforce_rate_limit(request, settings, "mfa", str(ctx.user["id"]), limit=10, window_seconds=600)
+    await svc.enforce_rate_limit(request, conn, settings, "mfa", str(ctx.user["id"]), limit=10, window_seconds=600)
     if not await _check_second_factor(conn, ctx.user["id"], payload.code, settings):
         raise APIError("Неверный код.", code="invalid_code", status_code=400, field="code")
     await sessions_repo.mark_mfa_verified(conn, ctx.session["id"])
@@ -711,7 +752,7 @@ async def mfa_disable(
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> MessageOut:
-    svc.enforce_rate_limit(request, settings, "mfa", str(ctx.user["id"]), limit=10, window_seconds=600)
+    await svc.enforce_rate_limit(request, conn, settings, "mfa", str(ctx.user["id"]), limit=10, window_seconds=600)
     await _require_password(conn, ctx.user["id"], payload.password, settings)
     if not await _check_second_factor(conn, ctx.user["id"], payload.code, settings):
         raise APIError("Неверный код.", code="invalid_code", status_code=400, field="code")

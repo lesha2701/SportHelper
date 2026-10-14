@@ -28,6 +28,9 @@ class FakeAuthStore:
         self.tokens: list[dict[str, Any]] = []
         self.mfa: dict[UUID, dict[str, Any]] = {}
         self.consents: dict[UUID, bool] = {}
+        self.identities: list[dict[str, Any]] = []
+        self.rate_hits: dict[str, list[float]] = {}
+        self.audit: list[dict[str, Any]] = []
 
     # --- helpers ---------------------------------------------------------
     def user_view(self, record: dict[str, Any]) -> dict[str, Any]:
@@ -187,6 +190,7 @@ def install(monkeypatch: pytest.MonkeyPatch, store: FakeAuthStore) -> None:
             del store.sessions[sid]
         store.tokens[:] = [t for t in store.tokens if t["user_id"] != user_id]
         store.mfa.pop(user_id, None)
+        store.identities[:] = [i for i in store.identities if i["user_id"] != user_id]
 
     async def get_consent(conn, user_id):
         return store.consents.get(user_id, False)
@@ -406,3 +410,112 @@ def install(monkeypatch: pytest.MonkeyPatch, store: FakeAuthStore) -> None:
                      "confirm_email_change": a_confirm_email_change, "claim_account": a_claim_account,
                      "link_telegram": a_link_telegram}.items():
         monkeypatch.setattr(accounts, name, fn)
+
+
+    # ---- shared rate limiter (PostgreSQL in production) ---------------------------------
+    import time
+
+    import app.repositories.rate_limits as rate_limits
+
+    async def rl_hit(conn, key, limit, window_seconds):
+        now = time.monotonic()
+        hits = [t for t in store.rate_hits.get(key, []) if t > now - window_seconds]
+        if len(hits) >= limit:
+            store.rate_hits[key] = hits
+            return False, max(1, int(hits[0] + window_seconds - now) + 1)
+        hits.append(now)
+        store.rate_hits[key] = hits
+        return True, 0
+
+    async def rl_purge(conn, *, older_than_seconds=86400):
+        return 0
+
+    monkeypatch.setattr(rate_limits, "hit", rl_hit)
+    monkeypatch.setattr(rate_limits, "purge_old", rl_purge)
+
+    # ---- external identities -----------------------------------------------------------------
+    import app.repositories.identities as identities
+
+    async def i_get_by_external(conn, provider, provider_user_id):
+        for row in store.identities:
+            if row["provider"] == provider and row["provider_user_id"] == provider_user_id:
+                return dict(row)
+        return None
+
+    async def i_list(conn, user_id):
+        return [dict(r) for r in store.identities if r["user_id"] == user_id]
+
+    async def i_link(conn, *, user_id, provider, provider_user_id, provider_email, provider_email_verified, display_name):
+        if any(r["provider"] == provider and r["provider_user_id"] == provider_user_id for r in store.identities):
+            return "external_taken", None
+        if any(r["provider"] == provider and r["user_id"] == user_id for r in store.identities):
+            return "provider_taken", None
+        row = {"id": uuid4(), "user_id": user_id, "provider": provider, "provider_user_id": provider_user_id,
+               "provider_email": provider_email, "provider_email_verified": provider_email_verified,
+               "display_name": display_name, "created_at": _now(), "last_login_at": None}
+        store.identities.append(row)
+        return "ok", dict(row)
+
+    async def i_unlink(conn, user_id, provider):
+        before = len(store.identities)
+        store.identities[:] = [r for r in store.identities if not (r["user_id"] == user_id and r["provider"] == provider)]
+        return len(store.identities) < before
+
+    async def i_touch(conn, identity_id):
+        return None
+
+    for name, fn in {"get_by_external": i_get_by_external, "list_for_user": i_list, "link": i_link,
+                     "unlink": i_unlink, "touch_login": i_touch}.items():
+        monkeypatch.setattr(identities, name, fn)
+
+    # ---- website administration -----------------------------------------------------------------
+    import app.repositories.admin as admin_repo
+
+    def _web_row(record):
+        return {k: record[k] for k in ("id", "email", "email_verified_at", "first_name", "last_name", "is_banned",
+                                       "banned_at", "last_login_at", "created_at", "deleted_at")} | {
+            "telegram_linked": record["telegram_id"] is not None}
+
+    async def a_list_web_users(conn, *, limit, offset, query=None):
+        rows = [r for r in store.users.values()
+                if not query or query.lower() in (r["email"] or "").lower() or query.lower() in r["first_name"].lower()]
+        rows.sort(key=lambda r: r["created_at"], reverse=True)
+        return [_web_row(r) for r in rows[offset: offset + limit]]
+
+    async def a_count_web_users(conn, query=None):
+        return len(await a_list_web_users(conn, limit=10**6, offset=0, query=query))
+
+    async def a_get_web_user(conn, user_id):
+        record = store.users.get(user_id)
+        return _web_row(record) if record else None
+
+    async def a_set_banned(conn, user_id, banned):
+        record = store.users.get(user_id)
+        if record is None or record["deleted_at"] is not None:
+            return None
+        record["is_banned"] = banned
+        record["banned_at"] = _now() if banned else None
+        if banned:
+            for row in store.sessions.values():
+                if row["user_id"] == user_id and row["revoked_at"] is None:
+                    row["revoked_at"] = _now()
+        return _web_row(record)
+
+    async def a_record_audit(conn, *, admin_telegram_id=None, admin_user_id=None, action, target_type=None,
+                             target_id=None, details=None):
+        store.audit.append({"id": uuid4(), "action": action, "target_type": target_type, "target_id": target_id,
+                            "details": details, "created_at": _now(), "admin_telegram_id": admin_telegram_id,
+                            "admin_user_id": admin_user_id,
+                            "admin_email": store.users[admin_user_id]["email"] if admin_user_id in store.users else None})
+
+    async def a_list_audit(conn, *, limit, offset):
+        return list(reversed(store.audit))[offset: offset + limit]
+
+    async def a_stats(conn):
+        return {"total_users": len(store.users), "banned_users": sum(u["is_banned"] for u in store.users.values()),
+                "total_teams": 0, "total_trainings": 0, "total_matches": 0, "total_tasks": 0, "pending_notifications": 0}
+
+    for name, fn in {"list_web_users": a_list_web_users, "count_web_users": a_count_web_users,
+                     "get_web_user": a_get_web_user, "set_banned_by_id": a_set_banned, "record_audit": a_record_audit,
+                     "list_audit": a_list_audit, "get_project_stats": a_stats}.items():
+        monkeypatch.setattr(admin_repo, name, fn)

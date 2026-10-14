@@ -132,3 +132,11 @@ class MfaEnableOut(BaseModel):
 class MfaDisableIn(BaseModel):
     password: str = Field(max_length=2048)
     code: str = Field(max_length=32)
+
+
+class IdentityOut(BaseModel):
+    provider: str
+    display_name: str | None
+    email: str | None
+    linked_at: datetime
+    last_login_at: datetime | None

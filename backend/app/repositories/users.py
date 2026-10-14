@@ -231,6 +231,7 @@ async def anonymize(conn: asyncpg.Connection, user_id: UUID) -> None:
         await conn.execute("DELETE FROM user_sessions WHERE user_id = $1", user_id)
         await conn.execute("DELETE FROM auth_tokens WHERE user_id = $1", user_id)
         await conn.execute("DELETE FROM user_mfa WHERE user_id = $1", user_id)
+        await conn.execute("DELETE FROM user_identities WHERE user_id = $1", user_id)
 
 
 async def get_ai_analysis_consent(conn: asyncpg.Connection, user_id: UUID) -> bool:

@@ -45,6 +45,14 @@ jobs:
       - name: Run pytest
         run: python -m pytest -q
 
+      # The same HTTP tests again, but every query runs against the PostgreSQL
+      # service above instead of the in-memory fakes (tests that reach into the
+      # fakes are skipped). Catches SQL the fakes never execute.
+      - name: Run API tests against real PostgreSQL
+        run: python -m pytest -q -p no:cacheprovider
+        env:
+          SAG_TEST_REAL_DB: "1"
+
   frontend-tests:
     runs-on: ubuntu-latest
     defaults:

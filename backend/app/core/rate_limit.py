@@ -25,6 +25,10 @@ class RateLimiter:
         """Returns True if the request is allowed, False if `key` has
         exceeded the limit within the current 60-second window."""
         now = time.monotonic()
+        if len(self._window_start) > 50000:  # bound memory when many distinct addresses show up
+            for stale in [k for k, started in self._window_start.items() if now - started >= 60]:
+                del self._window_start[stale]
+                self._counts.pop(stale, None)
         window_start = self._window_start.get(key)
         if window_start is None or now - window_start >= 60:
             self._window_start[key] = now
@@ -33,30 +37,3 @@ class RateLimiter:
         self._counts[key] += 1
         return self._counts[key] <= self._limit
 
-
-class SlidingWindowLimiter:
-    """Per-key sliding-window counter with a different (limit, window) per
-    call - used for the auth endpoints (login, register, password reset ...),
-    which need much tighter limits than the app-wide 300/min. In memory like
-    the limiter above, so it resets on restart and is per process."""
-
-    def __init__(self) -> None:
-        self._hits: dict[str, list[float]] = {}
-
-    def hit(self, key: str, limit: int, window_seconds: int) -> tuple[bool, int]:
-        """Records an attempt. Returns (allowed, retry_after_seconds)."""
-        now = time.monotonic()
-        cutoff = now - window_seconds
-        hits = [t for t in self._hits.get(key, []) if t > cutoff]
-        if len(hits) >= limit:
-            self._hits[key] = hits
-            return False, max(1, int(hits[0] + window_seconds - now) + 1)
-        hits.append(now)
-        self._hits[key] = hits
-        if len(self._hits) > 20000:  # bound memory under a key-spraying attack
-            self._prune(now)
-        return True, 0
-
-    def _prune(self, now: float) -> None:
-        for key in [k for k, v in self._hits.items() if not v or v[-1] < now - 86400]:
-            del self._hits[key]

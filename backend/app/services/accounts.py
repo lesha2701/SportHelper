@@ -12,10 +12,10 @@ from fastapi import BackgroundTasks, Request
 
 from app.config import Settings
 from app.core.exceptions import APIError, RateLimitedError
-from app.core.rate_limit import SlidingWindowLimiter
 from app.repositories import auth_tokens as tokens_repo
+from app.repositories import rate_limits as rate_limits_repo
 from app.security import passwords
-from app.security.client import client_ip
+from app.security.client import rate_limit_key
 from app.security.tokens import generate_token, hash_token
 from app.services import email as email_service
 from app.services import email_templates as templates
@@ -68,16 +68,22 @@ def clean_name(raw: str | None, *, required: bool, field: str, label: str) -> st
     return value
 
 
-def get_limiter(request: Request) -> SlidingWindowLimiter:
-    return request.app.state.auth_limiter
-
-
-def enforce_rate_limit(
-    request: Request, settings: Settings, bucket: str, key: str, *, limit: int, window_seconds: int
+async def enforce_rate_limit(
+    request: Request,
+    conn: asyncpg.Connection,
+    settings: Settings,
+    bucket: str,
+    key: str,
+    *,
+    limit: int,
+    window_seconds: int,
 ) -> None:
+    """Counts an attempt in the shared (PostgreSQL) limiter and refuses with 429
+    once `limit` is reached within the window. Shared, so it holds across
+    several backend processes."""
     if not settings.auth_rate_limit_enabled:
         return
-    allowed, retry_after = get_limiter(request).hit(f"{bucket}:{key}", limit, window_seconds)
+    allowed, retry_after = await rate_limits_repo.hit(conn, f"{bucket}:{key}", limit, window_seconds)
     if not allowed:
         raise RateLimitedError(
             "Слишком много попыток. Подождите немного и попробуйте снова.", retry_after=retry_after
@@ -85,7 +91,8 @@ def enforce_rate_limit(
 
 
 def ip_of(request: Request, settings: Settings) -> str:
-    return client_ip(request, settings)
+    """The rate-limit identity of the caller (an IPv6 visitor counts as their /64)."""
+    return rate_limit_key(request, settings)
 
 
 async def hash_in_thread(password: str, settings: Settings) -> str:

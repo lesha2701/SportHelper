@@ -144,7 +144,7 @@ async def test_migration_is_safe_to_run_twice(pg) -> None:
 
 
 async def test_a_fresh_database_gets_the_full_schema(conn) -> None:
-    assert await conn.fetchval("SELECT max(version) FROM schema_versions") == 31
+    assert await conn.fetchval("SELECT max(version) FROM schema_versions") == 32
     for table in ("user_sessions", "auth_tokens", "user_mfa"):
         assert await conn.fetchval("SELECT to_regclass($1)", f"public.{table}") is not None
 
@@ -566,3 +566,256 @@ async def test_create_user_script_upserts_against_the_partial_unique_index(pg, m
     assert len(rows) == 1 and rows[0]["email"] == "dev@example.com"
     assert rows[0]["email_verified_at"] is not None and rows[0]["password_hash"].startswith("$argon2id$")
     get_settings.cache_clear()
+
+
+# ------------------------------------------------------------------------------------------------
+# 0032: shared rate limits, external identities, admin audit
+# ------------------------------------------------------------------------------------------------
+
+
+async def test_rate_limit_allows_exactly_the_limit_even_when_requests_race_on_many_connections(pool) -> None:
+    from app.repositories import rate_limits
+
+    async def attempt():
+        async with pool.acquire() as c:
+            return await rate_limits.hit(c, "login-email:victim@example.com", 5, 60)
+
+    results = await asyncio.gather(*[attempt() for _ in range(25)])
+
+    assert sum(1 for allowed, _ in results if allowed) == 5
+    assert all(retry >= 1 for allowed, retry in results if not allowed)
+
+
+async def test_rate_limit_is_per_key_and_recovers_when_the_window_passes(conn) -> None:
+    from app.repositories import rate_limits
+
+    assert [(await rate_limits.hit(conn, "a", 2, 60))[0] for _ in range(3)] == [True, True, False]
+    assert (await rate_limits.hit(conn, "b", 2, 60))[0] is True  # another key is unaffected
+    await conn.execute("UPDATE rate_limit_hits SET hit_at = now() - interval '2 minutes' WHERE key = 'a'")
+    assert (await rate_limits.hit(conn, "a", 2, 60))[0] is True  # old hits no longer count
+    assert await rate_limits.purge_old(conn, older_than_seconds=1) >= 1
+
+
+async def test_denied_attempts_are_not_recorded_so_hammering_does_not_extend_the_lock(conn) -> None:
+    from app.repositories import rate_limits
+
+    for _ in range(10):
+        await rate_limits.hit(conn, "k", 3, 60)
+
+    assert await conn.fetchval("SELECT count(*) FROM rate_limit_hits WHERE key = 'k'") == 3
+
+
+def test_the_limits_hold_across_two_backend_processes_sharing_one_database(pg, monkeypatch) -> None:
+    """Two independent app instances (as with `--workers 2` or two containers) share
+    nothing in memory; the only shared state is PostgreSQL."""
+    import app.main as main_module
+    from app.config import get_settings
+    from app.services import email as email_service
+
+    monkeypatch.setenv("DATABASE_URL", pg)
+    monkeypatch.setenv("JWT_SECRET", "two-process-secret")
+    monkeypatch.setenv("CORS_ORIGINS", "http://localhost:5173")
+    monkeypatch.setenv("ARGON2_MEMORY_KIB", "64")
+    monkeypatch.setenv("ARGON2_TIME_COST", "1")
+    monkeypatch.setenv("ARGON2_PARALLELISM", "1")
+    monkeypatch.setenv("AUTH_RATE_LIMIT_ENABLED", "true")
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "")
+    monkeypatch.setenv("SMTP_HOST", "")
+    get_settings.cache_clear()
+
+    async def no_background(pool, settings):
+        return None
+
+    async def no_mail(mail, settings):
+        return True
+
+    monkeypatch.setattr(main_module, "_start_background_task", no_background)
+    monkeypatch.setattr(main_module, "_attach_error_log_handler", lambda pool: None)
+    monkeypatch.setattr(email_service, "send_email", no_mail)
+
+    with TestClient(main_module.create_app()) as one, TestClient(main_module.create_app()) as two:
+        codes = []
+        for n in range(14):
+            target = one if n % 2 == 0 else two  # the attacker alternates between the two processes
+            codes.append(target.post("/api/auth/login", json={"email": "victim@example.com", "password": f"guess {n}"}).status_code)
+
+    assert codes[:10] == [401] * 10  # the per-address budget (10) was shared by both processes
+    assert codes[10:] == [429] * 4
+
+
+async def test_external_accounts_belong_to_one_user_and_one_per_provider(conn) -> None:
+    from app.repositories import identities
+
+    alice = await _user(conn, email="a@example.com", verified=True)
+    bob = await _user(conn, email="b@example.com", verified=True)
+
+    ok, row = await identities.link(conn, user_id=alice["id"], provider="yandex", provider_user_id="Y-1",
+                                    provider_email="a@yandex.ru", provider_email_verified=True, display_name="Алиса")
+    assert ok == "ok" and row["provider"] == "yandex"
+    # the same Yandex account cannot be attached to a second website account
+    assert (await identities.link(conn, user_id=bob["id"], provider="yandex", provider_user_id="Y-1", provider_email=None,
+                                  provider_email_verified=False, display_name=None))[0] == "external_taken"
+    # a user can't attach a second Yandex account...
+    assert (await identities.link(conn, user_id=alice["id"], provider="yandex", provider_user_id="Y-2", provider_email=None,
+                                  provider_email_verified=False, display_name=None))[0] == "provider_taken"
+    # ...but can add a different provider
+    assert (await identities.link(conn, user_id=alice["id"], provider="vk", provider_user_id="Y-1", provider_email=None,
+                                  provider_email_verified=False, display_name=None))[0] == "ok"
+    assert {i["provider"] for i in await identities.list_for_user(conn, alice["id"])} == {"yandex", "vk"}
+
+
+async def test_provider_slug_must_be_well_formed_so_junk_cannot_be_stored(conn) -> None:
+    user = await _user(conn, email="a@example.com", verified=True)
+
+    for bad in ("", "Yandex", "ya ndex", "'; drop", "x" * 40, "1abc"):
+        with pytest.raises(asyncpg.CheckViolationError):
+            await conn.execute("INSERT INTO user_identities (user_id, provider, provider_user_id) VALUES ($1, $2, 'x')", user["id"], bad)
+
+
+async def test_identities_are_removed_with_the_user_and_on_anonymisation(conn) -> None:
+    from app.repositories import identities
+
+    gone = await _user(conn, email="gone@example.com", verified=True)
+    await identities.link(conn, user_id=gone["id"], provider="vk", provider_user_id="V-9", provider_email=None,
+                          provider_email_verified=False, display_name=None)
+
+    await users_repo.anonymize(conn, gone["id"])
+
+    assert await conn.fetchval("SELECT count(*) FROM user_identities WHERE user_id = $1", gone["id"]) == 0
+    assert await identities.get_by_external(conn, "vk", "V-9") is None  # the external account is free again
+
+
+async def test_sign_in_rules_for_external_providers(conn) -> None:
+    from app.repositories import identities
+    from app.services import identities as service
+    from app.services.identities import ExternalProfile, SignInOutcome
+
+    owner = await users_repo.create_with_password(conn, email="owner@example.com", password_hash="h", first_name="Owner",
+                                                  last_name=None, preferred_role=None, terms_version="v1")
+    await conn.execute("UPDATE users SET email_verified_at = now() WHERE id = $1", owner["id"])
+
+    # an unknown provider is refused outright
+    with pytest.raises(service.UnsupportedProvider):
+        await service.decide_sign_in(conn, ExternalProfile("facebook", "1"))
+
+    # a provider email that matches an existing account NEVER auto-links, however "verified" it claims to be
+    decision = await service.decide_sign_in(conn, ExternalProfile("yandex", "Y-1", "owner@example.com", True))
+    assert decision.outcome is SignInOutcome.LINK_REQUIRED and decision.user is None
+
+    # a brand-new person with a trusted, verified provider email may create an account
+    assert (await service.decide_sign_in(conn, ExternalProfile("yandex", "Y-2", "new@example.com", True))).outcome is SignInOutcome.CREATE_ACCOUNT
+    # ...but not when the provider isn't trusted for emails, or the email isn't verified, or is absent
+    assert (await service.decide_sign_in(conn, ExternalProfile("vk", "V-2", "new@example.com", True))).outcome is SignInOutcome.EMAIL_REQUIRED
+    assert (await service.decide_sign_in(conn, ExternalProfile("yandex", "Y-3", "new@example.com", False))).outcome is SignInOutcome.EMAIL_REQUIRED
+    assert (await service.decide_sign_in(conn, ExternalProfile("yandex", "Y-4"))).outcome is SignInOutcome.EMAIL_REQUIRED
+
+    # after the owner links it from a signed-in session, that external account signs them in
+    assert await service.link_identity(conn, owner["id"], ExternalProfile("yandex", "Y-1", "owner@example.com", True)) == "ok"
+    known = await service.decide_sign_in(conn, ExternalProfile("yandex", "Y-1"))
+    assert known.outcome is SignInOutcome.SIGN_IN and known.user["id"] == owner["id"]
+
+    # banned and deleted users cannot sign in this way either
+    await conn.execute("UPDATE users SET is_banned = TRUE WHERE id = $1", owner["id"])
+    with pytest.raises(PermissionError):
+        await service.decide_sign_in(conn, ExternalProfile("yandex", "Y-1"))
+    assert await identities.get_by_external(conn, "yandex", "Y-1") is not None
+
+
+async def test_the_last_way_to_sign_in_cannot_be_unlinked(conn) -> None:
+    from app.services import identities as service
+    from app.services.identities import ExternalProfile
+
+    only_provider = await _user(conn, email="p@example.com", verified=True)
+    await conn.execute("UPDATE users SET password_hash = NULL WHERE id = $1", only_provider["id"])
+    await service.link_identity(conn, only_provider["id"], ExternalProfile("yandex", "Y-1"))
+    user = await users_repo.get_by_id(conn, only_provider["id"])
+    assert user["has_password"] is False
+
+    assert await service.unlink_identity(conn, user, "yandex") == "last_login_method"
+    await service.link_identity(conn, only_provider["id"], ExternalProfile("vk", "V-1"))
+    assert await service.unlink_identity(conn, user, "yandex") == "ok"  # VK remains
+    assert await service.unlink_identity(conn, user, "vk") == "last_login_method"
+    assert await service.unlink_identity(conn, user, "yandex") == "not_found"
+
+    with_password = await users_repo.get_by_id(conn, (await _user(conn, email="q@example.com", verified=True))["id"])
+    await service.link_identity(conn, with_password["id"], ExternalProfile("vk", "V-2"))
+    assert await service.unlink_identity(conn, with_password, "vk") == "ok"  # the password remains
+
+
+async def test_admin_actions_are_audited_by_account_and_bans_end_sessions_in_sql(conn) -> None:
+    from app.repositories import admin as admin_repo
+
+    boss = await _user(conn, email="boss@example.com", verified=True)
+    victim = await _user(conn, email="v@example.com", verified=True)
+    await sessions_repo.create(conn, user_id=victim["id"], token_hash=hash_token("v"), expires_at=_now() + timedelta(days=1),
+                               user_agent=None, ip_address=None)
+
+    banned = await admin_repo.set_banned_by_id(conn, victim["id"], True)
+    await admin_repo.record_audit(conn, admin_user_id=boss["id"], action="ban", target_type="user", target_id=str(victim["id"]),
+                                  details={"reason": "spam"})
+    await admin_repo.record_audit(conn, admin_telegram_id=12345, action="ban")  # the bot's way still works
+
+    assert banned["is_banned"] is True
+    assert await sessions_repo.get_active(conn, hash_token("v")) is None
+    entries = await admin_repo.list_audit(conn, limit=10, offset=0)
+    assert {e["admin_email"] for e in entries} == {"boss@example.com", None}
+    with pytest.raises(asyncpg.CheckViolationError):
+        await conn.execute("INSERT INTO admin_audit_log (action) VALUES ('anonymous action')")  # an actor is required
+    page = await admin_repo.list_web_users(conn, limit=10, offset=0, query="v@ex")
+    assert [u["email"] for u in page] == ["v@example.com"] and await admin_repo.count_web_users(conn, "boss") == 1
+    assert await admin_repo.count_web_users(conn, "100%") == 0  # LIKE wildcards in the search are escaped
+
+
+def test_admin_api_with_real_sql_requires_the_second_factor_per_session(live_client, monkeypatch) -> None:
+    from app.config import get_settings
+    from app.security import totp
+    from tests.auth_helpers import csrf_headers, link_token, login, register
+
+    monkeypatch.setenv("ADMIN_EMAILS", "boss@example.com")
+    get_settings.cache_clear()
+    client = live_client
+    for email in ("boss@example.com", "victim@example.com"):
+        assert register(client, email=email, first_name=email.split("@")[0]).status_code == 201
+        assert client.post("/api/auth/verify-email", json={"token": link_token(client.outbox[-1])}).status_code == 200
+
+    csrf = login(client, email="boss@example.com").json()["csrf_token"]
+    assert client.get("/api/admin/overview").status_code == 200
+    assert client.get("/api/admin/users").json()["error"]["code"] == "mfa_setup_required"
+
+    secret = client.post("/api/auth/mfa/setup", headers=csrf_headers(csrf)).json()["secret"]
+    assert client.post("/api/auth/mfa/enable", headers=csrf_headers(csrf), json={"code": totp._hotp(secret, totp.current_step())}).status_code == 200
+    users = client.get("/api/admin/users")
+    assert users.status_code == 200 and users.json()["total"] == 2
+    victim_id = next(u["id"] for u in users.json()["items"] if u["email"] == "victim@example.com")
+
+    client.cookies.clear()  # a new session with the right password but no code
+    csrf2 = login(client, email="boss@example.com").json()["csrf_token"]
+    assert client.get("/api/admin/users").json()["error"]["code"] == "mfa_required"
+    assert client.post(f"/api/admin/users/{victim_id}/ban", headers=csrf_headers(csrf2)).status_code == 403
+
+    assert client.post("/api/auth/mfa/verify", headers=csrf_headers(csrf2), json={"code": totp._hotp(secret, totp.current_step() + 1)}).status_code == 200
+    assert client.post(f"/api/admin/users/{victim_id}/ban", headers=csrf_headers(csrf2)).json()["is_banned"] is True
+    audit = client.get("/api/admin/audit").json()
+    assert audit[0]["action"] == "ban" and audit[0]["admin"] == "boss@example.com" and audit[0]["target_id"] == victim_id
+
+
+async def test_migration_0032_keeps_existing_audit_rows_and_is_safe_to_run_twice(pg) -> None:
+    conn = await asyncpg.connect(pg)
+    try:
+        await _apply(conn, up_to=31)
+        await conn.execute("INSERT INTO users (email, email_verified_at, first_name) VALUES ('a@example.com', now(), 'A')")
+        await conn.execute("INSERT INTO admin_audit_log (admin_telegram_id, action, target_id) VALUES (777, 'ban', '42')")
+        before = await conn.fetchval("SELECT count(*) FROM users")
+
+        await _apply(conn, only=32)
+        sql = next(path for version, path in _discover_patches() if version == 32).read_text(encoding="utf-8")
+        await conn.execute(sql)  # a retried deploy
+        await conn.execute(sql)
+
+        assert await conn.fetchval("SELECT count(*) FROM users") == before == 1
+        row = await conn.fetchrow("SELECT admin_telegram_id, admin_user_id, action FROM admin_audit_log")
+        assert (row["admin_telegram_id"], row["admin_user_id"], row["action"]) == (777, None, "ban")
+        for table in ("user_identities", "rate_limit_hits"):
+            assert await conn.fetchval("SELECT to_regclass($1)", f"public.{table}") is not None
+    finally:
+        await conn.close()

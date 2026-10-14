@@ -12,7 +12,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -72,6 +72,17 @@ class Settings(BaseSettings):
     # Trust the X-Forwarded-For header set by the reverse proxy (Caddy) when
     # working out the client IP for rate limits and session lists.
     trust_proxy_headers: bool = Field(default=False, alias="TRUST_PROXY_HEADERS")
+    # X-Forwarded-For is only believed when the TCP peer itself is one of these
+    # (the reverse proxy / docker network). Anyone else can't spoof their IP.
+    trusted_proxy_cidrs: str = Field(
+        default="127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7",
+        alias="TRUSTED_PROXY_CIDRS",
+    )
+    # Session tokens may also be presented as `Authorization: Bearer` (scripts,
+    # Swagger). Off by default: the browser site only needs the HttpOnly cookie.
+    bearer_auth_enabled: bool = Field(default=False, alias="BEARER_AUTH_ENABLED")
+    # Swagger/ReDoc/openapi.json. Default: on for sandbox, off when APP_MODE=main.
+    api_docs_enabled: bool | None = Field(default=None, alias="API_DOCS_ENABLED")
 
     # --- Passwords ---------------------------------------------------------------
     password_min_length: int = Field(default=12, alias="PASSWORD_MIN_LENGTH")
@@ -167,6 +178,12 @@ class Settings(BaseSettings):
     nudge_max_unanswered: int = Field(default=3, alias="NUDGE_MAX_UNANSWERED")
     nudge_batch_size: int = Field(default=200, alias="NUDGE_BATCH_SIZE")
 
+    @field_validator("cookie_secure", "api_docs_enabled", mode="before")
+    @classmethod
+    def _blank_means_unset(cls, value):
+        # `COOKIE_SECURE=` / `API_DOCS_ENABLED=` left empty in a .env file means "decide automatically".
+        return None if isinstance(value, str) and not value.strip() else value
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
@@ -181,6 +198,14 @@ class Settings(BaseSettings):
         if self.app_base_url:
             origins.add(self.app_base_url.rstrip("/"))
         return origins
+
+    @property
+    def docs_enabled(self) -> bool:
+        return self.api_docs_enabled if self.api_docs_enabled is not None else self.app_mode != "main"
+
+    @property
+    def trusted_proxy_networks(self) -> tuple:
+        return _parse_networks(self.trusted_proxy_cidrs)
 
     @property
     def secure_cookies(self) -> bool:
@@ -204,6 +229,13 @@ class Settings(BaseSettings):
             if raw:
                 ids.append(int(raw))
         return ids
+
+
+@lru_cache
+def _parse_networks(raw: str) -> tuple:
+    import ipaddress
+
+    return tuple(ipaddress.ip_network(part.strip(), strict=False) for part in raw.split(",") if part.strip())
 
 
 @lru_cache

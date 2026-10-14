@@ -80,7 +80,9 @@ async def send_email(mail: OutgoingEmail, settings: Settings) -> bool:
         else:
             # Development convenience only: lets you copy a verification link
             # from the log when no Mailpit/SMTP is running.
-            logger.warning("SMTP not configured; would send to %s: %s\n%s", mail.to, mail.subject, mail.text)
+            logger.warning(
+                "SMTP not configured; would send to %s: %s\n%s", mail.to, mail.subject, mail.text, extra={"devmail": True}
+            )
         return False
     try:
         await asyncio.to_thread(_send_blocking, mail, settings)

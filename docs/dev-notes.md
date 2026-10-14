@@ -34,7 +34,7 @@ Telegram для разработки не нужен: сайт открывае�
 - **Без Docker**: письма без SMTP печатаются в лог backend вместе со ссылкой (только при `APP_MODE != main`).
 - **Быстрый аккаунт без писем**: `python backend/scripts/create_user.py me@example.com "Имя"` — создаёт подтверждённого
   пользователя (пароль спросит скрытым вводом).
-- **API без браузера** (Swagger, curl): войдите `POST /api/auth/login`; тот же токен сессии можно слать как
+- **API без браузера** (Swagger, curl): в `.env` включите `BEARER_AUTH_ENABLED=true`, войдите `POST /api/auth/login` и возьмите значение cookie `sag_session`; его можно слать как
   `Authorization: Bearer <токен>`. В Swagger UI — кнопка Authorize. (Для cookie-сессии браузера нужен заголовок
   `X-CSRF-Token`, для Bearer — нет.)
 - Cookie ставится на хост (`localhost`), порты не различаются, поэтому frontend на `:5173/:5175` и backend на `:8000/:8002`
