@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Icon } from "../shared/Icon";
 import { WelcomeGuide } from "../welcome/WelcomeGuide";
+import { AccountSecurity } from "./AccountSecurity";
 import { NotificationSettings } from "./NotificationSettings";
 import { PrivacySettings } from "./PrivacySettings";
 import { ThemeToggle } from "./ThemeToggle";
@@ -32,6 +33,7 @@ export function SettingsScreen({
       <ThemeToggle />
       <NotificationSettings token={token} />
       <PrivacySettings token={token} />
+      <AccountSecurity />
 
       <div className={profileStyles.card}>
         <h2 className={profileStyles.title}>Знакомство с приложением</h2>

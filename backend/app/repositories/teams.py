@@ -17,7 +17,7 @@ _TEAM_FIELDS = (
     "created_by, logo_file_id, created_at, updated_at"
 )
 _MEMBER_FIELDS = (
-    "m.user_id, u.telegram_id, u.first_name, u.last_name, u.username, "
+    "m.user_id, u.first_name, u.last_name, u.username, "
     "u.photo_url, m.role, m.position, m.joined_at"
 )
 _REQUEST_FIELDS = (

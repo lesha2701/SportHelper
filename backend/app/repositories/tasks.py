@@ -17,7 +17,7 @@ _TASK_FIELDS = (
 )
 _TASK_EXERCISE_FIELDS = "te.id, te.task_id, te.exercise_id, e.name AS exercise_name, te.order_index"
 _ASSIGNMENT_FIELDS = (
-    "a.id, a.task_id, a.user_id, u.telegram_id, u.first_name, u.last_name, u.photo_url, "
+    "a.id, a.task_id, a.user_id, u.first_name, u.last_name, u.photo_url, "
     "tm.position, a.status, a.comment, a.photo_file_id, a.video_file_id, a.sets, a.reps, "
     "a.duration_minutes, a.metric_value, a.difficulty, a.wellbeing, a.coach_comment, "
     "a.reviewed_by, a.reviewed_at, a.viewed_at, a.submitted_at, a.created_at, a.updated_at"

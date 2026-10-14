@@ -180,7 +180,9 @@ async def list_nudge_candidates(
 ) -> list[dict[str, Any]]:
     """Users who should get a "time to train" nudge right now:
 
-    * not banned, and not active since `inactive_before` (last_login_at);
+    * not banned or deleted, reachable through Telegram (a nudge is only worth
+      sending where it is actually delivered), and not active since
+      `inactive_before` (last_login_at);
     * players or profile-less newcomers — coach-only accounts are skipped;
     * the category isn't switched off in their notification settings;
     * no nudge already queued/sent after `min_gap_after` (the minimum gap);
@@ -194,6 +196,8 @@ async def list_nudge_candidates(
         LEFT JOIN player_profiles pp ON pp.user_id = u.id
         LEFT JOIN coach_profiles cp ON cp.user_id = u.id
         WHERE u.is_banned = FALSE
+          AND u.deleted_at IS NULL
+          AND u.telegram_id IS NOT NULL
           AND COALESCE(u.last_login_at, u.created_at) < $1
           AND (pp.user_id IS NOT NULL OR cp.user_id IS NULL)
           AND NOT EXISTS (

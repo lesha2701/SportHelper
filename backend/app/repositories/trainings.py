@@ -13,7 +13,7 @@ _TRAINING_FIELDS = (
     "recurrence_group_id, responsible_user_id, created_at, updated_at"
 )
 _ATTENDANCE_FIELDS = (
-    "a.training_id, a.user_id, u.telegram_id, u.first_name, u.last_name, "
+    "a.training_id, a.user_id, u.first_name, u.last_name, "
     "u.photo_url, a.status, a.marked_by, a.marked_at"
 )
 # Upcoming trainings first (soonest at the very top), then past ones below

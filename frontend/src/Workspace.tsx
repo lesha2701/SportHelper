@@ -56,8 +56,22 @@ interface DeepLink {
   entityId: string;
 }
 
-/** Consumed once, from either a Telegram notification's "Открыть в
- * приложении" button (see backend/app/services/background.py) or a bell
+/** What the visitor was heading for in the coach catalogue before signing in
+ * (or from a shared link): a coach's profile, a listing, or straight to its booking form. */
+interface MarketplaceIntent {
+  coachUserId: string | null;
+  listingId: string | null;
+  bookListingId: string | null;
+}
+
+function readMarketplaceIntent(): MarketplaceIntent | null {
+  const params = new URLSearchParams(window.location.search);
+  const intent = { coachUserId: params.get("coach"), listingId: params.get("listing"), bookListingId: params.get("book") };
+  return intent.coachUserId || intent.listingId || intent.bookListingId ? intent : null;
+}
+
+/** Consumed once, from either a notification's "Открыть на сайте"
+ * button (see backend/app/services/background.py) or a bell
  * click on the site itself. `open` carries the notification's category
  * (not entity_type) since that's what disambiguates booking_requested
  * from booking_decided — same entity_type ("booking"), different target
@@ -139,6 +153,7 @@ function playerTopBar(tab: PlayerTab, onCreateTraining: () => void): TopBarConfi
 
 function CoachTabContent({
   initialCoachUserId,
+  marketplaceStart,
   tab,
   token,
   userId,
@@ -150,6 +165,7 @@ function CoachTabContent({
   unreadNotifications,
 }: {
   initialCoachUserId: string | null;
+  marketplaceStart: MarketplaceIntent | null;
   tab: CoachTab;
   token: string;
   userId: string;
@@ -179,7 +195,15 @@ function CoachTabContent({
     case "calendar":
       return <CalendarScreen token={token} />;
     case "coaches":
-      return <CoachMarketplaceScreen key={initialCoachUserId ?? "list"} token={token} initialCoachUserId={initialCoachUserId} />;
+      return (
+        <CoachMarketplaceScreen
+          key={`${initialCoachUserId ?? "list"}|${marketplaceStart?.listingId ?? ""}|${marketplaceStart?.bookListingId ?? ""}`}
+          token={token}
+          initialCoachUserId={initialCoachUserId}
+          initialListingId={marketplaceStart?.listingId ?? null}
+          initialBookListingId={marketplaceStart?.bookListingId ?? null}
+        />
+      );
     case "profile":
       return (
         <ProfileScreen
@@ -196,17 +220,19 @@ function MainContent({
   token,
   deepLink,
   initialTeamId,
+  marketplaceIntent,
 }: {
   token: string;
   deepLink: DeepLink | null;
   initialTeamId?: string | null;
+  marketplaceIntent: MarketplaceIntent | null;
 }) {
   const { state } = useProfile();
   const { state: authState } = useAuth();
   const myUserId = authState.status === "ready" ? authState.user.id : null;
   const myPhotoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
-  const [coachTab, setCoachTab] = useState<CoachTab>("dashboard");
-  const [playerTab, setPlayerTab] = useState<PlayerTab>("dashboard");
+  const [coachTab, setCoachTab] = useState<CoachTab>(marketplaceIntent ? "coaches" : "dashboard");
+  const [playerTab, setPlayerTab] = useState<PlayerTab>(marketplaceIntent ? "coaches" : "dashboard");
 
   const [teams, setTeams] = useState<Team[] | null>(null);
   useEffect(() => {
@@ -264,19 +290,22 @@ function MainContent({
   // this only fires once, when the profile finishes loading empty;
   // it never overrides navigation after that.
   useEffect(() => {
-    if (state.status === "ready" && !state.data.player && !state.data.coach) {
+    if (state.status === "ready" && !state.data.player && !state.data.coach && !marketplaceIntent) {
       setPlayerTab("profile");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   const [overlay, setOverlay] = useState<Overlay>(null);
   const closeOverlay = () => setOverlay(overlay?.backTo ?? null);
   const isStaffOfTeam = (teamId: string) =>
     (teams ?? []).some((t) => t.id === teamId && (t.myRole === "head_coach" || t.myRole === "assistant_coach"));
-  // Set when a search result opens a coach's profile in the marketplace tab.
-  const [marketplaceCoachId, setMarketplaceCoachId] = useState<string | null>(null);
+  // Set when a search result opens a coach's profile in the marketplace tab,
+  // or when the visitor arrives with a link to a coach / listing / booking.
+  const [marketplaceCoachId, setMarketplaceCoachId] = useState<string | null>(marketplaceIntent?.coachUserId ?? null);
+  const [marketplaceStart, setMarketplaceStart] = useState<MarketplaceIntent | null>(marketplaceIntent);
 
-  // A Telegram notification button (or a page freshly opened with
+  // A notification button (or a page freshly opened with
   // ?open=&id= from anywhere else) should jump straight to the relevant
   // screen exactly once, on the first render after it appears — never
   // re-triggered by later state changes (e.g. switching tabs afterward).
@@ -399,6 +428,7 @@ function MainContent({
           case "tab":
             setOverlay(null);
             setMarketplaceCoachId(null);
+            setMarketplaceStart(null);
             if (isCoachMode) setCoachTab(target.tab);
             else setPlayerTab(target.tab);
             break;
@@ -438,6 +468,7 @@ function MainContent({
         break;
       case "coach":
         setOverlay(null);
+        setMarketplaceStart(null);
         setMarketplaceCoachId(result.id);
         if (isCoachMode) setCoachTab("coaches");
         else setPlayerTab("coaches");
@@ -465,6 +496,7 @@ function MainContent({
         onChangeTab={(tab) => {
           setOverlay(null);
           setMarketplaceCoachId(null);
+          setMarketplaceStart(null);
           setCoachTab(tab);
         }}
         hasOverlay={hasOverlay}
@@ -489,6 +521,7 @@ function MainContent({
         {overlayContent ?? (
           <CoachTabContent
             initialCoachUserId={marketplaceCoachId}
+            marketplaceStart={marketplaceStart}
             tab={coachTab}
             token={token}
             userId={myUserId ?? ""}
@@ -511,6 +544,7 @@ function MainContent({
       onChangeTab={(tab) => {
         setOverlay(null);
         setMarketplaceCoachId(null);
+        setMarketplaceStart(null);
         setPlayerTab(tab);
       }}
       hasOverlay={hasOverlay}
@@ -555,7 +589,13 @@ function MainContent({
             />
           )}
           {playerTab === "coaches" && (
-            <CoachMarketplaceScreen key={marketplaceCoachId ?? "list"} token={token} initialCoachUserId={marketplaceCoachId} />
+            <CoachMarketplaceScreen
+              key={`${marketplaceCoachId ?? "list"}|${marketplaceStart?.listingId ?? ""}|${marketplaceStart?.bookListingId ?? ""}`}
+              token={token}
+              initialCoachUserId={marketplaceCoachId}
+              initialListingId={marketplaceStart?.listingId ?? null}
+              initialBookListingId={marketplaceStart?.bookListingId ?? null}
+            />
           )}
           {playerTab === "profile" && (
             <ProfileScreen
@@ -574,6 +614,7 @@ function MainContent({
 export function Workspace({ token }: { token: string }) {
   const [inviteToken, setInviteToken] = useState<string | null>(readInviteToken);
   const [deepLink] = useState<DeepLink | null>(readNotificationDeepLink);
+  const [marketplaceIntent] = useState<MarketplaceIntent | null>(readMarketplaceIntent);
 
   // Set when the person has just joined a team through an invite: the app opens straight on it.
   const [teamToOpen, setTeamToOpen] = useState<string | null>(null);
@@ -597,20 +638,29 @@ export function Workspace({ token }: { token: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Same for ?coach=&listing=&book= (a shared catalogue link, or the booking a
+  // guest was in the middle of): read once, then the address bar is cleaned.
+  useEffect(() => {
+    if (!marketplaceIntent) return;
+    const url = new URL(window.location.href);
+    for (const key of ["coach", "listing", "book"]) url.searchParams.delete(key);
+    window.history.replaceState({}, "", url.toString());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <ProfileProvider token={token}>
       {inviteToken ? (
         <InviteAcceptScreenGate token={token} inviteToken={inviteToken} onDone={clearInvite} />
       ) : (
-        <MainContent token={token} deepLink={deepLink} initialTeamId={teamToOpen} />
+        <MainContent token={token} deepLink={deepLink} initialTeamId={teamToOpen} marketplaceIntent={marketplaceIntent} />
       )}
     </ProfileProvider>
   );
 }
 
-// Invite acceptance needs a profile to exist first (a bare Telegram identity
-// is enough to authenticate, but joining a team as a coach/player conceptually
-// happens once the person has at least started onboarding).
+// Invite acceptance waits for the profile request to finish first, so joining
+// a team as a coach/player happens once the app knows who the person is.
 function InviteAcceptScreenGate({
   token,
   inviteToken,

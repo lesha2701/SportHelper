@@ -43,7 +43,6 @@ class RosterMemberOut(BaseModel):
     id: UUID
     match_id: UUID
     user_id: UUID
-    telegram_id: int
     first_name: str
     last_name: str | None
     photo_url: str | None

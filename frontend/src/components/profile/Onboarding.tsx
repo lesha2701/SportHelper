@@ -4,9 +4,12 @@ import styles from "./profile.module.css";
 interface OnboardingProps {
   onChoosePlayer: () => void;
   onChooseCoach: () => void;
+  /** The role picked at sign-up: that button leads, the other stays available. */
+  preferredRole?: "player" | "coach" | null;
 }
 
-export function Onboarding({ onChoosePlayer, onChooseCoach }: OnboardingProps) {
+export function Onboarding({ onChoosePlayer, onChooseCoach, preferredRole = null }: OnboardingProps) {
+  const coachFirst = preferredRole === "coach";
   return (
     <div className={styles.screen}>
       <div className={styles.card}>
@@ -16,11 +19,16 @@ export function Onboarding({ onChoosePlayer, onChooseCoach }: OnboardingProps) {
           ними.
         </p>
         <div className={styles.onboardingChoices}>
-          <button type="button" className={styles.buttonPrimary} onClick={onChoosePlayer}>
+          <button
+            type="button"
+            className={coachFirst ? styles.buttonSecondary : styles.buttonPrimary}
+            onClick={onChoosePlayer}
+            style={coachFirst ? { order: 2 } : undefined}
+          >
             <Icon name="user" size={17} />
             Я игрок
           </button>
-          <button type="button" className={styles.buttonSecondary} onClick={onChooseCoach}>
+          <button type="button" className={coachFirst ? styles.buttonPrimary : styles.buttonSecondary} onClick={onChooseCoach}>
             <Icon name="users" size={17} />
             Я тренер
           </button>

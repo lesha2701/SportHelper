@@ -1,6 +1,6 @@
 // frontend/src/components/coaches/CoachMarketplaceScreen.tsx
 import { useEffect, useState } from "react";
-import { listListings } from "../../api/coachListings";
+import { getListingProfile, listListings } from "../../api/coachListings";
 import { navigateApp } from "../../appNav";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
@@ -20,7 +20,10 @@ import styles from "./coaches.module.css";
 type View =
   | { screen: "list" }
   | { screen: "coachProfile"; coachUserId: string }
-  | { screen: "profile"; listingId: string; coachUserId: string }
+  /** `coachUserId` is unknown when a listing is opened straight from a link. */
+  | { screen: "profile"; listingId: string; coachUserId: string | null }
+  /** Coming back from sign-in with a booking in mind: load the listing, then open its booking form. */
+  | { screen: "resumeBooking"; listingId: string }
   | { screen: "booking"; listing: CoachListingProfile }
   | { screen: "confirmed"; booking: Booking };
 
@@ -159,17 +162,60 @@ function loadStoredLayout(): ListingsLayout {
   }
 }
 
+/** Loads the listing a returning visitor wanted to book, then shows its booking form. */
+function ResumeBooking({
+  token,
+  listingId,
+  onReady,
+  onFailed,
+}: {
+  token: string;
+  listingId: string;
+  onReady: (listing: CoachListingProfile) => void;
+  onFailed: () => void;
+}) {
+  useEffect(() => {
+    let cancelled = false;
+    getListingProfile(token, listingId)
+      .then((listing) => !cancelled && onReady(listing))
+      .catch(() => !cancelled && onFailed());
+    return () => {
+      cancelled = true;
+    };
+    // The callbacks only set state in the parent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, listingId]);
+  return <StateScreen kind="loading" title="Открываем запись…" />;
+}
+
 export function CoachMarketplaceScreen({
   token,
   initialCoachUserId = null,
+  initialListingId = null,
+  initialBookListingId = null,
+  guest = false,
+  onRequireLogin,
 }: {
   token: string;
   /** Opens straight on this coach's public profile (e.g. from global search). */
   initialCoachUserId?: string | null;
+  /** Opens straight on this listing (a shared link). */
+  initialListingId?: string | null;
+  /** Opens straight on this listing's booking form (returning from sign-in). */
+  initialBookListingId?: string | null;
+  /** A visitor without an account: everything is browsable, booking asks them to sign in first. */
+  guest?: boolean;
+  onRequireLogin?: (listingId: string) => void;
 }) {
   const isDesktop = useIsDesktop();
   const [view, setView] = useState<View>(
-    initialCoachUserId ? { screen: "coachProfile", coachUserId: initialCoachUserId } : { screen: "list" },
+    initialBookListingId
+      ? { screen: "resumeBooking", listingId: initialBookListingId }
+      : initialListingId
+        ? { screen: "profile", listingId: initialListingId, coachUserId: null }
+        : initialCoachUserId
+          ? { screen: "coachProfile", coachUserId: initialCoachUserId }
+          : { screen: "list" },
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [state, setState] = useState<ListState>({ status: "loading" });
@@ -254,13 +300,26 @@ export function CoachMarketplaceScreen({
     );
   }
 
+  if (view.screen === "resumeBooking") {
+    return (
+      <ResumeBooking
+        token={token}
+        listingId={view.listingId}
+        onReady={(listing) => setView({ screen: "booking", listing })}
+        onFailed={() => setView({ screen: "profile", listingId: view.listingId, coachUserId: null })}
+      />
+    );
+  }
+
   if (view.screen === "profile") {
     return (
       <ListingPublicProfileScreen
         token={token}
         listingId={view.listingId}
-        onBack={() => setView({ screen: "coachProfile", coachUserId: view.coachUserId })}
-        onBook={(listing) => setView({ screen: "booking", listing })}
+        onBack={() =>
+          setView(view.coachUserId ? { screen: "coachProfile", coachUserId: view.coachUserId } : { screen: "list" })
+        }
+        onBook={(listing) => (guest ? onRequireLogin?.(listing.id) : setView({ screen: "booking", listing }))}
       />
     );
   }

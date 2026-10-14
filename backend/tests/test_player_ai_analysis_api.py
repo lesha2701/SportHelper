@@ -274,7 +274,7 @@ def test_prompt_contains_sports_data_but_no_identifiers(logged_in_client, login_
     assert "стать быстрее" in user_prompt  # the player's own goal
     athlete = client.get("/api/auth/me", headers=_headers(athlete_token)).json()
     for secret in (
-        str(athlete["telegram_id"]),
+        athlete["email"],
         athlete["username"] or "~none~",
         athlete["first_name"],
         athlete_id,

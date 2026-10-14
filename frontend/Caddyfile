@@ -1,6 +1,18 @@
 {$DOMAIN} {
 	encode gzip
 
+	# Hardening for a site that holds logins: HTTPS only (HSTS), no framing
+	# (clickjacking), no MIME sniffing, and no referrer leaks of the one-time
+	# links (/verify-email?token=..., /reset-password?token=...) to other sites.
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "same-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
 	# API requests go to the backend container. Caddy strips nothing here —
 	# the backend's routes already live under /api (see backend/app/main.py).
 	handle /api/* {

@@ -19,46 +19,32 @@ docker compose -f docker-compose.dev.yml --profile bot up bot  # бот отде
 Docker-проектами (`football-cards-*`). Если у вас свободны обычные порты —
 поменяйте маппинг в `docker-compose.dev.yml`, это не привязано к коду.
 
-Бот (`profiles: ["bot"]`) не поднимается по умолчанию — `create_bot()`
-кидает `RuntimeError`, если `TELEGRAM_BOT_TOKEN` пустой, а без него
-контейнер уйдёт в crash-loop. Поднимайте явно, когда токен в `.env` есть и
-бот реально нужен.
+Бот (`profiles: ["bot"]`) не поднимается по умолчанию — он необязателен
+(сайт работает без Telegram), а `create_bot()` кидает `RuntimeError`, если
+`TELEGRAM_BOT_TOKEN` пустой, и контейнер ушёл бы в crash-loop. Поднимайте явно,
+когда токен в `.env` есть и бот нужен (перенос старых аккаунтов, уведомления).
 
-## Вход без Telegram в деве (`DEV_AUTH_ENABLED`)
+## Вход в деве
 
-По умолчанию Mini App работает только внутри настоящего Telegram-клиента —
-`@tma.js/sdk`'s `isTMA()` возвращает `false` в обычном браузере, и
-`AuthContext` показывает экран «Откройте приложение через Telegram». Это
-осознанное ограничение прод-версии (initData физически негде взять без
-Telegram), но оно же блокировало обычную разработку в браузере без туннеля.
+Telegram для разработки не нужен: сайт открывается в обычном браузере, регистрация идёт по email и паролю.
 
-Решение — `DEV_AUTH_ENABLED=true` в `.env`:
+- **Docker-стек**: `docker compose -f docker-compose.dev.yml up -d --build` поднимает ещё и **Mailpit** — все письма сайта
+  (подтверждение email, сброс пароля, уведомления безопасности) лежат на <http://localhost:8025>. В `.env` задайте
+  `APP_BASE_URL=http://localhost:5175` и `CORS_ORIGINS=http://localhost:5175`.
+- **Без Docker**: письма без SMTP печатаются в лог backend вместе со ссылкой (только при `APP_MODE != main`).
+- **Быстрый аккаунт без писем**: `python backend/scripts/create_user.py me@example.com "Имя"` — создаёт подтверждённого
+  пользователя (пароль спросит скрытым вводом).
+- **API без браузера** (Swagger, curl): войдите `POST /api/auth/login`; тот же токен сессии можно слать как
+  `Authorization: Bearer <токен>`. В Swagger UI — кнопка Authorize. (Для cookie-сессии браузера нужен заголовок
+  `X-CSRF-Token`, для Bearer — нет.)
+- Cookie ставится на хост (`localhost`), порты не различаются, поэтому frontend на `:5173/:5175` и backend на `:8000/:8002`
+  делят сессию — это «один сайт» для браузера. `COOKIE_SECURE` не нужен на `http://localhost`.
 
-- backend: `app/api/routes/dev_auth.py` — роут `POST /api/auth/dev-login`,
-  логинит фиксированного dev-пользователя, **полностью пропуская проверку
-  подписи Telegram initData**. Роутер регистрируется в `app/main.py`
-  **только если** `settings.dev_auth_enabled` — при выключенном флаге
-  эндпоинта не существует вообще (404), а не просто "недоступен".
-- frontend: `AuthContext.tsx` — если `isTMA()` вернул `false` и
-  `import.meta.env.DEV` (то есть это dev-сборка Vite, не прод-билд), вместо
-  экрана "откройте в Telegram" вызывается `devLogin()` из `api/auth.ts`.
-  В проде `import.meta.env.DEV` компилируется в `false`, и эта ветка
-  вырезается из бандла целиком.
+Прежний `DEV_AUTH_ENABLED` (вход без проверки подписи Telegram) **удалён** вместе с самим Telegram-входом.
 
-**Двойная защита от утечки в прод:** флаг в конфиге (default `false`,
-явно `false` в `.env.production.example` с предупреждением) + фронтенд сам
-не станет звать `dev-login` в собранном прод-бандле. Тем не менее: **никогда
-не ставьте `DEV_AUTH_ENABLED=true` на песочнице или боевом сервере** — это
-не «более мягкий режим», это полное отключение аутентификации.
+## Перед релизом — не забыть
 
-Локальный `.env` сейчас: `DEV_AUTH_ENABLED=true`, `MINI_APP_URL` и
-`CORS_ORIGINS` указывают на `http://localhost:5175` (порт dev-фронтенда
-из docker-compose.dev.yml, см. выше).
-
-## Перед релизом / возвращением туннеля — не забыть
-
-- `DEV_AUTH_ENABLED` → `false` (или просто убрать из `.env` — дефолт и так `false`).
-- `MINI_APP_URL`, `CORS_ORIGINS` → реальный HTTPS-адрес (туннель или боевой домен).
-- `DOMAIN` (сейчас `localhost`, используется только `docker-compose.yml`/Caddy) → реальный домен.
+- Чек-лист — в конце [docs/auth.md](auth.md): HTTPS, `JWT_SECRET`, SMTP + SPF/DKIM, `ADMIN_EMAILS`, `APP_BASE_URL`, `CORS_ORIGINS`.
+- `DOMAIN` (локально `localhost`, используется только `docker-compose.yml`/Caddy) → реальный домен.
 - Если возвращаетесь к обычным портам 8000/5173/5432 — поправить порты в
   `docker-compose.dev.yml` заодно с `VITE_API_BASE_URL` там же.

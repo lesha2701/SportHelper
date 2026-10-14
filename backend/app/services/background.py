@@ -19,14 +19,16 @@ from datetime import datetime, timedelta, timezone
 import asyncpg
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from app.bot.deeplink import build_mini_app_url
+from app.bot.deeplink import build_site_url
 from app.config import Settings
 from app.integrations.yandex_disk import YandexDiskClient, YandexDiskError
+from app.repositories import auth_tokens as auth_tokens_repo
 from app.repositories import bookings as bookings_repo
 from app.repositories import files as files_repo
 from app.repositories import notifications as notifications_repo
+from app.repositories import sessions as sessions_repo
 from app.repositories import tasks as tasks_repo
 from app.repositories import users as users_repo
 from app.services import notifications as notifications_service
@@ -37,7 +39,7 @@ logger = logging.getLogger("teamflow.background")
 BOOKING_EXPIRY_HOURS = 24
 
 
-async def send_due_notifications(conn: asyncpg.Connection, bot: Bot, settings: Settings) -> None:
+async def send_due_notifications(conn: asyncpg.Connection, bot: Bot | None, settings: Settings) -> None:
     due = await notifications_repo.list_due(conn)
     for notification in due:
         if not await notifications_repo.is_enabled(conn, notification["user_id"], notification["category"]):
@@ -45,18 +47,26 @@ async def send_due_notifications(conn: asyncpg.Connection, bot: Bot, settings: S
             continue
 
         user = await users_repo.get_by_id(conn, notification["user_id"])
-        if user is None:
+        if user is None or user.get("deleted_at") is not None:
             await notifications_repo.mark_cancelled(conn, notification["id"])
+            continue
+
+        # Telegram is an optional extra channel. A user who never linked it
+        # (or a server without a bot) still sees every notification in the
+        # app's bell, which is fed straight from this table - so there is
+        # nothing to deliver, and the row is simply marked as handled.
+        if bot is None or user["telegram_id"] is None:
+            await notifications_repo.mark_sent(conn, notification["id"])
             continue
 
         text = f"<b>{notification['title']}</b>\n{notification['body']}"
         keyboard = None
-        if settings.mini_app_url:
-            url = build_mini_app_url(
-                settings.mini_app_url, {"open": notification["category"], "id": str(notification["entity_id"])}
+        if settings.app_base_url:
+            url = build_site_url(
+                settings.app_base_url, {"open": notification["category"], "id": str(notification["entity_id"])}
             )
             keyboard = InlineKeyboardMarkup(
-                inline_keyboard=[[InlineKeyboardButton(text="Открыть в приложении", web_app=WebAppInfo(url=url))]]
+                inline_keyboard=[[InlineKeyboardButton(text="Открыть на сайте", url=url)]]
             )
         try:
             await bot.send_message(chat_id=user["telegram_id"], text=text, reply_markup=keyboard)
@@ -128,16 +138,52 @@ async def schedule_training_nudges(conn: asyncpg.Connection, settings: Settings)
         logger.exception("Failed to schedule training nudges")
 
 
-async def run_tick(pool: asyncpg.Pool, bot: Bot, settings: Settings) -> None:
+async def purge_stale_auth_data(conn: asyncpg.Connection) -> None:
+    """Expired sessions and spent/expired one-time links are dead weight."""
+    sessions = await sessions_repo.purge_expired(conn)
+    tokens = await auth_tokens_repo.purge_expired(conn)
+    if sessions or tokens:
+        logger.info("Purged %d stale session(s) and %d one-time token(s)", sessions, tokens)
+
+
+async def process_account_deletions(conn: asyncpg.Connection, settings: Settings) -> None:
+    """Anonymises accounts whose deletion grace period has passed. Rows are
+    kept (only personal data is erased) so that bookings, reviews and any
+    financial records are never removed by cascade."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=settings.account_deletion_grace_days)
+    for user_id in await users_repo.list_due_for_deletion(conn, older_than=cutoff):
+        try:
+            await users_repo.anonymize(conn, user_id)
+            logger.info("Anonymised user %s after deletion request", user_id)
+        except Exception:  # noqa: BLE001 - one bad account must not block the rest
+            logger.exception("Failed to anonymise user %s", user_id)
+
+
+_AUTH_CLEANUP_EVERY = timedelta(hours=1)
+_last_auth_cleanup: datetime | None = None
+
+
+async def run_account_maintenance(conn: asyncpg.Connection, settings: Settings) -> None:
+    global _last_auth_cleanup
+    now = datetime.now(timezone.utc)
+    if _last_auth_cleanup is not None and now - _last_auth_cleanup < _AUTH_CLEANUP_EVERY:
+        return
+    _last_auth_cleanup = now
+    await purge_stale_auth_data(conn)
+    await process_account_deletions(conn, settings)
+
+
+async def run_tick(pool: asyncpg.Pool, bot: Bot | None, settings: Settings) -> None:
     async with pool.acquire() as conn:
         await sweep_overdue_tasks(conn)
         await sweep_expired_bookings(conn)
         await schedule_training_nudges(conn, settings)
         await send_due_notifications(conn, bot, settings)
         await purge_soft_deleted_files(conn, settings)
+        await run_account_maintenance(conn, settings)
 
 
-async def run_background_loop(pool: asyncpg.Pool, bot: Bot, settings: Settings) -> None:
+async def run_background_loop(pool: asyncpg.Pool, bot: Bot | None, settings: Settings) -> None:
     logger.info("Background task loop started (interval=%ss)", settings.background_task_interval_seconds)
     try:
         while True:

@@ -1,13 +1,12 @@
-import { ApiError } from "./client";
+import { API_BASE_URL, ApiError } from "./client";
 
-const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
-
-export async function fetchFileBlob(token: string, fileId: string): Promise<Blob> {
+/** Downloads a file as a Blob. Sent with the session cookie (when there is
+ * one): public files (avatars, coach-listing media) work for guests too. The
+ * `token` argument is unused and only kept for the existing call sites. */
+export async function fetchFileBlob(_token: string, fileId: string): Promise<Blob> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/files/${fileId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    response = await fetch(`${API_BASE_URL}/api/files/${fileId}`, { credentials: "include" });
   } catch {
     throw new ApiError(0, "network_error", "Не удалось связаться с сервером");
   }

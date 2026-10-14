@@ -40,7 +40,6 @@ class TeamOut(BaseModel):
 
 class TeamMemberOut(BaseModel):
     user_id: UUID
-    telegram_id: int
     first_name: str
     last_name: str | None
     username: str | None

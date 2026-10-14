@@ -17,7 +17,7 @@ export type OverlayBase =
  * list goes back to that list, not to whatever tab happened to be underneath. */
 export type Overlay = (OverlayBase & { backTo?: OverlayBase }) | null;
 
-/** Where a notification's "Открыть в приложении" button (Telegram) or its
+/** Where a notification's "Открыть на сайте" button (Telegram) or its
  * row on the in-app bell screen should navigate to. booking_requested (the
  * coach's inbox) and booking_decided (the athlete's own bookings) share
  * entity_type "booking" but need different screens, which is why this

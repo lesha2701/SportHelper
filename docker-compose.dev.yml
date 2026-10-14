@@ -1,17 +1,23 @@
 # Local development stack — NOT for production (see docker-compose.yml for
 # that: Caddy + HTTPS + a real DOMAIN). This one runs Postgres + backend
-# (hot reload) + bot + the Vite dev server, all reachable from the host over
-# plain HTTP so the Mini App can be opened directly in a regular browser
-# without a tunnel.
+# (hot reload) + Mailpit + the Vite dev server (+ the optional bot), all
+# reachable from the host over plain HTTP.
 #
 # Usage (from the repo root, with .env filled in):
 #   docker compose -f docker-compose.dev.yml up --build
 #
 # Then:
 #   http://localhost:8002/docs   — Swagger
-#   http://localhost:5175        — frontend, logs in as a fixed dev user
-#                                   automatically (DEV_AUTH_ENABLED in .env —
-#                                   see docs/dev-notes.md), no Telegram needed
+#   http://localhost:5175        — the website: register with any address,
+#                                   no Telegram needed
+#   http://localhost:8025        — Mailpit: every email the site sends
+#                                   (confirmation and password-reset links)
+#                                   lands here instead of a real inbox
+#
+# In .env set (the CORS/APP_BASE_URL origin must match the frontend port):
+#   APP_BASE_URL=http://localhost:5175
+#   CORS_ORIGINS=http://localhost:5175
+# Mail is wired to Mailpit below, no SMTP settings needed.
 #
 # Ports are 8002/5175/5433, not the usual 8000/5173/5432 — this machine runs
 # several other Docker projects that already hold those. Change them below
@@ -50,6 +56,12 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_SECURITY: none
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      SMTP_FROM: "SportArena Global <no-reply@sportarena.local>"
     # --reload here (the prod image doesn't use it) so backend code edits on
     # the host apply without rebuilding the container.
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
@@ -59,8 +71,18 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     ports:
       - "127.0.0.1:8002:8000"
+
+  # Catches all outgoing email. Web UI on :8025, SMTP on :1025 (inside the
+  # compose network only; backend reaches it as mailpit:1025).
+  mailpit:
+    image: axllent/mailpit:v1.21
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
 
   bot:
     build:

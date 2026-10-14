@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 import asyncpg
 from fastapi import APIRouter, Depends, UploadFile
 
-from app.api.deps import get_current_user, get_db, get_settings_dep
+from app.api.deps import get_current_user, get_optional_user, get_db, get_settings_dep
 from app.config import Settings
 from app.core.exceptions import APIError, NotFoundError
 from app.integrations.paths import build_user_file_path
@@ -270,7 +270,7 @@ async def list_listings(
     min_rating: float | None = None,
     format: str | None = None,
     min_experience_years: int | None = None,
-    user: dict = Depends(get_current_user),
+    user: dict | None = Depends(get_optional_user),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> list[CoachListingCardOut]:
     cards = await listings_repo.list_listed(
@@ -289,7 +289,7 @@ async def list_listings(
 @router.get("/{listing_id}", response_model=CoachListingProfileOut)
 async def get_listing_profile(
     listing_id: UUID,
-    user: dict = Depends(get_current_user),
+    user: dict | None = Depends(get_optional_user),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> CoachListingProfileOut:
     profile = await listings_repo.get_public_listing(conn, listing_id)
@@ -306,7 +306,7 @@ async def get_listing_open_slots(
     listing_id: UUID,
     from_date: date,
     to_date: date,
-    user: dict = Depends(get_current_user),
+    user: dict | None = Depends(get_optional_user),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> list[OpenSlotOut]:
     if to_date < from_date:

@@ -17,7 +17,6 @@ export interface RosterMember {
   id: string;
   matchId: string;
   userId: string;
-  telegramId: number;
   firstName: string;
   lastName: string | null;
   photoUrl: string | null;
@@ -68,7 +67,6 @@ export interface RosterMemberDto {
   id: string;
   match_id: string;
   user_id: string;
-  telegram_id: number;
   first_name: string;
   last_name: string | null;
   photo_url: string | null;
@@ -97,7 +95,6 @@ export function mapRosterMemberDto(dto: RosterMemberDto): RosterMember {
     id: dto.id,
     matchId: dto.match_id,
     userId: dto.user_id,
-    telegramId: dto.telegram_id,
     firstName: dto.first_name,
     lastName: dto.last_name,
     photoUrl: dto.photo_url,

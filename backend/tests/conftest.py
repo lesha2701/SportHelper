@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-import hashlib
-import hmac
-import json
-import time
 from datetime import date, datetime, timedelta, timezone
-from urllib.parse import urlencode
 from uuid import uuid4
 
 import asyncpg
 import pytest
 from fastapi.testclient import TestClient
 
-BOT_TOKEN = "123456:test-bot-token"
+from app.services import email as email_service
+from app.services.email import OutgoingEmail
+from tests.fake_auth import FakeAuthStore
+from tests.fake_auth import install as install_fake_auth
 
 _shared_disk_storage: dict[str, bytes] = {}
 
@@ -119,34 +117,6 @@ def queue_ai_response():
     return _queue
 
 
-def build_init_data(
-    bot_token: str,
-    *,
-    user_id: int = 123456789,
-    first_name: str = "Ivan",
-    last_name: str | None = None,
-    username: str = "ivanov",
-    auth_date: int | None = None,
-) -> str:
-    """Build a validly-signed Telegram Mini App initData string for tests."""
-    user_dict = {"id": user_id, "first_name": first_name, "username": username}
-    if last_name is not None:
-        user_dict["last_name"] = last_name
-    user_payload = json.dumps(user_dict, separators=(",", ":"))
-    fields = {
-        "auth_date": str(auth_date if auth_date is not None else int(time.time())),
-        "query_id": "AAABBBCCC",
-        "user": user_payload,
-    }
-    data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(fields.items()))
-    secret_key = hmac.new(b"WebAppData", bot_token.encode("utf-8"), hashlib.sha256).digest()
-    computed_hash = hmac.new(
-        secret_key, data_check_string.encode("utf-8"), hashlib.sha256
-    ).hexdigest()
-    fields["hash"] = computed_hash
-    return urlencode(fields)
-
-
 @pytest.fixture
 def client(monkeypatch: pytest.MonkeyPatch):
     """A TestClient wired to in-memory fake repositories instead of a real
@@ -171,9 +141,23 @@ def client(monkeypatch: pytest.MonkeyPatch):
     import app.repositories.users as users_module
     from app.config import get_settings
 
-    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", BOT_TOKEN)
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123456:test-bot-token")
     monkeypatch.setenv("TELEGRAM_BOT_USERNAME", "TestFlowBot")
     monkeypatch.setenv("JWT_SECRET", "test-jwt-secret")
+    monkeypatch.setenv("APP_BASE_URL", "http://localhost:5173")
+    # Hermetic: nothing in a developer's real .env may leak into the tests.
+    for hermetic in ("CORS_ORIGINS", "COOKIE_SECURE", "COOKIE_SAMESITE", "COOKIE_DOMAIN", "TRUST_PROXY_HEADERS",
+                     "ADMIN_EMAILS", "ADMIN_TELEGRAM_IDS", "SESSION_LIFETIME_DAYS", "PASSWORD_BREACH_CHECK"):
+        monkeypatch.delenv(hermetic, raising=False)
+    monkeypatch.setenv("CORS_ORIGINS", "http://localhost:5173")
+    # Cheap Argon2 parameters keep hashing fast in tests (the hash is still
+    # real Argon2id). Auth rate limits are switched back on by the tests that
+    # exercise them; everything else registers many users from one "IP".
+    monkeypatch.setenv("ARGON2_TIME_COST", "1")
+    monkeypatch.setenv("ARGON2_MEMORY_KIB", "64")
+    monkeypatch.setenv("ARGON2_PARALLELISM", "1")
+    monkeypatch.setenv("AUTH_RATE_LIMIT_ENABLED", "false")
+    monkeypatch.setenv("SMTP_HOST", "")
     # The rate limiter is real (not mocked) in tests — a single test can
     # legitimately fire more requests than a human would in a minute, so
     # keep it out of the way here rather than tripping on busy tests.
@@ -210,47 +194,19 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(main_module, "_start_background_task", fake_start_background_task)
     monkeypatch.setattr(main_module, "_attach_error_log_handler", fake_attach_error_log_handler)
 
-    users_store: dict[int, dict] = {}
+    auth_store = FakeAuthStore()
+    install_fake_auth(monkeypatch, auth_store)
+    users_store = auth_store.users  # UUID -> user row; other fakes iterate .values()
     player_store: dict = {}
     coach_store: dict = {}
 
-    async def fake_upsert_from_telegram(conn, telegram_user):
-        existing = users_store.get(telegram_user.id)
-        user = existing or {
-            "id": uuid4(),
-            "telegram_id": telegram_user.id,
-            "created_at": datetime.now(timezone.utc),
-            "is_banned": False,
-            "banned_at": None,
-            "active_mode": None,
-            "completed_onboarding_version": 0,
-        }
-        user.update(
-            {
-                "username": telegram_user.username,
-                "first_name": telegram_user.first_name,
-                "last_name": telegram_user.last_name,
-                "photo_url": telegram_user.photo_url,
-                "language_code": telegram_user.language_code,
-                "last_login_at": datetime.now(timezone.utc),
-                "updated_at": datetime.now(timezone.utc),
-            }
-        )
-        users_store[telegram_user.id] = user
-        return user
+    outbox: list[OutgoingEmail] = []
 
-    async def fake_get_by_id(conn, user_id):
-        for user in users_store.values():
-            if user["id"] == user_id:
-                return user
-        return None
+    async def fake_send_email(mail, settings):
+        outbox.append(mail)
+        return True
 
-    async def fake_set_active_mode(conn, user_id, mode):
-        for user in users_store.values():
-            if user["id"] == user_id:
-                user["active_mode"] = mode
-                return user
-        return None
+    monkeypatch.setattr(email_service, "send_email", fake_send_email)
 
     async def fake_get_player_profile(conn, user_id):
         return player_store.get(user_id)
@@ -310,31 +266,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
         coach_store[user_id] = profile
         return profile
 
-    import app.repositories.login_tokens as login_tokens_module
     import app.repositories.search as search_module
-
-    login_tokens_store: dict[str, dict] = {}
-
-    async def fake_login_create(conn, token, ttl_seconds):
-        login_tokens_store[token] = {"user_id": None, "ttl": ttl_seconds}
-
-    async def fake_login_confirm(conn, token, user_id):
-        entry = login_tokens_store.get(token)
-        if entry is None or entry["user_id"] is not None or entry["ttl"] <= 0:
-            return False
-        entry["user_id"] = user_id
-        return True
-
-    async def fake_login_consume(conn, token):
-        entry = login_tokens_store.get(token)
-        if entry is None or entry["user_id"] is None or entry["ttl"] <= 0:
-            return None
-        del login_tokens_store[token]
-        return entry["user_id"]
-
-    async def fake_login_is_pending(conn, token):
-        entry = login_tokens_store.get(token)
-        return entry is not None and entry["ttl"] > 0
 
     async def fake_search_all(conn, user_id, query):
         # Only teams are backed by an in-memory store here; the real SQL is
@@ -347,22 +279,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
             if t["id"] in my_team_ids and needle in t["name"].lower()
         ]
 
-    monkeypatch.setattr(login_tokens_module, "create", fake_login_create)
     monkeypatch.setattr(search_module, "search_all", fake_search_all)
-    monkeypatch.setattr(login_tokens_module, "confirm", fake_login_confirm)
-    monkeypatch.setattr(login_tokens_module, "consume", fake_login_consume)
-    monkeypatch.setattr(login_tokens_module, "is_pending", fake_login_is_pending)
-    monkeypatch.setattr(users_module, "upsert_from_telegram", fake_upsert_from_telegram)
-    async def fake_complete_onboarding(conn, user_id, version):
-        for user in users_store.values():
-            if user["id"] == user_id:
-                user["completed_onboarding_version"] = max(user["completed_onboarding_version"], version)
-                return user
-        return None
-
-    monkeypatch.setattr(users_module, "get_by_id", fake_get_by_id)
-    monkeypatch.setattr(users_module, "complete_onboarding", fake_complete_onboarding)
-    monkeypatch.setattr(users_module, "set_active_mode", fake_set_active_mode)
     monkeypatch.setattr(profiles_module, "get_player_profile", fake_get_player_profile)
     monkeypatch.setattr(profiles_module, "get_coach_profile", fake_get_coach_profile)
     monkeypatch.setattr(profiles_module, "get_public_coach_profile", fake_get_public_coach_profile)
@@ -2588,6 +2505,8 @@ def client(monkeypatch: pytest.MonkeyPatch):
     app.dependency_overrides[deps.get_db] = override_get_db
 
     with TestClient(app) as test_client:
+        test_client.auth_store = auth_store
+        test_client.outbox = outbox
         test_client.notifications_store = notifications_store
         test_client.bookings_store = bookings_store
         test_client.ai_analyses_store = analyses_store
@@ -2598,33 +2517,55 @@ def client(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.fixture
-def logged_in_client(client: TestClient):
-    """A `client` plus a ready-made (token, telegram_id) for an already
-    logged-in user, for tests that only care about post-login endpoints."""
-    telegram_id = 900001
-    init_data = build_init_data(BOT_TOKEN, user_id=telegram_id, first_name="Test", username="test_user")
-    response = client.post("/api/auth/telegram", json={"init_data": init_data})
-    assert response.status_code == 200
-    token = response.json()["access_token"]
-    return client, token
+def logged_in_client(client: TestClient, login_as):
+    """A `client` plus a ready-made session token for an already signed-in
+    user, for tests that only care about post-login endpoints."""
+    return client, login_as(900001, first_name="Test")
 
 
 @pytest.fixture
 def login_as(client: TestClient):
-    """Log in an additional distinct user against the same `client` (and its
-    shared in-memory stores). Returns a callable: (telegram_id, first_name,
-    username, last_name) -> access_token."""
+    """Creates an additional, already verified user (and a session) against
+    the same `client` and its shared in-memory stores. Returns a callable:
+    (user_number, first_name, username, last_name) -> session token.
 
-    def _login(telegram_id: int, first_name: str = "User", username: str | None = None, last_name: str | None = None) -> str:
-        init_data = build_init_data(
-            BOT_TOKEN,
-            user_id=telegram_id,
+    The first argument is only a stable number that makes the user's email
+    (`user<number>@fixtures.example.com`) and default username unique; it is no
+    identity of any kind. The token is sent as `Authorization: Bearer <token>`.
+    """
+    from app.security.tokens import generate_token, hash_token
+
+    def _login(
+        user_number: int,
+        first_name: str = "User",
+        username: str | None = None,
+        last_name: str | None = None,
+    ) -> str:
+        store: FakeAuthStore = client.auth_store
+        email = f"user{user_number}@fixtures.example.com"
+        # Idempotent per number, like signing in again: the same person, a new session.
+        record = store.find_by_email(email) or store.new_user(
+            email=email,
+            email_verified_at=datetime.now(timezone.utc),
+            password_hash="x",  # these users never log in through the form
             first_name=first_name,
             last_name=last_name,
-            username=username or f"user{telegram_id}",
+            username=username or f"user{user_number}",
         )
-        response = client.post("/api/auth/telegram", json={"init_data": init_data})
-        assert response.status_code == 200
-        return response.json()["access_token"]
+        token = generate_token()
+        session_id = uuid4()
+        store.sessions[session_id] = {
+            "id": session_id,
+            "user_id": record["id"],
+            "token_hash": hash_token(token),
+            "created_at": datetime.now(timezone.utc),
+            "last_seen_at": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc) + timedelta(days=30),
+            "revoked_at": None,
+            "mfa_verified_at": None,
+            "user_agent": "pytest",
+            "ip_address": "127.0.0.1",
+        }
+        return token
 
     return _login

@@ -12,7 +12,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -36,7 +36,6 @@ class Settings(BaseSettings):
 
     telegram_bot_token: str = Field(default="", alias="TELEGRAM_BOT_TOKEN")
     telegram_bot_username: str = Field(default="", alias="TELEGRAM_BOT_USERNAME")
-    mini_app_url: str = Field(default="", alias="MINI_APP_URL")
 
     database_url: str = Field(
         default="postgresql://teamflow:teamflow@localhost:5432/teamflow_sandbox",
@@ -45,9 +44,84 @@ class Settings(BaseSettings):
     database_pool_min_size: int = Field(default=1, alias="DATABASE_POOL_MIN_SIZE")
     database_pool_max_size: int = Field(default=10, alias="DATABASE_POOL_MAX_SIZE")
 
+    # Server secret used to derive per-session CSRF tokens and the key that
+    # encrypts stored TOTP secrets. Sessions themselves are random opaque ids
+    # (see app/security/sessions.py), not JWTs.
     jwt_secret: str = Field(default="change-me-to-a-long-random-string", alias="JWT_SECRET")
-    jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
-    jwt_expires_minutes: int = Field(default=43200, alias="JWT_EXPIRES_MINUTES")
+
+    # Public address of the website, used to build links in emails and in the
+    # Telegram bot. No trailing slash.
+    # MINI_APP_URL (the old name of this setting) is still honoured.
+    app_base_url: str = Field(
+        default="http://localhost:5173",
+        validation_alias=AliasChoices("APP_BASE_URL", "MINI_APP_URL"),
+    )
+
+    # --- Sessions & cookies ---------------------------------------------------
+    session_lifetime_days: int = Field(default=30, alias="SESSION_LIFETIME_DAYS")
+    # Hard cap regardless of activity, so a stolen cookie can't live forever.
+    session_absolute_max_days: int = Field(default=90, alias="SESSION_ABSOLUTE_MAX_DAYS")
+    # `Secure` + the `__Host-` cookie prefix. Left unset it follows APP_BASE_URL
+    # (https:// -> secure), so a production .env that forgets it is still safe.
+    cookie_secure: bool | None = Field(default=None, alias="COOKIE_SECURE")
+    # lax: the site and /api share one origin behind the reverse proxy. Use
+    # "none" (requires COOKIE_SECURE=true) only if the API lives on another site.
+    cookie_samesite: str = Field(default="lax", alias="COOKIE_SAMESITE")
+    # Leave empty for a host-only cookie (recommended).
+    cookie_domain: str = Field(default="", alias="COOKIE_DOMAIN")
+    # Trust the X-Forwarded-For header set by the reverse proxy (Caddy) when
+    # working out the client IP for rate limits and session lists.
+    trust_proxy_headers: bool = Field(default=False, alias="TRUST_PROXY_HEADERS")
+
+    # --- Passwords ---------------------------------------------------------------
+    password_min_length: int = Field(default=12, alias="PASSWORD_MIN_LENGTH")
+    password_max_length: int = Field(default=512, alias="PASSWORD_MAX_LENGTH")
+    # Argon2id cost (defaults are the RFC 9106 "low memory" profile).
+    argon2_time_cost: int = Field(default=3, alias="ARGON2_TIME_COST")
+    argon2_memory_kib: int = Field(default=65536, alias="ARGON2_MEMORY_KIB")
+    argon2_parallelism: int = Field(default=4, alias="ARGON2_PARALLELISM")
+    # Reject passwords found in known breaches via the Have I Been Pwned
+    # range API. Only the first 5 characters of the password's SHA-1 leave the
+    # server (k-anonymity); on a network error the check is skipped.
+    password_breach_check: bool = Field(default=False, alias="PASSWORD_BREACH_CHECK")
+
+    # --- One-time links ------------------------------------------------------------
+    email_verify_ttl_hours: int = Field(default=24, alias="EMAIL_VERIFY_TTL_HOURS")
+    password_reset_ttl_minutes: int = Field(default=30, alias="PASSWORD_RESET_TTL_MINUTES")
+    email_change_ttl_hours: int = Field(default=24, alias="EMAIL_CHANGE_TTL_HOURS")
+    telegram_token_ttl_minutes: int = Field(default=30, alias="TELEGRAM_TOKEN_TTL_MINUTES")
+
+    # --- Brute-force protection ------------------------------------------------------
+    # Per-IP / per-email request limits on the auth endpoints (login, register,
+    # password reset, ...). Disable only in automated tests.
+    auth_rate_limit_enabled: bool = Field(default=True, alias="AUTH_RATE_LIMIT_ENABLED")
+    login_max_failures: int = Field(default=5, alias="LOGIN_MAX_FAILURES")
+    login_lockout_minutes: int = Field(default=15, alias="LOGIN_LOCKOUT_MINUTES")
+
+    # --- Legal & lifecycle -------------------------------------------------------------
+    terms_version: str = Field(default="2026-10", alias="TERMS_VERSION")
+    # An account scheduled for deletion is anonymised after this many days.
+    account_deletion_grace_days: int = Field(default=14, alias="ACCOUNT_DELETION_GRACE_DAYS")
+
+    # --- Email (SMTP) --------------------------------------------------------------------
+    # Leave SMTP_HOST empty to disable sending. In non-production (APP_MODE
+    # != main) the message is then printed to the log so links can be copied;
+    # in production nothing sensitive is ever logged.
+    smtp_host: str = Field(default="", alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, alias="SMTP_PORT")
+    smtp_username: str = Field(default="", alias="SMTP_USERNAME")
+    smtp_password: str = Field(default="", alias="SMTP_PASSWORD")
+    # "starttls" (port 587), "ssl" (port 465) or "none" (e.g. Mailpit on 1025).
+    smtp_security: str = Field(default="starttls", alias="SMTP_SECURITY")
+    smtp_from: str = Field(default="SportArena Global <no-reply@localhost>", alias="SMTP_FROM")
+    smtp_timeout_seconds: int = Field(default=15, alias="SMTP_TIMEOUT_SECONDS")
+
+    # --- Admins ------------------------------------------------------------------------------
+    # Verified accounts with these emails are administrators in the web API.
+    # Admin rights can only be granted here (trusted configuration), never
+    # through an API request. Financial operations additionally require MFA.
+    admin_emails: str = Field(default="", alias="ADMIN_EMAILS")
+    admin_mfa_session_hours: int = Field(default=12, alias="ADMIN_MFA_SESSION_HOURS")
 
     cors_origins: str = Field(default="http://localhost:5173", alias="CORS_ORIGINS")
 
@@ -55,15 +129,6 @@ class Settings(BaseSettings):
     backend_port: int = Field(default=8000, alias="BACKEND_PORT")
 
     admin_telegram_ids: str = Field(default="", alias="ADMIN_TELEGRAM_IDS")
-
-    # Local-development-only shortcut: when true, POST /api/auth/dev-login
-    # logs in as a fixed dev user without a real Telegram initData signature
-    # (see app/api/routes/dev_auth.py). Defaults to off and must stay off
-    # everywhere except a developer's own machine — see docs/dev-notes.md.
-    dev_auth_enabled: bool = Field(default=False, alias="DEV_AUTH_ENABLED")
-
-    # Telegram initData is rejected if older than this many seconds.
-    telegram_auth_max_age_seconds: int = Field(default=86400, alias="TELEGRAM_AUTH_MAX_AGE_SECONDS")
 
     invite_expiration_hours: int = Field(default=24, alias="INVITE_EXPIRATION_HOURS")
 
@@ -105,6 +170,31 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def admin_emails_list(self) -> list[str]:
+        return [email.strip().lower() for email in self.admin_emails.split(",") if email.strip()]
+
+    @property
+    def allowed_origins(self) -> set[str]:
+        origins = set(self.cors_origins_list)
+        if self.app_base_url:
+            origins.add(self.app_base_url.rstrip("/"))
+        return origins
+
+    @property
+    def secure_cookies(self) -> bool:
+        if self.cookie_secure is not None:
+            return self.cookie_secure
+        return self.app_base_url.lower().startswith("https://")
+
+    @property
+    def session_cookie_name(self) -> str:
+        # The __Host- prefix makes browsers refuse a cookie that wasn't set
+        # over HTTPS from this exact host (no Domain, Path=/), which blocks
+        # cookie-injection from sibling subdomains. It needs Secure, so it is
+        # only used when cookies are Secure.
+        return "__Host-sag_session" if self.secure_cookies else "sag_session"
 
     @property
     def admin_telegram_ids_list(self) -> list[int]:

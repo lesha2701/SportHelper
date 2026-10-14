@@ -36,7 +36,14 @@ export type IconName =
   | "map-pin"
   | "flag"
   | "list"
-  | "grid-3";
+  | "grid-3"
+  | "eye"
+  | "eye-off"
+  | "log-out"
+  | "mail"
+  | "shield"
+  | "monitor"
+  | "send";
 
 const PATHS: Record<IconName, ReactElement> = {
   home: (
@@ -234,6 +241,44 @@ const PATHS: Record<IconName, ReactElement> = {
       <rect x="15.5" y="5" width="5" height="14" rx="1.1" />
     </>
   ),
+  eye: (
+    <>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  "eye-off": (
+    <>
+      <path d="M4 4l16 16" />
+      <path d="M9.9 5.8A9.7 9.7 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-3.2 3.9M6.4 7.6C3.9 9.4 2.5 12 2.5 12S6 18.5 12 18.5c1.4 0 2.7-.4 3.8-.9" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    </>
+  ),
+  "log-out": (
+    <>
+      <path d="M9.5 4.5H6a1.5 1.5 0 0 0-1.5 1.5v12A1.5 1.5 0 0 0 6 19.5h3.5" />
+      <path d="M14 8l4 4-4 4M18 12H9.5" />
+    </>
+  ),
+  mail: (
+    <>
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
+      <path d="m4 7.5 8 6 8-6" />
+    </>
+  ),
+  shield: (
+    <>
+      <path d="M12 3.5 5 6v5.5c0 4.2 2.8 7.4 7 9 4.2-1.6 7-4.8 7-9V6l-7-2.5Z" />
+      <path d="m9 12 2.2 2.2L15.2 10" />
+    </>
+  ),
+  monitor: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="11" rx="1.6" />
+      <path d="M9 19.5h6M12 15.5v4" />
+    </>
+  ),
+  send: <path d="M20.5 4 3.5 11l6 2.2L11.7 19.5 20.5 4ZM9.5 13.2l5.6-4.4" />,
 };
 
 export interface IconProps extends Omit<SVGProps<SVGSVGElement>, "children"> {

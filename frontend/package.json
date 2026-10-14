@@ -11,7 +11,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tma.js/sdk": "^3.2.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

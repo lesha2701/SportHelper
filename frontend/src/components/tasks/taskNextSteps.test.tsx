@@ -21,7 +21,6 @@ const assignment = (userId: string, firstName: string, status: TaskAssignment["s
   id: `as-${userId}`,
   taskId: "task-1",
   userId,
-  telegramId: 1,
   firstName,
   lastName: null,
   photoUrl: null,

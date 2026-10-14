@@ -28,7 +28,6 @@ export interface Team {
 
 export interface TeamMember {
   userId: string;
-  telegramId: number;
   firstName: string;
   lastName: string | null;
   username: string | null;
@@ -78,7 +77,6 @@ export interface TeamDto {
 
 export interface TeamMemberDto {
   user_id: string;
-  telegram_id: number;
   first_name: string;
   last_name: string | null;
   username: string | null;
@@ -129,7 +127,6 @@ export function mapTeamDto(dto: TeamDto): Team {
 export function mapTeamMemberDto(dto: TeamMemberDto): TeamMember {
   return {
     userId: dto.user_id,
-    telegramId: dto.telegram_id,
     firstName: dto.first_name,
     lastName: dto.last_name,
     username: dto.username,

@@ -93,7 +93,7 @@ export function ProfileSummary({
   onOpenNotifications,
   unreadNotifications,
 }: ProfileSummaryProps) {
-  const { state: authState, updateUser } = useAuth();
+  const { state: authState, updateUser, logout } = useAuth();
   const photoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
   const avatarFileId = authState.status === "ready" ? authState.user.avatarFileId : null;
   const myUserId = authState.status === "ready" ? authState.user.id : null;
@@ -202,6 +202,7 @@ export function ProfileSummary({
   });
   actionRows.push({ key: "settings", icon: "settings", label: "Настройки", onClick: onOpenSettings });
   actionRows.push({ key: "help", icon: "book", label: "Помощь", onClick: onOpenHelp });
+  actionRows.push({ key: "logout", icon: "log-out", label: "Выйти из аккаунта", onClick: () => void logout() });
   if (profile.player && profile.coach) {
     actionRows.push({
       key: "switch",

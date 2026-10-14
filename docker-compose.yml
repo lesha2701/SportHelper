@@ -23,6 +23,10 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # Always true here: the only way in is through Caddy (the `frontend`
+      # service), which sets X-Forwarded-For to the visitor's real address.
+      # Rate limits and the "devices" list rely on it.
+      TRUST_PROXY_HEADERS: "true"
     depends_on:
       postgres:
         condition: service_healthy

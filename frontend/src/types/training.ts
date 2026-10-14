@@ -59,7 +59,6 @@ export interface TrainingUpdateInput {
 export interface Attendance {
   trainingId: string;
   userId: string;
-  telegramId: number;
   firstName: string;
   lastName: string | null;
   photoUrl: string | null;
@@ -86,7 +85,6 @@ export interface TrainingDto {
 export interface AttendanceDto {
   training_id: string;
   user_id: string;
-  telegram_id: number;
   first_name: string;
   last_name: string | null;
   photo_url: string | null;
@@ -116,7 +114,6 @@ export function mapAttendanceDto(dto: AttendanceDto): Attendance {
   return {
     trainingId: dto.training_id,
     userId: dto.user_id,
-    telegramId: dto.telegram_id,
     firstName: dto.first_name,
     lastName: dto.last_name,
     photoUrl: dto.photo_url,

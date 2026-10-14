@@ -82,7 +82,8 @@ async def set_banned(conn: asyncpg.Connection, telegram_id: int, banned: bool) -
 
 
 async def list_active_recipient_telegram_ids(conn: asyncpg.Connection) -> list[int]:
-    rows = await conn.fetch("SELECT telegram_id FROM users WHERE is_banned = FALSE ORDER BY created_at")
+    rows = await conn.fetch("SELECT telegram_id FROM users WHERE is_banned = FALSE AND telegram_id IS NOT NULL "
+        "AND deleted_at IS NULL ORDER BY created_at")
     return [row["telegram_id"] for row in rows]
 
 

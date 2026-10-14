@@ -9,9 +9,21 @@ class APIError(Exception):
     status_code: int = 400
     code: str = "bad_request"
 
-    def __init__(self, message: str, *, code: str | None = None, status_code: int | None = None):
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str | None = None,
+        status_code: int | None = None,
+        field: str | None = None,
+        retry_after: int | None = None,
+    ):
         super().__init__(message)
         self.message = message
+        # Which form field the message is about (for inline form errors).
+        self.field = field
+        # Seconds until a rate-limited/locked action may be retried.
+        self.retry_after = retry_after
         if code is not None:
             self.code = code
         if status_code is not None:
@@ -36,3 +48,13 @@ class NotFoundError(APIError):
 class AIServiceError(APIError):
     status_code = 502
     code = "ai_unavailable"
+
+
+class ConflictError(APIError):
+    status_code = 409
+    code = "conflict"
+
+
+class RateLimitedError(APIError):
+    status_code = 429
+    code = "rate_limited"

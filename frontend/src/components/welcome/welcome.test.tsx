@@ -13,21 +13,38 @@ vi.mock("../../api/users", () => ({ completeOnboarding: vi.fn() }));
 // Settings also renders the notification/privacy cards; their data is irrelevant here.
 vi.mock("../../api/notifications", () => ({ getNotificationPreferences: vi.fn(() => new Promise(() => {})) }));
 vi.mock("../../api/privacy", () => ({ getPrivacySettings: vi.fn(() => new Promise(() => {})) }));
+// ...and the account & security card; it is covered by its own tests (accountSecurity.test.tsx).
+vi.mock("../../api/auth", () => ({
+  listSessions: vi.fn(() => new Promise(() => {})),
+  getMfaStatus: vi.fn(() => new Promise(() => {})),
+}));
+vi.mock("../../context/AuthContext", () => ({
+  useAuth: () => ({
+    state: { status: "ready", token: "t", user: { email: "test@example.com", emailVerified: true, telegramLinked: false, deletionRequestedAt: null } },
+    logout: vi.fn(),
+    refreshUser: vi.fn(),
+  }),
+}));
 
 const completeMock = vi.mocked(completeOnboarding);
 
 function makeUser(completedOnboardingVersion: number): User {
   return {
     id: "u1",
-    telegramId: 1,
+    email: "test@example.com",
+    emailVerified: true,
     username: null,
     firstName: "Test",
     lastName: null,
     photoUrl: null,
     avatarFileId: null,
     languageCode: "ru",
+    preferredRole: null,
     createdAt: "2026-01-01T00:00:00Z",
     lastLoginAt: null,
+    telegramLinked: false,
+    isAdmin: false,
+    deletionRequestedAt: null,
     completedOnboardingVersion,
     currentOnboardingVersion: 1,
   };

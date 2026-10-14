@@ -11,6 +11,25 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    # A real PostgreSQL: tests/test_auth_postgres.py runs the account SQL
+    # (the 0031 migration on a database with existing users, unique indexes,
+    # one-time tokens) instead of the in-memory fakes the other tests use.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v4
 
@@ -25,6 +44,26 @@ jobs:
 
       - name: Run pytest
         run: python -m pytest -q
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Vitest
+        run: npm test
 
   frontend-build:
     runs-on: ubuntu-latest
@@ -56,7 +95,7 @@ jobs:
   deploy:
     # Only after both test jobs pass, and only for real pushes to main
     # (never for pull requests, which don't get server access).
-    needs: [backend-tests, frontend-build]
+    needs: [backend-tests, frontend-tests, frontend-build]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:

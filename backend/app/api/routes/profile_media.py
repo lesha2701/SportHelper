@@ -6,13 +6,14 @@ from uuid import UUID, uuid4
 import asyncpg
 from fastapi import APIRouter, Depends, Form, UploadFile
 
-from app.api.deps import get_current_user, get_db, get_settings_dep
+from app.api.deps import get_current_user, get_db, get_optional_user, get_settings_dep
 from app.config import Settings
-from app.core.exceptions import APIError, NotFoundError
+from app.core.exceptions import APIError, NotFoundError, UnauthorizedError
 from app.integrations.paths import build_user_file_path
 from app.integrations.yandex_disk import YandexDiskError
 from app.repositories import profile_media as profile_media_repo
 from app.repositories import files as files_repo
+from app.repositories import profiles as profiles_repo
 from app.schemas.profile_media import ProfileMediaOut
 from app.services.uploads import (
     IMAGE_MIME_EXTENSIONS,
@@ -128,12 +129,15 @@ async def upload_profile_video(
 @router.get("/{user_id}", response_model=list[ProfileMediaOut])
 async def list_profile_media(
     user_id: UUID,
-    user: dict = Depends(get_current_user),
+    user: dict | None = Depends(get_optional_user),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> list[ProfileMediaOut]:
-    """Any authenticated user may view another user's achievement gallery —
-    it exists to be shown off (teammates, coach marketplace visitors, etc.),
-    same spirit as a coach listing's PUBLIC photo/video."""
+    """Any signed-in user may view another user's achievement gallery — it
+    exists to be shown off (teammates, coach marketplace visitors, etc.),
+    same spirit as a coach listing's PUBLIC photo/video. Guests may only see
+    the gallery of a coach (the public marketplace profile), never a player's."""
+    if user is None and await profiles_repo.get_public_coach_profile(conn, user_id) is None:
+        raise UnauthorizedError("authentication required")
     media = await profile_media_repo.list_media(conn, user_id)
     return [ProfileMediaOut(**m) for m in media]
 

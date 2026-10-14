@@ -20,6 +20,12 @@ logger = logging.getLogger("teamflow.bot")
 async def main() -> None:
     settings = get_settings()
     configure_logging(settings.app_mode)
+    if not settings.telegram_bot_token:
+        # The site works without Telegram. Idle quietly instead of exiting, so
+        # `restart: unless-stopped` doesn't turn a missing token into a crash loop.
+        logger.info("TELEGRAM_BOT_TOKEN is not set - the Telegram bot is disabled (the website is unaffected)")
+        await asyncio.Event().wait()
+        return
     logger.info("Starting SportArena Global bot (mode=%s)", settings.app_mode)
 
     # The bot runs as its own process (separate from the FastAPI backend),

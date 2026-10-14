@@ -1,130 +1,104 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { ApiError } from "../api/client";
-import { devLogin, devLogin2, fetchCurrentUser, loginWithTelegram, type AuthResult } from "../api/auth";
-import { bootstrapTelegram } from "../telegram/init";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { ApiError, onSessionExpired, setCsrfToken } from "../api/client";
+import { fetchMe, logout as logoutRequest, type AuthResult } from "../api/auth";
 import type { User } from "../types/user";
 
 export type AuthState =
   | { status: "loading" }
-  | { status: "unavailable" }
+  /** Nobody is signed in (no session, or it ended). The public site is available. */
+  | { status: "guest"; sessionExpired: boolean }
+  /** The server could not be reached, so we can't tell either way. */
   | { status: "error"; message: string }
-  | { status: "forbidden"; message: string }
+  /** Signed in. `token` is the session's CSRF token, held in memory only; it is
+   * not a credential (the credential is an HttpOnly cookie the page cannot read).
+   * It stays in the state because the existing screens pass it down as a prop. */
   | { status: "ready"; user: User; token: string };
 
 interface AuthContextValue {
   state: AuthState;
+  /** Checks the session again (e.g. after a network error). */
   retry: () => void;
   /** Merges a freshly-fetched User (e.g. after an avatar upload) into the
    * current session without a full re-login. No-op if not currently ready. */
   updateUser: (user: User) => void;
-  /** Completes a browser (non-Telegram) login and remembers the session. */
+  /** Adopts the result of a successful login. */
   signIn: (result: AuthResult) => void;
-  logout: () => void;
-}
-
-const SESSION_KEY = "sportarenaglobal.session";
-
-function readStoredToken(): string | null {
-  try {
-    return window.localStorage.getItem(SESSION_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function writeStoredToken(token: string | null): void {
-  try {
-    if (token) window.localStorage.setItem(SESSION_KEY, token);
-    else window.localStorage.removeItem(SESSION_KEY);
-  } catch {
-    // storage unavailable (private mode) — the session just won't survive a reload
-  }
+  /** Ends the session on the server and returns to the public site. */
+  logout: () => Promise<void>;
+  /** Re-reads the user (e.g. after the email changed). */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: "loading" });
+  const readyRef = useRef(false);
 
-  const runAuth = useCallback(() => {
-    setState({ status: "loading" });
-
-    const env = bootstrapTelegram();
-
-    if (env.isAvailable && env.initDataRaw) {
-      loginWithTelegram(env.initDataRaw)
-        .then((result) => {
-          setState({ status: "ready", user: result.user, token: result.accessToken });
-        })
-        .catch((error: unknown) => {
-          if (error instanceof ApiError && error.code === "forbidden") {
-            setState({ status: "forbidden", message: error.message });
-            return;
-          }
-          const message = error instanceof ApiError ? error.message : "Не удалось выполнить вход";
-          setState({ status: "error", message });
-        });
-      return;
-    }
-
-    // Not running inside a real Telegram client (e.g. opened directly in a
-    // browser). In a dev build, fall back to the backend's dev-only login
-    // instead of blocking with "open via Telegram" — stripped out of
-    // production builds by import.meta.env.DEV, and the endpoint itself
-    // only exists when the backend has DEV_AUTH_ENABLED set (docs/dev-notes.md).
-    if (import.meta.env.DEV) {
-      // ?devUser=2 opts into the second fixed dev identity — lets you open
-      // a second tab and exercise a two-sided flow (e.g. an athlete
-      // booking a coach) as two distinct logged-in users locally.
-      const useSecondDevUser = new URLSearchParams(window.location.search).get("devUser") === "2";
-      (useSecondDevUser ? devLogin2() : devLogin())
-        .then((result) => {
-          setState({ status: "ready", user: result.user, token: result.accessToken });
-        })
-        .catch(() => {
-          setState({
-            status: "error",
-            message: "Dev-логин недоступен: задайте DEV_AUTH_ENABLED=true в backend .env и перезапустите backend",
-          });
-        });
-      return;
-    }
-
-    // Plain browser: resume a remembered session, otherwise show the
-    // "log in via the Telegram bot" screen (see BrowserLogin).
-    const storedToken = readStoredToken();
-    if (!storedToken) {
-      setState({ status: "unavailable" });
-      return;
-    }
-    fetchCurrentUser(storedToken)
-      .then((user) => setState({ status: "ready", user, token: storedToken }))
-      .catch(() => {
-        writeStoredToken(null);
-        setState({ status: "unavailable" });
-      });
+  const adopt = useCallback((result: AuthResult) => {
+    setCsrfToken(result.csrfToken);
+    readyRef.current = true;
+    setState({ status: "ready", user: result.user, token: result.csrfToken });
   }, []);
 
+  const toGuest = useCallback((sessionExpired: boolean) => {
+    setCsrfToken(null);
+    readyRef.current = false;
+    setState({ status: "guest", sessionExpired });
+  }, []);
+
+  const checkSession = useCallback(() => {
+    setState({ status: "loading" });
+    fetchMe()
+      .then(adopt)
+      .catch((error: unknown) => {
+        if (error instanceof ApiError && error.status === 0) {
+          setState({ status: "error", message: error.message });
+        } else {
+          // 401 (no/ended session) or anything else we can't recover from: browse as a guest.
+          toGuest(false);
+        }
+      });
+  }, [adopt, toGuest]);
+
   useEffect(() => {
-    runAuth();
-  }, [runAuth]);
+    checkSession();
+  }, [checkSession]);
+
+  // Any request answered with 401 while signed in means the session ended
+  // (expired, or revoked from another device): fall back to the public site.
+  useEffect(
+    () =>
+      onSessionExpired(() => {
+        if (readyRef.current) toGuest(true);
+      }),
+    [toGuest],
+  );
 
   const updateUser = useCallback((user: User) => {
     setState((prev) => (prev.status === "ready" ? { ...prev, user } : prev));
   }, []);
 
-  const signIn = useCallback((result: AuthResult) => {
-    writeStoredToken(result.accessToken);
-    setState({ status: "ready", user: result.user, token: result.accessToken });
-  }, []);
+  const logout = useCallback(async () => {
+    try {
+      await logoutRequest();
+    } catch {
+      // Even if the server can't be reached we drop the local state; the
+      // cookie is HttpOnly and expires or is revoked server-side.
+    }
+    toGuest(false);
+  }, [toGuest]);
 
-  const logout = useCallback(() => {
-    writeStoredToken(null);
-    setState({ status: "unavailable" });
-  }, []);
+  const refreshUser = useCallback(async () => {
+    try {
+      adopt(await fetchMe());
+    } catch {
+      /* the next request will surface a lost session */
+    }
+  }, [adopt]);
 
   return (
-    <AuthContext.Provider value={{ state, retry: runAuth, updateUser, signIn, logout }}>
+    <AuthContext.Provider value={{ state, retry: checkSession, updateUser, signIn: adopt, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

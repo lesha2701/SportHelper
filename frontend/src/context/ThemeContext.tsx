@@ -24,8 +24,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.setItem(STORAGE_KEY, theme);
     } catch {
-      // localStorage can be unavailable (private mode, Telegram embedded webview
-      // restrictions) — theme still applies for the session via the DOM attribute.
+      // localStorage can be unavailable (private mode, blocked site data) — theme still applies for the session via the DOM attribute.
     }
   }, [theme]);
 

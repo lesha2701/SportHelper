@@ -43,7 +43,6 @@ export interface TaskAssignment {
   id: string;
   taskId: string;
   userId: string;
-  telegramId: number;
   firstName: string;
   lastName: string | null;
   photoUrl: string | null;
@@ -160,7 +159,6 @@ export interface TaskAssignmentDto {
   id: string;
   task_id: string;
   user_id: string;
-  telegram_id: number;
   first_name: string;
   last_name: string | null;
   photo_url: string | null;
@@ -228,7 +226,6 @@ export function mapTaskAssignmentDto(dto: TaskAssignmentDto): TaskAssignment {
     id: dto.id,
     taskId: dto.task_id,
     userId: dto.user_id,
-    telegramId: dto.telegram_id,
     firstName: dto.first_name,
     lastName: dto.last_name,
     photoUrl: dto.photo_url,

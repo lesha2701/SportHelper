@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { useProfile } from "../../context/ProfileContext";
 import { StateScreen } from "../StateScreen";
 import { MyListingsScreen } from "../coaches/MyListingsScreen";
@@ -25,6 +26,8 @@ export function ProfileScreen({
   unreadNotifications?: number;
 }) {
   const { state, retry, savePlayer, saveCoach, switchMode } = useProfile();
+  const { state: authState } = useAuth();
+  const preferredRole = authState.status === "ready" ? authState.user.preferredRole : null;
   const [editing, setEditing] = useState<ActiveMode | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -80,7 +83,13 @@ export function ProfileScreen({
   const hasAnyProfile = data.player !== null || data.coach !== null;
 
   if (!hasAnyProfile && editing === null) {
-    return <Onboarding onChoosePlayer={() => setEditing("player")} onChooseCoach={() => setEditing("coach")} />;
+    return (
+      <Onboarding
+        preferredRole={preferredRole}
+        onChoosePlayer={() => setEditing("player")}
+        onChooseCoach={() => setEditing("coach")}
+      />
+    );
   }
 
   if (editing === "player") {

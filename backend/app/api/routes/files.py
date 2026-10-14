@@ -8,9 +8,9 @@ import asyncpg
 from fastapi import APIRouter, Depends, UploadFile
 from fastapi.responses import StreamingResponse
 
-from app.api.deps import get_current_user, get_db, get_settings_dep
+from app.api.deps import get_current_user, get_db, get_optional_user, get_settings_dep
 from app.config import Settings
-from app.core.exceptions import APIError, ForbiddenError, NotFoundError
+from app.core.exceptions import APIError, ForbiddenError, NotFoundError, UnauthorizedError
 from app.integrations.paths import build_team_file_path, build_user_file_path
 from app.integrations.yandex_disk import YandexDiskClient, YandexDiskError
 from app.api.routes.teams import _team_out
@@ -156,7 +156,7 @@ async def remove_user_avatar(
 @files_router.get("/{file_id}")
 async def download_file(
     file_id: UUID,
-    user: dict = Depends(get_current_user),
+    user: dict | None = Depends(get_optional_user),
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> StreamingResponse:
@@ -165,6 +165,10 @@ async def download_file(
         raise NotFoundError("file not found")
 
     access_level = file_record["access_level"]
+    if user is None and access_level != "PUBLIC":
+        # Only files explicitly marked PUBLIC (avatars, coach-listing media)
+        # are visible to guests; everything else needs a signed-in user.
+        raise UnauthorizedError("authentication required")
     if access_level == "PRIVATE":
         if file_record["owner_id"] != user["id"]:
             # Exercise photos/videos are PRIVATE by default (an exercise can
@@ -189,7 +193,7 @@ async def download_file(
         if access_level == "COACHES_ONLY" and member["role"] not in ("head_coach", "assistant_coach"):
             raise ForbiddenError("you do not have access to this file")
     elif access_level == "PUBLIC":
-        pass  # any authenticated user may view a public coach-listing photo/video
+        pass  # anyone, signed in or not, may view a public avatar / coach-listing photo or video
     else:
         raise ForbiddenError("you do not have access to this file")
 

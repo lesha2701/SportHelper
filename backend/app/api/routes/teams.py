@@ -55,9 +55,8 @@ def _team_out(team: dict, *, my_role: str | None = None, members_count: int = 0)
 
 
 def _invite_link(settings: Settings, token: str) -> str:
-    if not settings.telegram_bot_username:
-        return f"{settings.mini_app_url}?invite={token}"
-    return f"https://t.me/{settings.telegram_bot_username}?start=invite_{token}"
+    base = settings.app_base_url.rstrip("/")
+    return f"{base}/?invite={token}"
 
 
 @router.post("", response_model=TeamOut)

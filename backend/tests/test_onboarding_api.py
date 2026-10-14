@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-from tests.conftest import BOT_TOKEN, build_init_data
-
-
 def _headers(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_new_user_has_not_completed_onboarding(client) -> None:
-    resp = client.post("/api/auth/telegram", json={"init_data": build_init_data(BOT_TOKEN, user_id=7001)})
+def test_new_user_has_not_completed_onboarding(client, login_as) -> None:
+    token = login_as(7001)
 
-    user = resp.json()["user"]
+    user = client.get("/api/auth/me", headers=_headers(token)).json()
     assert user["completed_onboarding_version"] == 0
 
 

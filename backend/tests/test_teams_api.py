@@ -119,8 +119,8 @@ def test_invite_apply_and_accept_flow(logged_in_client, login_as) -> None:
     members = client.get(
         f"/api/teams/{team['id']}/members", headers={"Authorization": f"Bearer {coach_token}"}
     ).json()
-    roles = {m["telegram_id"]: m["role"] for m in members}
-    assert roles[222333] == "player"
+    roles = {m["username"]: m["role"] for m in members}
+    assert roles["user222333"] == "player"
 
 
 def test_blocked_user_cannot_apply(logged_in_client, login_as) -> None:
@@ -335,14 +335,14 @@ def test_transfer_ownership_requires_exact_phrase(logged_in_client, login_as) ->
     members = client.get(
         f"/api/teams/{team['id']}/members", headers={"Authorization": f"Bearer {coach_token}"}
     ).json()
-    roles = {m["telegram_id"]: m["role"] for m in members}
-    assert roles[999000] == "head_coach"
-    assert roles[900001] == "assistant_coach"
+    roles = {m["username"]: m["role"] for m in members}
+    assert roles["user999000"] == "head_coach"
+    assert roles["user900001"] == "assistant_coach"
 
 
 def _member_user_id(client: TestClient, team_id: str, token: str, telegram_id: int) -> str:
     members = client.get(f"/api/teams/{team_id}/members", headers={"Authorization": f"Bearer {token}"}).json()
-    return next(m["user_id"] for m in members if m["telegram_id"] == telegram_id)
+    return next(m["user_id"] for m in members if m["username"] == f"user{telegram_id}")
 
 
 def test_player_can_leave_team_voluntarily(logged_in_client, login_as) -> None:

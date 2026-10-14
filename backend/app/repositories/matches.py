@@ -12,7 +12,7 @@ _MATCH_FIELDS = (
     "id, team_id, created_by, opponent_name, match_date, start_time, location, "
     "is_home, tournament, status, our_score, opponent_score, comment, created_at, updated_at"
 )
-_ROSTER_FIELDS = "r.id, r.match_id, r.user_id, u.telegram_id, u.first_name, u.last_name, u.photo_url"
+_ROSTER_FIELDS = "r.id, r.match_id, r.user_id, u.first_name, u.last_name, u.photo_url"
 # Upcoming matches first (soonest at the top), then past ones below (most
 # recent past first) — mirrors the ordering used for training lists.
 _UPCOMING_FIRST_ORDER = """
