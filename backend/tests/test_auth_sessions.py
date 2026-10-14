@@ -364,7 +364,7 @@ def test_auth_failures_never_echo_passwords_or_tokens_in_logs(client, caplog) ->
     with caplog.at_level(logging.DEBUG):
         login(client, password="super secret wrong guess")
         client.post("/api/auth/forgot-password", json={"email": "alice@example.com"})
-        client.post("/api/auth/verify-email", json={"token": "tok-1234567890"})
+        client.post("/api/auth/verify-email", json={"token": "tok-1234567890", "password": PASSWORD})
 
     log_text = "\n".join(record.getMessage() for record in caplog.records)
     assert "super secret wrong guess" not in log_text and PASSWORD not in log_text

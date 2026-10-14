@@ -231,6 +231,39 @@ class Settings(BaseSettings):
         return ids
 
 
+def production_problems(settings: "Settings") -> tuple[list[str], list[str]]:
+    """(fatal, warnings) for APP_MODE=main. Fatal ones mean the site would run with
+    credentials/cookies that are not safe, so the backend refuses to start rather than
+    quietly serving logins over a weak setup."""
+    if settings.app_mode != "main":
+        return [], []
+    fatal: list[str] = []
+    warnings: list[str] = []
+    secret = settings.jwt_secret
+    if secret == "change-me-to-a-long-random-string" or len(secret) < 32:
+        fatal.append("JWT_SECRET must be a random string of at least 32 characters (openssl rand -hex 32)")
+    if not settings.app_base_url.lower().startswith("https://"):
+        fatal.append("APP_BASE_URL must be the public https:// address of the site")
+    if settings.cookie_secure is False:
+        fatal.append("COOKIE_SECURE=false is not allowed in production: session cookies must be Secure")
+    if settings.cookie_samesite.lower() == "none" and not settings.secure_cookies:
+        fatal.append("COOKIE_SAMESITE=none requires Secure cookies")
+    origins = settings.cors_origins_list
+    if "*" in origins:
+        fatal.append("CORS_ORIGINS must list the exact site origin, not *")
+    if not settings.smtp_host:
+        warnings.append("SMTP_HOST is empty: nobody can confirm an email or reset a password")
+    if any(not o.lower().startswith("https://") for o in origins):
+        warnings.append("CORS_ORIGINS contains a non-https origin")
+    if not settings.trust_proxy_headers:
+        warnings.append("TRUST_PROXY_HEADERS is off: behind a reverse proxy every visitor shares the proxy's address in rate limits")
+    if settings.bearer_auth_enabled:
+        warnings.append("BEARER_AUTH_ENABLED is on: session tokens are accepted outside the HttpOnly cookie")
+    if settings.docs_enabled:
+        warnings.append("API docs (Swagger) are enabled")
+    return fatal, warnings
+
+
 @lru_cache
 def _parse_networks(raw: str) -> tuple:
     import ipaddress

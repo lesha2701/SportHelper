@@ -58,7 +58,10 @@ from app.schemas.auth import (
     SessionOut,
     TelegramLinkOut,
     TokenIn,
+    VerifyEmailIn,
     VerifyEmailOut,
+    VerifyEmailSetPasswordIn,
+    VerifyInspectOut,
 )
 from app.schemas.user import UserOut
 from app.security import passwords, totp
@@ -66,6 +69,7 @@ from app.security.client import describe_device
 from app.security.sessions import clear_session_cookie, set_session_cookie, start_session
 from app.security.tokens import csrf_token_for, generate_token, hash_token
 from app.services import accounts as svc
+from app.services import claim as claim_service
 from app.services import identities as identities_service
 from app.services import email_templates as templates
 
@@ -154,19 +158,96 @@ async def register(
     return RegisterOut(email=email)
 
 
-@router.post("/verify-email", response_model=VerifyEmailOut)
-async def verify_email(
+# Why confirming an address asks for a password
+# ---------------------------------------------
+# Anyone can type someone else's email into the sign-up form together with a
+# password of their own. If the real owner then clicked "confirm" (they may well
+# think it is their own sign-up), the account would go live with the ATTACKER's
+# password. So a click alone never activates a password: the confirming person
+# must either enter the password the account was registered with (the normal
+# case - they just typed it), or, if they don't know it / didn't register, set a
+# new one - proving mailbox control is enough for that, and it kills the
+# pre-chosen password. The attacker never learns anything and gains no access.
+
+
+@router.post("/verify-email/inspect", response_model=VerifyInspectOut)
+async def inspect_verification(
     payload: TokenIn,
     request: Request,
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
+) -> VerifyInspectOut:
+    await svc.enforce_rate_limit(request, conn, settings, "verify-ip", svc.ip_of(request, settings), limit=60, window_seconds=3600)
+    token = await tokens_repo.peek(conn, hash_token(payload.token), "email_verify")
+    if token is None:
+        return VerifyInspectOut(valid=False)
+    user = await users_repo.get_by_id(conn, token["user_id"])
+    if user is None or user.get("deleted_at") is not None:
+        return VerifyInspectOut(valid=False)
+    return VerifyInspectOut(valid=True, email=claim_service.mask_email(token["new_email"] or ""), first_name=user["first_name"])
+
+
+@router.post("/verify-email", response_model=VerifyEmailOut)
+async def verify_email(
+    payload: VerifyEmailIn,
+    request: Request,
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
 ) -> VerifyEmailOut:
+    token_hash = hash_token(payload.token)
     await svc.enforce_rate_limit(request, conn, settings, "verify-ip", svc.ip_of(request, settings), limit=30, window_seconds=3600)
-    status, user = await accounts_repo.verify_email(conn, hash_token(payload.token))
+    # Guessing the registration password for a link you hold buys nothing, but cap it anyway.
+    await svc.enforce_rate_limit(request, conn, settings, "verify-token", token_hash[:24], limit=8, window_seconds=3600)
+    pending = await tokens_repo.peek(conn, token_hash, "email_verify")
+    if pending is None:
+        raise APIError(_INVALID_LINK, code="invalid_token", status_code=400)
+    stored = await users_repo.get_password_hash(conn, pending["user_id"])
+    if not stored or not await svc.verify_in_thread(payload.password, stored, settings):
+        raise APIError(
+            "Пароль не совпадает с тем, что указан при регистрации. Если это были не вы или вы его не помните, "
+            "задайте новый пароль.",
+            code="password_mismatch",
+            status_code=403,
+            field="password",
+        )
+    status, user = await accounts_repo.verify_email(conn, token_hash)
     if status == "email_taken":
         raise ConflictError("Этот email уже привязан к другому аккаунту.", code="email_taken")
     if status != "ok" or user is None:
         raise APIError(_INVALID_LINK, code="invalid_token", status_code=400)
+    return VerifyEmailOut(verified=True, email=user["email"])
+
+
+@router.post("/verify-email/set-password", response_model=VerifyEmailOut)
+async def verify_email_with_new_password(
+    payload: VerifyEmailSetPasswordIn,
+    request: Request,
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> VerifyEmailOut:
+    """Confirms the address AND replaces the password: for whoever controls the
+    mailbox but is not the person who registered (or forgot that password)."""
+    token_hash = hash_token(payload.token)
+    await svc.enforce_rate_limit(request, conn, settings, "verify-ip", svc.ip_of(request, settings), limit=30, window_seconds=3600)
+    pending = await tokens_repo.peek(conn, token_hash, "email_verify")
+    owner = await users_repo.get_by_id(conn, pending["user_id"]) if pending else None
+    if owner is None or owner.get("deleted_at") is not None:
+        raise APIError(_INVALID_LINK, code="invalid_token", status_code=400)
+    await svc.validate_new_password(
+        payload.password,
+        payload.password_confirm,
+        settings,
+        email=pending["new_email"],
+        first_name=owner["first_name"],
+        last_name=owner.get("last_name"),
+    )
+    status, user = await accounts_repo.verify_email(conn, token_hash, await svc.hash_in_thread(payload.password, settings))
+    if status == "email_taken":
+        raise ConflictError("Этот email уже привязан к другому аккаунту.", code="email_taken")
+    if status != "ok" or user is None:
+        raise APIError(_INVALID_LINK, code="invalid_token", status_code=400)
+    # Anything signed in with the previous password is gone (there should be nothing, but be sure).
+    await sessions_repo.revoke_all(conn, user["id"])
     return VerifyEmailOut(verified=True, email=user["email"])
 
 

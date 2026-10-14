@@ -16,17 +16,29 @@ from app.repositories import auth_tokens as tokens_repo
 from app.repositories import users as users_repo
 
 
-async def verify_email(conn: asyncpg.Connection, token_hash: str) -> tuple[str, dict[str, Any] | None]:
-    """Confirms the address an `email_verify` token was issued for."""
+async def verify_email(
+    conn: asyncpg.Connection, token_hash: str, new_password_hash: str | None = None
+) -> tuple[str, dict[str, Any] | None]:
+    """Confirms the address an `email_verify` token was issued for.
+
+    With `new_password_hash` the confirming person (who has just proved control
+    of the mailbox) also REPLACES whatever password the account was registered
+    with - the "this wasn't me / I don't know that password" path that defeats
+    pre-registration of someone else's address."""
     try:
         async with conn.transaction():
             token = await tokens_repo.consume(conn, token_hash, "email_verify")
             if token is None:
                 return "invalid", None
             await conn.execute(
-                "UPDATE users SET email = $2, email_verified_at = now() WHERE id = $1 AND deleted_at IS NULL",
+                "UPDATE users SET email = $2, email_verified_at = now(), "
+                "password_hash = COALESCE($3, password_hash), "
+                "password_changed_at = CASE WHEN $3::text IS NULL THEN password_changed_at ELSE now() END, "
+                "failed_login_count = 0, locked_until = NULL "
+                "WHERE id = $1 AND deleted_at IS NULL",
                 token["user_id"],
                 token["new_email"],
+                new_password_hash,
             )
             user = await users_repo.get_by_id(conn, token["user_id"])
     except asyncpg.UniqueViolationError:

@@ -101,8 +101,9 @@ CREATE TABLE IF NOT EXISTS user_mfa (
 );
 
 -- ---------------------------------------------------------------------------
--- The old "log in through the bot" handshake is replaced by the flows above.
--- It only ever held short-lived (5 minute) handshake tokens, no user data.
+-- browser_login_tokens (the old "log in through the bot" handshake, 5-minute
+-- rows, no user data) is deliberately LEFT in place. The previous application
+-- version still reads and writes it, so keeping the empty table is what makes
+-- rolling the code back safe. Drop it in a later migration, once rollback to
+-- that version is no longer wanted:  DROP TABLE IF EXISTS browser_login_tokens;
 -- ---------------------------------------------------------------------------
-
-DROP TABLE IF EXISTS browser_login_tokens;

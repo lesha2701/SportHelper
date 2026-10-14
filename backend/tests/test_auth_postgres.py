@@ -122,7 +122,8 @@ async def test_migration_keeps_every_existing_user_and_their_data(pg) -> None:
         assert await conn.fetchval("SELECT count(*) FROM users WHERE password_hash IS NOT NULL") == 0
         assert await conn.fetchval("SELECT is_nullable FROM information_schema.columns "
                                    "WHERE table_name = 'users' AND column_name = 'telegram_id'") == "YES"
-        assert await conn.fetchval("SELECT to_regclass('public.browser_login_tokens')") is None
+        # kept on purpose: the previous app version still uses it (rollback safety)
+        assert await conn.fetchval("SELECT to_regclass('public.browser_login_tokens')") is not None
         assert await conn.fetchval("SELECT max(version) FROM schema_versions") == 31
     finally:
         await conn.close()
@@ -482,8 +483,8 @@ def test_full_account_lifecycle_over_http_with_real_sql(live_client) -> None:
     assert login(client).status_code == 403  # not confirmed yet
 
     token = link_token(client.outbox[-1])
-    assert client.post("/api/auth/verify-email", json={"token": token}).status_code == 200
-    assert client.post("/api/auth/verify-email", json={"token": token}).status_code == 400
+    assert client.post("/api/auth/verify-email", json={"token": token, "password": PASSWORD}).status_code == 200
+    assert client.post("/api/auth/verify-email", json={"token": token, "password": PASSWORD}).status_code == 400
 
     signed_in = login(client)
     assert signed_in.status_code == 200
@@ -529,7 +530,7 @@ def test_telegram_era_user_moves_to_email_end_to_end_with_real_sql(pg, live_clie
     body = {"token": token, "email": "petr@example.com", "password": PASSWORD, "password_confirm": PASSWORD, "accept_terms": True}
     assert client.post("/api/auth/claim", json=body).status_code == 200
     assert login(client, email="petr@example.com").status_code == 401  # confirm the address first
-    assert client.post("/api/auth/verify-email", json={"token": link_token(client.outbox[-1])}).status_code == 200
+    assert client.post("/api/auth/verify-email", json={"token": link_token(client.outbox[-1]), "password": PASSWORD}).status_code == 200
 
     signed_in = login(client, email="petr@example.com")
     assert signed_in.status_code == 200 and signed_in.json()["id"] == str(legacy_id)
@@ -769,14 +770,14 @@ async def test_admin_actions_are_audited_by_account_and_bans_end_sessions_in_sql
 def test_admin_api_with_real_sql_requires_the_second_factor_per_session(live_client, monkeypatch) -> None:
     from app.config import get_settings
     from app.security import totp
-    from tests.auth_helpers import csrf_headers, link_token, login, register
+    from tests.auth_helpers import PASSWORD, csrf_headers, link_token, login, register
 
     monkeypatch.setenv("ADMIN_EMAILS", "boss@example.com")
     get_settings.cache_clear()
     client = live_client
     for email in ("boss@example.com", "victim@example.com"):
         assert register(client, email=email, first_name=email.split("@")[0]).status_code == 201
-        assert client.post("/api/auth/verify-email", json={"token": link_token(client.outbox[-1])}).status_code == 200
+        assert client.post("/api/auth/verify-email", json={"token": link_token(client.outbox[-1]), "password": PASSWORD}).status_code == 200
 
     csrf = login(client, email="boss@example.com").json()["csrf_token"]
     assert client.get("/api/admin/overview").status_code == 200
@@ -817,5 +818,68 @@ async def test_migration_0032_keeps_existing_audit_rows_and_is_safe_to_run_twice
         assert (row["admin_telegram_id"], row["admin_user_id"], row["action"]) == (777, None, "ban")
         for table in ("user_identities", "rate_limit_hits"):
             assert await conn.fetchval("SELECT to_regclass($1)", f"public.{table}") is not None
+    finally:
+        await conn.close()
+
+
+def test_pre_registered_address_cannot_be_activated_with_the_attackers_password_real_sql(live_client) -> None:
+    from tests.auth_helpers import OTHER_PASSWORD, PASSWORD, link_token, login, register
+
+    client = live_client
+    attacker_password = "attacker chosen passphrase"
+    assert register(client, email="victim@example.com", password=attacker_password, first_name="Attacker").status_code == 201
+    token = link_token(client.outbox[-1])
+
+    assert client.post("/api/auth/verify-email", json={"token": token, "password": "something else entirely"}).status_code == 403
+    assert login(client, email="victim@example.com", password=attacker_password).status_code == 403  # still unconfirmed
+
+    done = client.post("/api/auth/verify-email/set-password",
+                       json={"token": token, "password": OTHER_PASSWORD, "password_confirm": OTHER_PASSWORD})
+    assert done.status_code == 200
+    assert login(client, email="victim@example.com", password=attacker_password).status_code == 401
+    assert login(client, email="victim@example.com", password=OTHER_PASSWORD).status_code == 200
+    # the registration password is still accepted for the person who really registered
+    assert register(client, email="real@example.com").status_code == 201
+    assert client.post("/api/auth/verify-email", json={"token": link_token(client.outbox[-1]), "password": PASSWORD}).status_code == 200
+
+
+async def test_two_processes_starting_at_once_migrate_a_fresh_database_without_clashing(pg) -> None:
+    """The backend and the bot container boot together and both run the migrations."""
+    from app.config import Settings
+    from app.database import create_pool, run_migrations
+
+    settings = Settings(_env_file=None, DATABASE_URL=pg)
+    pools = [await create_pool(settings) for _ in range(4)]
+    try:
+        await asyncio.gather(*[run_migrations(p) for p in pools])  # must not raise (no duplicate-version crash)
+        async with pools[0].acquire() as conn:
+            versions = [r["version"] for r in await conn.fetch("SELECT version FROM schema_versions ORDER BY version")]
+    finally:
+        for p in pools:
+            await p.close()
+
+    assert versions == sorted(set(versions)) and versions[-1] == 32 and len(versions) == len(_discover_patches()) + 1
+
+
+async def test_migrations_on_a_large_production_sized_users_table_are_fast_and_non_destructive(pg) -> None:
+    """0031/0032 on 300k existing users: no table rewrite, nothing lost, seconds not minutes."""
+    import time
+
+    conn = await asyncpg.connect(pg)
+    try:
+        await _apply(conn, up_to=30)
+        await conn.execute(
+            "INSERT INTO users (telegram_id, first_name, username) "
+            "SELECT 10000000 + g, 'U' || g, 'u' || g FROM generate_series(1, 300000) g"
+        )
+        started = time.monotonic()
+        await _apply(conn, only=31)
+        await _apply(conn, only=32)
+        elapsed = time.monotonic() - started
+
+        assert await conn.fetchval("SELECT count(*) FROM users") == 300000
+        assert await conn.fetchval("SELECT count(*) FROM users WHERE email IS NOT NULL OR password_hash IS NOT NULL") == 0
+        assert await conn.fetchval("SELECT min(failed_login_count) FROM users") == 0
+        assert elapsed < 20, f"migrations took {elapsed:.1f}s on 300k users"
     finally:
         await conn.close()

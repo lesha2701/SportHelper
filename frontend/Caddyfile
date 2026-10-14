@@ -10,6 +10,10 @@
 		X-Frame-Options "DENY"
 		Referrer-Policy "same-origin"
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# Only our own scripts run (no inline/eval), the page talks only to its own
+		# origin, nothing can frame it. Styles keep 'unsafe-inline' (React style=
+		# attributes) and Google Fonts is the one external host.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
 		-Server
 	}
 

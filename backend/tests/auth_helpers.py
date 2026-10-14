@@ -42,9 +42,10 @@ def register(client: TestClient, **overrides):
     return client.post("/api/auth/register", json=register_payload(**overrides))
 
 
-def verify_latest(client: TestClient, address: str) -> None:
+def verify_latest(client: TestClient, address: str, password: str = PASSWORD) -> None:
+    """Confirms the address from the latest email, entering the registration password as the page asks."""
     token = link_token(mails_to(client, address)[-1])
-    resp = client.post("/api/auth/verify-email", json={"token": token})
+    resp = client.post("/api/auth/verify-email", json={"token": token, "password": password})
     assert resp.status_code == 200, resp.text
 
 
@@ -53,7 +54,7 @@ def sign_up(client: TestClient, **overrides) -> dict:
     payload = register_payload(**overrides)
     resp = client.post("/api/auth/register", json=payload)
     assert resp.status_code == 201, resp.text
-    verify_latest(client, resp.json()["email"])
+    verify_latest(client, resp.json()["email"], payload["password"])
     return payload
 
 

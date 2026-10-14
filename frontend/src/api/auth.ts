@@ -64,11 +64,43 @@ export async function logoutAll(): Promise<void> {
   await apiRequest("/api/auth/logout-all", { method: "POST", successMessage: "Вы вышли на всех устройствах" });
 }
 
-export async function verifyEmail(token: string): Promise<{ email: string | null }> {
+export interface VerificationInfo {
+  valid: boolean;
+  /** Masked, e.g. a***e@example.com. */
+  email: string | null;
+  firstName: string | null;
+}
+
+/** Describes a confirmation link without spending it. */
+export async function inspectVerification(token: string): Promise<VerificationInfo> {
+  const dto = await apiRequest<{ valid: boolean; email: string | null; first_name: string | null }>(
+    "/api/auth/verify-email/inspect",
+    { method: "POST", ...QUIET, body: { token } },
+  );
+  return { valid: dto.valid, email: dto.email, firstName: dto.first_name };
+}
+
+/** Confirms the address. The password is the one the account was registered
+ * with: a click on the link alone never activates a password someone else chose. */
+export async function verifyEmail(token: string, password: string): Promise<{ email: string | null }> {
   return apiRequest<{ verified: boolean; email: string | null }>("/api/auth/verify-email", {
     method: "POST",
     ...QUIET,
-    body: { token },
+    body: { token, password },
+  });
+}
+
+/** For whoever controls the mailbox but isn't the person who registered (or forgot
+ * that password): confirms the address AND replaces the password. */
+export async function verifyEmailWithNewPassword(
+  token: string,
+  password: string,
+  passwordConfirm: string,
+): Promise<{ email: string | null }> {
+  return apiRequest<{ verified: boolean; email: string | null }>("/api/auth/verify-email/set-password", {
+    method: "POST",
+    ...QUIET,
+    body: { token, password, password_confirm: passwordConfirm },
   });
 }
 

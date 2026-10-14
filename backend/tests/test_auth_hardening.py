@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
-from app.config import Settings, get_settings
+from app.config import Settings, get_settings, production_problems
 from app.core.logging import RedactingFilter, redact
 from app.security.client import client_address, client_ip, rate_limit_key
 from tests.auth_helpers import PASSWORD, csrf_headers, login, register, sign_in, sign_up
@@ -111,12 +111,15 @@ def test_session_listing_exposes_ids_not_tokens(client) -> None:
 # --- API docs ----------------------------------------------------------------------------------------
 
 
+_PROD_ENV = dict(JWT_SECRET="p" * 40, APP_BASE_URL="https://sportarenaglobal.ru", CORS_ORIGINS="https://sportarenaglobal.ru")
+
+
 def test_swagger_is_off_in_production_and_on_in_the_sandbox(client, monkeypatch) -> None:
-    with _app_client(monkeypatch, APP_MODE="main") as prod:
+    with _app_client(monkeypatch, APP_MODE="main", **_PROD_ENV) as prod:
         assert [prod.get(p).status_code for p in ("/docs", "/redoc", "/openapi.json")] == [404, 404, 404]
     with _app_client(monkeypatch, APP_MODE="sandbox") as dev:
         assert [dev.get(p).status_code for p in ("/docs", "/openapi.json")] == [200, 200]
-    with _app_client(monkeypatch, APP_MODE="main", API_DOCS_ENABLED="true") as forced:
+    with _app_client(monkeypatch, APP_MODE="main", API_DOCS_ENABLED="true", **_PROD_ENV) as forced:
         assert forced.get("/openapi.json").status_code == 200
 
 
@@ -320,3 +323,72 @@ def test_the_shipped_example_env_files_load_and_are_safe_by_default(name) -> Non
     assert settings.password_min_length == 12
     assert settings.trust_proxy_headers is (name == ".env.production.example")
     assert settings.bearer_auth_enabled is (name == ".env.example")
+
+
+# --- production configuration is checked at startup ------------------------------------------------------
+
+
+def _prod(**env) -> Settings:
+    base = dict(APP_MODE="main", JWT_SECRET="x" * 40, APP_BASE_URL="https://sportarenaglobal.ru",
+                CORS_ORIGINS="https://sportarenaglobal.ru", SMTP_HOST="smtp.example.com", TRUST_PROXY_HEADERS="true")
+    return Settings(_env_file=None, **{**base, **env})
+
+
+def test_a_proper_production_configuration_is_clean() -> None:
+    assert production_problems(_prod()) == ([], [])
+
+
+@pytest.mark.parametrize(
+    ("override", "needle"),
+    [
+        ({"JWT_SECRET": "change-me-to-a-long-random-string"}, "JWT_SECRET"),
+        ({"JWT_SECRET": "too-short"}, "JWT_SECRET"),
+        ({"APP_BASE_URL": "http://sportarenaglobal.ru"}, "APP_BASE_URL"),
+        ({"COOKIE_SECURE": "false"}, "COOKIE_SECURE"),
+        ({"CORS_ORIGINS": "*"}, "CORS_ORIGINS"),
+        ({"COOKIE_SAMESITE": "none", "COOKIE_SECURE": "false"}, "COOKIE"),
+    ],
+)
+def test_unsafe_production_settings_are_fatal(override, needle) -> None:
+    fatal, _ = production_problems(_prod(**override))
+
+    assert any(needle in message for message in fatal), fatal
+
+
+def test_risky_but_workable_production_settings_only_warn() -> None:
+    fatal, warnings = production_problems(_prod(SMTP_HOST="", TRUST_PROXY_HEADERS="false", BEARER_AUTH_ENABLED="true"))
+
+    assert fatal == []
+    joined = " ".join(warnings)
+    assert "SMTP_HOST" in joined and "TRUST_PROXY_HEADERS" in joined and "BEARER_AUTH_ENABLED" in joined
+
+
+def test_nothing_is_enforced_outside_production() -> None:
+    assert production_problems(Settings(_env_file=None, APP_MODE="sandbox", JWT_SECRET="short")) == ([], [])
+
+
+def test_the_backend_refuses_to_start_with_an_unsafe_production_configuration(client, monkeypatch) -> None:
+    with pytest.raises(RuntimeError, match="unsafe production configuration"):
+        with _app_client(monkeypatch, APP_MODE="main", JWT_SECRET="change-me-to-a-long-random-string"):
+            pass
+
+
+def test_the_config_checker_script_fails_on_a_placeholder_secret_and_passes_a_real_one(tmp_path) -> None:
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    script = Path(__file__).resolve().parents[1] / "scripts" / "check_production_config.py"
+    good = tmp_path / "good.env"
+    good.write_text("APP_MODE=main\nJWT_SECRET=" + "k" * 40 + "\nAPP_BASE_URL=https://example.org\nCORS_ORIGINS=https://example.org\n"
+                    "SMTP_HOST=smtp.example.org\nTRUST_PROXY_HEADERS=true\n")
+    bad = tmp_path / "bad.env"
+    bad.write_text("APP_MODE=main\nJWT_SECRET=change-me-to-a-long-random-string\nAPP_BASE_URL=https://example.org\n")
+
+    def run(env_file: Path):
+        return subprocess.run([sys.executable, str(script)], capture_output=True, text=True,
+                              env={"ENV_FILE": str(env_file), "PATH": "/usr/bin:/bin"})
+
+    assert run(good).returncode == 0 and "OK" in run(good).stdout
+    failed = run(bad)
+    assert failed.returncode == 1 and "FATAL" in failed.stdout and "JWT_SECRET" in failed.stdout

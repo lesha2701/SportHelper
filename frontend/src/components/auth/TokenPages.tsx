@@ -1,5 +1,14 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { confirmEmailChange, forgotPassword, resendVerification, resetPassword, verifyEmail } from "../../api/auth";
+import {
+  confirmEmailChange,
+  forgotPassword,
+  inspectVerification,
+  resendVerification,
+  resetPassword,
+  verifyEmail,
+  verifyEmailWithNewPassword,
+  type VerificationInfo,
+} from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
 import { loginUrl, navigate, safeNext, useLocation } from "../../router";
 import { Link } from "../Link";
@@ -95,14 +104,69 @@ function ResendBox({ initialEmail = "", next = null }: { initialEmail?: string; 
   );
 }
 
+type VerifyMode = "confirm" | "set-password";
+
+/** Opened from the confirmation email. Confirming an address also asks for a
+ * password, so that a link which reached the wrong person (someone typed THEIR
+ * address into a sign-up form with a password of their own) can't switch that
+ * stranger's password on: the owner either enters the password they chose
+ * when registering, or sets a new one - which replaces the stranger's. */
 export function VerifyEmailPage() {
   const { search } = useLocation();
   const token = readToken(search);
   const next = safeNext(new URLSearchParams(search).get("next"));
   const { state } = useAuth();
-  const outcome = useTokenAction(token, "verify-email", async (t) => verifyEmail(t));
 
-  if (outcome.status === "working") {
+  const [info, setInfo] = useState<VerificationInfo | null | "error">(token ? null : { valid: false, email: null, firstName: null });
+  const [mode, setMode] = useState<VerifyMode>("confirm");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<FormError | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    inspectVerification(token)
+      .then((result) => !cancelled && setInfo(result))
+      .catch(() => !cancelled && setInfo("error"));
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setLocalError(null);
+    if (mode === "set-password") {
+      if ([...password].length < PASSWORD_MIN_LENGTH) {
+        setLocalError(`Пароль слишком короткий: минимум ${PASSWORD_MIN_LENGTH} символов.`);
+        return;
+      }
+      if (password !== confirm) {
+        setLocalError("Пароли не совпадают.");
+        return;
+      }
+    } else if (!password) {
+      setLocalError("Введите пароль.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const result = mode === "set-password" ? await verifyEmailWithNewPassword(token, password, confirm) : await verifyEmail(token, password);
+      setDone(result.email);
+    } catch (err) {
+      const failure = toFormError(err);
+      if (failure.code === "invalid_token") setInfo({ valid: false, email: null, firstName: null });
+      else setError(failure);
+      setSubmitting(false);
+    }
+  };
+
+  if (info === null) {
     return (
       <AuthLayout title="Подтверждаем email…">
         <p className={styles.lead}>Одну секунду, проверяем ссылку.</p>
@@ -113,10 +177,13 @@ export function VerifyEmailPage() {
     );
   }
 
-  if (outcome.status === "ok") {
+  if (done !== undefined) {
     const signedIn = state.status === "ready";
     return (
-      <AuthLayout title="Email подтверждён" lead={outcome.value.email ? <>Адрес <span className={styles.address}>{outcome.value.email}</span> подтверждён — аккаунт готов к работе.</> : "Аккаунт готов к работе."}>
+      <AuthLayout
+        title="Email подтверждён"
+        lead={done ? <>Адрес <span className={styles.address}>{done}</span> подтверждён — аккаунт готов к работе.</> : "Аккаунт готов к работе."}
+      >
         <div className={`${styles.statusIcon} ${styles.statusIconSuccess}`}>
           <Icon name="check-circle" size={32} />
         </div>
@@ -135,21 +202,94 @@ export function VerifyEmailPage() {
     );
   }
 
+  if (info === "error" || !info.valid) {
+    return (
+      <AuthLayout title="Ссылка не сработала" lead={info === "error" ? "Не удалось проверить ссылку. Попробуйте ещё раз." : "Ссылка недействительна или устарела. Запросите новую."}>
+        <div className={`${styles.statusIcon} ${styles.statusIconDanger}`}>
+          <Icon name="alert-triangle" size={30} />
+        </div>
+        <p className={styles.lead} style={{ margin: 0 }}>
+          Возможно, ссылка уже использована или устарела. Запросите новую — старая перестанет работать.
+        </p>
+        <ResendBox next={next} />
+        <p className={styles.footerLine}>
+          Уже подтвердили?{" "}
+          <Link to={loginUrl(next)} className={styles.link}>
+            Войти
+          </Link>
+        </p>
+      </AuthLayout>
+    );
+  }
+
+  const passwordError = localError ?? (error?.field === "password" ? error.message : null);
+  const setting = mode === "set-password";
   return (
-    <AuthLayout title="Ссылка не сработала" lead={outcome.error.message}>
-      <div className={`${styles.statusIcon} ${styles.statusIconDanger}`}>
-        <Icon name="alert-triangle" size={30} />
-      </div>
-      <p className={styles.lead} style={{ margin: 0 }}>
-        Возможно, ссылка уже использована или устарела. Запросите новую — старая перестанет работать.
-      </p>
-      <ResendBox next={next} />
-      <p className={styles.footerLine}>
-        Уже подтвердили?{" "}
-        <Link to={loginUrl(next)} className={styles.link}>
-          Войти
-        </Link>
-      </p>
+    <AuthLayout
+      title={setting ? "Новый пароль" : "Подтвердите email"}
+      lead={
+        setting ? (
+          <>
+            Вы подтверждаете адрес <span className={styles.address}>{info.email}</span> и задаёте для него новый пароль. Пароль,
+            указанный при регистрации, перестанет действовать.
+          </>
+        ) : (
+          <>
+            Чтобы подтвердить адрес <span className={styles.address}>{info.email}</span>, введите пароль, который вы указали при
+            регистрации. Так мы убеждаемся, что аккаунт активирует тот, кто его создавал.
+          </>
+        )
+      }
+    >
+      <form className={styles.form} onSubmit={submit} noValidate>
+        {error && error.field !== "password" && <Notice kind="danger">{error.message}</Notice>}
+        {error?.code === "password_mismatch" && !setting && (
+          <Notice kind="info">
+            Если вы не регистрировались или не помните пароль —{" "}
+            <button type="button" className={styles.linkButton} onClick={() => { setMode("set-password"); setPassword(""); setError(null); }}>
+              задайте новый пароль
+            </button>
+            . Доступ к этому письму подтверждает, что адрес ваш.
+          </Notice>
+        )}
+        <PasswordField
+          label={setting ? "Новый пароль" : "Пароль"}
+          name={setting ? "new-password" : "current-password"}
+          autoComplete={setting ? "new-password" : "current-password"}
+          autoFocus
+          showMeter={setting}
+          value={password}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            setLocalError(null);
+          }}
+          error={passwordError}
+          hint={setting ? `Минимум ${PASSWORD_MIN_LENGTH} символов.` : undefined}
+          disabled={submitting}
+        />
+        {setting && (
+          <PasswordField
+            label="Повторите пароль"
+            name="new-password-confirm"
+            autoComplete="new-password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            disabled={submitting}
+          />
+        )}
+        <SubmitButton loading={submitting} loadingText="Подтверждаем…">
+          {setting ? "Подтвердить и сохранить пароль" : "Подтвердить email"}
+        </SubmitButton>
+        {!setting ? (
+          <button type="button" className={styles.linkButton} style={{ alignSelf: "center" }} onClick={() => { setMode("set-password"); setPassword(""); setError(null); }}>
+            Я не регистрировался(-ась) или забыл(-а) пароль
+          </button>
+        ) : (
+          <button type="button" className={styles.linkButton} style={{ alignSelf: "center" }} onClick={() => { setMode("confirm"); setPassword(""); setConfirm(""); setLocalError(null); }}>
+            Назад: ввести прежний пароль
+          </button>
+        )}
+      </form>
     </AuthLayout>
   );
 }

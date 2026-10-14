@@ -37,7 +37,7 @@ from app.api.routes import (
     trainings,
 )
 from app.bot.bot import create_bot
-from app.config import Settings, get_settings
+from app.config import Settings, get_settings, production_problems
 from app.core.error_log import attach_error_log_handler
 from app.core.exceptions import APIError
 from app.core.logging import configure_logging
@@ -78,13 +78,18 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     configure_logging(settings.app_mode)
     logger.info("Starting SportArena Global backend (mode=%s)", settings.app_mode)
+    fatal, warnings = production_problems(settings)
+    for message in warnings:
+        logger.warning("Configuration: %s", message)
+    if fatal:
+        for message in fatal:
+            logger.critical("Unsafe configuration: %s", message)
+        raise RuntimeError("Refusing to start with an unsafe production configuration: " + "; ".join(fatal))
 
     pool = await create_pool(settings)
     await run_migrations(pool)
     app.state.db_pool = pool
     app.state.rate_limiter = RateLimiter(settings.rate_limit_per_minute)
-    if settings.jwt_secret == "change-me-to-a-long-random-string" and settings.app_mode == "main":
-        logger.error("JWT_SECRET is still the default value — set a long random secret in .env")
     _attach_error_log_handler(pool)
 
     background_task = await _start_background_task(pool, settings)

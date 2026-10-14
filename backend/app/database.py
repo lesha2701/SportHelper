@@ -58,30 +58,44 @@ def _discover_patches() -> list[tuple[int, Path]]:
     return patches
 
 
+# One number for the whole project: `pg_advisory_lock` makes concurrent starters (the
+# backend and the bot container boot together; a rolling restart briefly overlaps old and
+# new containers) take turns instead of racing each other through the same patch.
+_MIGRATION_LOCK_ID = 727_274_001
+
+
 async def run_migrations(pool: asyncpg.Pool) -> None:
     """Apply schema.sql (fresh DB) and/or any pending patches (existing DB)."""
     async with pool.acquire() as conn:
-        if not await _schema_versions_exists(conn):
-            schema_path = DATABASE_DIR / "schema.sql"
-            logger.info("schema_versions not found, applying baseline schema.sql")
-            sql = schema_path.read_text(encoding="utf-8")
-            async with conn.transaction():
-                await conn.execute(sql)
+        await conn.execute("SELECT pg_advisory_lock($1)", _MIGRATION_LOCK_ID)
+        try:
+            await _run_migrations_locked(conn)
+        finally:
+            await conn.execute("SELECT pg_advisory_unlock($1)", _MIGRATION_LOCK_ID)
 
-        current_version = await _current_version(conn)
-        for version, path in _discover_patches():
-            if version <= current_version:
-                continue
-            logger.info("Applying patch %s (version %s)", path.name, version)
-            sql = path.read_text(encoding="utf-8")
-            async with conn.transaction():
-                await conn.execute(sql)
-                await conn.execute(
-                    "INSERT INTO schema_versions (version, name) VALUES ($1, $2)",
-                    version,
-                    path.name,
-                )
-            current_version = version
+
+async def _run_migrations_locked(conn: asyncpg.Connection) -> None:
+    if not await _schema_versions_exists(conn):
+        schema_path = DATABASE_DIR / "schema.sql"
+        logger.info("schema_versions not found, applying baseline schema.sql")
+        sql = schema_path.read_text(encoding="utf-8")
+        async with conn.transaction():
+            await conn.execute(sql)
+
+    current_version = await _current_version(conn)
+    for version, path in _discover_patches():
+        if version <= current_version:
+            continue
+        logger.info("Applying patch %s (version %s)", path.name, version)
+        sql = path.read_text(encoding="utf-8")
+        async with conn.transaction():
+            await conn.execute(sql)
+            await conn.execute(
+                "INSERT INTO schema_versions (version, name) VALUES ($1, $2)",
+                version,
+                path.name,
+            )
+        current_version = version
 
 
 async def check_connection(pool: asyncpg.Pool) -> bool:

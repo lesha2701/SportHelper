@@ -56,7 +56,10 @@ services:
       args:
         VITE_API_BASE_URL: https://${DOMAIN}
     restart: unless-stopped
-    env_file: .env
+    # Caddy needs only the domain. (It used to get the whole .env - database password,
+    # JWT secret, SMTP password - in its environment for no reason.)
+    environment:
+      DOMAIN: ${DOMAIN}
     ports:
       - "80:80"
       - "443:443"

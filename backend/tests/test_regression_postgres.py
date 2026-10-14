@@ -24,7 +24,7 @@ class Browser:
         assert client.post("/api/auth/register", json={
             "first_name": first_name, "email": email, "password": PASSWORD, "password_confirm": PASSWORD,
             "accept_terms": True, "role": role}).status_code == 201
-        assert client.post("/api/auth/verify-email", json={"token": link_token(client.outbox[-1])}).status_code == 200
+        assert client.post("/api/auth/verify-email", json={"token": link_token(client.outbox[-1]), "password": PASSWORD}).status_code == 200
         login = client.post("/api/auth/login", json={"email": email, "password": PASSWORD})
         assert login.status_code == 200, login.text
         self.csrf = login.json()["csrf_token"]

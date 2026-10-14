@@ -16,6 +16,8 @@ vi.mock("../../api/auth", () => ({
   forgotPassword: vi.fn(),
   resetPassword: vi.fn(),
   verifyEmail: vi.fn(),
+  inspectVerification: vi.fn(),
+  verifyEmailWithNewPassword: vi.fn(),
   confirmEmailChange: vi.fn(),
   inspectClaim: vi.fn(),
   claimAccount: vi.fn(),
@@ -398,21 +400,77 @@ describe("password recovery", () => {
 
 // --- email confirmation ----------------------------------------------------------------------------
 
+const VALID_LINK = { valid: true, email: "a***e@example.com", firstName: "Алиса" };
+
 describe("email confirmation page", () => {
-  it("confirms the address and offers to sign in", async () => {
-    api.verifyEmail.mockResolvedValue({ email: "alice@example.com" });
+  beforeEach(() => api.inspectVerification.mockResolvedValue(VALID_LINK));
+
+  it("asks for the registration password instead of confirming on a bare click", async () => {
     at("/verify-email?token=tok-ok");
     render(<VerifyEmailPage />);
 
-    await screen.findByText("Email подтверждён");
+    await screen.findByText("Подтвердите email");
 
+    expect(screen.getByText("a***e@example.com")).toBeTruthy();
+    expect(api.verifyEmail).not.toHaveBeenCalled(); // opening the link spends nothing
+  });
+
+  it("confirms with the password and offers to sign in", async () => {
+    api.verifyEmail.mockResolvedValue({ email: "alice@example.com" });
+    at("/verify-email?token=tok-ok");
+    render(<VerifyEmailPage />);
+    await screen.findByText("Подтвердите email");
+
+    type("Пароль", STRONG);
+    click("Подтвердить email");
+
+    await screen.findByText("Email подтверждён");
+    expect(api.verifyEmail).toHaveBeenCalledWith("tok-ok", STRONG);
     expect(screen.getByRole("link", { name: "Войти" }).getAttribute("href")).toBe("/login?verified=1");
+  });
+
+  it("a wrong password does not confirm, and points the real owner to setting a new one", async () => {
+    api.verifyEmail.mockRejectedValue(apiError(403, "password_mismatch", "Пароль не совпадает с тем, что указан при регистрации.", "password"));
+    api.verifyEmailWithNewPassword.mockResolvedValue({ email: "alice@example.com" });
+    at("/verify-email?token=tok-hijack");
+    render(<VerifyEmailPage />);
+    await screen.findByText("Подтвердите email");
+    type("Пароль", "a stranger chose this");
+    click("Подтвердить email");
+
+    await screen.findByText(/Пароль не совпадает/);
+    fireEvent.click(screen.getByRole("button", { name: "задайте новый пароль" }));
+    expect(await screen.findByRole("heading", { name: "Новый пароль" })).toBeTruthy();
+    expect((screen.getByLabelText("Новый пароль") as HTMLInputElement).value).toBe(""); // the wrong guess isn't carried over
+    type("Новый пароль", "my own brand new passphrase");
+    type("Повторите пароль", "my own brand new passphrase");
+    click("Подтвердить и сохранить пароль");
+
+    await screen.findByText("Email подтверждён");
+    expect(api.verifyEmailWithNewPassword).toHaveBeenCalledWith("tok-hijack", "my own brand new passphrase", "my own brand new passphrase");
+  });
+
+  it("someone who never registered can go straight to setting a new password", async () => {
+    at("/verify-email?token=tok-x");
+    render(<VerifyEmailPage />);
+    await screen.findByText("Подтвердите email");
+
+    fireEvent.click(screen.getByRole("button", { name: /Я не регистрировался/ }));
+
+    expect(await screen.findByText(/Пароль, указанный при регистрации, перестанет действовать|перестанет действовать/)).toBeTruthy();
+    type("Новый пароль", "short");
+    click("Подтвердить и сохранить пароль");
+    expect(screen.getByText(/слишком короткий/)).toBeTruthy();
+    expect(api.verifyEmailWithNewPassword).not.toHaveBeenCalled();
   });
 
   it("after confirming, the sign-in link still leads to the booking the person started", async () => {
     api.verifyEmail.mockResolvedValue({ email: "alice@example.com" });
     at("/verify-email?token=tok-next&next=%2F%3Fbook%3Dlisting-42");
     render(<VerifyEmailPage />);
+    await screen.findByText("Подтвердите email");
+    type("Пароль", STRONG);
+    click("Подтвердить email");
 
     await screen.findByText("Email подтверждён");
 
@@ -423,14 +481,16 @@ describe("email confirmation page", () => {
     api.verifyEmail.mockResolvedValue({ email: "alice@example.com" });
     at("/verify-email?token=tok-evil&next=https%3A%2F%2Fevil.example");
     render(<VerifyEmailPage />);
+    await screen.findByText("Подтвердите email");
+    type("Пароль", STRONG);
+    click("Подтвердить email");
 
     await screen.findByText("Email подтверждён");
 
     expect(screen.getByRole("link", { name: "Войти" }).getAttribute("href")).toBe("/login?verified=1");
   });
 
-  it("spends the one-time link exactly once even if React renders the page twice", async () => {
-    api.verifyEmail.mockResolvedValue({ email: "alice@example.com" });
+  it("looking at the link twice (StrictMode) never spends it", async () => {
     at("/verify-email?token=tok-strict");
 
     render(
@@ -439,12 +499,13 @@ describe("email confirmation page", () => {
       </StrictMode>,
     );
 
-    await screen.findByText("Email подтверждён");
-    expect(api.verifyEmail).toHaveBeenCalledTimes(1);
+    await screen.findByText("Подтвердите email");
+    expect(api.verifyEmail).not.toHaveBeenCalled();
+    expect(api.verifyEmailWithNewPassword).not.toHaveBeenCalled();
   });
 
-  it("lets the person request a fresh link when this one failed", async () => {
-    api.verifyEmail.mockRejectedValue(apiError(400, "invalid_token", "Ссылка недействительна или устарела."));
+  it("lets the person request a fresh link when this one is no longer valid", async () => {
+    api.inspectVerification.mockResolvedValue({ valid: false, email: null, firstName: null });
     api.resendVerification.mockResolvedValue("ok");
     at("/verify-email?token=tok-bad");
     render(<VerifyEmailPage />);

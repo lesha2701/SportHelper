@@ -18,6 +18,8 @@ PUBLIC_ROUTES = {
     ("POST", "/api/auth/login"),
     ("POST", "/api/auth/logout"),  # idempotent: nothing to end without a session
     ("POST", "/api/auth/verify-email"),
+    ("POST", "/api/auth/verify-email/inspect"),
+    ("POST", "/api/auth/verify-email/set-password"),
     ("POST", "/api/auth/resend-verification"),
     ("POST", "/api/auth/forgot-password"),
     ("POST", "/api/auth/reset-password"),

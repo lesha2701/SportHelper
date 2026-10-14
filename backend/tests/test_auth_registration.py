@@ -130,7 +130,7 @@ def test_verification_link_confirms_the_email_and_unlocks_login(client) -> None:
     assert before.status_code == 403
     assert before.json()["error"]["code"] == "email_not_verified"
 
-    resp = client.post("/api/auth/verify-email", json={"token": link_token(mails_to(client, "alice@example.com")[0])})
+    resp = client.post("/api/auth/verify-email", json={"token": link_token(mails_to(client, "alice@example.com")[0]), "password": PASSWORD})
 
     assert resp.status_code == 200
     assert resp.json() == {"verified": True, "email": "alice@example.com"}
@@ -142,8 +142,8 @@ def test_verification_token_is_single_use(client) -> None:
     register(client)
     token = link_token(mails_to(client, "alice@example.com")[0])
 
-    assert client.post("/api/auth/verify-email", json={"token": token}).status_code == 200
-    again = client.post("/api/auth/verify-email", json={"token": token})
+    assert client.post("/api/auth/verify-email", json={"token": token, "password": PASSWORD}).status_code == 200
+    again = client.post("/api/auth/verify-email", json={"token": token, "password": PASSWORD})
 
     assert again.status_code == 400
     assert again.json()["error"]["code"] == "invalid_token"
@@ -155,7 +155,7 @@ def test_expired_verification_token_is_refused(client) -> None:
     for stored in client.auth_store.tokens:
         stored["expires_at"] = datetime.now(timezone.utc) - timedelta(seconds=1)
 
-    resp = client.post("/api/auth/verify-email", json={"token": token})
+    resp = client.post("/api/auth/verify-email", json={"token": token, "password": PASSWORD})
 
     assert resp.status_code == 400
     assert client.auth_store.find_by_email("alice@example.com")["email_verified_at"] is None
@@ -166,7 +166,7 @@ def test_garbage_and_tampered_tokens_are_refused(client) -> None:
     token = link_token(mails_to(client, "alice@example.com")[0])
 
     for bad in ("", "nope", token[:-1] + ("A" if token[-1] != "A" else "B"), token + "x"):
-        assert client.post("/api/auth/verify-email", json={"token": bad}).status_code == 400
+        assert client.post("/api/auth/verify-email", json={"token": bad, "password": PASSWORD}).status_code == 400
 
 
 def test_tokens_are_stored_hashed_never_in_clear(client) -> None:
@@ -186,8 +186,8 @@ def test_resend_sends_a_fresh_link_and_kills_the_old_one(client) -> None:
     assert len(mails_to(client, "alice@example.com")) == 2
     second = link_token(mails_to(client, "alice@example.com")[1])
     assert first != second
-    assert client.post("/api/auth/verify-email", json={"token": first}).status_code == 400
-    assert client.post("/api/auth/verify-email", json={"token": second}).status_code == 200
+    assert client.post("/api/auth/verify-email", json={"token": first, "password": PASSWORD}).status_code == 400
+    assert client.post("/api/auth/verify-email", json={"token": second, "password": PASSWORD}).status_code == 200
 
 
 def test_resend_does_not_reveal_whether_an_address_exists(client) -> None:
@@ -220,8 +220,8 @@ def test_reregistering_an_unconfirmed_email_replaces_the_old_attempt(client) -> 
 
     assert second.status_code == 201
     assert len([u for u in client.auth_store.users.values() if u["email"]]) == 1  # no squatting, no duplicate
-    assert client.post("/api/auth/verify-email", json={"token": first_token}).status_code == 400
-    verify_latest(client, "alice@example.com")
+    assert client.post("/api/auth/verify-email", json={"token": first_token, "password": PASSWORD}).status_code == 400
+    verify_latest(client, "alice@example.com", "second passphrase there")
     assert login(client, password="first passphrase here").status_code == 401
     assert login(client, password="second passphrase there").status_code == 200
 

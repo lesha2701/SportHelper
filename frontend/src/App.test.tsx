@@ -133,11 +133,10 @@ describe("a signed-in user", () => {
   });
 
   it("email links work for them as well", async () => {
-    api.verifyEmail.mockResolvedValue({ email: "alice@example.com" });
+    api.inspectVerification.mockResolvedValue({ valid: true, email: "a***e@example.com", firstName: "Алиса" });
     open("/verify-email?token=t1");
 
-    expect(await screen.findByText("Email подтверждён")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Перейти в приложение" })).toBeTruthy();
+    expect(await screen.findByText("Подтвердите email")).toBeTruthy();
   });
 });
 

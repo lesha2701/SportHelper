@@ -337,7 +337,7 @@ def install(monkeypatch: pytest.MonkeyPatch, store: FakeAuthStore) -> None:
         monkeypatch.setattr(mfa, name, fn)
 
     # ---- composite account operations --------------------------------------------
-    async def a_verify_email(conn, token_hash):
+    async def a_verify_email(conn, token_hash, new_password_hash=None):
         t = _valid(token_hash, "email_verify")
         if t is None:
             return "invalid", None
@@ -346,7 +346,9 @@ def install(monkeypatch: pytest.MonkeyPatch, store: FakeAuthStore) -> None:
             return "email_taken", None
         t["used_at"] = _now()
         record = store.users[t["user_id"]]
-        record.update(email=t["new_email"], email_verified_at=_now())
+        record.update(email=t["new_email"], email_verified_at=_now(), failed_login_count=0, locked_until=None)
+        if new_password_hash is not None:
+            record.update(password_hash=new_password_hash, password_changed_at=_now())
         return "ok", store.user_view(record)
 
     async def a_reset_password(conn, token_hash, password_hash):

@@ -56,6 +56,25 @@ class MessageOut(BaseModel):
     message: str
 
 
+class VerifyEmailIn(BaseModel):
+    token: str = Field(max_length=512)
+    # The password the account was registered with: confirming the address must
+    # also prove you are the person who registered it (see routes/auth.py).
+    password: str = Field(max_length=2048)
+
+
+class VerifyEmailSetPasswordIn(BaseModel):
+    token: str = Field(max_length=512)
+    password: str = Field(max_length=2048)
+    password_confirm: str = Field(max_length=2048)
+
+
+class VerifyInspectOut(BaseModel):
+    valid: bool
+    email: str | None = None  # masked, e.g. a***e@example.com
+    first_name: str | None = None
+
+
 class VerifyEmailOut(BaseModel):
     verified: bool
     email: str | None = None
