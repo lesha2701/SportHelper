@@ -24,7 +24,7 @@ PUBLIC_ROUTES = {
     ("POST", "/api/auth/verify-email/inspect"), ("POST", "/api/auth/verify-email/set-password"),
     ("GET", "/api/coach-listings"), ("GET", "/api/coach-listings/{listing_id}"), ("GET", "/api/coach-listings/{listing_id}/slots"),
     ("GET", "/api/coaches/{coach_user_id}/listings"), ("GET", "/api/coaches/{coach_user_id}/profile"), ("GET", "/api/coaches/{coach_user_id}/reviews"),
-    ("GET", "/api/files/{file_id}"), ("GET", "/api/health"), ("GET", "/api/profile/media/{user_id}"),
+    ("GET", "/api/features"), ("GET", "/api/files/{file_id}"), ("GET", "/api/health"), ("GET", "/api/profile/media/{user_id}"),
 }
 _AUTH_DEPENDENCIES = {
     deps.get_current_user, deps.get_auth_context, deps.require_admin, deps.require_admin_mfa, deps.require_admin_write,

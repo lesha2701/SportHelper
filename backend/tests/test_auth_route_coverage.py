@@ -13,6 +13,7 @@ from fastapi.routing import APIRoute
 PUBLIC_ROUTES = {
     # health & docs
     ("GET", "/api/health"),
+    ("GET", "/api/features"),
     # sign-up, sign-in and account recovery (these ARE the way in)
     ("POST", "/api/auth/register"),
     ("POST", "/api/auth/login"),

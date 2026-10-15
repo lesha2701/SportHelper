@@ -1,4 +1,4 @@
-import { TELEGRAM_ENABLED } from "../../features";
+import { useTelegramEnabled } from "../../features";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
   cancelAccountDeletion,
@@ -635,6 +635,7 @@ function DeleteSection() {
 
 export function AccountSecurity() {
   const { logout } = useAuth();
+  const telegramEnabled = useTelegramEnabled();
   const [reloadKey, setReloadKey] = useState(0);
 
   return (
@@ -643,7 +644,7 @@ export function AccountSecurity() {
       <EmailSection />
       <PasswordSection onChanged={() => setReloadKey((k) => k + 1)} />
       <SessionsSection reloadKey={reloadKey} />
-      {TELEGRAM_ENABLED && <TelegramSection />}
+      {telegramEnabled && <TelegramSection />}
       <MfaSection />
       <DeleteSection />
       <button type="button" className={profileStyles.buttonSecondary} onClick={() => void logout()}>

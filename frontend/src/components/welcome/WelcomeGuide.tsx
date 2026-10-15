@@ -1,4 +1,3 @@
-import { TELEGRAM_ENABLED } from "../../features";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BrandLogo } from "../shared/BrandLogo";
 import { Icon, type IconName } from "../shared/Icon";
@@ -120,9 +119,7 @@ const STEPS: Step[] = [
       "Календарь собирает тренировки, матчи и дедлайны заданий по всем вашим командам.",
       "Посещаемость, серия тренировок и выполненные задания складываются в вашу статистику.",
       "В команду можно вступить по ссылке-приглашению от тренера.",
-      TELEGRAM_ENABLED
-        ? "Уведомления в Telegram и в приложении не дадут пропустить важное."
-        : "Уведомления в приложении не дадут пропустить важное.",
+      "Уведомления в приложении не дадут пропустить важное.",
     ],
     visual: () => (
       <div className={styles.bento}>

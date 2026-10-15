@@ -35,7 +35,7 @@ Telegram в настройках, и для административных к�
 
 | Переменная | Назначение |
 |---|---|
-| `TELEGRAM_ENABLED` | Общий выключатель Telegram-интеграции, по умолчанию `false`: бот простаивает (не обращается к Telegram), кнопка «Подключить Telegram» скрыта, уведомления только в колокольчике на сайте. Чтобы вернуть: `TELEGRAM_ENABLED=true` + токен, и `TELEGRAM_ENABLED = true` в `frontend/src/features.ts`. |
+| `TELEGRAM_ENABLED` | Общий выключатель Telegram-интеграции, по умолчанию `false`: бот простаивает (не обращается к Telegram), кнопка «Подключить Telegram» скрыта, уведомления только в колокольчике на сайте. Чтобы вернуть: `TELEGRAM_ENABLED=true` + токен и имя бота, затем перезапуск `backend` и `bot` (сайт сам узнаёт состояние у сервера через `GET /api/features`, во фронтенде менять ничего не нужно). |
 | `TELEGRAM_BOT_TOKEN` | Токен бота от [@BotFather](https://t.me/BotFather). Нужен `run_bot.py` и фоновой отправке уведомлений. |
 | `TELEGRAM_BOT_USERNAME` | Username бота без `@` — для кнопки «Подключить Telegram» в настройках аккаунта. |
 

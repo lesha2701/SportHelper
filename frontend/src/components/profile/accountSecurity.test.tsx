@@ -6,11 +6,7 @@ import type { User } from "../../types/user";
 import { AccountSecurity, MfaSection } from "./AccountSecurity";
 
 const flags = vi.hoisted(() => ({ telegram: true }));
-vi.mock("../../features", () => ({
-  get TELEGRAM_ENABLED() {
-    return flags.telegram;
-  },
-}));
+vi.mock("../../features", () => ({ useTelegramEnabled: () => flags.telegram }));
 vi.mock("../../api/auth");
 const api = vi.mocked(authApi);
 

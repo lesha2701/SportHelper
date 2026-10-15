@@ -279,3 +279,16 @@ def test_bot_names_the_account_a_telegram_link_would_attach_to(client) -> None:
 def test_email_masking_handles_short_names() -> None:
     assert claim_service.mask_email("ab@x.ru") == "a***@x.ru"
     assert claim_service.mask_email("alice@example.com") == "a***e@example.com"
+
+
+def test_the_site_learns_from_the_server_whether_telegram_is_offered(client, monkeypatch) -> None:
+    assert client.get("/api/features").json() == {"telegram": True}  # no login needed
+
+    monkeypatch.setenv("TELEGRAM_ENABLED", "false")
+    get_settings.cache_clear()
+    assert client.get("/api/features").json() == {"telegram": False}
+
+    monkeypatch.setenv("TELEGRAM_ENABLED", "true")
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "")
+    get_settings.cache_clear()
+    assert client.get("/api/features").json() == {"telegram": False}  # enabled but not configured

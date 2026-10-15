@@ -1,4 +1,4 @@
-import { TELEGRAM_ENABLED } from "../../features";
+import { useTelegramEnabled } from "../../features";
 import { useState, type FormEvent } from "react";
 import { login, resendVerification } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
@@ -14,6 +14,7 @@ function isBookingIntent(next: string | null): boolean {
 }
 
 export function LoginPage() {
+  const telegramEnabled = useTelegramEnabled();
   const { search } = useLocation();
   const params = new URLSearchParams(search);
   const next = safeNext(params.get("next"));
@@ -129,7 +130,7 @@ export function LoginPage() {
           Создать аккаунт
         </Link>
       </p>
-      {TELEGRAM_ENABLED && (
+      {telegramEnabled && (
         <p className={styles.footerLine} style={{ fontSize: 13 }}>
           Пользовались ботом в Telegram? Откройте бота и нажмите /start — он поможет перенести ваш аккаунт.
         </p>
