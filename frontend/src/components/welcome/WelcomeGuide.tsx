@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { BrandLogo } from "../shared/BrandLogo";
 import { Icon, type IconName } from "../shared/Icon";
 import styles from "./welcome.module.css";
 
@@ -73,7 +74,7 @@ const STEPS: Step[] = [
     extra: "Управляйте командой, тренировками и прогрессом или находите личного тренера и записывайтесь на занятия. Дальше — коротко о том, что здесь есть.",
     visual: () => (
       <div className={styles.hero}>
-        <div className={styles.heroMark}>SA</div>
+        <BrandLogo className={styles.heroMark} label="SportArena Global" />
         <div className={styles.heroChips}>
           <Tiles items={[{ icon: "users", label: "Команда" }, { icon: "dumbbell", label: "Тренировки" }, { icon: "calendar", label: "Календарь" }]} />
         </div>

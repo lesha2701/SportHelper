@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "../Link";
+import { BrandLogo } from "../shared/BrandLogo";
 import { Ornament } from "../shared/Ornament";
 import { Icon, type IconName } from "../shared/Icon";
 import styles from "./auth.module.css";
@@ -21,9 +22,7 @@ export function AuthLayout({ title, lead, children }: { title: string; lead?: Re
         </div>
         <div className={styles.brandInner}>
           <Link to="/" className={styles.brandHome} aria-label="SportArena Global — на главную">
-            <span className={styles.brandMark} aria-hidden="true">
-              SA
-            </span>
+            <BrandLogo className={styles.brandMark} />
             <span className={styles.brandName}>SportArena Global</span>
           </Link>
 

@@ -1,3 +1,4 @@
+import { BrandLogo } from "../shared/BrandLogo";
 import { Icon } from "../shared/Icon";
 import type { NavItem } from "./BottomNav";
 import styles from "./SideNav.module.css";
@@ -34,7 +35,7 @@ export function SideNav<T extends string>({ items, active, onChange, team, onOpe
   return (
     <nav className={styles.nav}>
       <div className={styles.brandRow}>
-        <div className={styles.brandMark}>SA</div>
+        <BrandLogo className={styles.brandMark} />
         <span className={styles.brandName}>SportArena Global</span>
       </div>
 

@@ -3,6 +3,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { currentPathWithSearch, loginUrl, registerUrl, useLocation } from "../../router";
 import { Link } from "../Link";
+import { BrandLogo } from "../shared/BrandLogo";
 import { Icon } from "../shared/Icon";
 import styles from "./public.module.css";
 
@@ -20,9 +21,7 @@ export function PublicShell({ children, next }: { children: ReactNode; next?: st
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <Link to="/" className={styles.brand} aria-label="SportArena Global — на главную">
-            <span className={styles.brandMark} aria-hidden="true">
-              SA
-            </span>
+            <BrandLogo className={styles.brandMark} />
             <span className={styles.brandName}>SportArena Global</span>
           </Link>
 
