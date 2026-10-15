@@ -275,6 +275,7 @@ function MainContent({
         name: primaryTeam.name,
         roleLabel: primaryTeam.myRole ? TEAM_ROLE_LABELS[primaryTeam.myRole] : "Участник",
         initial: initialOf(primaryTeam.name),
+        logo: primaryTeam.logoFileId ? { token, fileId: primaryTeam.logoFileId } : null,
       }
     : null;
 

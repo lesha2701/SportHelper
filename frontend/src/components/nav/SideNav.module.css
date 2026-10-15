@@ -61,6 +61,8 @@
 }
 
 .teamCardAvatar {
+  position: relative;
+  overflow: hidden;
   width: 34px;
   height: 34px;
   flex-shrink: 0;
@@ -73,6 +75,14 @@
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 800;
+}
+
+.teamCardLogo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .teamCardText {

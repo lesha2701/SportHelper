@@ -1,3 +1,4 @@
+import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { BrandLogo } from "../shared/BrandLogo";
 import { Icon } from "../shared/Icon";
 import type { NavItem } from "./BottomNav";
@@ -7,6 +8,8 @@ export interface SideNavTeam {
   name: string;
   roleLabel: string;
   initial: string;
+  /** The team's uploaded logo; the initial stays underneath while it loads or if it fails. */
+  logo?: { token: string; fileId: string } | null;
 }
 
 export interface SideNavUser {
@@ -43,7 +46,12 @@ export function SideNav<T extends string>({ items, active, onChange, team, onOpe
 
       {team && (
         <button type="button" className={styles.teamCard} onClick={onOpenTeam} disabled={!onOpenTeam}>
-          <div className={styles.teamCardAvatar}>{team.initial}</div>
+          <div className={styles.teamCardAvatar}>
+            {team.initial}
+            {team.logo && (
+              <AuthenticatedImage token={team.logo.token} fileId={team.logo.fileId} alt="" thumb className={styles.teamCardLogo} />
+            )}
+          </div>
           <div className={styles.teamCardText}>
             <span className={styles.teamCardName}>{team.name}</span>
             <span className={styles.teamCardRole}>{team.roleLabel}</span>
