@@ -35,6 +35,19 @@ def _signed_in_admin(client):
     return sign_in(client, email=ADMIN)
 
 
+GATED = "/api/_test/admin_data"
+
+
+def _mount(client) -> None:
+    """A stand-in admin route behind the second factor, so the second-factor rules can be tested without a database
+    (what the real routes return is covered against PostgreSQL in test_admin_users.py / test_admin_dashboard.py)."""
+    from fastapi import Depends
+
+    @client.app.get(GATED)
+    async def gated(ctx=Depends(require_admin_mfa)):
+        return {"ok": True}
+
+
 def _victim(client):
     return client.auth_store.new_user(email="victim@fixtures.example.com", email_verified_at=datetime.now(timezone.utc),
                                       password_hash="x", first_name="Жертва")
@@ -145,14 +158,15 @@ def test_enrolling_a_second_factor_needs_the_password_again(client, admin_env) -
 
 
 def test_configured_two_factor_is_not_proof_that_it_was_passed_in_this_session(client, admin_env) -> None:
+    _mount(client)
     info = _signed_in_admin(client)
     _enable_mfa(client, info["csrf"])
-    assert client.get("/api/admin/users").status_code == 200  # enabling it proved possession in this session
+    assert client.get(GATED).status_code == 200  # enabling it proved possession in this session
 
     client.cookies.clear()  # a different browser / a stolen password
     fresh = login(client, email=ADMIN)
     assert fresh.status_code == 200
-    blocked = client.get("/api/admin/users")
+    blocked = client.get(GATED)
 
     assert blocked.status_code == 403 and blocked.json()["error"]["code"] == "mfa_required"
     assert client.post(f"/api/admin/users/{_victim(client)['id']}/ban", headers=csrf_headers(fresh.json()["csrf_token"])).status_code == 403
@@ -162,6 +176,7 @@ def test_configured_two_factor_is_not_proof_that_it_was_passed_in_this_session(c
 
 
 def test_passing_the_code_unlocks_only_that_session(client, admin_env) -> None:
+    _mount(client)
     info = _signed_in_admin(client)
     secret, _ = _enable_mfa(client, info["csrf"])
     first_cookie = client.cookies.get("sag_session")
@@ -171,18 +186,19 @@ def test_passing_the_code_unlocks_only_that_session(client, admin_env) -> None:
 
     ok = client.post("/api/auth/mfa/verify", headers=csrf_headers(second["csrf_token"]), json={"code": _code(secret, 1)})
     assert ok.status_code == 200
-    assert client.get("/api/admin/users").status_code == 200
+    assert client.get(GATED).status_code == 200
 
     client.cookies.clear()
     client.cookies.set("sag_session", first_cookie)
-    assert client.get("/api/admin/users").status_code == 200  # the first session was verified at setup
+    assert client.get(GATED).status_code == 200  # the first session was verified at setup
     client.cookies.clear()
     third = login(client, email=ADMIN)
     assert third.status_code == 200 and client.cookies.get("sag_session") not in (first_cookie, second_cookie)
-    assert client.get("/api/admin/users").status_code == 403  # a third session starts unverified
+    assert client.get(GATED).status_code == 403  # a third session starts unverified
 
 
 def test_the_verification_goes_stale(client, admin_env) -> None:
+    _mount(client)
     info = _signed_in_admin(client)
     _enable_mfa(client, info["csrf"])
     assert client.get("/api/admin/audit").status_code == 200
@@ -194,19 +210,21 @@ def test_the_verification_goes_stale(client, admin_env) -> None:
 
 
 def test_a_recovery_code_counts_as_the_second_factor_once(client, admin_env) -> None:
+    _mount(client)
     info = _signed_in_admin(client)
     _, codes = _enable_mfa(client, info["csrf"])
     client.cookies.clear()
     fresh = login(client, email=ADMIN).json()
 
     assert client.post("/api/auth/mfa/verify", headers=csrf_headers(fresh["csrf_token"]), json={"code": codes[0]}).status_code == 200
-    assert client.get("/api/admin/users").status_code == 200
+    assert client.get(GATED).status_code == 200
     client.cookies.clear()
     again = login(client, email=ADMIN).json()
     assert client.post("/api/auth/mfa/verify", headers=csrf_headers(again["csrf_token"]), json={"code": codes[0]}).status_code == 400
 
 
 def test_a_wrong_code_gives_nothing_and_is_throttled(client, admin_env, monkeypatch) -> None:
+    _mount(client)
     info = _signed_in_admin(client)
     _enable_mfa(client, info["csrf"])
     client.cookies.clear()
@@ -218,56 +236,10 @@ def test_a_wrong_code_gives_nothing_and_is_throttled(client, admin_env, monkeypa
              for n in range(12)]
 
     assert codes[:10] == [400] * 10 and codes[10:] == [429, 429]
-    assert client.get("/api/admin/users").status_code == 403
+    assert client.get(GATED).status_code == 403
 
 
 # --- what the operations do -------------------------------------------------------------------------
-
-
-def test_listing_users_is_available_to_a_verified_admin_and_searchable(client, admin_env) -> None:
-    info = _signed_in_admin(client)
-    _enable_mfa(client, info["csrf"])
-    _victim(client)
-
-    everyone = client.get("/api/admin/users").json()
-    found = client.get("/api/admin/users", params={"q": "victim"}).json()
-
-    assert everyone["total"] == 2 and {u["email"] for u in everyone["items"]} == {ADMIN, "victim@fixtures.example.com"}
-    assert [u["email"] for u in found["items"]] == ["victim@fixtures.example.com"]
-    assert "password" not in client.get("/api/admin/users").text
-
-
-def test_banning_ends_the_users_sessions_is_audited_and_can_be_undone(client, admin_env, login_as) -> None:
-    victim_token = login_as(5001, first_name="Нарушитель")
-    victim = client.auth_store.find_by_email("user5001@fixtures.example.com")
-    info = _signed_in_admin(client)
-    _enable_mfa(client, info["csrf"])
-    headers = csrf_headers(info["csrf"])
-    assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {victim_token}"}).status_code == 200
-
-    banned = client.post(f"/api/admin/users/{victim['id']}/ban", headers=headers)
-
-    assert banned.status_code == 200 and banned.json()["is_banned"] is True
-    assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {victim_token}"}).status_code in (401, 403)
-    audit = client.get("/api/admin/audit").json()
-    assert audit[0]["action"] == "ban" and audit[0]["admin"] == ADMIN and audit[0]["target_id"] == str(victim["id"])
-
-    assert client.post(f"/api/admin/users/{victim['id']}/unban", headers=headers).json()["is_banned"] is False
-    assert [e["action"] for e in client.get("/api/admin/audit").json()][:2] == ["unban", "ban"]
-
-
-def test_an_admin_cannot_ban_themselves_or_another_admin_or_a_stranger_id(client, admin_env, monkeypatch) -> None:
-    monkeypatch.setenv("ADMIN_EMAILS", f"{ADMIN},second@example.com")
-    get_settings.cache_clear()
-    second = client.auth_store.new_user(email="second@example.com", email_verified_at=datetime.now(timezone.utc), password_hash="x")
-    info = _signed_in_admin(client)
-    _enable_mfa(client, info["csrf"])
-    headers = csrf_headers(info["csrf"])
-    me = client.get("/api/auth/me").json()["id"]
-
-    assert client.post(f"/api/admin/users/{me}/ban", headers=headers).json()["error"]["code"] == "cannot_ban_self"
-    assert client.post(f"/api/admin/users/{second['id']}/ban", headers=headers).json()["error"]["code"] == "cannot_ban_admin"
-    assert client.post("/api/admin/users/00000000-0000-0000-0000-000000000000/ban", headers=headers).status_code == 404
 
 
 def test_state_changing_admin_calls_need_csrf_with_a_cookie_session(client, admin_env) -> None:
@@ -350,29 +322,31 @@ def test_unverified_banned_and_deleted_accounts_are_never_administrators() -> No
 
 
 def test_removing_an_email_from_the_allowlist_ends_access_without_touching_the_account(client, admin_env, monkeypatch) -> None:
+    _mount(client)
     info = _signed_in_admin(client)
     _enable_mfa(client, info["csrf"])
-    assert client.get("/api/admin/users").status_code == 200
+    assert client.get(GATED).status_code == 200
 
     monkeypatch.setenv("ADMIN_EMAILS", "somebody-else@example.com")  # the .env changed and the backend was recreated
     get_settings.cache_clear()
 
-    assert client.get("/api/admin/users").status_code == 403
+    assert client.get(GATED).status_code == 403
     assert client.get("/api/admin/session").status_code == 403
     assert client.get("/api/auth/me").status_code == 200  # an ordinary account, still signed in
     assert client.get("/api/auth/me").json()["is_admin"] is False
 
 
 def test_the_session_of_a_former_administrator_does_not_keep_the_second_factor_valid_for_a_new_admin_role(client, admin_env, monkeypatch) -> None:
+    _mount(client)
     info = _signed_in_admin(client)
     _enable_mfa(client, info["csrf"])
     monkeypatch.setenv("ADMIN_EMAILS", "")
     get_settings.cache_clear()
-    assert client.get("/api/admin/users").status_code == 403
+    assert client.get(GATED).status_code == 403
 
     monkeypatch.setenv("ADMIN_EMAILS", ADMIN)  # promoted again later - the old, still-valid session is simply admin again,
     get_settings.cache_clear()                 # but only with the second factor it really passed
-    assert client.get("/api/admin/users").status_code == 200
+    assert client.get(GATED).status_code == 200
     client.cookies.clear()
     login(client, email=ADMIN)
-    assert client.get("/api/admin/users").json()["error"]["code"] == "mfa_required"
+    assert client.get(GATED).json()["error"]["code"] == "mfa_required"

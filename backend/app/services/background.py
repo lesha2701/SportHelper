@@ -24,6 +24,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from app.bot.deeplink import build_site_url
 from app.config import Settings
 from app.integrations.yandex_disk import YandexDiskClient, YandexDiskError
+from app.repositories import admin_users as admin_users_repo
 from app.repositories import auth_tokens as auth_tokens_repo
 from app.repositories import bookings as bookings_repo
 from app.repositories import files as files_repo
@@ -87,6 +88,14 @@ async def sweep_overdue_tasks(conn: asyncpg.Connection) -> None:
     count = await tasks_repo.sweep_overdue(conn)
     if count:
         logger.info("Marked %d task assignment(s) overdue", count)
+
+
+async def sweep_expired_blocks(conn: asyncpg.Connection) -> None:
+    """Temporary blocks that ran out stop applying at once (the user row is read with the current time);
+    this tidies the flag and the history record."""
+    released = await admin_users_repo.lift_expired(conn)
+    if released:
+        logger.info("Released %d account(s) whose temporary block expired", released)
 
 
 async def sweep_attendance(conn: asyncpg.Connection) -> None:
@@ -190,6 +199,7 @@ async def run_tick(pool: asyncpg.Pool, bot: Bot | None, settings: Settings) -> N
     async with pool.acquire() as conn:
         await sweep_overdue_tasks(conn)
         await sweep_attendance(conn)
+        await sweep_expired_blocks(conn)
         await sweep_expired_bookings(conn)
         await schedule_training_nudges(conn, settings)
         await send_due_notifications(conn, bot, settings)

@@ -751,7 +751,9 @@ async def test_admin_actions_are_audited_by_account_and_bans_end_sessions_in_sql
     await sessions_repo.create(conn, user_id=victim["id"], token_hash=hash_token("v"), expires_at=_now() + timedelta(days=1),
                                user_agent=None, ip_address=None)
 
-    banned = await admin_repo.set_banned_by_id(conn, victim["id"], True)
+    from app.repositories import admin_users as admin_users_repo
+
+    banned = await admin_users_repo.block(conn, victim["id"], boss["id"], "spam", None)
     await admin_repo.record_audit(conn, admin_user_id=boss["id"], action="ban", target_type="user", target_id=str(victim["id"]),
                                   details={"reason": "spam"})
     await admin_repo.record_audit(conn, admin_telegram_id=12345, action="ban")  # the bot's way still works
@@ -762,9 +764,9 @@ async def test_admin_actions_are_audited_by_account_and_bans_end_sessions_in_sql
     assert {e["admin_email"] for e in entries} == {"boss@example.com", None}
     with pytest.raises(asyncpg.CheckViolationError):
         await conn.execute("INSERT INTO admin_audit_log (action) VALUES ('anonymous action')")  # an actor is required
-    page = await admin_repo.list_web_users(conn, limit=10, offset=0, query="v@ex")
-    assert [u["email"] for u in page] == ["v@example.com"] and await admin_repo.count_web_users(conn, "boss") == 1
-    assert await admin_repo.count_web_users(conn, "100%") == 0  # LIKE wildcards in the search are escaped
+    total, page = await admin_users_repo.search_users(conn, query="v@ex", role=None, status=None, sort="created_desc", admin_emails=[], limit=10, offset=0)
+    assert [u["email"] for u in page] == ["v@example.com"] and total == 1
+    assert (await admin_users_repo.search_users(conn, query="100%", role=None, status=None, sort="created_desc", admin_emails=[], limit=10, offset=0))[0] == 0  # LIKE wildcards are escaped
 
 
 def test_admin_api_with_real_sql_requires_the_second_factor_per_session(live_client, monkeypatch) -> None:
@@ -792,10 +794,11 @@ def test_admin_api_with_real_sql_requires_the_second_factor_per_session(live_cli
     client.cookies.clear()  # a new session with the right password but no code
     csrf2 = login(client, email="boss@example.com").json()["csrf_token"]
     assert client.get("/api/admin/users").json()["error"]["code"] == "mfa_required"
-    assert client.post(f"/api/admin/users/{victim_id}/ban", headers=csrf_headers(csrf2)).status_code == 403
+    ban_body = {"reason": "Нарушение правил площадки"}
+    assert client.post(f"/api/admin/users/{victim_id}/ban", headers=csrf_headers(csrf2), json=ban_body).status_code == 403
 
     assert client.post("/api/auth/mfa/verify", headers=csrf_headers(csrf2), json={"code": totp._hotp(secret, totp.current_step() + 1)}).status_code == 200
-    assert client.post(f"/api/admin/users/{victim_id}/ban", headers=csrf_headers(csrf2)).json()["is_banned"] is True
+    assert client.post(f"/api/admin/users/{victim_id}/ban", headers=csrf_headers(csrf2), json=ban_body).json()["status"] == "banned"
     audit = client.get("/api/admin/audit").json()
     assert audit[0]["action"] == "ban" and audit[0]["admin"] == "boss@example.com" and audit[0]["target_id"] == victim_id
 

@@ -9,6 +9,7 @@ import { Icon, type IconName } from "../shared/Icon";
 import { MfaSection } from "../profile/AccountSecurity";
 import { useLocation } from "../../router";
 import { DashboardPage } from "./DashboardPage";
+import { UsersPage } from "./UsersPage";
 import { AdminContext } from "./adminUi";
 import styles from "./admin.module.css";
 
@@ -19,7 +20,10 @@ interface Section {
   render: () => ReactNode;
 }
 
-const SECTIONS: Section[] = [{ path: "/admin", label: "Обзор", icon: "home", render: () => <DashboardPage /> }];
+const SECTIONS: Section[] = [
+  { path: "/admin", label: "Обзор", icon: "home", render: () => <DashboardPage /> },
+  { path: "/admin/users", label: "Пользователи", icon: "users", render: () => <UsersPage /> },
+];
 
 type Gate =
   | { kind: "loading" }

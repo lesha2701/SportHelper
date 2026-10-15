@@ -13,7 +13,7 @@ import asyncpg
 
 _SELECT_FIELDS = (
     "id, telegram_id, username, first_name, last_name, photo_url, avatar_file_id, "
-    "language_code, is_banned, banned_at, active_mode, last_login_at, created_at, updated_at, "
+    "language_code, (is_banned AND (banned_until IS NULL OR banned_until > now())) AS is_banned, banned_at, active_mode, last_login_at, created_at, updated_at, "
     "completed_onboarding_version, email, email_verified_at, preferred_role, "
     "terms_accepted_at, terms_version, password_changed_at, deletion_requested_at, deleted_at, "
     "(password_hash IS NOT NULL) AS has_password"

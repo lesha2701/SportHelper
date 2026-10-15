@@ -2,44 +2,14 @@
 Every number is checked against rows the test itself put in the database."""
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 import pytest
 
-from app.config import get_settings
 from app.services import activity as activity_service
-from tests.live_helpers import AdminBrowser, Browser, sql, sql_value
-from tests.test_auth_postgres import live_client, pg  # noqa: F401  (fixtures)
-
-ADMIN_EMAIL = "boss@example.com"
+from tests.admin_world import Browser, add_user, live_client, pg, sql, sql_value, world  # noqa: F401  (fixtures)
+from tests.admin_world import today as _today
 
 
-@pytest.fixture
-def world(live_client, pg, monkeypatch):  # noqa: F811
-    monkeypatch.setenv("ADMIN_EMAILS", ADMIN_EMAIL)
-    get_settings.cache_clear()
-    activity_service.forget_all()
-    admin = AdminBrowser(live_client, ADMIN_EMAIL, "Админ", role=None).enable_mfa()
-    return SimpleNamespace(client=live_client, dsn=pg, admin=admin)
-
-
-def _today(dsn: str):
-    return sql_value(dsn, "SELECT (now() AT TIME ZONE 'UTC')::date")
-
-
-def _add_user(dsn: str, email: str, *, days_ago: int = 0, banned: bool = False, deleted: bool = False, **extra) -> str:
-    return str(
-        sql_value(
-            dsn,
-            """
-            INSERT INTO users (email, email_verified_at, first_name, is_banned, deleted_at, created_at)
-            VALUES ($1, now(), $2, $3, CASE WHEN $4 THEN now() END,
-                    ((now() AT TIME ZONE 'UTC')::date - $5::int + time '12:00') AT TIME ZONE 'UTC')
-            RETURNING id
-            """,
-            email, email.split("@")[0], banned, deleted, days_ago,
-        )
-    )
+_add_user = add_user
 
 
 def _active(dsn: str, user_id: str, days_ago: int) -> None:

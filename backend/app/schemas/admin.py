@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class AdminSessionOut(BaseModel):
@@ -67,23 +67,93 @@ class AdminDashboardOut(BaseModel):
     bookings_created: list[DayCountOut]
 
 
-class AdminUserOut(BaseModel):
+class AdminUserRowOut(BaseModel):
     id: UUID
     email: str | None
     email_verified: bool
     first_name: str
     last_name: str | None
-    is_banned: bool
-    banned_at: datetime | None
-    last_login_at: datetime | None
+    is_player: bool
+    is_coach: bool
+    # True for the people listed in the server configuration; shown so the panel can explain why they cannot be blocked.
+    is_admin: bool
+    status: Literal["active", "banned", "unverified", "deleted"]
+    deletion_requested: bool
+    banned_until: datetime | None
     created_at: datetime
-    telegram_linked: bool
-    is_deleted: bool
+    last_active_at: datetime | None
+    last_login_at: datetime | None
 
 
 class AdminUsersPageOut(BaseModel):
     total: int
-    items: list[AdminUserOut]
+    limit: int
+    offset: int
+    items: list[AdminUserRowOut]
+
+
+class BanRecordOut(BaseModel):
+    id: UUID
+    reason: str
+    banned_at: datetime
+    expires_at: datetime | None
+    lifted_at: datetime | None
+    lift_kind: str | None
+    lift_reason: str | None
+    admin: str | None
+    lifted_by: str | None
+
+
+class ModerationEntryOut(BaseModel):
+    id: UUID
+    action: str
+    reason: str | None
+    result: str
+    created_at: datetime
+    admin: str | None
+
+
+class AdminUserCardOut(AdminUserRowOut):
+    ban_reason: str | None
+    banned_at: datetime | None
+    telegram_linked: bool
+    trainings_created: int
+    teams_count: int
+    listings_count: int
+    files_count: int
+    bans: list[BanRecordOut]
+    history: list[ModerationEntryOut]
+
+
+def _clean_reason(value: str) -> str:
+    text = " ".join(value.split())
+    if len(text) < 3:
+        raise ValueError("укажите причину (не короче 3 символов)")
+    return text
+
+
+class BlockIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(max_length=1000)
+    # None = permanent; otherwise the block lifts itself after this many days.
+    days: int | None = Field(default=None, ge=1, le=3650)
+
+    @field_validator("reason")
+    @classmethod
+    def _check_reason(cls, value: str) -> str:
+        return _clean_reason(value)
+
+
+class UnblockIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(max_length=1000)
+
+    @field_validator("reason")
+    @classmethod
+    def _check_reason(cls, value: str) -> str:
+        return _clean_reason(value)
 
 
 class AdminAuditEntryOut(BaseModel):
@@ -92,5 +162,7 @@ class AdminAuditEntryOut(BaseModel):
     target_type: str | None
     target_id: str | None
     details: dict[str, Any] | None
+    reason: str | None = None
+    result: str = "success"
     created_at: datetime
     admin: str  # who acted: email of a website admin, or "telegram:<id>"

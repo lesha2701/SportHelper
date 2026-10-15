@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta, timezone
+from typing import Literal
 from uuid import UUID
 
 import asyncpg
@@ -24,14 +25,21 @@ from app.api.deps import AuthContext, get_db, get_settings_dep, is_admin, requir
 from app.config import Settings
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.repositories import admin as admin_repo
+from app.repositories import admin_users as admin_users_repo
+from app.services import admin_audit
 from app.repositories import mfa as mfa_repo
 from app.repositories import admin_stats as admin_stats_repo
 from app.schemas.admin import (
     AdminAuditEntryOut,
     AdminDashboardOut,
     AdminSessionOut,
-    AdminUserOut,
+    AdminUserCardOut,
+    AdminUserRowOut,
     AdminUsersPageOut,
+    BanRecordOut,
+    BlockIn,
+    ModerationEntryOut,
+    UnblockIn,
     DashboardActivityOut,
     DashboardBookingsOut,
     DashboardTrainingsOut,
@@ -39,22 +47,6 @@ from app.schemas.admin import (
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
-
-
-def _user_out(row: dict) -> AdminUserOut:
-    return AdminUserOut(
-        id=row["id"],
-        email=row["email"],
-        email_verified=row["email_verified_at"] is not None,
-        first_name=row["first_name"],
-        last_name=row["last_name"],
-        is_banned=row["is_banned"],
-        banned_at=row["banned_at"],
-        last_login_at=row["last_login_at"],
-        created_at=row["created_at"],
-        telegram_linked=row["telegram_linked"],
-        is_deleted=row["deleted_at"] is not None,
-    )
 
 
 @router.get("/session", response_model=AdminSessionOut)
@@ -98,60 +90,159 @@ async def dashboard(
     )
 
 
+def _status(row: dict) -> str:
+    if row["deleted_at"] is not None:
+        return "deleted"
+    if row["is_banned"]:
+        return "banned"
+    if row["email"] is not None and row["email_verified_at"] is None:
+        return "unverified"
+    return "active"
+
+
+def _row_out(row: dict, settings: Settings) -> dict:
+    return {
+        "id": row["id"],
+        "email": row["email"],
+        "email_verified": row["email_verified_at"] is not None,
+        "first_name": row["first_name"],
+        "last_name": row["last_name"],
+        "is_player": row["is_player"],
+        "is_coach": row["is_coach"],
+        "is_admin": is_admin({"email": row["email"], "email_verified_at": row["email_verified_at"], "is_banned": False, "deleted_at": row["deleted_at"]}, settings),
+        "status": _status(row),
+        "deletion_requested": row["deletion_requested_at"] is not None and row["deleted_at"] is None,
+        "banned_until": row["banned_until"] if row["is_banned"] else None,
+        "created_at": row["created_at"],
+        "last_active_at": row["last_active_at"],
+        "last_login_at": row["last_login_at"],
+    }
+
+
 @router.get("/users", response_model=AdminUsersPageOut)
 async def list_users(
     q: str | None = Query(default=None, max_length=100),
+    role: Literal["player", "coach", "none", "admin"] | None = None,
+    status: Literal["active", "banned", "unverified", "deleted"] | None = None,
+    sort: Literal["created_desc", "created_asc", "active_desc", "active_asc"] = "created_desc",
     limit: int = Query(default=25, ge=1, le=100),
-    offset: int = Query(default=0, ge=0),
+    offset: int = Query(default=0, ge=0, le=1_000_000),
     ctx: AuthContext = Depends(require_admin_mfa),
     conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
 ) -> AdminUsersPageOut:
-    rows = await admin_repo.list_web_users(conn, limit=limit, offset=offset, query=q)
-    return AdminUsersPageOut(total=await admin_repo.count_web_users(conn, q), items=[_user_out(r) for r in rows])
+    total, rows = await admin_users_repo.search_users(
+        conn, query=q, role=role, status=status, sort=sort, admin_emails=settings.admin_emails_list, limit=limit, offset=offset
+    )
+    return AdminUsersPageOut(total=total, limit=limit, offset=offset, items=[AdminUserRowOut(**_row_out(r, settings)) for r in rows])
 
 
-async def _set_banned(
-    user_id: UUID, banned: bool, ctx: AuthContext, conn: asyncpg.Connection, settings: Settings
-) -> AdminUserOut:
-    if user_id == ctx.user["id"]:
-        raise ConflictError("Нельзя заблокировать самого себя.", code="cannot_ban_self")
-    target = await admin_repo.get_web_user(conn, user_id)
+async def _card(conn: asyncpg.Connection, user_id: UUID, settings: Settings) -> AdminUserCardOut:
+    row = await admin_users_repo.get_card(conn, user_id)
+    if row is None:
+        raise NotFoundError("user not found")
+    bans = await admin_users_repo.list_bans(conn, user_id)
+    history = await admin_users_repo.list_moderation_history(conn, user_id)
+    return AdminUserCardOut(
+        **_row_out(row, settings),
+        ban_reason=row["ban_reason"] if row["is_banned"] else None,
+        banned_at=row["banned_at"] if row["is_banned"] else None,
+        telegram_linked=row["telegram_linked"],
+        trainings_created=row["trainings_created"],
+        teams_count=row["teams_count"],
+        listings_count=row["listings_count"],
+        files_count=row["files_count"],
+        bans=[
+            BanRecordOut(
+                id=b["id"], reason=b["reason"], banned_at=b["banned_at"], expires_at=b["expires_at"], lifted_at=b["lifted_at"],
+                lift_kind=b["lift_kind"], lift_reason=b["lift_reason"], admin=b["admin_email"], lifted_by=b["lifted_by_email"],
+            )
+            for b in bans
+        ],
+        history=[
+            ModerationEntryOut(id=h["id"], action=h["action"], reason=h["reason"], result=h["result"], created_at=h["created_at"], admin=h["admin_email"])
+            for h in history
+        ],
+    )
+
+
+@router.get("/users/{user_id}", response_model=AdminUserCardOut)
+async def user_card(
+    user_id: UUID,
+    ctx: AuthContext = Depends(require_admin_mfa),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> AdminUserCardOut:
+    return await _card(conn, user_id, settings)
+
+
+async def _refuse_if_protected(user_id: UUID, action: str, ctx: AuthContext, conn: asyncpg.Connection, settings: Settings) -> dict:
+    """Self-blocking and blocking an administrator are refused (and the attempt is recorded). Administrators are
+    defined by server configuration, so removing one is done there - which also means this API can never be used to
+    lock every administrator out."""
+    target = await admin_users_repo.get_card(conn, user_id)
     if target is None or target["deleted_at"] is not None:
         raise NotFoundError("user not found")
-    if banned and is_admin(target, settings):
-        # Administrators are defined by server configuration; removing one is done there.
-        raise ForbiddenError("Администратора нельзя заблокировать через API.", code="cannot_ban_admin")
-    updated = await admin_repo.set_banned_by_id(conn, user_id, banned)
-    if updated is None:
-        raise NotFoundError("user not found")
-    await admin_repo.record_audit(
-        conn,
-        admin_user_id=ctx.user["id"],
-        action="ban" if banned else "unban",
-        target_type="user",
-        target_id=str(user_id),
-    )
-    return _user_out(updated)
+    if user_id == ctx.user["id"]:
+        await admin_audit.record(conn, ctx.user["id"], action, target_type="user", target_id=user_id, result="denied", extra={"why": "self"})
+        raise ConflictError("Нельзя заблокировать самого себя.", code="cannot_ban_self")
+    if action == "ban" and is_admin({"email": target["email"], "email_verified_at": target["email_verified_at"], "is_banned": False, "deleted_at": None}, settings):
+        await admin_audit.record(conn, ctx.user["id"], action, target_type="user", target_id=user_id, result="denied", extra={"why": "administrator"})
+        raise ForbiddenError(
+            "Администратора нельзя заблокировать через панель: уберите его адрес из ADMIN_EMAILS на сервере.", code="cannot_ban_admin"
+        )
+    return target
 
 
-@router.post("/users/{user_id}/ban", response_model=AdminUserOut)
+def _snapshot(card: dict) -> dict:
+    return {"blocked": card["is_banned"], "until": card["banned_until"] if card["is_banned"] else None, "reason": card["ban_reason"] if card["is_banned"] else None}
+
+
+@router.post("/users/{user_id}/ban", response_model=AdminUserCardOut)
 async def ban_user(
     user_id: UUID,
+    payload: BlockIn,
     ctx: AuthContext = Depends(require_admin_mfa),
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
-) -> AdminUserOut:
-    return await _set_banned(user_id, True, ctx, conn, settings)
+) -> AdminUserCardOut:
+    before = _snapshot(await _refuse_if_protected(user_id, "ban", ctx, conn, settings))
+    expires = datetime.now(timezone.utc) + timedelta(days=payload.days) if payload.days else None
+    try:
+        async with conn.transaction():
+            after = await admin_users_repo.block(conn, user_id, ctx.user["id"], payload.reason, expires)
+            if after is None:
+                raise NotFoundError("user not found")
+            await admin_audit.record(
+                conn, ctx.user["id"], "ban", target_type="user", target_id=user_id, reason=payload.reason,
+                before=before, after=_snapshot(after), extra={"days": payload.days},
+            )
+    except admin_users_repo.AlreadyBlocked:
+        raise ConflictError("Пользователь уже заблокирован.", code="already_banned") from None
+    return await _card(conn, user_id, settings)
 
 
-@router.post("/users/{user_id}/unban", response_model=AdminUserOut)
+@router.post("/users/{user_id}/unban", response_model=AdminUserCardOut)
 async def unban_user(
     user_id: UUID,
+    payload: UnblockIn,
     ctx: AuthContext = Depends(require_admin_mfa),
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
-) -> AdminUserOut:
-    return await _set_banned(user_id, False, ctx, conn, settings)
+) -> AdminUserCardOut:
+    before = _snapshot(await _refuse_if_protected(user_id, "unban", ctx, conn, settings))
+    try:
+        async with conn.transaction():
+            after = await admin_users_repo.unblock(conn, user_id, ctx.user["id"], payload.reason)
+            if after is None:
+                raise NotFoundError("user not found")
+            await admin_audit.record(
+                conn, ctx.user["id"], "unban", target_type="user", target_id=user_id, reason=payload.reason,
+                before=before, after=_snapshot(after),
+            )
+    except admin_users_repo.NotBlocked:
+        raise ConflictError("Пользователь не заблокирован.", code="not_banned") from None
+    return await _card(conn, user_id, settings)
 
 
 @router.get("/audit", response_model=list[AdminAuditEntryOut])
@@ -169,6 +260,8 @@ async def audit_log(
             target_type=r["target_type"],
             target_id=r["target_id"],
             details=json.loads(r["details"]) if isinstance(r["details"], str) else r["details"],
+            reason=r["reason"],
+            result=r["result"],
             created_at=r["created_at"],
             admin=r["admin_email"] or (f"telegram:{r['admin_telegram_id']}" if r["admin_telegram_id"] else "unknown"),
         )

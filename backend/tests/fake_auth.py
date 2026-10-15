@@ -473,40 +473,10 @@ def install(monkeypatch: pytest.MonkeyPatch, store: FakeAuthStore) -> None:
     # ---- website administration -----------------------------------------------------------------
     import app.repositories.admin as admin_repo
 
-    def _web_row(record):
-        return {k: record[k] for k in ("id", "email", "email_verified_at", "first_name", "last_name", "is_banned",
-                                       "banned_at", "last_login_at", "created_at", "deleted_at")} | {
-            "telegram_linked": record["telegram_id"] is not None}
-
-    async def a_list_web_users(conn, *, limit, offset, query=None):
-        rows = [r for r in store.users.values()
-                if not query or query.lower() in (r["email"] or "").lower() or query.lower() in r["first_name"].lower()]
-        rows.sort(key=lambda r: r["created_at"], reverse=True)
-        return [_web_row(r) for r in rows[offset: offset + limit]]
-
-    async def a_count_web_users(conn, query=None):
-        return len(await a_list_web_users(conn, limit=10**6, offset=0, query=query))
-
-    async def a_get_web_user(conn, user_id):
-        record = store.users.get(user_id)
-        return _web_row(record) if record else None
-
-    async def a_set_banned(conn, user_id, banned):
-        record = store.users.get(user_id)
-        if record is None or record["deleted_at"] is not None:
-            return None
-        record["is_banned"] = banned
-        record["banned_at"] = _now() if banned else None
-        if banned:
-            for row in store.sessions.values():
-                if row["user_id"] == user_id and row["revoked_at"] is None:
-                    row["revoked_at"] = _now()
-        return _web_row(record)
-
     async def a_record_audit(conn, *, admin_telegram_id=None, admin_user_id=None, action, target_type=None,
-                             target_id=None, details=None):
+                             target_id=None, details=None, reason=None, result="success"):
         store.audit.append({"id": uuid4(), "action": action, "target_type": target_type, "target_id": target_id,
-                            "details": details, "created_at": _now(), "admin_telegram_id": admin_telegram_id,
+                            "details": details, "reason": reason, "result": result, "created_at": _now(), "admin_telegram_id": admin_telegram_id,
                             "admin_user_id": admin_user_id,
                             "admin_email": store.users[admin_user_id]["email"] if admin_user_id in store.users else None})
 
@@ -517,7 +487,5 @@ def install(monkeypatch: pytest.MonkeyPatch, store: FakeAuthStore) -> None:
         return {"total_users": len(store.users), "banned_users": sum(u["is_banned"] for u in store.users.values()),
                 "total_teams": 0, "total_trainings": 0, "total_matches": 0, "total_tasks": 0, "pending_notifications": 0}
 
-    for name, fn in {"list_web_users": a_list_web_users, "count_web_users": a_count_web_users,
-                     "get_web_user": a_get_web_user, "set_banned_by_id": a_set_banned, "record_audit": a_record_audit,
-                     "list_audit": a_list_audit, "get_project_stats": a_stats}.items():
+    for name, fn in {"record_audit": a_record_audit, "list_audit": a_list_audit, "get_project_stats": a_stats}.items():
         monkeypatch.setattr(admin_repo, name, fn)
