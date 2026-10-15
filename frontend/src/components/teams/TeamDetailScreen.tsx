@@ -270,29 +270,32 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
 
       {tab === "roster" && (
         <div className={styles.teamContentLayout}>
-          <div className={styles.cardGrid}>
-            {members.map((member) => (
-              <button
-                key={member.userId}
-                type="button"
-                className={styles.memberRow}
-                onClick={() => (isCoachStaff ? setSelectedMember(member) : undefined)}
-                style={{ cursor: isCoachStaff ? "pointer" : "default", textAlign: "left" }}
-              >
-                {member.photoUrl ? (
-                  <img className={styles.avatar} src={member.photoUrl} alt="" />
-                ) : (
-                  <div className={styles.avatar} />
-                )}
-                <div className={styles.memberInfo}>
-                  <span className={styles.memberName}>
-                    {member.firstName} {member.lastName ?? ""}
-                  </span>
-                  {member.position && <span className={styles.memberMeta}>{member.position}</span>}
-                  <span className={styles.memberRolePill}>{TEAM_ROLE_LABELS[member.role]}</span>
-                </div>
-              </button>
-            ))}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+            {isCoachStaff && <InviteSection token={token} teamId={teamId} kind="join" title="Пригласить игроков" />}
+            <div className={styles.cardGrid}>
+              {members.map((member) => (
+                <button
+                  key={member.userId}
+                  type="button"
+                  className={styles.memberRow}
+                  onClick={() => (isCoachStaff ? setSelectedMember(member) : undefined)}
+                  style={{ cursor: isCoachStaff ? "pointer" : "default", textAlign: "left" }}
+                >
+                  {member.photoUrl ? (
+                    <img className={styles.avatar} src={member.photoUrl} alt="" />
+                  ) : (
+                    <div className={styles.avatar} />
+                  )}
+                  <div className={styles.memberInfo}>
+                    <span className={styles.memberName}>
+                      {member.firstName} {member.lastName ?? ""}
+                    </span>
+                    {member.position && <span className={styles.memberMeta}>{member.position}</span>}
+                    <span className={styles.memberRolePill}>{TEAM_ROLE_LABELS[member.role]}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className={styles.teamSidebar}>
@@ -374,7 +377,6 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
             </div>
           )}
           {isCoachStaff && <LogoSection token={token} teamId={teamId} onUploaded={load} />}
-          {isCoachStaff && <InviteSection token={token} teamId={teamId} kind="join" title="Пригласить игроков" />}
           {isCaptain && team.status === "without_coach" && (
             <InviteSection token={token} teamId={teamId} kind="head_coach" title="Пригласить нового тренера" />
           )}
