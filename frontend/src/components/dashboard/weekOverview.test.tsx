@@ -69,3 +69,15 @@ describe("«Эта неделя» on the home tab", () => {
     expect(screen.getByText(/10:00 — Матч/)).not.toBeNull();
   });
 });
+
+describe("what counts as coming up", () => {
+  it("skips a future training the coach already marked as held", () => {
+    setPhone(true);
+    const held = { ...event("e1", "2026-10-09", "10:00:00", "Уже проведена"), status: "completed" };
+    const next = event("e2", "2026-10-10", "10:00:00", "Ещё впереди");
+    render(<WeekOverview weekDays={weekDays} events={[held, next]} today={TODAY} onOpenEvent={() => {}} />);
+
+    expect(screen.queryByText(/Уже проведена/)).toBeNull();
+    expect(screen.getByText(/Ещё впереди/)).not.toBeNull();
+  });
+});

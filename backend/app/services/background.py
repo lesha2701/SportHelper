@@ -31,6 +31,7 @@ from app.repositories import notifications as notifications_repo
 from app.repositories import rate_limits as rate_limits_repo
 from app.repositories import sessions as sessions_repo
 from app.repositories import tasks as tasks_repo
+from app.repositories import trainings as trainings_repo
 from app.repositories import users as users_repo
 from app.services import notifications as notifications_service
 from app.services import nudges as nudges_service
@@ -86,6 +87,14 @@ async def sweep_overdue_tasks(conn: asyncpg.Connection) -> None:
     count = await tasks_repo.sweep_overdue(conn)
     if count:
         logger.info("Marked %d task assignment(s) overdue", count)
+
+
+async def sweep_attendance(conn: asyncpg.Connection) -> None:
+    """Trainings that took place without anyone opening the attendance screen still
+    count their members as present (see trainings_repo.initialize_held_attendance)."""
+    added = await trainings_repo.initialize_held_attendance(conn)
+    if added:
+        logger.info("Marked %d member(s) present on trainings that took place", added)
 
 
 async def sweep_expired_bookings(conn: asyncpg.Connection) -> None:
@@ -178,6 +187,7 @@ async def run_account_maintenance(conn: asyncpg.Connection, settings: Settings) 
 async def run_tick(pool: asyncpg.Pool, bot: Bot | None, settings: Settings) -> None:
     async with pool.acquire() as conn:
         await sweep_overdue_tasks(conn)
+        await sweep_attendance(conn)
         await sweep_expired_bookings(conn)
         await schedule_training_nudges(conn, settings)
         await send_due_notifications(conn, bot, settings)

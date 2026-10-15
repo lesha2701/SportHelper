@@ -239,3 +239,55 @@ async def _apply_all(conn) -> None:
     from tests.test_auth_postgres import _apply
 
     await _apply(conn)
+
+
+def test_members_are_marked_present_on_trainings_that_took_place_and_only_on_those(pg) -> None:  # noqa: F811
+    """The statistics count a training the coach marked as held even when its date is still ahead,
+    so the "everyone is present unless marked absent" rows must exist for it - and not for
+    trainings that did not happen, for people who joined later, or for coach-corrected rows."""
+    from app.config import Settings
+    from app.database import create_pool, run_migrations
+    from app.services import background
+
+    async def scenario():
+        pool = await create_pool(Settings(_env_file=None, DATABASE_URL=pg))
+        try:
+            await run_migrations(pool)
+            async with pool.acquire() as conn:
+                coach = await conn.fetchval("INSERT INTO users (email, first_name) VALUES ('c@e.com', 'C') RETURNING id")
+                early = await conn.fetchval("INSERT INTO users (email, first_name) VALUES ('p1@e.com', 'P1') RETURNING id")
+                late = await conn.fetchval("INSERT INTO users (email, first_name) VALUES ('p2@e.com', 'P2') RETURNING id")
+                team = await conn.fetchval("INSERT INTO teams (name, sport, created_by) VALUES ('T', 'Футбол', $1) RETURNING id", coach)
+                await conn.execute("INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES "
+                                   "($1, $2, 'head_coach', now() - interval '30 days'), ($1, $3, 'player', now() - interval '30 days'), "
+                                   "($1, $4, 'player', now() + interval '10 days')", team, coach, early, late)
+
+                async def training(day_offset: int, status: str) -> object:
+                    return await conn.fetchval(
+                        "INSERT INTO trainings (team_id, created_by, type, training_date, start_time, duration_minutes, status) "
+                        "VALUES ($1, $2, 'team', CURRENT_DATE + $3::int, '18:00', 90, $4) RETURNING id", team, coach, day_offset, status)
+
+                future_held = await training(5, "completed")
+                past_unmarked = await training(-1, "scheduled")
+                future_planned = await training(5, "scheduled")
+                past_cancelled = await training(-1, "cancelled")
+                corrected = await training(-2, "completed")
+                await conn.execute("INSERT INTO training_attendance (training_id, user_id, status) VALUES ($1, $2, 'absent')", corrected, early)
+
+                await background.sweep_attendance(conn)
+                again = await background.sweep_attendance(conn)  # idempotent
+
+                rows = await conn.fetch("SELECT training_id, user_id, status FROM training_attendance")
+                return {(r["training_id"], r["user_id"]): r["status"] for r in rows}, again, (
+                    future_held, past_unmarked, future_planned, past_cancelled, corrected), (coach, early, late)
+        finally:
+            await pool.close()
+
+    rows, again, (future_held, past_unmarked, future_planned, past_cancelled, corrected), (coach, early, late) = asyncio.run(scenario())
+
+    assert rows[(future_held, early)] == "present" and rows[(future_held, coach)] == "present"
+    assert rows[(past_unmarked, early)] == "present"
+    assert not any(t in (future_planned, past_cancelled) for t, _ in rows)  # didn't happen -> nothing recorded
+    assert (future_held, late) not in rows  # joined after the training date
+    assert rows[(corrected, early)] == "absent"  # the coach's correction is never overwritten
+    assert not again  # nothing left to do on the second pass

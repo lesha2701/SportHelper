@@ -19,6 +19,11 @@ export interface CalendarEvent {
   status: string;
 }
 
+/** A training or match the coach already marked as held (or cancelled) is no longer "coming up", whatever its date. */
+export function isStillAhead(event: Pick<CalendarEvent, "status">): boolean {
+  return event.status !== "completed" && event.status !== "cancelled";
+}
+
 export interface CalendarEventDto {
   id: string;
   type: CalendarEventType;

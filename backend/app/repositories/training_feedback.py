@@ -8,7 +8,7 @@ from uuid import UUID
 
 import asyncpg
 
-_FIELDS = "training_id, user_id, wellbeing, difficulty, comment, skipped, created_at"
+_FIELDS = "training_id, user_id, wellbeing, difficulty, comment, team_rating, skipped, created_at"
 
 
 async def get_feedback(conn: asyncpg.Connection, training_id: UUID, user_id: UUID) -> dict[str, Any] | None:
@@ -28,15 +28,17 @@ async def upsert_feedback(
     wellbeing: int | None,
     difficulty: int | None,
     comment: str | None,
+    team_rating: int | None = None,
 ) -> dict[str, Any]:
     row = await conn.fetchrow(
         f"""
-        INSERT INTO training_feedback (training_id, user_id, wellbeing, difficulty, comment, skipped)
-        VALUES ($1, $2, $3, $4, $5, FALSE)
+        INSERT INTO training_feedback (training_id, user_id, wellbeing, difficulty, comment, team_rating, skipped)
+        VALUES ($1, $2, $3, $4, $5, $6, FALSE)
         ON CONFLICT (training_id, user_id) DO UPDATE SET
             wellbeing = EXCLUDED.wellbeing,
             difficulty = EXCLUDED.difficulty,
             comment = EXCLUDED.comment,
+            team_rating = EXCLUDED.team_rating,
             skipped = FALSE
         RETURNING {_FIELDS}
         """,
@@ -45,6 +47,7 @@ async def upsert_feedback(
         wellbeing,
         difficulty,
         comment,
+        team_rating,
     )
     return dict(row)
 

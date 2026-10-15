@@ -10,6 +10,8 @@ class TrainingFeedbackIn(BaseModel):
     wellbeing: int | None = Field(default=None, ge=1, le=5)
     difficulty: int | None = Field(default=None, ge=1, le=10)
     comment: str | None = Field(default=None, max_length=1000)
+    # A coach's overall rating of the team's performance (1-5); staff of the team only.
+    team_rating: int | None = Field(default=None, ge=1, le=5)
 
 
 class TrainingFeedbackOut(BaseModel):
@@ -18,5 +20,6 @@ class TrainingFeedbackOut(BaseModel):
     wellbeing: int | None
     difficulty: int | None
     comment: str | None
+    team_rating: int | None = None
     skipped: bool
     created_at: datetime

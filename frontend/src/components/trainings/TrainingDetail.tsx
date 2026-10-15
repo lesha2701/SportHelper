@@ -126,6 +126,9 @@ export function TrainingDetail({
 
   const [feedbackState, setFeedbackState] = useState<FeedbackLoadState>({ status: "loading" });
   const [feedbackWellbeing, setFeedbackWellbeing] = useState<number | null>(null);
+  // The coach rates the team as a whole instead of their own wellbeing.
+  const [teamRating, setTeamRating] = useState<number | null>(null);
+  const [editingTeamRating, setEditingTeamRating] = useState(false);
   const [feedbackDifficulty, setFeedbackDifficulty] = useState<number | null>(null);
   const [feedbackComment, setFeedbackComment] = useState("");
   const [feedbackBusy, setFeedbackBusy] = useState(false);
@@ -238,7 +241,10 @@ export function TrainingDetail({
   const canMarkAttendance = canEdit || (training.type === "independent" && isResponsible);
   const overdue = isTrainingOverdue(training);
   // The session already happened (marked, or its date has passed) and someone can mark attendance.
-  const needsAttendance = canMarkAttendance && (training.status === "completed" || overdue);
+  const happened = training.status === "completed" || overdue;
+  const needsAttendance = canMarkAttendance && happened;
+  // The coach (not an athlete) rates the team's session; personal trainings have no team.
+  const isTeamCoach = canEdit && training.type !== "personal";
 
   if (sessionActive && checklist) {
     return <TrainingSessionScreen checklist={checklist} onExit={() => setSessionActive(false)} />;
@@ -261,7 +267,6 @@ export function TrainingDetail({
     try {
       await cancelTrainingSeries(token, training.id);
       setCancelChoiceOpen(false);
-      if (status === "completed") setJustCompleted(true);
       load();
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Не удалось отменить серию");
@@ -287,6 +292,7 @@ export function TrainingDetail({
         responsible_user_id: training.responsibleUserId,
       });
       setCancelChoiceOpen(false);
+      if (status === "completed") setJustCompleted(true);
       load();
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Не удалось изменить статус");
@@ -307,13 +313,17 @@ export function TrainingDetail({
     setFeedbackBusy(true);
     setFeedbackError(null);
     try {
-      const feedback = await submitTrainingFeedback(token, training.id, {
-        wellbeing: feedbackWellbeing,
-        difficulty: feedbackDifficulty,
-        comment: feedbackComment.trim() || null,
-      });
+      const feedback = await submitTrainingFeedback(
+        token,
+        training.id,
+        isTeamCoach
+          ? { team_rating: teamRating, difficulty: feedbackDifficulty, comment: feedbackComment.trim() || null }
+          : { wellbeing: feedbackWellbeing, difficulty: feedbackDifficulty, comment: feedbackComment.trim() || null },
+      );
       setFeedbackState({ status: "ready", feedback });
-      await handleAiEvaluate();
+      setEditingTeamRating(false);
+      // The AI evaluates a player's own session; the coach's team rating isn't input for it.
+      if (!isTeamCoach) await handleAiEvaluate();
     } catch (err) {
       setFeedbackError(err instanceof ApiError ? err.message : "Не удалось сохранить отзыв");
     } finally {
@@ -334,8 +344,12 @@ export function TrainingDetail({
     }
   };
 
-  const showFeedbackPrompt = !isBookedCoachViewer && training.status === "completed" && feedbackState.status === "ready" && feedbackState.feedback === null;
-  const showAiSection = !isBookedCoachViewer && training.status === "completed" && feedbackState.status === "ready" && feedbackState.feedback !== null;
+  const feedbackReady = training.status === "completed" && feedbackState.status === "ready";
+  const savedFeedback = feedbackState.status === "ready" ? feedbackState.feedback : null;
+  const showFeedbackPrompt =
+    !isBookedCoachViewer && feedbackReady && (savedFeedback === null || (isTeamCoach && editingTeamRating));
+  const showAiSection = !isBookedCoachViewer && !isTeamCoach && feedbackReady && savedFeedback !== null;
+  const showTeamRatingSummary = isTeamCoach && feedbackReady && savedFeedback !== null && !editingTeamRating;
   const showFeedbackError = !isBookedCoachViewer && training.status === "completed" && feedbackState.status === "error";
 
   const toggleChecked = (index: number) => {
@@ -490,7 +504,7 @@ export function TrainingDetail({
         />
       )}
 
-      {(training.type === "team" || training.type === "independent") && (
+      {(training.type === "team" || training.type === "independent") && happened && !(justCompleted && canMarkAttendance) && (
         <div className={profileStyles.card} style={needsAttendance ? { border: "1px solid var(--color-primary)" } : undefined}>
           {needsAttendance && (
             <p className={profileStyles.subtitle}>
@@ -538,26 +552,53 @@ export function TrainingDetail({
 
       {showFeedbackPrompt && (
         <div className={profileStyles.card}>
-          <h2 className={profileStyles.title}>Как прошла тренировка?</h2>
-          <p className={profileStyles.subtitle}>Коротко расскажите, как всё прошло — это поможет ИИ дать конкретную оценку.</p>
+          {isTeamCoach ? (
+            <>
+              <h2 className={profileStyles.title}>Как команда провела тренировку?</h2>
+              <p className={profileStyles.subtitle}>Оцените команду в целом: как она работала, собранность, настрой.</p>
 
-          <label className={profileStyles.field}>
-            <span className={profileStyles.label}>Самочувствие (1 — плохо, 5 — отлично)</span>
-            <div style={{ display: "flex", gap: 6 }}>
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className={feedbackWellbeing === n ? profileStyles.buttonPrimary : profileStyles.buttonSecondary}
-                  style={{ flex: 1, padding: "8px 0" }}
-                  onClick={() => setFeedbackWellbeing(n)}
-                  disabled={feedbackBusy}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-          </label>
+              <label className={profileStyles.field}>
+                <span className={profileStyles.label}>Общая оценка команды (1 — слабо, 5 — отлично)</span>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className={teamRating === n ? profileStyles.buttonPrimary : profileStyles.buttonSecondary}
+                      style={{ flex: 1, padding: "8px 0" }}
+                      onClick={() => setTeamRating(n)}
+                      disabled={feedbackBusy}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </label>
+            </>
+          ) : (
+            <>
+              <h2 className={profileStyles.title}>Как прошла тренировка?</h2>
+              <p className={profileStyles.subtitle}>Коротко расскажите, как всё прошло — это поможет ИИ дать конкретную оценку.</p>
+
+              <label className={profileStyles.field}>
+                <span className={profileStyles.label}>Самочувствие (1 — плохо, 5 — отлично)</span>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className={feedbackWellbeing === n ? profileStyles.buttonPrimary : profileStyles.buttonSecondary}
+                      style={{ flex: 1, padding: "8px 0" }}
+                      onClick={() => setFeedbackWellbeing(n)}
+                      disabled={feedbackBusy}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </label>
+            </>
+          )}
 
           <label className={profileStyles.field}>
             <span className={profileStyles.label}>Нагрузка (1 — легко, 10 — на пределе)</span>
@@ -579,7 +620,7 @@ export function TrainingDetail({
               value={feedbackComment}
               onChange={(e) => setFeedbackComment(e.target.value)}
               maxLength={1000}
-              placeholder="Что было тяжело, что легко, самочувствие…"
+              placeholder={isTeamCoach ? "Что получилось, над чем поработать в следующий раз…" : "Что было тяжело, что легко, самочувствие…"}
               disabled={feedbackBusy}
             />
           </label>
@@ -587,13 +628,59 @@ export function TrainingDetail({
           {feedbackError && <p className={profileStyles.error}>{feedbackError}</p>}
 
           <div className={profileStyles.formActions}>
-            <button type="button" className={profileStyles.buttonPrimary} onClick={() => void handleFeedbackSubmit()} disabled={feedbackBusy}>
-              {feedbackBusy ? "…" : "Сохранить и оценить"}
+            <button
+              type="button"
+              className={profileStyles.buttonPrimary}
+              onClick={() => void handleFeedbackSubmit()}
+              disabled={feedbackBusy || (isTeamCoach && teamRating === null)}
+            >
+              {feedbackBusy ? "…" : isTeamCoach ? "Сохранить оценку" : "Сохранить и оценить"}
             </button>
-            <button type="button" className={profileStyles.buttonSecondary} onClick={() => void handleFeedbackSkip()} disabled={feedbackBusy}>
-              Пропустить
-            </button>
+            {isTeamCoach && editingTeamRating ? (
+              <button type="button" className={profileStyles.buttonSecondary} onClick={() => setEditingTeamRating(false)} disabled={feedbackBusy}>
+                Отмена
+              </button>
+            ) : (
+              <button type="button" className={profileStyles.buttonSecondary} onClick={() => void handleFeedbackSkip()} disabled={feedbackBusy}>
+                Пропустить
+              </button>
+            )}
           </div>
+        </div>
+      )}
+
+      {showTeamRatingSummary && savedFeedback && (
+        <div className={profileStyles.card}>
+          <h2 className={profileStyles.title}>Оценка команды</h2>
+          {savedFeedback.skipped || savedFeedback.teamRating === null ? (
+            <p className={profileStyles.subtitle}>Вы не оценивали эту тренировку.</p>
+          ) : (
+            <>
+              <div className={profileStyles.row}>
+                <span className={profileStyles.rowLabel}>Общая оценка</span>
+                <span className={profileStyles.rowValue}>{savedFeedback.teamRating} / 5</span>
+              </div>
+              {savedFeedback.difficulty !== null && (
+                <div className={profileStyles.row}>
+                  <span className={profileStyles.rowLabel}>Нагрузка</span>
+                  <span className={profileStyles.rowValue}>{savedFeedback.difficulty} / 10</span>
+                </div>
+              )}
+              {savedFeedback.comment && <p className={profileStyles.subtitle}>{savedFeedback.comment}</p>}
+            </>
+          )}
+          <button
+            type="button"
+            className={profileStyles.buttonSecondary}
+            onClick={() => {
+              setTeamRating(savedFeedback.teamRating);
+              setFeedbackDifficulty(savedFeedback.difficulty);
+              setFeedbackComment(savedFeedback.comment ?? "");
+              setEditingTeamRating(true);
+            }}
+          >
+            {savedFeedback.teamRating === null ? "Оценить команду" : "Изменить оценку"}
+          </button>
         </div>
       )}
 

@@ -9,7 +9,7 @@ import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
 import { Ornament } from "../shared/Ornament";
 import { StatTile } from "../shared/StatTile";
-import { CALENDAR_EVENT_ICONS, type CalendarEvent } from "../../types/calendar";
+import { CALENDAR_EVENT_ICONS, isStillAhead, type CalendarEvent } from "../../types/calendar";
 import type { Team } from "../../types/team";
 import type { PlayerActivity, TeamStats } from "../../types/stats";
 import { formatRate } from "../../types/stats";
@@ -143,7 +143,7 @@ export function CoachDashboard({
 
   const { teams, events } = state;
   const today = isoDatePlusDays(0);
-  const nextEvent = events.find((e) => e.date >= today);
+  const nextEvent = events.find((e) => e.date >= today && isStillAhead(e));
   const selectedTeam = teams.find((t) => t.id === selectedTeamId) ?? teams[0]!;
 
   const weekStart = startOfWeek(new Date());

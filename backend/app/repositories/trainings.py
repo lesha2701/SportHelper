@@ -179,13 +179,29 @@ async def is_booked_coach(conn: asyncpg.Connection, training_id: UUID, user_id: 
     return row is not None
 
 
+# What "the training took place" means in statistics. The coach's explicit mark wins:
+# a training marked completed counts at once - even if it is dated in the future. A
+# training nobody marked still counts once its day has come (coaches don't always
+# tick the box), but a cancelled one never does. Everything else that is still
+# scheduled for a later day is "upcoming".
+HELD = "(status = 'completed' OR (status = 'scheduled' AND training_date <= CURRENT_DATE))"
+UPCOMING = "(status = 'scheduled' AND training_date > CURRENT_DATE)"
+
+
+def _held(alias: str = "") -> str:
+    """HELD with every column qualified by `alias` ("t" -> t.status ...)."""
+    if not alias:
+        return HELD
+    return HELD.replace("status", f"{alias}.status").replace("training_date", f"{alias}.training_date")
+
+
 async def count_team_trainings_summary(conn: asyncpg.Connection, team_id: UUID) -> dict[str, Any]:
     row = await conn.fetchrow(
-        """
+        f"""
         SELECT
-            COUNT(*) FILTER (WHERE training_date <= CURRENT_DATE) AS completed,
-            COUNT(*) FILTER (WHERE training_date > CURRENT_DATE) AS upcoming,
-            COUNT(*) FILTER (WHERE type = 'independent') AS independent
+            COUNT(*) FILTER (WHERE {HELD}) AS completed,
+            COUNT(*) FILTER (WHERE {UPCOMING}) AS upcoming,
+            COUNT(*) FILTER (WHERE type = 'independent' AND status <> 'cancelled') AS independent
         FROM trainings
         WHERE team_id = $1 AND deleted_at IS NULL AND type IN ('team', 'independent')
         """,
@@ -195,18 +211,17 @@ async def count_team_trainings_summary(conn: asyncpg.Connection, team_id: UUID) 
 
 
 async def team_player_attendance(conn: asyncpg.Connection, team_id: UUID) -> list[dict[str, Any]]:
-    """Per-member present/absent counts across the team's own past
-    team/independent trainings (a training only counts once it's on or
-    before today — status isn't reliably kept up to date by coaches)."""
+    """Per-member present/absent counts across the team's own team/independent
+    trainings that took place (see HELD)."""
     rows = await conn.fetch(
-        """
+        f"""
         SELECT m.user_id, u.first_name, u.last_name,
                COUNT(a.status) FILTER (WHERE a.status = 'present') AS present_count,
                COUNT(a.status) FILTER (WHERE a.status = 'absent') AS absent_count
         FROM team_members m
         JOIN users u ON u.id = m.user_id
         LEFT JOIN trainings t ON t.team_id = m.team_id AND t.deleted_at IS NULL
-            AND t.type IN ('team', 'independent') AND t.training_date <= CURRENT_DATE
+            AND t.type IN ('team', 'independent') AND {_held('t')}
         LEFT JOIN training_attendance a ON a.training_id = t.id AND a.user_id = m.user_id
         WHERE m.team_id = $1
         GROUP BY m.user_id, u.first_name, u.last_name
@@ -219,14 +234,14 @@ async def team_player_attendance(conn: asyncpg.Connection, team_id: UUID) -> lis
 
 async def player_attendance_summary(conn: asyncpg.Connection, user_id: UUID) -> dict[str, Any]:
     row = await conn.fetchrow(
-        """
+        f"""
         SELECT
             COUNT(a.status) FILTER (WHERE a.status = 'present') AS present_count,
             COUNT(a.status) AS total_count,
             COALESCE(SUM(t.duration_minutes) FILTER (WHERE a.status = 'present'), 0) AS minutes_present
         FROM training_attendance a
         JOIN trainings t ON t.id = a.training_id AND t.deleted_at IS NULL
-        WHERE a.user_id = $1 AND t.type IN ('team', 'independent') AND t.training_date <= CURRENT_DATE
+        WHERE a.user_id = $1 AND t.type IN ('team', 'independent') AND {_held('t')}
         """,
         user_id,
     )
@@ -235,10 +250,10 @@ async def player_attendance_summary(conn: asyncpg.Connection, user_id: UUID) -> 
 
 async def player_training_counts(conn: asyncpg.Connection, user_id: UUID) -> dict[str, Any]:
     row = await conn.fetchrow(
-        """
+        f"""
         SELECT
-            COUNT(*) FILTER (WHERE type = 'personal' AND training_date <= CURRENT_DATE) AS personal_count,
-            COALESCE(SUM(duration_minutes) FILTER (WHERE type = 'personal' AND training_date <= CURRENT_DATE), 0) AS personal_minutes
+            COUNT(*) FILTER (WHERE type = 'personal' AND {HELD}) AS personal_count,
+            COALESCE(SUM(duration_minutes) FILTER (WHERE type = 'personal' AND {HELD}), 0) AS personal_minutes
         FROM trainings
         WHERE created_by = $1 AND deleted_at IS NULL
         """,
@@ -252,13 +267,13 @@ async def list_recent_for_player(conn: asyncpg.Connection, user_id: UUID, limit:
     and their own personal ones) with their attendance mark, newest first.
     Only a short slice of a personal training's description is returned."""
     rows = await conn.fetch(
-        """
+        f"""
         SELECT t.training_date, t.type, t.status, t.duration_minutes,
                a.status AS attendance_status,
                CASE WHEN t.type = 'personal' THEN left(t.description, 300) END AS description
         FROM trainings t
         LEFT JOIN training_attendance a ON a.training_id = t.id AND a.user_id = $1
-        WHERE t.deleted_at IS NULL AND t.training_date <= CURRENT_DATE
+        WHERE t.deleted_at IS NULL AND {_held('t')}
           AND (
             (t.type = 'personal' AND t.created_by = $1)
             OR t.team_id IN (SELECT team_id FROM team_members WHERE user_id = $1)
@@ -277,16 +292,35 @@ async def player_attendance_history(conn: asyncpg.Connection, user_id: UUID) -> 
     trainings — the route walks this to compute a consecutive-presence
     streak."""
     rows = await conn.fetch(
-        """
+        f"""
         SELECT a.status, t.training_date
         FROM training_attendance a
         JOIN trainings t ON t.id = a.training_id AND t.deleted_at IS NULL
-        WHERE a.user_id = $1 AND t.type IN ('team', 'independent') AND t.training_date <= CURRENT_DATE
+        WHERE a.user_id = $1 AND t.type IN ('team', 'independent') AND {_held('t')}
         ORDER BY t.training_date DESC, t.start_time DESC
         """,
         user_id,
     )
     return [dict(row) for row in rows]
+
+
+async def initialize_held_attendance(conn: asyncpg.Connection) -> int:
+    """Gives every member a 'present' row for each team/independent training that
+    took place (see HELD) and has none for them yet - "unmarked counts as present".
+    Without these rows a player's attendance would read 0 until the coach happened to
+    open the attendance screen. Idempotent; returns how many rows were added."""
+    result = await conn.execute(
+        f"""
+        INSERT INTO training_attendance (training_id, user_id, status)
+        SELECT t.id, m.user_id, 'present'
+        FROM trainings t
+        JOIN team_members m ON m.team_id = t.team_id AND m.joined_at::date <= t.training_date
+        WHERE t.deleted_at IS NULL AND t.type IN ('team', 'independent') AND {_held('t')}
+          AND NOT EXISTS (SELECT 1 FROM training_attendance a WHERE a.training_id = t.id AND a.user_id = m.user_id)
+        ON CONFLICT DO NOTHING
+        """
+    )
+    return int(result.rsplit(" ", 1)[-1])
 
 
 async def ensure_attendance_initialized(conn: asyncpg.Connection, training_id: UUID, team_id: UUID) -> None:

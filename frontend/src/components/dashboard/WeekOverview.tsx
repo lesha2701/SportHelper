@@ -1,6 +1,6 @@
 import { navigateApp } from "../../appNav";
 import { useIsPhone } from "../../hooks/useIsPhone";
-import { CALENDAR_EVENT_ICONS, type CalendarEvent } from "../../types/calendar";
+import { CALENDAR_EVENT_ICONS, isStillAhead, type CalendarEvent } from "../../types/calendar";
 import { Icon } from "../shared/Icon";
 import styles from "./dashboard.module.css";
 
@@ -79,7 +79,7 @@ export function WeekOverview({
   }
 
   const todays = eventsByDay.get(today) ?? [];
-  const next = events.find((e) => e.date > today);
+  const next = events.find((e) => e.date > today && isStillAhead(e));
   const todayDate = new Date();
   const dateLabel = todayDate.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
 

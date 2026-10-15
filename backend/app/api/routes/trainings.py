@@ -242,6 +242,10 @@ async def update_training(
     )
     if updated is None:
         raise NotFoundError("training not found")
+    if updated["status"] == "completed" and updated["type"] in ("team", "independent"):
+        # "Marked as held" is a fact: from this moment everyone on the team counts as having
+        # attended unless the coach flips them to absent (so statistics are right straight away).
+        await trainings_repo.ensure_attendance_initialized(conn, training_id, updated["team_id"])
     await schedule_training_reminders(conn, updated)
     return TrainingOut(**updated)
 
@@ -348,9 +352,15 @@ async def submit_training_feedback(
         raise APIError(
             "feedback can only be left for a training marked completed", code="training_not_completed", status_code=409
         )
+    if payload.team_rating is not None:
+        # The team rating is the coach's view of a team session; players rate their own wellbeing instead.
+        if training["type"] == "personal":
+            raise APIError("a personal training has no team to rate", code="invalid_feedback", status_code=400)
+        await _check_edit_access(conn, training, user["id"])
     feedback = await training_feedback_repo.upsert_feedback(
         conn, training_id, user["id"],
         wellbeing=payload.wellbeing, difficulty=payload.difficulty, comment=payload.comment,
+        team_rating=payload.team_rating,
     )
     return TrainingFeedbackOut(**feedback)
 

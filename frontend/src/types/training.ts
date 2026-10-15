@@ -127,13 +127,17 @@ export interface TrainingFeedback {
   wellbeing: number | null;
   difficulty: number | null;
   comment: string | null;
+  /** The coach's overall rating of the team (1-5); null on a player's own feedback. */
+  teamRating: number | null;
   skipped: boolean;
 }
 
 export interface TrainingFeedbackInput {
-  wellbeing: number | null;
+  wellbeing?: number | null;
   difficulty: number | null;
   comment: string | null;
+  /** Only the team's staff may send it. */
+  team_rating?: number | null;
 }
 
 export interface TrainingFeedbackDto {
@@ -142,6 +146,7 @@ export interface TrainingFeedbackDto {
   wellbeing: number | null;
   difficulty: number | null;
   comment: string | null;
+  team_rating?: number | null;
   skipped: boolean;
 }
 
@@ -152,6 +157,7 @@ export function mapTrainingFeedbackDto(dto: TrainingFeedbackDto): TrainingFeedba
     wellbeing: dto.wellbeing,
     difficulty: dto.difficulty,
     comment: dto.comment,
+    teamRating: dto.team_rating ?? null,
     skipped: dto.skipped,
   };
 }

@@ -145,7 +145,7 @@ async def test_migration_is_safe_to_run_twice(pg) -> None:
 
 
 async def test_a_fresh_database_gets_the_full_schema(conn) -> None:
-    assert await conn.fetchval("SELECT max(version) FROM schema_versions") == 32
+    assert await conn.fetchval("SELECT max(version) FROM schema_versions") == _discover_patches()[-1][0]
     for table in ("user_sessions", "auth_tokens", "user_mfa"):
         assert await conn.fetchval("SELECT to_regclass($1)", f"public.{table}") is not None
 
@@ -858,7 +858,7 @@ async def test_two_processes_starting_at_once_migrate_a_fresh_database_without_c
         for p in pools:
             await p.close()
 
-    assert versions == sorted(set(versions)) and versions[-1] == 32 and len(versions) == len(_discover_patches()) + 1
+    assert versions == sorted(set(versions)) and versions[-1] == _discover_patches()[-1][0] and len(versions) == len(_discover_patches()) + 1
 
 
 async def test_migrations_on_a_large_production_sized_users_table_are_fast_and_non_destructive(pg) -> None:

@@ -7,7 +7,7 @@ import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
 import { Ornament } from "../shared/Ornament";
 import { StatTile } from "../shared/StatTile";
-import { CALENDAR_EVENT_ICONS, type CalendarEvent } from "../../types/calendar";
+import { CALENDAR_EVENT_ICONS, isStillAhead, type CalendarEvent } from "../../types/calendar";
 import { MATCH_RESULT_LABELS } from "../../types/match";
 import { formatRate, type PlayerStats } from "../../types/stats";
 import styles from "./dashboard.module.css";
@@ -113,7 +113,7 @@ export function PlayerDashboard({
 
   const { events, stats } = state;
   const today = isoDatePlusDays(0);
-  const nextEvent = events.find((e) => e.date >= today);
+  const nextEvent = events.find((e) => e.date >= today && isStillAhead(e));
 
   const weekStart = startOfWeek(new Date());
   const weekDays = Array.from({ length: 7 }, (_, i) => {

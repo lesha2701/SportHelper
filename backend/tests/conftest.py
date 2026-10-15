@@ -1285,19 +1285,36 @@ def client(monkeypatch: pytest.MonkeyPatch):
             )
         return sorted(result, key=lambda r: (r["training_date"], r["start_time"]))
 
+    def _held(record) -> bool:
+        # Mirrors repositories.trainings.HELD: marked completed counts at once (even for a future
+        # date); an unmarked one counts once its day has come; a cancelled one never counts.
+        return record["status"] == "completed" or (record["status"] == "scheduled" and record["training_date"] <= date.today())
+
+    def _upcoming(record) -> bool:
+        return record["status"] == "scheduled" and record["training_date"] > date.today()
+
     async def fake_count_team_trainings_summary(conn, team_id):
-        today = date.today()
         completed = upcoming = independent = 0
         for r in trainings_store.values():
             if r.get("team_id") != team_id or r.get("type") not in ("team", "independent"):
                 continue
-            if r["training_date"] <= today:
-                completed += 1
-            else:
-                upcoming += 1
-            if r["type"] == "independent":
+            completed += _held(r)
+            upcoming += _upcoming(r)
+            if r["type"] == "independent" and r["status"] != "cancelled":
                 independent += 1
         return {"completed": completed, "upcoming": upcoming, "independent": independent}
+
+    async def fake_initialize_held_attendance(conn):
+        added = 0
+        for training in trainings_store.values():
+            if training.get("type") not in ("team", "independent") or not _held(training):
+                continue
+            for (team_key, user_key) in list(members_store.keys()):
+                if team_key == training.get("team_id") and (training["id"], user_key) not in attendance_store:
+                    attendance_store[(training["id"], user_key)] = {
+                        "status": "present", "marked_by": None, "marked_at": datetime.now(timezone.utc)}
+                    added += 1
+        return added
 
     async def fake_team_player_attendance(conn, team_id):
         today = date.today()
@@ -1313,7 +1330,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
                 training = trainings_store.get(t_id)
                 if training is None or training.get("team_id") != team_id or training.get("type") not in ("team", "independent"):
                     continue
-                if training["training_date"] > today:
+                if not _held(training):
                     continue
                 if record["status"] == "present":
                     present += 1
@@ -1339,7 +1356,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
             training = trainings_store.get(t_id)
             if training is None or training.get("type") not in ("team", "independent"):
                 continue
-            if training["training_date"] > today:
+            if not _held(training):
                 continue
             total += 1
             if record["status"] == "present":
@@ -1351,7 +1368,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
         today = date.today()
         count = minutes = 0
         for r in trainings_store.values():
-            if r.get("type") == "personal" and r["created_by"] == user_id and r["training_date"] <= today:
+            if r.get("type") == "personal" and r["created_by"] == user_id and _held(r):
                 count += 1
                 minutes += r.get("duration_minutes", 0)
         return {"personal_count": count, "personal_minutes": minutes}
@@ -1363,7 +1380,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
             if u_id != user_id:
                 continue
             training = trainings_store.get(t_id)
-            if training is None or training.get("type") not in ("team", "independent") or training["training_date"] > today:
+            if training is None or training.get("type") not in ("team", "independent") or not _held(training):
                 continue
             rows.append(
                 {"status": record["status"], "training_date": training["training_date"], "start_time": training["start_time"]}
@@ -1395,6 +1412,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(trainings_module, "player_training_counts", fake_player_training_counts)
     monkeypatch.setattr(trainings_module, "player_attendance_history", fake_player_attendance_history)
     monkeypatch.setattr(trainings_module, "ensure_attendance_initialized", fake_ensure_attendance_initialized)
+    monkeypatch.setattr(trainings_module, "initialize_held_attendance", fake_initialize_held_attendance)
     monkeypatch.setattr(trainings_module, "list_attendance", fake_list_attendance)
     monkeypatch.setattr(trainings_module, "get_attendance_for_user", fake_get_attendance_for_user)
     monkeypatch.setattr(trainings_module, "set_attendance_status", fake_set_attendance_status)
@@ -1405,11 +1423,11 @@ def client(monkeypatch: pytest.MonkeyPatch):
         record = training_feedback_store.get((training_id, user_id))
         return dict(record) if record else None
 
-    async def fake_upsert_feedback(conn, training_id, user_id, *, wellbeing, difficulty, comment):
+    async def fake_upsert_feedback(conn, training_id, user_id, *, wellbeing, difficulty, comment, team_rating=None):
         now = datetime.now(timezone.utc)
         record = {
             "training_id": training_id, "user_id": user_id,
-            "wellbeing": wellbeing, "difficulty": difficulty, "comment": comment,
+            "wellbeing": wellbeing, "difficulty": difficulty, "comment": comment, "team_rating": team_rating,
             "skipped": False, "created_at": now,
         }
         training_feedback_store[(training_id, user_id)] = record
@@ -1419,7 +1437,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
         existing = training_feedback_store.get((training_id, user_id))
         record = dict(existing) if existing else {
             "training_id": training_id, "user_id": user_id,
-            "wellbeing": None, "difficulty": None, "comment": None,
+            "wellbeing": None, "difficulty": None, "comment": None, "team_rating": None,
             "created_at": datetime.now(timezone.utc),
         }
         record["skipped"] = True
@@ -2399,10 +2417,9 @@ def client(monkeypatch: pytest.MonkeyPatch):
             del analyses_store[key]
 
     async def fake_list_recent_for_player(conn, user_id, limit):
-        today = date.today()
         rows = []
         for r in trainings_store.values():
-            if r["training_date"] > today or not (r["type"] == "personal" and r["created_by"] == user_id):
+            if not _held(r) or not (r["type"] == "personal" and r["created_by"] == user_id):
                 continue
             rows.append(
                 {
@@ -2590,7 +2607,7 @@ def login_as(client: TestClient):
 
 _FAKE_INTERNALS = (
     "auth_store", "bookings_store", "notifications_store", "ai_analyses_store", "player_reviews_store", ".outbox",
-    "asyncio.run(", "caplog", "dependency_overrides", "monkeypatch.setattr", "(None,",
+    "asyncio.run(", "sweep_attendance(None", "caplog", "dependency_overrides", "monkeypatch.setattr", "(None,",
 )
 
 
