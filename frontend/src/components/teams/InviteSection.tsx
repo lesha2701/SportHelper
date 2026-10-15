@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createInvite, listInvites } from "../../api/teams";
 import { ApiError } from "../../api/client";
 import type { Invite, InviteKind } from "../../types/team";
+import { Icon } from "../shared/Icon";
 import profileStyles from "../profile/profile.module.css";
 import styles from "./teams.module.css";
 
@@ -10,6 +11,8 @@ interface InviteSectionProps {
   teamId: string;
   kind: InviteKind;
   title: string;
+  /** Only the title is shown until the header is pressed; the links load on the first expand. */
+  collapsible?: boolean;
 }
 
 function formatExpiry(iso: string): string {
@@ -17,7 +20,8 @@ function formatExpiry(iso: string): string {
   return date.toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
-export function InviteSection({ token, teamId, kind, title }: InviteSectionProps) {
+export function InviteSection({ token, teamId, kind, title, collapsible = false }: InviteSectionProps) {
+  const [open, setOpen] = useState(!collapsible);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +29,7 @@ export function InviteSection({ token, teamId, kind, title }: InviteSectionProps
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!open) return;
     let cancelled = false;
     setLoading(true);
     listInvites(token, teamId)
@@ -40,7 +45,7 @@ export function InviteSection({ token, teamId, kind, title }: InviteSectionProps
     return () => {
       cancelled = true;
     };
-  }, [token, teamId, kind]);
+  }, [token, teamId, kind, open]);
 
   const handleCreate = async () => {
     setCreating(true);
@@ -68,24 +73,42 @@ export function InviteSection({ token, teamId, kind, title }: InviteSectionProps
 
   return (
     <div className={profileStyles.card}>
-      <h2 className={profileStyles.title}>{title}</h2>
-      {loading && <p className={profileStyles.subtitle}>Загрузка…</p>}
-      {error && <p className={profileStyles.error}>{error}</p>}
+      {collapsible ? (
+        <button
+          type="button"
+          className={styles.collapsibleHeader}
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <h2 className={profileStyles.title}>{title}</h2>
+          <span className={open ? styles.chevronOpen : styles.chevron}>
+            <Icon name="chevron-right" size={18} />
+          </span>
+        </button>
+      ) : (
+        <h2 className={profileStyles.title}>{title}</h2>
+      )}
+      {open && (
+        <>
+          {loading && <p className={profileStyles.subtitle}>Загрузка…</p>}
+          {error && <p className={profileStyles.error}>{error}</p>}
 
-      {!loading &&
-        invites.map((invite) => (
-          <div key={invite.id} className={styles.inviteBox}>
-            <span className={styles.inviteLink}>{invite.link}</span>
-            <span className={styles.inviteExpiry}>Действует до {formatExpiry(invite.expiresAt)}</span>
-            <button type="button" className={styles.iconButton} onClick={() => void handleCopy(invite)}>
-              {copiedToken === invite.token ? "Скопировано" : "Скопировать ссылку"}
-            </button>
-          </div>
-        ))}
+          {!loading &&
+            invites.map((invite) => (
+              <div key={invite.id} className={styles.inviteBox}>
+                <span className={styles.inviteLink}>{invite.link}</span>
+                <span className={styles.inviteExpiry}>Действует до {formatExpiry(invite.expiresAt)}</span>
+                <button type="button" className={styles.iconButton} onClick={() => void handleCopy(invite)}>
+                  {copiedToken === invite.token ? "Скопировано" : "Скопировать ссылку"}
+                </button>
+              </div>
+            ))}
 
-      <button type="button" className={profileStyles.buttonSecondary} onClick={() => void handleCreate()} disabled={creating}>
-        {creating ? "Создание…" : "Создать новую ссылку"}
-      </button>
+          <button type="button" className={profileStyles.buttonSecondary} onClick={() => void handleCreate()} disabled={creating}>
+            {creating ? "Создание…" : "Создать новую ссылку"}
+          </button>
+        </>
+      )}
     </div>
   );
 }

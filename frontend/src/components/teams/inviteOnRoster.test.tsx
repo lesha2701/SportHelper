@@ -34,21 +34,43 @@ async function open(myRole: TeamRole) {
   await act(async () => {});
 }
 
-beforeEach(() => vi.mocked(createInvite).mockReset());
+beforeEach(() => {
+  vi.mocked(createInvite).mockReset();
+  vi.mocked(listInvites).mockReset();
+});
 afterEach(cleanup);
 
+const expand = async () => {
+  fireEvent.click(screen.getByRole("button", { name: /Пригласительная ссылка/ }));
+  await act(async () => {});
+};
+
 describe("inviting players from the roster", () => {
-  it("puts the invite link on the roster tab, above the members, for the coach", async () => {
+  it("shows only the title above the members until it is pressed", async () => {
     await open("head_coach");
 
-    const heading = screen.getByText("Пригласить игроков");
+    const heading = screen.getByText("Пригласительная ссылка");
     const firstMember = screen.getByText(/Игорь/);
     expect(heading.compareDocumentPosition(firstMember) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByText("https://example.com/?invite=tok")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Создать новую ссылку" })).toBeNull();
+    expect(screen.queryByText("https://example.com/?invite=tok")).toBeNull();
+    expect(listInvites).not.toHaveBeenCalled(); // nothing is fetched for a section nobody opened
   });
 
-  it("generates a new link right there", async () => {
+  it("expands on a press and collapses again on the next", async () => {
     await open("head_coach");
+
+    await expand();
+    expect(screen.getByRole("button", { name: /Пригласительная ссылка/ }).getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByText("https://example.com/?invite=tok")).not.toBeNull();
+
+    await expand();
+    expect(screen.queryByRole("button", { name: "Создать новую ссылку" })).toBeNull();
+  });
+
+  it("generates a new link once expanded", async () => {
+    await open("head_coach");
+    await expand();
     vi.mocked(createInvite).mockResolvedValue({ ...invite, id: "i2", token: "tok2", link: "https://example.com/?invite=tok2" });
 
     fireEvent.click(screen.getByRole("button", { name: "Создать новую ссылку" }));
@@ -63,14 +85,14 @@ describe("inviting players from the roster", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Настройки" }));
 
-    expect(screen.queryByText("Пригласить игроков")).toBeNull();
+    expect(screen.queryByText("Пригласительная ссылка")).toBeNull();
     expect(screen.queryByRole("button", { name: "Создать новую ссылку" })).toBeNull();
   });
 
   it("isn't shown to a player", async () => {
     await open("player");
 
-    expect(screen.queryByText("Пригласить игроков")).toBeNull();
+    expect(screen.queryByText("Пригласительная ссылка")).toBeNull();
     expect(screen.getByText(/Игорь/)).not.toBeNull();
   });
 });

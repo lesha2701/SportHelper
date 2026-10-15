@@ -271,7 +271,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
       {tab === "roster" && (
         <div className={styles.teamContentLayout}>
           <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-            {isCoachStaff && <InviteSection token={token} teamId={teamId} kind="join" title="Пригласить игроков" />}
+            {isCoachStaff && <InviteSection token={token} teamId={teamId} kind="join" title="Пригласительная ссылка" collapsible />}
             <div className={styles.cardGrid}>
               {members.map((member) => (
                 <button
