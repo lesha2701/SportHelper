@@ -93,3 +93,40 @@ def test_the_bot_stays_silent_in_group_chats(harness) -> None:
 
 def test_the_command_menu_contains_only_start() -> None:
     assert [c.command for c in bot_module.BOT_COMMANDS] == ["start"]
+
+
+from tests.test_auth_postgres import pg  # noqa: E402,F401  (fixture)
+
+
+def test_start_works_against_the_real_database(pg, monkeypatch) -> None:  # noqa: F811
+    """The same /start the bot process serves, with a real pool and the real queries."""
+    from app.database import create_pool, run_migrations
+
+    settings = Settings(_env_file=None, DATABASE_URL=pg, APP_BASE_URL="https://sport.example.com", TELEGRAM_BOT_TOKEN="1:abc")
+    session = RecordingSession()
+    bot = Bot(token="1:abc", session=session)
+
+    async def scenario():
+        pool = await create_pool(settings)
+        try:
+            await run_migrations(pool)
+            dispatcher = bot_module.create_dispatcher(settings, pool)
+            await dispatcher.feed_update(bot, _update("/start"))  # nobody known yet
+            async with pool.acquire() as conn:
+                await conn.execute("INSERT INTO users (telegram_id, first_name) VALUES (42, 'Аня')")  # legacy, no e-mail
+            await dispatcher.feed_update(bot, _update("/start"))
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    "UPDATE users SET email='anya@example.com', email_verified_at=now() WHERE telegram_id=42"
+                )
+            await dispatcher.feed_update(bot, _update("/start"))  # linked account
+        finally:
+            await pool.close()
+
+    asyncio.run(scenario())
+
+    texts = [c.text for c in session.calls]
+    assert len(texts) == 3
+    assert "Добро пожаловать" in texts[0]
+    assert "Перенести" in str(session.calls[1].reply_markup) or "claim" in str(session.calls[1].reply_markup)
+    assert "подключён" in texts[2]
