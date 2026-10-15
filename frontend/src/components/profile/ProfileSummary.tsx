@@ -4,6 +4,7 @@ import { getPlayerStats } from "../../api/stats";
 import { ApiError } from "../../api/client";
 import { removeUserAvatar, uploadUserAvatar } from "../../api/users";
 import { useAuth } from "../../context/AuthContext";
+import { navigate } from "../../router";
 import { AchievementsGallery } from "./AchievementsGallery";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { Icon, type IconName } from "../shared/Icon";
@@ -200,6 +201,10 @@ export function ProfileSummary({
     badge: unreadNotifications,
     onClick: onOpenNotifications,
   });
+  if (authState.status === "ready" && authState.user.isAdmin) {
+    // Shown only when the server says this account is an administrator; the server re-checks every admin request.
+    actionRows.push({ key: "admin", icon: "shield", label: "Админ-панель", onClick: () => navigate("/admin") });
+  }
   actionRows.push({ key: "settings", icon: "settings", label: "Настройки", onClick: onOpenSettings });
   actionRows.push({ key: "help", icon: "book", label: "Помощь", onClick: onOpenHelp });
   actionRows.push({ key: "logout", icon: "log-out", label: "Выйти из аккаунта", onClick: () => void logout() });

@@ -247,8 +247,13 @@ export async function getMfaStatus(): Promise<MfaStatus> {
   return { isAdmin: dto.is_admin, enabled: dto.enabled, sessionVerified: dto.session_verified };
 }
 
-export async function setupMfa(): Promise<{ secret: string; otpauthUri: string }> {
-  const dto = await apiRequest<{ secret: string; otpauth_uri: string }>("/api/auth/mfa/setup", { method: "POST", ...QUIET });
+/** Starting to enrol an authenticator asks for the password again. */
+export async function setupMfa(password: string): Promise<{ secret: string; otpauthUri: string }> {
+  const dto = await apiRequest<{ secret: string; otpauth_uri: string }>("/api/auth/mfa/setup", {
+    method: "POST",
+    ...QUIET,
+    body: { password },
+  });
   return { secret: dto.secret, otpauthUri: dto.otpauth_uri };
 }
 

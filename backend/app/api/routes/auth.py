@@ -49,6 +49,7 @@ from app.schemas.auth import (
     MfaCodeIn,
     MfaDisableIn,
     MfaEnableOut,
+    MfaSetupIn,
     MfaSetupOut,
     MfaStatusOut,
     PasswordIn,
@@ -774,12 +775,16 @@ async def mfa_status(
 
 @router.post("/mfa/setup", response_model=MfaSetupOut)
 async def mfa_setup(
+    payload: MfaSetupIn,
+    request: Request,
     ctx: AuthContext = Depends(get_auth_context),
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> MfaSetupOut:
     if not is_admin(ctx.user, settings):
         raise ForbiddenError("two-factor authentication is only available to administrators")
+    await svc.enforce_rate_limit(request, conn, settings, "mfa", str(ctx.user["id"]), limit=10, window_seconds=600)
+    await _require_password(conn, ctx.user["id"], payload.password, settings)
     existing = await mfa_repo.get(conn, ctx.user["id"])
     if existing and existing["enabled_at"]:
         raise ConflictError("Двухфакторная защита уже включена.", code="mfa_already_enabled")

@@ -7,6 +7,17 @@ from uuid import UUID
 from pydantic import BaseModel
 
 
+class AdminSessionOut(BaseModel):
+    """What the signed-in administrator may do right now - never the allowlist itself."""
+
+    is_admin: bool
+    mfa_enabled: bool
+    # The second factor was entered in this session recently enough for ordinary admin operations...
+    mfa_verified: bool
+    # ...and recently enough for irreversible ones (see ADMIN_SENSITIVE_MFA_MINUTES).
+    mfa_recent: bool
+
+
 class AdminOverviewOut(BaseModel):
     total_users: int
     banned_users: int

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends
 
-from app.api.deps import require_admin, require_admin_mfa
+from app.api.deps import require_admin, require_admin_mfa, require_admin_recent_mfa
 from app.config import get_settings
 from app.security import totp
 from tests.auth_helpers import PASSWORD, csrf_headers, login, sign_in
@@ -26,6 +26,10 @@ def _mount_gated_routes(client) -> None:
 
     @client.app.get("/api/_test/finance")
     async def finance(ctx=Depends(require_admin_mfa)):
+        return {"ok": True}
+
+    @client.app.get("/api/_test/irreversible")
+    async def irreversible(ctx=Depends(require_admin_recent_mfa)):
         return {"ok": True}
 
 
@@ -129,7 +133,7 @@ def test_financial_routes_require_mfa_setup_then_a_code_per_session(client, monk
     assert blocked.status_code == 403 and blocked.json()["error"]["code"] == "mfa_setup_required"
 
     # 2. Set it up: scan the secret, confirm with a code, keep the recovery codes.
-    setup = client.post("/api/auth/mfa/setup", headers=headers).json()
+    setup = client.post("/api/auth/mfa/setup", headers=headers, json={"password": PASSWORD}).json()
     assert setup["otpauth_uri"].startswith("otpauth://totp/") and setup["secret"] in setup["otpauth_uri"]
     assert client.post("/api/auth/mfa/enable", headers=headers, json={"code": "000000"}).status_code == 400
     enabled = client.post("/api/auth/mfa/enable", headers=headers, json={"code": _code(setup["secret"])})
@@ -156,7 +160,7 @@ def test_mfa_verification_expires_with_the_configured_window(client, monkeypatch
     _mount_gated_routes(client)
     info = sign_in(client, email=ADMIN)
     headers = csrf_headers(info["csrf"])
-    secret = client.post("/api/auth/mfa/setup", headers=headers).json()["secret"]
+    secret = client.post("/api/auth/mfa/setup", headers=headers, json={"password": PASSWORD}).json()["secret"]
     client.post("/api/auth/mfa/enable", headers=headers, json={"code": _code(secret)})
     assert client.get("/api/_test/finance").status_code == 200
 
@@ -166,11 +170,31 @@ def test_mfa_verification_expires_with_the_configured_window(client, monkeypatch
     assert client.get("/api/_test/finance").json()["error"]["code"] == "mfa_required"
 
 
+def test_irreversible_operations_need_a_code_from_the_last_few_minutes(client, monkeypatch) -> None:
+    _admin_env(monkeypatch)
+    _mount_gated_routes(client)
+    info = sign_in(client, email=ADMIN)
+    headers = csrf_headers(info["csrf"])
+    secret = client.post("/api/auth/mfa/setup", headers=headers, json={"password": PASSWORD}).json()["secret"]
+    client.post("/api/auth/mfa/enable", headers=headers, json={"code": _code(secret)})
+    assert client.get("/api/_test/irreversible").status_code == 200  # the code was just entered
+
+    for row in client.auth_store.sessions.values():
+        row["mfa_verified_at"] = datetime.now(timezone.utc) - timedelta(minutes=30)
+
+    assert client.get("/api/_test/finance").status_code == 200  # still fine for ordinary admin work (12 h window)
+    blocked = client.get("/api/_test/irreversible")
+    assert blocked.status_code == 403 and blocked.json()["error"]["code"] == "mfa_recent_required"
+
+    assert client.post("/api/auth/mfa/verify", headers=headers, json={"code": _code(secret, 1)}).status_code == 200
+    assert client.get("/api/_test/irreversible").status_code == 200
+
+
 def test_recovery_codes_work_once(client, monkeypatch) -> None:
     _admin_env(monkeypatch)
     info = sign_in(client, email=ADMIN)
     headers = csrf_headers(info["csrf"])
-    secret = client.post("/api/auth/mfa/setup", headers=headers).json()["secret"]
+    secret = client.post("/api/auth/mfa/setup", headers=headers, json={"password": PASSWORD}).json()["secret"]
     codes = client.post("/api/auth/mfa/enable", headers=headers, json={"code": _code(secret)}).json()["recovery_codes"]
 
     assert client.post("/api/auth/mfa/verify", headers=headers, json={"code": codes[0]}).status_code == 200
@@ -182,7 +206,7 @@ def test_mfa_secret_is_encrypted_at_rest_and_recovery_codes_hashed(client, monke
     _admin_env(monkeypatch)
     info = sign_in(client, email=ADMIN)
     headers = csrf_headers(info["csrf"])
-    secret = client.post("/api/auth/mfa/setup", headers=headers).json()["secret"]
+    secret = client.post("/api/auth/mfa/setup", headers=headers, json={"password": PASSWORD}).json()["secret"]
     codes = client.post("/api/auth/mfa/enable", headers=headers, json={"code": _code(secret)}).json()["recovery_codes"]
 
     stored = next(iter(client.auth_store.mfa.values()))
@@ -194,7 +218,7 @@ def test_disabling_mfa_needs_the_password_and_a_code(client, monkeypatch) -> Non
     _admin_env(monkeypatch)
     info = sign_in(client, email=ADMIN)
     headers = csrf_headers(info["csrf"])
-    secret = client.post("/api/auth/mfa/setup", headers=headers).json()["secret"]
+    secret = client.post("/api/auth/mfa/setup", headers=headers, json={"password": PASSWORD}).json()["secret"]
     client.post("/api/auth/mfa/enable", headers=headers, json={"code": _code(secret)})
 
     no_code = client.post("/api/auth/mfa/disable", headers=headers, json={"password": PASSWORD, "code": "000000"})
@@ -210,7 +234,7 @@ def test_mfa_is_only_offered_to_administrators(client) -> None:
     info = sign_in(client)
 
     assert client.get("/api/auth/mfa").json() == {"is_admin": False, "enabled": False, "session_verified": False}
-    assert client.post("/api/auth/mfa/setup", headers=csrf_headers(info["csrf"])).status_code == 403
+    assert client.post("/api/auth/mfa/setup", headers=csrf_headers(info["csrf"]), json={"password": PASSWORD}).status_code == 403
 
 
 def test_totp_matches_the_rfc_6238_test_vector() -> None:

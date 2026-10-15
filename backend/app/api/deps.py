@@ -145,9 +145,18 @@ async def get_optional_user(
 
 def is_admin(user: dict, settings: Settings) -> bool:
     """Admin rights come only from server configuration (ADMIN_EMAILS) and
-    only for a verified email - nothing a client sends can grant them."""
+    only for an active account with a verified email - nothing a client sends can
+    grant them. Evaluated on every request against the current allowlist, so removing
+    an address from the configuration ends that person's access as soon as the backend
+    runs with the new value; there is no stored "is admin" flag to forget."""
     email = user.get("email")
-    return bool(email and user.get("email_verified_at") and email.lower() in settings.admin_emails_list)
+    return bool(
+        email
+        and user.get("email_verified_at")
+        and not user.get("is_banned")
+        and user.get("deleted_at") is None
+        and email.lower() in settings.admin_emails_list
+    )
 
 
 async def require_admin(
@@ -172,4 +181,16 @@ async def require_admin_mfa(
     verified_at = ctx.session.get("mfa_verified_at")
     if verified_at is None or datetime.now(timezone.utc) - verified_at > timedelta(hours=settings.admin_mfa_session_hours):
         raise ForbiddenError("confirm your two-factor code to continue", code="mfa_required")
+    return ctx
+
+
+async def require_admin_recent_mfa(
+    ctx: AuthContext = Depends(require_admin_mfa),
+    settings: Settings = Depends(get_settings_dep),
+) -> AuthContext:
+    """For irreversible operations: the second factor must have been entered within the last few
+    minutes (ADMIN_SENSITIVE_MFA_MINUTES), not just at some point in the session."""
+    verified_at = ctx.session.get("mfa_verified_at")
+    if verified_at is None or datetime.now(timezone.utc) - verified_at > timedelta(minutes=settings.admin_sensitive_mfa_minutes):
+        raise ForbiddenError("confirm your two-factor code again to do this", code="mfa_recent_required")
     return ctx

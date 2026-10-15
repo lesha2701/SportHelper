@@ -14,6 +14,7 @@ is checked per session (`user_sessions.mfa_verified_at`).
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 import asyncpg
@@ -23,7 +24,8 @@ from app.api.deps import AuthContext, get_db, get_settings_dep, is_admin, requir
 from app.config import Settings
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.repositories import admin as admin_repo
-from app.schemas.admin import AdminAuditEntryOut, AdminOverviewOut, AdminUserOut, AdminUsersPageOut
+from app.repositories import mfa as mfa_repo
+from app.schemas.admin import AdminAuditEntryOut, AdminOverviewOut, AdminSessionOut, AdminUserOut, AdminUsersPageOut
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -44,9 +46,28 @@ def _user_out(row: dict) -> AdminUserOut:
     )
 
 
+@router.get("/session", response_model=AdminSessionOut)
+async def admin_session(
+    ctx: AuthContext = Depends(require_admin),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> AdminSessionOut:
+    """The one admin endpoint that works before the second factor is entered: it only says what is still
+    needed. Non-administrators get the same 403 as for every other admin route."""
+    mfa = await mfa_repo.get(conn, ctx.user["id"])
+    verified_at = ctx.session.get("mfa_verified_at")
+    now = datetime.now(timezone.utc)
+    return AdminSessionOut(
+        is_admin=True,
+        mfa_enabled=bool(mfa and mfa["enabled_at"]),
+        mfa_verified=bool(verified_at and now - verified_at <= timedelta(hours=settings.admin_mfa_session_hours)),
+        mfa_recent=bool(verified_at and now - verified_at <= timedelta(minutes=settings.admin_sensitive_mfa_minutes)),
+    )
+
+
 @router.get("/overview", response_model=AdminOverviewOut)
 async def overview(
-    ctx: AuthContext = Depends(require_admin), conn: asyncpg.Connection = Depends(get_db)
+    ctx: AuthContext = Depends(require_admin_mfa), conn: asyncpg.Connection = Depends(get_db)
 ) -> AdminOverviewOut:
     stats = await admin_repo.get_project_stats(conn)
     return AdminOverviewOut(**{key: stats[key] for key in AdminOverviewOut.model_fields})

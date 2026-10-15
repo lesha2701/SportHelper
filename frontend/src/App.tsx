@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { loginUrl, navigate, safeNext, useLocation } from "./router";
 import { ClaimAccountPage } from "./components/auth/ClaimAccountPage";
@@ -19,6 +19,10 @@ import { Link } from "./components/Link";
 import { StateScreen } from "./components/StateScreen";
 import { OnboardingGate } from "./components/welcome/OnboardingGate";
 import { Workspace } from "./Workspace";
+
+// The administration code is only downloaded by a signed-in administrator who opens /admin. That is a
+// convenience, not protection: every admin request is checked again on the server.
+const AdminApp = lazy(() => import("./components/admin/AdminApp"));
 
 function Redirect({ to }: { to: string }) {
   useEffect(() => {
@@ -93,6 +97,15 @@ function Routes() {
       const keep = new URLSearchParams();
       for (const key of ["coach", "listing"]) if (params.get(key)) keep.set(key, params.get(key)!);
       return <Redirect to={`/${keep.size ? `?${keep}` : ""}`} />;
+    }
+    if (path === "/admin" || path.startsWith("/admin/")) {
+      // Anyone who is not flagged as an administrator by the server sees exactly what a missing page looks like.
+      if (!state.user.isAdmin) return <NotFoundPage />;
+      return (
+        <Suspense fallback={<StateScreen kind="loading" title="Загрузка…" />}>
+          <AdminApp />
+        </Suspense>
+      );
     }
     return (
       <OnboardingGate token={state.token} user={state.user} onUserUpdated={updateUser}>

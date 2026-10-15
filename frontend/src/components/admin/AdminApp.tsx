@@ -1,0 +1,131 @@
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { getAdminSession, type AdminSession } from "../../api/admin";
+import { ApiError } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
+import { Link } from "../Link";
+import { StateScreen } from "../StateScreen";
+import { BrandLogo } from "../shared/BrandLogo";
+import { Icon, type IconName } from "../shared/Icon";
+import { MfaSection } from "../profile/AccountSecurity";
+import { useLocation } from "../../router";
+import { DashboardPage } from "./DashboardPage";
+import { AdminContext } from "./adminUi";
+import styles from "./admin.module.css";
+
+interface Section {
+  path: string;
+  label: string;
+  icon: IconName;
+  render: () => ReactNode;
+}
+
+const SECTIONS: Section[] = [{ path: "/admin", label: "Обзор", icon: "home", render: () => <DashboardPage /> }];
+
+type Gate =
+  | { kind: "loading" }
+  | { kind: "denied" }
+  | { kind: "failed"; message: string }
+  | { kind: "setup" }
+  | { kind: "code" }
+  | { kind: "ready"; session: AdminSession };
+
+/** Everything here is only a convenience: the server decides on every request. This page just asks it
+ * (GET /api/admin/session) which step is still missing, and follows the answer. */
+export default function AdminApp() {
+  const { state } = useAuth();
+  const [gate, setGate] = useState<Gate>({ kind: "loading" });
+  const email = state.status === "ready" ? state.user.email : null;
+
+  const check = useCallback(() => {
+    getAdminSession()
+      .then((session) => {
+        if (!session.mfaEnabled) setGate({ kind: "setup" });
+        else if (!session.mfaVerified) setGate({ kind: "code" });
+        else setGate({ kind: "ready", session });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) setGate({ kind: "denied" });
+        else setGate({ kind: "failed", message: error instanceof ApiError ? error.message : "Не удалось проверить доступ" });
+      });
+  }, []);
+
+  useEffect(check, [check]);
+  const context = useMemo(() => ({ recheck: check }), [check]);
+
+  if (gate.kind === "loading") return <StateScreen kind="loading" title="Проверяем доступ…" />;
+  if (gate.kind === "denied") {
+    return (
+      <div className={styles.gate}>
+        <div className={styles.gateCard}>
+          <StateScreen kind="forbidden" title="Доступ закрыт" description="У этой учётной записи нет доступа к административной панели." />
+          <Link to="/" className={styles.button}>
+            На сайт
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  if (gate.kind === "failed") return <StateScreen kind="error" title="Не удалось проверить доступ" description={gate.message} onRetry={check} />;
+
+  if (gate.kind === "setup" || gate.kind === "code") {
+    return (
+      <div className={styles.gate}>
+        <div className={styles.gateCard}>
+          <div className={styles.card}>
+            <h1 className={styles.cardTitle}>Административная панель</h1>
+            <p className={styles.pageHint}>
+              {gate.kind === "setup"
+                ? "Чтобы войти, включите двухфакторную защиту: понадобится приложение-аутентификатор. Вы получите резервные коды на случай потери телефона."
+                : "Введите код из приложения-аутентификатора (или один из резервных кодов), чтобы открыть панель."}
+            </p>
+          </div>
+          <MfaSection onChanged={check} />
+          <Link to="/" className={styles.button}>
+            Вернуться на сайт
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <AdminContext.Provider value={context}>
+      <AdminShell email={email} />
+    </AdminContext.Provider>
+  );
+}
+
+function AdminShell({ email }: { email: string | null }) {
+  const { path } = useLocation();
+  const current = SECTIONS.find((s) => s.path === path) ?? (path === "/admin" ? SECTIONS[0] : undefined);
+
+  return (
+    <div className={styles.layout}>
+      <nav className={styles.sidebar} aria-label="Разделы администрирования">
+        <div className={styles.brand}>
+          <BrandLogo className={styles.brandMark} />
+          <span className={styles.brandText}>
+            <span className={styles.brandName}>SportArenaGlobal</span>
+            <span className={styles.brandSub}>Админ-панель</span>
+          </span>
+        </div>
+        {SECTIONS.map((section) => (
+          <Link key={section.path} to={section.path} className={current === section ? styles.navItemActive : styles.navItem} aria-current={current === section ? "page" : undefined}>
+            <Icon name={section.icon} size={19} />
+            {section.label}
+          </Link>
+        ))}
+        <div className={styles.sidebarFoot}>
+          {email && <span className={styles.who}>{email}</span>}
+          <Link to="/" className={styles.buttonGhost}>
+            <Icon name="chevron-left" size={16} />
+            На сайт
+          </Link>
+        </div>
+      </nav>
+      <main className={styles.main}>
+        {current ? current.render() : <StateScreen kind="empty" title="Раздел не найден" description="Выберите раздел в меню слева." />}
+      </main>
+    </div>
+  );
+}

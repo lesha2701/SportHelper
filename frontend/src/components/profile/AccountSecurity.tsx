@@ -393,7 +393,8 @@ function TelegramSection() {
 
 // --- two-factor (administrators) -----------------------------------------------------------------------
 
-function MfaSection() {
+/** Exported because the administration gate shows the same enrolment / code entry in place. */
+export function MfaSection({ onChanged }: { onChanged?: () => void } = {}) {
   const [status, setStatus] = useState<MfaStatus | null>(null);
   const [setup, setSetup] = useState<{ secret: string; otpauthUri: string } | null>(null);
   const [recovery, setRecovery] = useState<string[] | null>(null);
@@ -415,6 +416,7 @@ function MfaSection() {
     setError(null);
     try {
       await action();
+      onChanged?.();
     } catch (err) {
       setError(toFormError(err).message);
     } finally {
@@ -512,10 +514,21 @@ function MfaSection() {
           </SubmitButton>
         </form>
       ) : (
-        <button type="button" className={profileStyles.buttonPrimary} disabled={busy} onClick={() => void run(async () => setSetup(await setupMfa()))}>
-          <Icon name="shield" size={16} />
-          Настроить
-        </button>
+        <form
+          className={styles.form}
+          onSubmit={(e) => {
+            e.preventDefault();
+            void run(async () => {
+              setSetup(await setupMfa(password));
+              setPassword("");
+            });
+          }}
+        >
+          <PasswordField label="Пароль (для подтверждения)" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={busy} />
+          <SubmitButton loading={busy} loadingText="Проверяем…">
+            Настроить
+          </SubmitButton>
+        </form>
       )}
     </Section>
   );

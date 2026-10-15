@@ -32,7 +32,7 @@ import { listNotifications } from "./api/notifications";
 import { TEAM_ROLE_LABELS, type Team } from "./types/team";
 import type { CalendarEvent } from "./types/calendar";
 import type { NotificationCategory } from "./types/notification";
-
+import { navigate } from "./router";
 function initialOf(name: string): string {
   return name.trim().charAt(0).toUpperCase() || "?";
 }
@@ -231,6 +231,7 @@ function MainContent({
   const { state: authState } = useAuth();
   const myUserId = authState.status === "ready" ? authState.user.id : null;
   const myPhotoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
+  const openAdmin = authState.status === "ready" && authState.user.isAdmin ? () => navigate("/admin") : undefined;
   const [coachTab, setCoachTab] = useState<CoachTab>(marketplaceIntent ? "coaches" : "dashboard");
   const [playerTab, setPlayerTab] = useState<PlayerTab>(marketplaceIntent ? "coaches" : "dashboard");
 
@@ -503,6 +504,7 @@ function MainContent({
         sideTeam={sideTeam}
         onOpenTeam={onOpenTeam}
         sideUser={sideUser}
+        onOpenAdmin={openAdmin}
         onOpenProfile={() => {
           setOverlay(null);
           setCoachTab("profile");
@@ -551,6 +553,7 @@ function MainContent({
       sideTeam={sideTeam}
       onOpenTeam={onOpenTeam}
       sideUser={sideUser}
+      onOpenAdmin={openAdmin}
       onOpenProfile={() => {
         setOverlay(null);
         setPlayerTab("profile");

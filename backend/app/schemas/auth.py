@@ -140,6 +140,12 @@ class MfaSetupOut(BaseModel):
     otpauth_uri: str
 
 
+class MfaSetupIn(BaseModel):
+    # Starting to enrol a second factor needs the password again: a stolen session alone must not be
+    # enough to attach someone else's authenticator to an administrator account.
+    password: str = Field(max_length=256)
+
+
 class MfaCodeIn(BaseModel):
     code: str = Field(max_length=32)
 

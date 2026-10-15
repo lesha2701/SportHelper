@@ -9,6 +9,7 @@ the process (defaults to ".env" in the repository root):
 from __future__ import annotations
 
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -133,6 +134,9 @@ class Settings(BaseSettings):
     # through an API request. Financial operations additionally require MFA.
     admin_emails: str = Field(default="", alias="ADMIN_EMAILS")
     admin_mfa_session_hours: int = Field(default=12, alias="ADMIN_MFA_SESSION_HOURS")
+    # Irreversible admin actions (deleting files from storage, deleting a listing) need the second
+    # factor to have been entered this recently, not merely somewhere in the session window above.
+    admin_sensitive_mfa_minutes: int = Field(default=10, ge=1, le=240, alias="ADMIN_SENSITIVE_MFA_MINUTES")
 
     cors_origins: str = Field(default="http://localhost:5173", alias="CORS_ORIGINS")
 
@@ -193,7 +197,20 @@ class Settings(BaseSettings):
 
     @property
     def admin_emails_list(self) -> list[str]:
-        return [email.strip().lower() for email in self.admin_emails.split(",") if email.strip()]
+        """The exact, lower-cased addresses allowed to be administrators. Whitespace is trimmed and empty
+        entries are ignored; an entry that is not an address (no single "@" with text on both sides, or
+        containing whitespace) is dropped rather than guessed at - it can never match a real account, and
+        nothing here ever matches by domain or by part of an address."""
+        return [email for email in self._raw_admin_entries if _looks_like_email(email)]
+
+    @property
+    def admin_emails_ignored(self) -> int:
+        """How many configured entries were dropped as malformed (for a startup warning; never the values)."""
+        return sum(1 for email in self._raw_admin_entries if not _looks_like_email(email))
+
+    @property
+    def _raw_admin_entries(self) -> list[str]:
+        return [part.strip().lower() for part in self.admin_emails.split(",") if part.strip()]
 
     @property
     def allowed_origins(self) -> set[str]:
@@ -234,6 +251,15 @@ class Settings(BaseSettings):
         return ids
 
 
+_EMAIL_SHAPE = re.compile(r"^[^@\s*?%,;]+@[^@\s*?%,;]+\.[^@\s*?%,;]+$")
+
+
+def _looks_like_email(value: str) -> bool:
+    """One "@", text on both sides, a dot in the domain, no whitespace and no wildcard characters:
+    the allowlist is compared for exact equality, so anything that is not a plain address is noise."""
+    return bool(_EMAIL_SHAPE.match(value))
+
+
 def production_problems(settings: "Settings") -> tuple[list[str], list[str]]:
     """(fatal, warnings) for APP_MODE=main. Fatal ones mean the site would run with
     credentials/cookies that are not safe, so the backend refuses to start rather than
@@ -254,6 +280,8 @@ def production_problems(settings: "Settings") -> tuple[list[str], list[str]]:
     origins = settings.cors_origins_list
     if "*" in origins:
         fatal.append("CORS_ORIGINS must list the exact site origin, not *")
+    if settings.admin_emails_ignored:
+        warnings.append(f"ADMIN_EMAILS: {settings.admin_emails_ignored} entr(y/ies) are not valid email addresses and were ignored")
     if not settings.smtp_host:
         warnings.append("SMTP_HOST is empty: nobody can confirm an email or reset a password")
     if any(not o.lower().startswith("https://") for o in origins):

@@ -24,6 +24,8 @@ interface SideNavProps<T extends string> {
   onOpenTeam?: () => void;
   user: SideNavUser;
   onOpenProfile: () => void;
+  /** Present only for administrators (the server says who they are): opens /admin. */
+  onOpenAdmin?: () => void;
 }
 
 /** Desktop-width counterpart to BottomNav — same NavItem data, vertical
@@ -31,7 +33,7 @@ interface SideNavProps<T extends string> {
  * screen is open, unlike the mobile bottom bar). Also carries the brand
  * mark, an optional primary-team switcher card, and the signed-in user row
  * — see docs/superpowers/specs/2026-09-22-bento-redesign-design.md. */
-export function SideNav<T extends string>({ items, active, onChange, team, onOpenTeam, user, onOpenProfile }: SideNavProps<T>) {
+export function SideNav<T extends string>({ items, active, onChange, team, onOpenTeam, user, onOpenProfile, onOpenAdmin }: SideNavProps<T>) {
   return (
     <nav className={styles.nav}>
       <div className={styles.brandRow}>
@@ -72,6 +74,12 @@ export function SideNav<T extends string>({ items, active, onChange, team, onOpe
             </button>
           );
         })}
+        {onOpenAdmin && (
+          <button type="button" className={styles.item} onClick={onOpenAdmin}>
+            <Icon name="shield" size={20} strokeWidth={1.8} />
+            <span className={styles.itemLabel}>Админ-панель</span>
+          </button>
+        )}
       </div>
 
       <button type="button" className={styles.userRow} onClick={onOpenProfile}>

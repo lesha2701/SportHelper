@@ -18,6 +18,8 @@ interface AppShellProps<T extends string> {
   onOpenTeam?: () => void;
   sideUser: SideNavUser;
   onOpenProfile: () => void;
+  /** Desktop only, administrators only: the sidebar's "Админ-панель" button. */
+  onOpenAdmin?: () => void;
   /** Desktop only: the page header (kicker/title/search/bell/CTA) shown
    * above `children`. Omitted for screens (mostly overlays) that still
    * render their own in-content header. */
@@ -41,6 +43,7 @@ export function AppShell<T extends string>({
   onOpenTeam,
   sideUser,
   onOpenProfile,
+  onOpenAdmin,
   topBar,
   children,
 }: AppShellProps<T>) {
@@ -57,6 +60,7 @@ export function AppShell<T extends string>({
           onOpenTeam={onOpenTeam}
           user={sideUser}
           onOpenProfile={onOpenProfile}
+          onOpenAdmin={onOpenAdmin}
         />
         <div className={styles.desktopMain}>
           {topBar && <TopBar {...topBar} />}

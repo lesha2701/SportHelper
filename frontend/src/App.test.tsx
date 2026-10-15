@@ -150,3 +150,40 @@ describe("when the server cannot be reached", () => {
     expect(screen.getByRole("button", { name: "Повторить" })).toBeTruthy();
   });
 });
+
+describe("the administration panel route", () => {
+  beforeEach(() => {
+    vi.doMock("./components/admin/AdminApp", () => ({ default: () => <div>ADMIN PANEL</div> }));
+  });
+
+  it("looks like a missing page to a visitor without an account", async () => {
+    asGuest();
+    open("/admin");
+
+    expect(await screen.findByText("Такой страницы нет")).toBeTruthy();
+    expect(screen.queryByText("ADMIN PANEL")).toBeNull();
+  });
+
+  it("looks like a missing page to an ordinary signed-in user, even deep inside /admin", async () => {
+    asUser();
+    open("/admin/users");
+
+    expect(await screen.findByText("Такой страницы нет")).toBeTruthy();
+    expect(screen.queryByText("ADMIN PANEL")).toBeNull();
+    expect(screen.queryByText(/SIGNED-IN APP/)).toBeNull();
+  });
+
+  it("is not unlocked by anything in the URL", async () => {
+    asUser();
+    open("/admin?isAdmin=true&admin=1");
+
+    expect(await screen.findByText("Такой страницы нет")).toBeTruthy();
+  });
+
+  it("opens for an account the server marks as an administrator", async () => {
+    api.fetchMe.mockResolvedValue({ user: { ...alice, isAdmin: true }, csrfToken: "csrf" });
+    open("/admin");
+
+    expect(await screen.findByText("ADMIN PANEL")).toBeTruthy();
+  });
+});

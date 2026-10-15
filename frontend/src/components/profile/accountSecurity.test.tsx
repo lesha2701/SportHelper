@@ -198,8 +198,11 @@ describe("two-factor", () => {
     api.enableMfa.mockResolvedValue(["aaaaaaaaaa", "bbbbbbbbbb"]);
     render(<AccountSecurity />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Настроить" }));
+    await screen.findByText("Двухфакторная защита");
+    typeInto("Пароль (для подтверждения)", "correct horse battery");
+    press("Настроить");
     await screen.findByText("JBSWY3DPEHPK3PXP");
+    expect(api.setupMfa).toHaveBeenCalledWith("correct horse battery");
     typeInto("Код из приложения", "123456");
     press("Включить защиту");
 

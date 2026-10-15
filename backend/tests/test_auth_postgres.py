@@ -780,10 +780,10 @@ def test_admin_api_with_real_sql_requires_the_second_factor_per_session(live_cli
         assert client.post("/api/auth/verify-email", json={"token": link_token(client.outbox[-1]), "password": PASSWORD}).status_code == 200
 
     csrf = login(client, email="boss@example.com").json()["csrf_token"]
-    assert client.get("/api/admin/overview").status_code == 200
+    assert client.get("/api/admin/overview").json()["error"]["code"] == "mfa_setup_required"
     assert client.get("/api/admin/users").json()["error"]["code"] == "mfa_setup_required"
 
-    secret = client.post("/api/auth/mfa/setup", headers=csrf_headers(csrf)).json()["secret"]
+    secret = client.post("/api/auth/mfa/setup", headers=csrf_headers(csrf), json={"password": PASSWORD}).json()["secret"]
     assert client.post("/api/auth/mfa/enable", headers=csrf_headers(csrf), json={"code": totp._hotp(secret, totp.current_step())}).status_code == 200
     users = client.get("/api/admin/users")
     assert users.status_code == 200 and users.json()["total"] == 2
