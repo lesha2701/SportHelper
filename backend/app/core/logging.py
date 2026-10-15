@@ -57,6 +57,9 @@ def configure_logging(app_mode: str) -> None:
     # Silence noisy third-party loggers at DEBUG level.
     logging.getLogger("asyncpg").setLevel(logging.WARNING)
     logging.getLogger("aiogram").setLevel(logging.INFO)
+    # httpx logs every request URL at INFO - for Yandex.Disk that means signed, short-lived download links and
+    # the account id in every line, for no diagnostic value. Failures are logged by the code that makes the call.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     install_redaction()
 
 

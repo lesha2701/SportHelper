@@ -359,3 +359,33 @@ def test_the_optimisation_is_logged_with_sizes_and_savings_but_no_private_detail
     assert line.startswith("Image optimized: type=avatar original=")
     assert " optimized=" in line and " saved=" in line and "%" in line and " duration=" in line and "ms" in line
     assert "secret-holiday-photo" not in line and "/TeamFlow" not in line and "users/" not in line
+
+
+def test_a_file_the_disk_cannot_serve_is_an_error_not_an_empty_picture(logged_in_client, monkeypatch: pytest.MonkeyPatch) -> None:
+    client, token = logged_in_client
+    file_id = _upload_avatar(client, token, jpeg_bytes((800, 600))).json()["avatar_file_id"]
+
+    async def missing(self, path):
+        raise YandexDiskError(404, '{"error": "DiskNotFoundError"}')
+        yield b""  # pragma: no cover - makes this an async generator
+
+    monkeypatch.setattr(_FakeYandexDiskClient, "stream_download", missing)
+
+    response = client.get(f"/api/files/{file_id}", headers=_auth(token))
+
+    assert response.status_code == 502 and response.json()["error"]["code"] == "storage_error"
+
+
+def test_a_file_the_disk_cannot_serve_is_an_error_not_an_empty_picture(logged_in_client, monkeypatch: pytest.MonkeyPatch) -> None:
+    client, token = logged_in_client
+    file_id = _upload_avatar(client, token, jpeg_bytes((800, 600))).json()["avatar_file_id"]
+
+    async def missing(self, path):
+        raise YandexDiskError(404, '{"error": "DiskNotFoundError"}')
+        yield b""  # makes this an async generator
+
+    monkeypatch.setattr(_FakeYandexDiskClient, "stream_download", missing)
+
+    response = client.get(f"/api/files/{file_id}", headers=_auth(token))
+
+    assert response.status_code == 502 and response.json()["error"]["code"] == "storage_error"

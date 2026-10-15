@@ -196,12 +196,22 @@ async def download_file(
     except RuntimeError as exc:
         raise APIError(str(exc), code="yandex_disk_not_configured", status_code=503) from exc
 
+    # Read the first chunk BEFORE answering: if Yandex.Disk cannot serve the file, the browser must get an
+    # error status (and the cause lands in the log), not a "200 OK" with an empty body that shows up as a
+    # broken picture.
+    try:
+        first_chunk = await anext(stream, b"")
+    except YandexDiskError as exc:
+        logger.error("Yandex.Disk download failed (status %s) for file %s: %s", exc.status_code, file_id, str(exc)[:300])
+        raise APIError("Не удалось загрузить файл. Попробуйте ещё раз позже.", code="storage_error", status_code=502) from exc
+
     async def proxy() -> AsyncIterator[bytes]:
+        yield first_chunk
         try:
             async for chunk in stream:
                 yield chunk
-        except YandexDiskError as exc:
-            logger.error("Yandex.Disk download failed: %s", exc)
+        except YandexDiskError as exc:  # too late to change the status; the body is cut short
+            logger.error("Yandex.Disk download interrupted (status %s) for file %s: %s", exc.status_code, file_id, str(exc)[:300])
 
     return StreamingResponse(
         proxy(),

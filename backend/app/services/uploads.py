@@ -85,9 +85,7 @@ async def upload_to_disk(
     the stream exceeds max_bytes, or YandexDiskError on API failure —
     callers translate those into route-appropriate APIErrors."""
     client = YandexDiskClient(settings)
-    parent_dir = disk_path.rsplit("/", 1)[0]
     reader = SizeLimitedReader(upload, max_bytes, chunk_size)
-    await client.ensure_folder(parent_dir)
     await client.upload(disk_path, reader)
     return reader.total_size
 
@@ -141,8 +139,6 @@ async def upload_video_to_disk(
             raise VideoTooLong(duration)
 
         client = YandexDiskClient(settings)
-        parent_dir = disk_path.rsplit("/", 1)[0]
-        await client.ensure_folder(parent_dir)
 
         async def _read_tmp_file() -> AsyncIterator[bytes]:
             with open(tmp_path, "rb") as f:
@@ -234,7 +230,6 @@ async def store_image(
     )
 
     disk_path = build_path(result.extension)
-    await client.ensure_folder(disk_path.rsplit("/", 1)[0])
     await client.upload(disk_path, _chunks(result.data, chunk_size))
 
     thumb_disk_path = None

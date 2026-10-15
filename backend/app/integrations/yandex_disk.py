@@ -83,11 +83,19 @@ class YandexDiskClient:
         return response.json()["href"]
 
     async def upload(self, path: str, content: AsyncIterator[bytes]) -> None:
+        """Uploads `content` to `path`. Missing parent folders are created on demand (only when the disk
+        reports them missing), so the usual upload costs two requests instead of one per folder level."""
         # Note: the upload href does not redirect in practice (unlike the
         # download href below), so we intentionally do not set
         # follow_redirects here — a redirected PUT would need to replay the
         # streamed body, which a one-shot async iterator cannot do safely.
-        href = await self._get_upload_url(path)
+        try:
+            href = await self._get_upload_url(path)
+        except YandexDiskError as exc:
+            if exc.status_code not in (404, 409):  # the parent folder does not exist yet
+                raise
+            await self.ensure_folder(path.rsplit("/", 1)[0])
+            href = await self._get_upload_url(path)
         try:
             async with httpx.AsyncClient(timeout=None) as client:
                 response = await client.put(href, content=content)
