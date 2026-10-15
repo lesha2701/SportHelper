@@ -274,7 +274,8 @@ docker compose exec backend python scripts/create_user.py boss@example.com "Бо
 | `ADMIN_EMAILS`, `ADMIN_MFA_SESSION_HOURS`, `ADMIN_SENSITIVE_MFA_MINUTES`, `ADMIN_WRITE_LIMIT_PER_MINUTE` | пусто, `12`, `10`, `60` | Администраторы веб-API, срок кода 2FA, свежесть кода для необратимых действий, лимит изменений. |
 | `ACCOUNT_DELETION_GRACE_DAYS`, `TERMS_VERSION` | `14`, `2026-10` | Удаление и версия документов. |
 | `AUTH_RATE_LIMIT_ENABLED` | `true` | Только для автотестов. |
-| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` | пусто | **Необязательно.** Уведомления в Telegram и перенос старых аккаунтов (`/start`). |
+| `TELEGRAM_ENABLED` | `false` | Выключатель интеграции с Telegram (сейчас выключена — сервер не достаёт до api.telegram.org). |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` | пусто | **Необязательно**, работает только при `TELEGRAM_ENABLED=true`. Уведомления в Telegram и перенос старых аккаунтов (`/start`). |
 | `VITE_SUPPORT_EMAIL` (сборка frontend) | пусто | Контактный адрес на страницах «Соглашение»/«Конфиденциальность». |
 
 Удалены: `DEV_AUTH_ENABLED`, `TELEGRAM_AUTH_MAX_AGE_SECONDS`, `JWT_ALGORITHM`, `JWT_EXPIRES_MINUTES` (старые значения в `.env` игнорируются).

@@ -147,6 +147,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
     import app.repositories.users as users_module
     from app.config import get_settings
 
+    monkeypatch.setenv("TELEGRAM_ENABLED", "true")
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123456:test-bot-token")
     monkeypatch.setenv("TELEGRAM_BOT_USERNAME", "TestFlowBot")
     monkeypatch.setenv("JWT_SECRET", "test-jwt-secret")

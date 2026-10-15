@@ -5,6 +5,12 @@ import { ApiError } from "../../api/client";
 import type { User } from "../../types/user";
 import { AccountSecurity, MfaSection } from "./AccountSecurity";
 
+const flags = vi.hoisted(() => ({ telegram: true }));
+vi.mock("../../features", () => ({
+  get TELEGRAM_ENABLED() {
+    return flags.telegram;
+  },
+}));
 vi.mock("../../api/auth");
 const api = vi.mocked(authApi);
 
@@ -23,6 +29,7 @@ const sessions: authApi.Session[] = [
 
 beforeEach(() => {
   vi.clearAllMocks();
+  flags.telegram = true;
   user = { email: "alice@example.com", emailVerified: true, telegramLinked: false, deletionRequestedAt: null, isAdmin: false };
   api.listSessions.mockResolvedValue(sessions);
   api.getMfaStatus.mockResolvedValue({ isAdmin: false, enabled: false, sessionVerified: false });
@@ -161,6 +168,14 @@ describe("deleting the account", () => {
 });
 
 describe("telegram (optional)", () => {
+  it("is not offered at all while the integration is switched off", () => {
+    flags.telegram = false;
+    render(<AccountSecurity />);
+
+    expect(screen.queryByText("Уведомления в Telegram")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Подключить Telegram" })).toBeNull();
+  });
+
   it("is described as optional and can be linked through the bot", async () => {
     api.startTelegramLink.mockResolvedValue({ botUrl: "https://t.me/SportBot?start=link_x", expiresIn: 1800 });
     render(<AccountSecurity />);

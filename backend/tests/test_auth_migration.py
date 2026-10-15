@@ -238,6 +238,24 @@ def test_telegram_linking_is_unavailable_without_a_bot_and_requires_login(client
     assert client.post("/api/auth/telegram/link", headers=csrf_headers(info["csrf"])).status_code == 503
 
 
+def test_telegram_switched_off_blocks_linking_even_when_the_bot_is_configured(client, monkeypatch) -> None:
+    monkeypatch.setenv("TELEGRAM_ENABLED", "false")
+    get_settings.cache_clear()
+    info = sign_in(client)
+
+    response = client.post("/api/auth/telegram/link", headers=csrf_headers(info["csrf"]))
+
+    assert response.status_code == 503
+
+
+def test_telegram_is_off_unless_explicitly_enabled() -> None:
+    from app.config import Settings
+
+    assert Settings(_env_file=None, TELEGRAM_BOT_TOKEN="1:abc").telegram_active is False  # token alone is not enough
+    assert Settings(_env_file=None, TELEGRAM_ENABLED=True).telegram_active is False  # nor is the flag alone
+    assert Settings(_env_file=None, TELEGRAM_ENABLED=True, TELEGRAM_BOT_TOKEN="1:abc").telegram_active is True
+
+
 def test_the_site_works_without_telegram_configured(client, monkeypatch) -> None:
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "")
     monkeypatch.setenv("TELEGRAM_BOT_USERNAME", "")

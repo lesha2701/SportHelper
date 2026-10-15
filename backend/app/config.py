@@ -35,6 +35,9 @@ class Settings(BaseSettings):
 
     app_mode: str = Field(default="sandbox", alias="APP_MODE")
 
+    # Master switch for the whole Telegram integration (notifications, /start, "Connect Telegram").
+    # Off by default: the server cannot always reach api.telegram.org, and then nothing may depend on it.
+    telegram_enabled: bool = Field(default=False, alias="TELEGRAM_ENABLED")
     telegram_bot_token: str = Field(default="", alias="TELEGRAM_BOT_TOKEN")
     telegram_bot_username: str = Field(default="", alias="TELEGRAM_BOT_USERNAME")
 
@@ -241,6 +244,11 @@ class Settings(BaseSettings):
         # cookie-injection from sibling subdomains. It needs Secure, so it is
         # only used when cookies are Secure.
         return "__Host-sag_session" if self.secure_cookies else "sag_session"
+
+    @property
+    def telegram_active(self) -> bool:
+        """The integration is on AND configured; otherwise notifications live in the app's bell only."""
+        return self.telegram_enabled and bool(self.telegram_bot_token)
 
 
 _EMAIL_SHAPE = re.compile(r"^[^@\s*?%,;]+@[^@\s*?%,;]+\.[^@\s*?%,;]+$")

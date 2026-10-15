@@ -65,9 +65,9 @@ async def _start_background_task(pool: asyncpg.Pool, settings: Settings) -> asyn
     The loop always runs (it also expires sessions and processes account
     deletions); the Telegram bot is optional and only delivers notifications
     to users who linked Telegram."""
-    bot = create_bot(settings) if settings.telegram_bot_token else None
+    bot = create_bot(settings) if settings.telegram_active else None
     if bot is None:
-        logger.info("TELEGRAM_BOT_TOKEN not set — notifications are shown in the app only")
+        logger.info("Telegram is off (TELEGRAM_ENABLED / TELEGRAM_BOT_TOKEN) — notifications are shown in the app only")
     return asyncio.create_task(run_background_loop(pool, bot, settings))
 
 

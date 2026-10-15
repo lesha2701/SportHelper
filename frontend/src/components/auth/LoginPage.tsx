@@ -1,3 +1,4 @@
+import { TELEGRAM_ENABLED } from "../../features";
 import { useState, type FormEvent } from "react";
 import { login, resendVerification } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
@@ -128,9 +129,11 @@ export function LoginPage() {
           Создать аккаунт
         </Link>
       </p>
-      <p className={styles.footerLine} style={{ fontSize: 13 }}>
-        Пользовались ботом в Telegram? Откройте бота и нажмите /start — он поможет перенести ваш аккаунт.
-      </p>
+      {TELEGRAM_ENABLED && (
+        <p className={styles.footerLine} style={{ fontSize: 13 }}>
+          Пользовались ботом в Telegram? Откройте бота и нажмите /start — он поможет перенести ваш аккаунт.
+        </p>
+      )}
     </AuthLayout>
   );
 }

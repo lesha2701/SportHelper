@@ -658,7 +658,7 @@ async def start_telegram_link(
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> TelegramLinkOut:
-    if not settings.telegram_bot_username:
+    if not settings.telegram_active or not settings.telegram_bot_username:
         raise APIError("Telegram-уведомления не настроены.", code="telegram_unavailable", status_code=503)
     ttl = timedelta(minutes=settings.telegram_token_ttl_minutes)
     token = await svc.issue_token(conn, user_id=ctx.user["id"], purpose="telegram_link", ttl=ttl)
