@@ -1,6 +1,6 @@
 """Periodic "time to train" nudges: a gentle push (Telegram message with an
 "open the app" button + a row in the in-app bell) to players who haven't
-opened SportArena for a while, so the product stays on their mind.
+opened SportArenaGlobal for a while, so the product stays on their mind.
 
 It reuses the normal notification pipeline — this module only decides WHO
 gets a nudge and WHAT it says, then queues it as a `training_nudge`
@@ -27,10 +27,10 @@ from app.repositories import tasks as tasks_repo
 logger = logging.getLogger("teamflow.nudges")
 
 _GENERIC = (
-    ("Время потренироваться", "Самое время размяться: запланируйте тренировку в SportArena."),
+    ("Время потренироваться", "Самое время размяться: запланируйте тренировку в SportArenaGlobal."),
     ("Пора на тренировку", "Регулярность — основа прогресса. Сегодня хороший день, чтобы позаниматься."),
-    ("Не забывайте про тренировки", "Загляните в SportArena и запланируйте занятие на ближайшие дни."),
-    ("Как ваши тренировки?", "В SportArena ждут календарь, задания и ваша статистика. Загляните на минуту."),
+    ("Не забывайте про тренировки", "Загляните в SportArenaGlobal и запланируйте занятие на ближайшие дни."),
+    ("Как ваши тренировки?", "В SportArenaGlobal ждут календарь, задания и ваша статистика. Загляните на минуту."),
 )
 
 
@@ -59,7 +59,7 @@ def build_nudge_message(*, open_tasks: int, has_player_profile: bool, user_id: U
     if open_tasks > 0:
         return (
             "Время потренироваться",
-            f"У вас {_open_tasks_phrase(open_tasks)}. Откройте SportArena, займитесь ими или запланируйте свою тренировку.",
+            f"У вас {_open_tasks_phrase(open_tasks)}. Откройте SportArenaGlobal, займитесь ими или запланируйте свою тренировку.",
         )
     if not has_player_profile:
         return ("Пора начинать", "Заполните профиль и запланируйте первую тренировку — это займёт пару минут.")

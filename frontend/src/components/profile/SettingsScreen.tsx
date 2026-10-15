@@ -37,10 +37,10 @@ export function SettingsScreen({
 
       <div className={profileStyles.card}>
         <h2 className={profileStyles.title}>Знакомство с приложением</h2>
-        <p className={profileStyles.subtitle}>Короткий обзор возможностей SportArena — можно пересмотреть в любой момент.</p>
+        <p className={profileStyles.subtitle}>Короткий обзор возможностей SportArenaGlobal — можно пересмотреть в любой момент.</p>
         <button type="button" className={profileStyles.buttonSecondary} onClick={() => setShowGuide(true)}>
           <Icon name="sparkles" size={16} />
-          Как работает SportArena
+          Как работает SportArenaGlobal
         </button>
       </div>
 

@@ -8,7 +8,7 @@ from urllib.parse import quote
 from app.config import Settings
 from app.services.email import OutgoingEmail
 
-_BRAND = "SportArena Global"
+_BRAND = "SportArenaGlobal"
 
 
 def _link(settings: Settings, path: str, token: str, next_path: str | None = None) -> str:

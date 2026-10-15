@@ -62,7 +62,7 @@ def register(router_settings: Settings, pool: asyncpg.Pool | None = None) -> Rou
             inline_keyboard=[[InlineKeyboardButton(text="Подключить уведомления", callback_data=_LINK_CALLBACK + token)]]
         )
         await message.answer(
-            f"Подключить этот Telegram к аккаунту <b>{html.escape(owner)}</b> на SportArena Global? "
+            f"Подключить этот Telegram к аккаунту <b>{html.escape(owner)}</b> на SportArenaGlobal? "
             "Уведомления о тренировках, заявках и заданиях будут приходить сюда.\n\n"
             "Если это не ваш аккаунт или вы ничего не подключали — проигнорируйте сообщение.",
             reply_markup=keyboard,
@@ -89,7 +89,7 @@ def register(router_settings: Settings, pool: asyncpg.Pool | None = None) -> Rou
         invite_token = (command.args or "")[len(_INVITE_PREFIX):]
         keyboard = _site_button(settings, "Открыть приглашение", params={"invite": invite_token})
         await message.answer(
-            "Вас пригласили в команду в <b>SportArena Global</b>.\n\nОткройте приглашение на сайте — "
+            "Вас пригласили в команду в <b>SportArenaGlobal</b>.\n\nОткройте приглашение на сайте — "
             "войдите или зарегистрируйтесь, и вы окажетесь в команде.",
             reply_markup=keyboard,
         )
@@ -107,7 +107,7 @@ def register(router_settings: Settings, pool: asyncpg.Pool | None = None) -> Rou
                     token = await claim_service.issue_claim_token(conn, user, settings)
                     keyboard = _site_button(settings, "Перенести аккаунт на email", "/claim", {"token": token})
                     await message.answer(
-                        "Теперь <b>SportArena Global</b> работает как обычный сайт — вход по email и паролю, "
+                        "Теперь <b>SportArenaGlobal</b> работает как обычный сайт — вход по email и паролю, "
                         "Telegram больше не нужен.\n\nВаш аккаунт со всеми тренировками и данными можно "
                         "перенести: нажмите кнопку, укажите email и придумайте пароль. Ссылка действует "
                         f"{settings.telegram_token_ttl_minutes} мин. и открывается один раз.",
@@ -117,13 +117,13 @@ def register(router_settings: Settings, pool: asyncpg.Pool | None = None) -> Rou
 
         if user is not None:
             await message.answer(
-                "Этот Telegram подключён к аккаунту <b>SportArena Global</b>. Уведомления будут приходить сюда. "
+                "Этот Telegram подключён к аккаунту <b>SportArenaGlobal</b>. Уведомления будут приходить сюда. "
                 "Войти можно на сайте по email и паролю.",
                 reply_markup=_site_button(settings, "Открыть сайт"),
             )
             return
         await message.answer(
-            "Добро пожаловать в <b>SportArena Global</b>!\n\nСоздайте аккаунт на сайте. Потом в настройках "
+            "Добро пожаловать в <b>SportArenaGlobal</b>!\n\nСоздайте аккаунт на сайте. Потом в настройках "
             "аккаунта можно подключить Telegram, чтобы получать уведомления здесь.",
             reply_markup=_site_button(settings, "Открыть сайт", "/register"),
         )

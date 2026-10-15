@@ -124,7 +124,7 @@ class Settings(BaseSettings):
     smtp_password: str = Field(default="", alias="SMTP_PASSWORD")
     # "starttls" (port 587), "ssl" (port 465) or "none" (e.g. Mailpit on 1025).
     smtp_security: str = Field(default="starttls", alias="SMTP_SECURITY")
-    smtp_from: str = Field(default="SportArena Global <no-reply@localhost>", alias="SMTP_FROM")
+    smtp_from: str = Field(default="SportArenaGlobal <no-reply@localhost>", alias="SMTP_FROM")
     smtp_timeout_seconds: int = Field(default=15, alias="SMTP_TIMEOUT_SECONDS")
 
     # --- Admins ------------------------------------------------------------------------------

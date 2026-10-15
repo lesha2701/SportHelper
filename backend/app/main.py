@@ -77,7 +77,7 @@ def _attach_error_log_handler(pool: asyncpg.Pool) -> None:
 async def lifespan(app: FastAPI):
     settings = get_settings()
     configure_logging(settings.app_mode)
-    logger.info("Starting SportArena Global backend (mode=%s)", settings.app_mode)
+    logger.info("Starting SportArenaGlobal backend (mode=%s)", settings.app_mode)
     fatal, warnings = production_problems(settings)
     for message in warnings:
         logger.warning("Configuration: %s", message)
@@ -109,9 +109,9 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="SportArena Global API",
+        title="SportArenaGlobal API",
         version="0.1.0",
-        description="Backend API for the SportArena Global website.",
+        description="Backend API for the SportArenaGlobal website.",
         lifespan=lifespan,
         # Swagger can store a pasted session token and is a pure attack surface in
         # production: API_DOCS_ENABLED defaults to off when APP_MODE=main.

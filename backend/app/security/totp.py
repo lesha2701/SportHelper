@@ -49,7 +49,7 @@ def verify_code(secret: str, code: str, *, now: float | None = None, last_used_s
     return None
 
 
-def provisioning_uri(secret: str, account: str, issuer: str = "SportArena Global") -> str:
+def provisioning_uri(secret: str, account: str, issuer: str = "SportArenaGlobal") -> str:
     return (
         f"otpauth://totp/{quote(issuer)}:{quote(account)}"
         f"?secret={secret}&issuer={quote(issuer)}&algorithm=SHA1&digits={_DIGITS}&period={_STEP_SECONDS}"

@@ -69,12 +69,12 @@ interface Step {
 const STEPS: Step[] = [
   {
     id: "welcome",
-    title: "Добро пожаловать в SportArena",
+    title: "Добро пожаловать в SportArenaGlobal",
     lead: "Всё для вашей спортивной жизни в одном месте.",
     extra: "Управляйте командой, тренировками и прогрессом или находите личного тренера и записывайтесь на занятия. Дальше — коротко о том, что здесь есть.",
     visual: () => (
       <div className={styles.hero}>
-        <BrandLogo className={styles.heroMark} label="SportArena Global" />
+        <BrandLogo className={styles.heroMark} label="SportArenaGlobal" />
         <div className={styles.heroChips}>
           <Tiles items={[{ icon: "users", label: "Команда" }, { icon: "dumbbell", label: "Тренировки" }, { icon: "calendar", label: "Календарь" }]} />
         </div>
@@ -254,7 +254,7 @@ const STEPS: Step[] = [
   {
     id: "roles",
     kicker: "Для всех",
-    title: "Используйте SportArena так, как удобно вам",
+    title: "Используйте SportArenaGlobal так, как удобно вам",
     lead: "Вы можете быть игроком, тренером или совмещать обе роли.",
     extra: "Между режимами можно переключаться в любой момент. Это знакомство всегда можно открыть снова: «Профиль → Помощь» или «Настройки».",
     visual: ({ roles }) => (
@@ -315,7 +315,7 @@ export function WelcomeGuide({ manual = false, roles, onFinish }: WelcomeGuidePr
     };
   }, []);
 
-  const primaryLabel = index === 0 ? "Начать знакомство" : last ? (manual ? "Готово" : "Перейти в SportArena") : "Далее";
+  const primaryLabel = index === 0 ? "Начать знакомство" : last ? (manual ? "Готово" : "Перейти в SportArenaGlobal") : "Далее";
 
   return (
     <div className={styles.backdrop}>

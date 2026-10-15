@@ -74,7 +74,7 @@ describe("automatic onboarding", () => {
     renderGate(0);
 
     expect(dialog()).not.toBeNull();
-    expect(screen.getByText("Добро пожаловать в SportArena")).not.toBeNull();
+    expect(screen.getByText("Добро пожаловать в SportArenaGlobal")).not.toBeNull();
     expect(screen.queryByText("MAIN APP")).toBeNull();
   });
 
@@ -132,14 +132,14 @@ describe("automatic onboarding", () => {
     expect(onUserUpdated).toHaveBeenCalledWith(makeUser(1));
   });
 
-  it("'Перейти в SportArena' on the last screen completes it", async () => {
+  it("'Перейти в SportArenaGlobal' on the last screen completes it", async () => {
     renderGate(0);
 
     click("Начать знакомство");
     for (let i = 1; i < WELCOME_STEP_COUNT - 1; i++) click("Далее");
-    expect(screen.getByText("Используйте SportArena так, как удобно вам")).not.toBeNull();
+    expect(screen.getByText("Используйте SportArenaGlobal так, как удобно вам")).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Далее" })).toBeNull();
-    click("Перейти в SportArena");
+    click("Перейти в SportArenaGlobal");
 
     expect(dialog()).toBeNull();
     expect(screen.getByText("MAIN APP")).not.toBeNull();
@@ -173,14 +173,14 @@ describe("automatic onboarding", () => {
 describe("manual replay from Help", () => {
   const openFromHelp = () => {
     render(<HelpScreen onBack={() => {}} roles={{ player: true, coach: true }} />);
-    click("Как работает SportArena");
+    click("Как работает SportArenaGlobal");
   };
 
   it("opens the guide again from «Помощь» and never touches the saved state", () => {
     openFromHelp();
 
     expect(dialog()).not.toBeNull();
-    expect(screen.getByText("Добро пожаловать в SportArena")).not.toBeNull();
+    expect(screen.getByText("Добро пожаловать в SportArenaGlobal")).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Пропустить" })).toBeNull();
 
     click("Начать знакомство");
@@ -201,7 +201,7 @@ describe("manual replay from Help", () => {
     );
     expect(dialog()).toBeNull();
 
-    click("Как работает SportArena");
+    click("Как работает SportArenaGlobal");
     expect(dialog()).not.toBeNull();
     click("Закрыть");
 
@@ -217,7 +217,7 @@ describe("manual replay from Help", () => {
       </ThemeProvider>,
     );
 
-    click("Как работает SportArena");
+    click("Как работает SportArenaGlobal");
     expect(dialog()).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Пропустить" })).toBeNull();
 

@@ -60,7 +60,7 @@ export function ClaimAccountPage() {
           <Icon name="alert-triangle" size={30} />
         </div>
         <p className={styles.lead} style={{ margin: 0 }}>
-          Откройте бота SportArena Global в Telegram и нажмите /start — он пришлёт новую ссылку.
+          Откройте бота SportArenaGlobal в Telegram и нажмите /start — он пришлёт новую ссылку.
         </p>
         <Link to="/login" className={styles.secondary}>
           Ко входу

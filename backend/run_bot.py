@@ -26,7 +26,7 @@ async def main() -> None:
         logger.info("TELEGRAM_BOT_TOKEN is not set - the Telegram bot is disabled (the website is unaffected)")
         await asyncio.Event().wait()
         return
-    logger.info("Starting SportArena Global bot (mode=%s)", settings.app_mode)
+    logger.info("Starting SportArenaGlobal bot (mode=%s)", settings.app_mode)
 
     # The bot runs as its own process (separate from the FastAPI backend),
     # so admin commands need their own pool to read/write Postgres directly.

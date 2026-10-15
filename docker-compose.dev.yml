@@ -61,7 +61,7 @@ services:
       SMTP_SECURITY: none
       SMTP_USERNAME: ""
       SMTP_PASSWORD: ""
-      SMTP_FROM: "SportArena Global <no-reply@sportarena.local>"
+      SMTP_FROM: "SportArenaGlobal <no-reply@sportarena.local>"
     # --reload here (the prod image doesn't use it) so backend code edits on
     # the host apply without rebuilding the container.
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

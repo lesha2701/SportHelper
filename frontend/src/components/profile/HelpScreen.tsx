@@ -103,7 +103,7 @@ const SECTIONS: HelpSection[] = [
     icon: "lock",
     title: "Вход и доступ",
     intro:
-      "SportArena Global работает и как Mini App в Telegram, и как обычный сайт в браузере. В браузере вход идёт через бота: нажмите «Войти через Telegram», подтвердите вход в боте — страница обновится сама. Данные в приложении и на сайте общие.",
+      "SportArenaGlobal работает и как Mini App в Telegram, и как обычный сайт в браузере. В браузере вход идёт через бота: нажмите «Войти через Telegram», подтвердите вход в боте — страница обновится сама. Данные в приложении и на сайте общие.",
   },
 ];
 
@@ -128,7 +128,7 @@ export function HelpScreen({
       <div className={profileStyles.card}>
         <h1 className={profileStyles.pageHeading}>О приложении</h1>
         <p className={profileStyles.subtitle}>
-          SportArena Global помогает тренерам и игрокам вести дела команды в одном месте: состав, тренировки,
+          SportArenaGlobal помогает тренерам и игрокам вести дела команды в одном месте: состав, тренировки,
           задания, матчи, статистика и запись к личным тренерам — без переписок и таблиц. Ниже — что есть в каждом
           разделе.
         </p>
@@ -137,7 +137,7 @@ export function HelpScreen({
       <div className={profileStyles.card}>
         <button type="button" className={profileStyles.buttonSecondary} onClick={() => setShowGuide(true)}>
           <Icon name="sparkles" size={16} />
-          Как работает SportArena
+          Как работает SportArenaGlobal
         </button>
         <p className={profileStyles.subtitle} style={{ margin: 0 }}>
           Короткое знакомство с приложением — можно пересмотреть в любой момент.

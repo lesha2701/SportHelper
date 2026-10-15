@@ -20,9 +20,9 @@ export function PublicShell({ children, next }: { children: ReactNode; next?: st
     <div className={styles.shell}>
       <header className={styles.header}>
         <div className={styles.headerInner}>
-          <Link to="/" className={styles.brand} aria-label="SportArena Global — на главную">
+          <Link to="/" className={styles.brand} aria-label="SportArenaGlobal — на главную">
             <BrandLogo className={styles.brandMark} />
-            <span className={styles.brandName}>SportArena Global</span>
+            <span className={styles.brandName}>SportArenaGlobal</span>
           </Link>
 
           <nav className={styles.nav} aria-label="Основная навигация">
@@ -62,7 +62,7 @@ export function PublicShell({ children, next }: { children: ReactNode; next?: st
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          <span>© {new Date().getFullYear()} SportArena Global</span>
+          <span>© {new Date().getFullYear()} SportArenaGlobal</span>
           <Link to="/terms" className={styles.footerLink}>
             Пользовательское соглашение
           </Link>

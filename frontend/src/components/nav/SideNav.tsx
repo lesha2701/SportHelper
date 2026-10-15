@@ -36,7 +36,7 @@ export function SideNav<T extends string>({ items, active, onChange, team, onOpe
     <nav className={styles.nav}>
       <div className={styles.brandRow}>
         <BrandLogo className={styles.brandMark} />
-        <span className={styles.brandName}>SportArena Global</span>
+        <span className={styles.brandName}>SportArenaGlobal</span>
       </div>
 
       {team && (

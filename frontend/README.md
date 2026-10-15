@@ -1,4 +1,4 @@
-# SportArena Global — Frontend
+# SportArenaGlobal — Frontend
 
 Website (React + TypeScript + Vite) — public catalogue, sign-up/sign-in and the signed-in app. See the [repository root README](../README.md) for the full run instructions.
 

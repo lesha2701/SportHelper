@@ -1,6 +1,6 @@
 # Регистрация, вход и безопасность аккаунта
 
-SportArena Global — обычный сайт с собственными аккаунтами: email + пароль,
+SportArenaGlobal — обычный сайт с собственными аккаунтами: email + пароль,
 подтверждение почты, серверные сессии. Telegram **не нужен** ни для входа, ни
 для работы сайта; он остался необязательным каналом уведомлений и способом
 перенести старый аккаунт (см. [«Перенос старых аккаунтов»](#перенос-старых-telegram-аккаунтов)).
@@ -239,7 +239,7 @@ docker compose exec backend python scripts/create_user.py boss@example.com "Бо
    SMTP_SECURITY=ssl               # ssl | starttls | none
    SMTP_USERNAME=no-reply@sportarenaglobal.ru
    SMTP_PASSWORD=пароль_приложения
-   SMTP_FROM=SportArena Global <no-reply@sportarenaglobal.ru>
+   SMTP_FROM=SportArenaGlobal <no-reply@sportarenaglobal.ru>
    ```
 4. Перезапустите: `docker compose up -d backend bot`.
 5. Проверка: зарегистрируйте тестовый аккаунт на реальный адрес — письмо должно прийти за секунды. Ошибки отправки видны в

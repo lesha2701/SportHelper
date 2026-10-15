@@ -21,9 +21,9 @@ export function AuthLayout({ title, lead, children }: { title: string; lead?: Re
           <Ornament tone="primary" intensity="bold" />
         </div>
         <div className={styles.brandInner}>
-          <Link to="/" className={styles.brandHome} aria-label="SportArena Global — на главную">
+          <Link to="/" className={styles.brandHome} aria-label="SportArenaGlobal — на главную">
             <BrandLogo className={styles.brandMark} />
-            <span className={styles.brandName}>SportArena Global</span>
+            <span className={styles.brandName}>SportArenaGlobal</span>
           </Link>
 
           <div className={styles.pitch}>
