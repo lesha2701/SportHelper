@@ -25,7 +25,18 @@ from app.config import Settings
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.repositories import admin as admin_repo
 from app.repositories import mfa as mfa_repo
-from app.schemas.admin import AdminAuditEntryOut, AdminOverviewOut, AdminSessionOut, AdminUserOut, AdminUsersPageOut
+from app.repositories import admin_stats as admin_stats_repo
+from app.schemas.admin import (
+    AdminAuditEntryOut,
+    AdminDashboardOut,
+    AdminSessionOut,
+    AdminUserOut,
+    AdminUsersPageOut,
+    DashboardActivityOut,
+    DashboardBookingsOut,
+    DashboardTrainingsOut,
+    DashboardUsersOut,
+)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -65,12 +76,26 @@ async def admin_session(
     )
 
 
-@router.get("/overview", response_model=AdminOverviewOut)
-async def overview(
+@router.get("/dashboard", response_model=AdminDashboardOut)
+async def dashboard(
     ctx: AuthContext = Depends(require_admin_mfa), conn: asyncpg.Connection = Depends(get_db)
-) -> AdminOverviewOut:
-    stats = await admin_repo.get_project_stats(conn)
-    return AdminOverviewOut(**{key: stats[key] for key in AdminOverviewOut.model_fields})
+) -> AdminDashboardOut:
+    d = await admin_stats_repo.get_dashboard(conn)
+    return AdminDashboardOut(
+        users=DashboardUsersOut(
+            total=d["users_total"], new_today=d["users_new_today"], new_7d=d["users_new_7d"], new_30d=d["users_new_30d"],
+            players=d["players"], coaches=d["coaches"], banned=d["users_banned"],
+        ),
+        activity=DashboardActivityOut(dau=d["dau"], wau=d["wau"], mau=d["mau"], tracking_since=d["activity_since"]),
+        trainings=DashboardTrainingsOut(
+            total=d["trainings_total"], active=d["trainings_active"], upcoming=d["trainings_upcoming"], completed=d["trainings_completed"]
+        ),
+        bookings=DashboardBookingsOut(total=d["bookings_total"], confirmed=d["bookings_confirmed"], upcoming=d["bookings_upcoming"]),
+        registrations=d["registrations"],
+        active_users=d["active_users"],
+        trainings_created=d["trainings_created"],
+        bookings_created=d["bookings_created"],
+    )
 
 
 @router.get("/users", response_model=AdminUsersPageOut)

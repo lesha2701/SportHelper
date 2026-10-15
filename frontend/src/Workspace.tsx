@@ -33,6 +33,7 @@ import { TEAM_ROLE_LABELS, type Team } from "./types/team";
 import type { CalendarEvent } from "./types/calendar";
 import type { NotificationCategory } from "./types/notification";
 import { navigate } from "./router";
+import { useActivityPing } from "./hooks/useActivityPing";
 function initialOf(name: string): string {
   return name.trim().charAt(0).toUpperCase() || "?";
 }
@@ -231,6 +232,7 @@ function MainContent({
   const { state: authState } = useAuth();
   const myUserId = authState.status === "ready" ? authState.user.id : null;
   const myPhotoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
+  useActivityPing(authState.status === "ready");
   const openAdmin = authState.status === "ready" && authState.user.isAdmin ? () => navigate("/admin") : undefined;
   const [coachTab, setCoachTab] = useState<CoachTab>(marketplaceIntent ? "coaches" : "dashboard");
   const [playerTab, setPlayerTab] = useState<PlayerTab>(marketplaceIntent ? "coaches" : "dashboard");

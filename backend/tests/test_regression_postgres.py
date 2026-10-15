@@ -10,38 +10,10 @@ from datetime import date, timedelta
 import asyncpg
 
 from tests.auth_helpers import PASSWORD, link_token
+from tests.live_helpers import Browser
 from tests.test_auth_postgres import live_client, pg  # noqa: F401  (fixtures)
 
 _NEXT_MONDAY = date.today() + timedelta(days=(7 - date.today().weekday()) % 7 or 7)
-
-
-class Browser:
-    """One person's browser: its own cookie jar and CSRF token on the shared test client."""
-
-    def __init__(self, client, email: str, first_name: str, role: str):
-        self.client, self.email, self.cookies, self.csrf = client, email, {}, ""
-        client.cookies.clear()
-        assert client.post("/api/auth/register", json={
-            "first_name": first_name, "email": email, "password": PASSWORD, "password_confirm": PASSWORD,
-            "accept_terms": True, "role": role}).status_code == 201
-        assert client.post("/api/auth/verify-email", json={"token": link_token(client.outbox[-1]), "password": PASSWORD}).status_code == 200
-        login = client.post("/api/auth/login", json={"email": email, "password": PASSWORD})
-        assert login.status_code == 200, login.text
-        self.csrf = login.json()["csrf_token"]
-        self.user_id = login.json()["id"]
-        self.cookies = dict(client.cookies)
-
-    def call(self, method: str, path: str, **kwargs):
-        self.client.cookies.clear()
-        for name, value in self.cookies.items():
-            self.client.cookies.set(name, value)
-        headers = {"X-CSRF-Token": self.csrf} if method != "GET" else {}
-        return self.client.request(method, path, headers=headers, **kwargs)
-
-    def ok(self, method: str, path: str, **kwargs):
-        response = self.call(method, path, **kwargs)
-        assert response.status_code == 200, f"{method} {path} -> {response.status_code}: {response.text}"
-        return response.json()
 
 
 def _guest(client, method: str, path: str, **kwargs):

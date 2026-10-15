@@ -75,10 +75,10 @@ def test_every_admin_route_except_the_session_probe_needs_the_second_factor(clie
 
 
 def test_anonymous_and_ordinary_users_cannot_reach_admin_routes(client, admin_env) -> None:
-    assert client.get("/api/admin/overview").status_code == 401
+    assert client.get("/api/admin/dashboard").status_code == 401
     sign_in(client)  # alice@example.com is not an administrator
 
-    for path in ("/api/admin/overview", "/api/admin/users", "/api/admin/audit"):
+    for path in ("/api/admin/dashboard", "/api/admin/users", "/api/admin/audit"):
         resp = client.get(path)
         assert resp.status_code == 403, path
         assert resp.json()["error"]["code"] == "forbidden"
@@ -89,21 +89,21 @@ def test_admin_rights_do_not_come_from_anything_the_client_sends(client, admin_e
     info = sign_in(client)
     headers = {**csrf_headers(info["csrf"]), "X-Admin": "true", "X-Roles": "admin"}
 
-    assert client.get("/api/admin/overview", headers=headers, params={"admin": "true", "is_admin": "1"}).status_code == 403
+    assert client.get("/api/admin/dashboard", headers=headers, params={"admin": "true", "is_admin": "1"}).status_code == 403
     # Registering the administrator's address grants nothing: it stays unverified (the
     # attacker can't read that mailbox), and an unverified account can't even sign in.
     client.cookies.clear()
     assert client.post("/api/auth/register", json={"first_name": "x", "email": ADMIN, "password": PASSWORD,
                                                     "password_confirm": PASSWORD, "accept_terms": True}).status_code == 201
     assert login(client, email=ADMIN).status_code == 403
-    assert client.get("/api/admin/overview").status_code == 401
+    assert client.get("/api/admin/dashboard").status_code == 401
 
 
 def test_an_administrator_without_two_factor_can_only_ask_what_is_missing(client, admin_env) -> None:
     _signed_in_admin(client)
 
     session = client.get("/api/admin/session")
-    overview = client.get("/api/admin/overview")
+    overview = client.get("/api/admin/dashboard")
     users = client.get("/api/admin/users")
 
     assert session.json() == {"is_admin": True, "mfa_enabled": False, "mfa_verified": False, "mfa_recent": False}
@@ -157,7 +157,7 @@ def test_configured_two_factor_is_not_proof_that_it_was_passed_in_this_session(c
     assert blocked.status_code == 403 and blocked.json()["error"]["code"] == "mfa_required"
     assert client.post(f"/api/admin/users/{_victim(client)['id']}/ban", headers=csrf_headers(fresh.json()["csrf_token"])).status_code == 403
     assert client.get("/api/admin/audit").status_code == 403
-    assert client.get("/api/admin/overview").status_code == 403
+    assert client.get("/api/admin/dashboard").status_code == 403
     assert client.get("/api/admin/session").status_code == 200  # the probe tells the page which step is next
 
 
@@ -286,7 +286,7 @@ def test_a_banned_admin_loses_access_at_once(client, admin_env) -> None:
     _enable_mfa(client, info["csrf"])
     client.auth_store.find_by_email(ADMIN)["is_banned"] = True
 
-    assert client.get("/api/admin/overview").status_code == 403
+    assert client.get("/api/admin/dashboard").status_code == 403
 
 
 def test_sign_up_helper_is_unused_here() -> None:

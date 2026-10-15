@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
@@ -18,14 +18,53 @@ class AdminSessionOut(BaseModel):
     mfa_recent: bool
 
 
-class AdminOverviewOut(BaseModel):
-    total_users: int
-    banned_users: int
-    total_teams: int
-    total_trainings: int
-    total_matches: int
-    total_tasks: int
-    pending_notifications: int
+class DayCountOut(BaseModel):
+    day: date
+    count: int
+
+
+class DashboardUsersOut(BaseModel):
+    total: int
+    new_today: int
+    new_7d: int
+    new_30d: int
+    players: int
+    coaches: int
+    banned: int
+
+
+class DashboardActivityOut(BaseModel):
+    """Distinct signed-in people active in the window (UTC days; the last 7 / 30 days include today)."""
+
+    dau: int
+    wau: int
+    mau: int
+    # The first day anything was recorded: earlier days simply have no data.
+    tracking_since: date | None
+
+
+class DashboardTrainingsOut(BaseModel):
+    total: int
+    active: int  # scheduled: neither completed nor cancelled
+    upcoming: int  # scheduled and dated today or later
+    completed: int
+
+
+class DashboardBookingsOut(BaseModel):
+    total: int
+    confirmed: int
+    upcoming: int
+
+
+class AdminDashboardOut(BaseModel):
+    users: DashboardUsersOut
+    activity: DashboardActivityOut
+    trainings: DashboardTrainingsOut
+    bookings: DashboardBookingsOut
+    registrations: list[DayCountOut]
+    active_users: list[DayCountOut]
+    trainings_created: list[DayCountOut]
+    bookings_created: list[DayCountOut]
 
 
 class AdminUserOut(BaseModel):

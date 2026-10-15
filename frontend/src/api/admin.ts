@@ -21,33 +21,52 @@ export async function getAdminSession(): Promise<AdminSession> {
   return { isAdmin: dto.is_admin, mfaEnabled: dto.mfa_enabled, mfaVerified: dto.mfa_verified, mfaRecent: dto.mfa_recent };
 }
 
-export interface AdminOverview {
-  totalUsers: number;
-  bannedUsers: number;
-  totalTeams: number;
-  totalTrainings: number;
-  totalMatches: number;
-  totalTasks: number;
-  pendingNotifications: number;
+export interface DayCount {
+  /** An ISO calendar date (UTC). */
+  day: string;
+  count: number;
 }
 
-export async function getAdminOverview(): Promise<AdminOverview> {
-  const dto = await apiRequest<{
-    total_users: number;
-    banned_users: number;
-    total_teams: number;
-    total_trainings: number;
-    total_matches: number;
-    total_tasks: number;
-    pending_notifications: number;
-  }>("/api/admin/overview", QUIET);
+export interface AdminDashboard {
+  users: { total: number; newToday: number; new7d: number; new30d: number; players: number; coaches: number; banned: number };
+  activity: { dau: number; wau: number; mau: number; trackingSince: string | null };
+  trainings: { total: number; active: number; upcoming: number; completed: number };
+  bookings: { total: number; confirmed: number; upcoming: number };
+  registrations: DayCount[];
+  activeUsers: DayCount[];
+  trainingsCreated: DayCount[];
+  bookingsCreated: DayCount[];
+}
+
+interface DashboardDto {
+  users: { total: number; new_today: number; new_7d: number; new_30d: number; players: number; coaches: number; banned: number };
+  activity: { dau: number; wau: number; mau: number; tracking_since: string | null };
+  trainings: { total: number; active: number; upcoming: number; completed: number };
+  bookings: { total: number; confirmed: number; upcoming: number };
+  registrations: DayCount[];
+  active_users: DayCount[];
+  trainings_created: DayCount[];
+  bookings_created: DayCount[];
+}
+
+export async function getAdminDashboard(): Promise<AdminDashboard> {
+  const dto = await apiRequest<DashboardDto>("/api/admin/dashboard", QUIET);
   return {
-    totalUsers: dto.total_users,
-    bannedUsers: dto.banned_users,
-    totalTeams: dto.total_teams,
-    totalTrainings: dto.total_trainings,
-    totalMatches: dto.total_matches,
-    totalTasks: dto.total_tasks,
-    pendingNotifications: dto.pending_notifications,
+    users: {
+      total: dto.users.total,
+      newToday: dto.users.new_today,
+      new7d: dto.users.new_7d,
+      new30d: dto.users.new_30d,
+      players: dto.users.players,
+      coaches: dto.users.coaches,
+      banned: dto.users.banned,
+    },
+    activity: { dau: dto.activity.dau, wau: dto.activity.wau, mau: dto.activity.mau, trackingSince: dto.activity.tracking_since },
+    trainings: dto.trainings,
+    bookings: dto.bookings,
+    registrations: dto.registrations,
+    activeUsers: dto.active_users,
+    trainingsCreated: dto.trainings_created,
+    bookingsCreated: dto.bookings_created,
   };
 }
