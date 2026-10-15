@@ -11,8 +11,16 @@ import asyncpg
 
 _FILE_FIELDS = (
     "id, owner_id, team_id, entity_type, entity_id, disk_path, filename, "
-    "mime_type, size_bytes, status, access_level, created_at, updated_at, deleted_at, thumb_disk_path"
+    "mime_type, size_bytes, status, access_level, created_at, updated_at, deleted_at, thumb_disk_path, "
+    "hidden_at, moderation_reason"
 )
+
+
+def visible_file_id(column: str) -> str:
+    """SQL for "the id of the file in `column`, unless a moderator hid it". Used wherever a profile, listing or
+    gallery hands a file id to the public, so a hidden file simply is not offered any more. `column` is a literal
+    from the calling module, never user input."""
+    return f"(SELECT hf.id FROM files hf WHERE hf.id = {column} AND hf.hidden_at IS NULL)"
 
 
 async def create_file(
@@ -148,4 +156,7 @@ async def list_purgeable(conn: asyncpg.Connection, before: datetime, limit: int 
 
 
 async def hard_delete(conn: asyncpg.Connection, file_id: UUID) -> None:
-    await conn.execute("DELETE FROM files WHERE id = $1", file_id)
+    async with conn.transaction():
+        # A deleted gallery entry is only a tombstone, but it still points at the file.
+        await conn.execute("DELETE FROM profile_media WHERE file_id = $1 AND deleted_at IS NOT NULL", file_id)
+        await conn.execute("DELETE FROM files WHERE id = $1", file_id)

@@ -11,9 +11,19 @@ import asyncpg
 
 from app.repositories import coach_reviews as coach_reviews_repo
 
+# What makes a listing public: switched on by its coach, not deleted, not hidden by moderation, and its coach not blocked.
+# (A blocked coach's listings come back by themselves when the block ends.)
+PUBLIC_LISTING = (
+    "cl.is_listed = TRUE AND cl.deleted_at IS NULL AND cl.moderation_hidden_at IS NULL "
+    "AND NOT (u.is_banned AND (u.banned_until IS NULL OR u.banned_until > now()))"
+)
+_VISIBLE_PHOTO = "(SELECT hf.id FROM files hf WHERE hf.id = cl.photo_file_id AND hf.hidden_at IS NULL)"
+_VISIBLE_VIDEO = "(SELECT hf.id FROM files hf WHERE hf.id = cl.video_file_id AND hf.hidden_at IS NULL)"
+
 _LISTING_FIELDS = (
     "id, coach_user_id, title, description, is_listed, price_per_session, currency, "
-    "offers_online, offers_offline, location, session_duration_minutes, photo_file_id, video_file_id"
+    "offers_online, offers_offline, location, session_duration_minutes, photo_file_id, video_file_id, "
+    "(moderation_hidden_at IS NOT NULL) AS hidden_by_moderation, moderation_reason"
 )
 
 
@@ -179,7 +189,7 @@ async def list_listed(
     training_format: str | None = None,
     min_experience_years: int | None = None,
 ) -> list[dict[str, Any]]:
-    conditions = ["cl.is_listed = TRUE", "cl.deleted_at IS NULL"]
+    conditions = [PUBLIC_LISTING]
     params: list[Any] = []
 
     def add(condition: str, value: Any) -> None:
@@ -206,7 +216,7 @@ async def list_listed(
         SELECT cl.id, cl.title, cl.description, cl.coach_user_id, cp.full_name AS coach_full_name,
                u.photo_url AS coach_photo_url, cp.sport, cp.specialization, cp.experience_years,
                cl.price_per_session, cl.currency, cl.location, cl.offers_online, cl.offers_offline,
-               cl.photo_file_id
+               {_VISIBLE_PHOTO} AS photo_file_id
         FROM coach_listings cl
         JOIN coach_profiles cp ON cp.user_id = cl.coach_user_id
         JOIN users u ON u.id = cl.coach_user_id
@@ -232,15 +242,15 @@ async def list_listed_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) -
     listings, shaped like list_listed's cards (rating + next slot) so a
     coach's public profile can render them with CoachListingCardOut."""
     rows = await conn.fetch(
-        """
+        f"""
         SELECT cl.id, cl.title, cl.description, cl.coach_user_id, cp.full_name AS coach_full_name,
                u.photo_url AS coach_photo_url, cp.sport, cp.specialization, cp.experience_years,
                cl.price_per_session, cl.currency, cl.location, cl.offers_online, cl.offers_offline,
-               cl.photo_file_id
+               {_VISIBLE_PHOTO} AS photo_file_id
         FROM coach_listings cl
         JOIN coach_profiles cp ON cp.user_id = cl.coach_user_id
         JOIN users u ON u.id = cl.coach_user_id
-        WHERE cl.coach_user_id = $1 AND cl.is_listed = TRUE AND cl.deleted_at IS NULL
+        WHERE cl.coach_user_id = $1 AND {PUBLIC_LISTING}
         ORDER BY cl.created_at
         """,
         coach_user_id,
@@ -256,15 +266,16 @@ async def list_listed_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) -
 
 async def get_public_listing(conn: asyncpg.Connection, listing_id: UUID) -> dict[str, Any] | None:
     row = await conn.fetchrow(
-        """
+        f"""
         SELECT cl.id, cl.title, cl.description, cl.coach_user_id, cp.full_name AS coach_full_name,
                u.photo_url AS coach_photo_url, cp.sport, cp.specialization, cp.description AS coach_description,
                cp.experience_years, cl.price_per_session, cl.currency, cl.location, cl.offers_online,
-               cl.offers_offline, cl.session_duration_minutes, cl.photo_file_id, cl.video_file_id
+               cl.offers_offline, cl.session_duration_minutes, {_VISIBLE_PHOTO} AS photo_file_id,
+               {_VISIBLE_VIDEO} AS video_file_id
         FROM coach_listings cl
         JOIN coach_profiles cp ON cp.user_id = cl.coach_user_id
         JOIN users u ON u.id = cl.coach_user_id
-        WHERE cl.id = $1 AND cl.is_listed = TRUE AND cl.deleted_at IS NULL
+        WHERE cl.id = $1 AND {PUBLIC_LISTING}
         """,
         listing_id,
     )
@@ -322,3 +333,13 @@ async def _next_available_slot(conn: asyncpg.Connection, listing_id: UUID) -> da
     today = date.today()
     slots = await compute_open_slots(conn, listing_id, today, today + timedelta(days=28))
     return slots[0]["starts_at"] if slots else None
+
+
+async def is_public(conn: asyncpg.Connection, listing_id: UUID) -> bool:
+    """Whether the listing may be shown and booked right now (see PUBLIC_LISTING)."""
+    return bool(
+        await conn.fetchval(
+            f"SELECT EXISTS(SELECT 1 FROM coach_listings cl JOIN users u ON u.id = cl.coach_user_id WHERE cl.id = $1 AND {PUBLIC_LISTING})",
+            listing_id,
+        )
+    )

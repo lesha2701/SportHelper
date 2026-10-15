@@ -35,7 +35,8 @@ async def add_media(
 
 async def list_media(conn: asyncpg.Connection, user_id: UUID) -> list[dict[str, Any]]:
     rows = await conn.fetch(
-        f"SELECT {_FIELDS} FROM profile_media WHERE user_id = $1 AND deleted_at IS NULL ORDER BY sort_order",
+        f"SELECT {_FIELDS} FROM profile_media pm WHERE pm.user_id = $1 AND pm.deleted_at IS NULL "
+        "AND NOT EXISTS (SELECT 1 FROM files hf WHERE hf.id = pm.file_id AND hf.hidden_at IS NOT NULL) ORDER BY pm.sort_order",
         user_id,
     )
     return [dict(row) for row in rows]

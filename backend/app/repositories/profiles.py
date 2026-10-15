@@ -6,6 +6,9 @@ from uuid import UUID
 
 import asyncpg
 
+# The avatar id a public profile may show: nothing, if a moderator hid the file.
+_VISIBLE_AVATAR = "(SELECT hf.id FROM files hf WHERE hf.id = u.avatar_file_id AND hf.hidden_at IS NULL)"
+
 _PLAYER_FIELDS = (
     "user_id, full_name, age, height_cm, weight_kg, sport, position, "
     "level, goals, load_restrictions, created_at, updated_at"
@@ -28,9 +31,9 @@ async def get_public_player_profile(conn: asyncpg.Connection, user_id: UUID) -> 
     needed when a coach with a booking relationship (not necessarily a
     shared team) views the athlete's profile."""
     row = await conn.fetchrow(
-        """
+        f"""
         SELECT pp.user_id, pp.full_name, pp.age, pp.height_cm, pp.weight_kg, pp.sport, pp.position,
-               pp.level, pp.goals, pp.load_restrictions, u.avatar_file_id, u.photo_url
+               pp.level, pp.goals, pp.load_restrictions, {_VISIBLE_AVATAR} AS avatar_file_id, u.photo_url
         FROM player_profiles pp
         JOIN users u ON u.id = pp.user_id
         WHERE pp.user_id = $1
@@ -52,9 +55,9 @@ async def get_public_coach_profile(conn: asyncpg.Connection, user_id: UUID) -> d
     the coach themself needs (their avatar and Telegram photo — get_coach_
     profile is "my own profile" only and has neither)."""
     row = await conn.fetchrow(
-        """
+        f"""
         SELECT cp.user_id, cp.full_name, cp.sport, cp.experience_years, cp.specialization, cp.description,
-               u.avatar_file_id, u.photo_url
+               {_VISIBLE_AVATAR} AS avatar_file_id, u.photo_url
         FROM coach_profiles cp
         JOIN users u ON u.id = cp.user_id
         WHERE cp.user_id = $1

@@ -12,12 +12,16 @@ from fastapi.responses import JSONResponse
 from app.api.routes import (
     activity,
     admin,
+    admin_complaints,
+    admin_content,
+    admin_media,
     ai,
     auth,
     bookings,
     calendar,
     coach_listings,
     coaches,
+    complaints,
     exercises,
     files,
     health,
@@ -189,6 +193,10 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(admin.router)
     app.include_router(activity.router)
+    app.include_router(admin_media.router)
+    app.include_router(admin_content.router)
+    app.include_router(admin_complaints.router)
+    app.include_router(complaints.router)
     app.include_router(health.router)
     app.include_router(profile.router)
     app.include_router(teams.router)

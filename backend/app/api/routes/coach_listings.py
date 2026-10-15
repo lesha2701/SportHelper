@@ -329,7 +329,7 @@ async def get_listing_open_slots(
             status_code=400,
         )
     listing = await listings_repo.get_listing(conn, listing_id)
-    if listing is None or not listing["is_listed"]:
+    if listing is None or not listing["is_listed"] or not await listings_repo.is_public(conn, listing_id):
         raise NotFoundError("listing not found or not listed")
     slots = await listings_repo.compute_open_slots(conn, listing_id, from_date, to_date)
     return [OpenSlotOut(**s) for s in slots]

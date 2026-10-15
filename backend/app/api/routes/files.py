@@ -148,7 +148,8 @@ async def download_file(
     settings: Settings = Depends(get_settings_dep),
 ) -> StreamingResponse:
     file_record = await files_repo.get_file(conn, file_id)
-    if file_record is None:
+    if file_record is None or file_record.get("hidden_at") is not None:
+        # A file hidden by moderation is gone as far as the platform is concerned (moderators view it through the admin API).
         raise NotFoundError("file not found")
 
     access_level = file_record["access_level"]

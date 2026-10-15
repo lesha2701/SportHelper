@@ -44,6 +44,9 @@ class CoachListingOut(BaseModel):
     session_duration_minutes: int | None
     photo_file_id: UUID | None
     video_file_id: UUID | None
+    # Set when a moderator took the listing off the public catalogue; the owner cannot switch it back on.
+    hidden_by_moderation: bool = False
+    moderation_reason: str | None = None
 
 
 class AvailabilityWindowIn(BaseModel):

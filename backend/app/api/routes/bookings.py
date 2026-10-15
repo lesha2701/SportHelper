@@ -38,7 +38,7 @@ async def create_booking(
     conn: asyncpg.Connection = Depends(get_db),
 ) -> BookingOut:
     listing = await listings_repo.get_listing(conn, payload.listing_id)
-    if listing is None or not listing["is_listed"]:
+    if listing is None or not listing["is_listed"] or not await listings_repo.is_public(conn, payload.listing_id):
         raise NotFoundError("listing not found or not listed")
     if listing["coach_user_id"] == user["id"]:
         raise APIError("cannot book yourself", code="self_booking", status_code=400)

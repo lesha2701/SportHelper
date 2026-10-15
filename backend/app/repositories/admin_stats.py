@@ -40,7 +40,9 @@ async def get_dashboard(conn: asyncpg.Connection) -> dict[str, Any]:
             (SELECT count(*) FROM trainings WHERE deleted_at IS NULL AND status = 'completed') AS trainings_completed,
             (SELECT count(*) FROM bookings) AS bookings_total,
             (SELECT count(*) FROM bookings WHERE status = 'confirmed') AS bookings_confirmed,
-            (SELECT count(*) FROM bookings WHERE status = 'confirmed' AND starts_at >= now()) AS bookings_upcoming
+            (SELECT count(*) FROM bookings WHERE status = 'confirmed' AND starts_at >= now()) AS bookings_upcoming,
+            (SELECT count(*) FROM complaints WHERE status = 'new') AS new_complaints,
+            (SELECT count(*) FROM complaints WHERE status IN ('new', 'in_progress') AND target_type IN ('media', 'listing')) AS content_pending
         """
     )
     return {

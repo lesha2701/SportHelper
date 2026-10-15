@@ -34,7 +34,10 @@ async def search_all(conn: asyncpg.Connection, user_id: UUID, query: str) -> lis
         UNION ALL
         (SELECT 'coach', cl.coach_user_id, cp.full_name, cp.sport, NULL, NULL
            FROM coach_listings cl JOIN coach_profiles cp ON cp.user_id = cl.coach_user_id
-          WHERE cl.is_listed = TRUE AND cl.deleted_at IS NULL AND cl.coach_user_id <> $1
+          WHERE cl.is_listed = TRUE AND cl.deleted_at IS NULL AND cl.moderation_hidden_at IS NULL
+            AND NOT EXISTS (SELECT 1 FROM users cu WHERE cu.id = cl.coach_user_id
+                            AND cu.is_banned AND (cu.banned_until IS NULL OR cu.banned_until > now()))
+            AND cl.coach_user_id <> $1
             AND (cp.full_name ILIKE $2 OR cl.title ILIKE $2 OR cp.sport ILIKE $2 OR cl.location ILIKE $2)
           GROUP BY cl.coach_user_id, cp.full_name, cp.sport ORDER BY cp.full_name LIMIT $3)
         UNION ALL

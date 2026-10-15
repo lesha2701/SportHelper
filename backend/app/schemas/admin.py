@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class AdminSessionOut(BaseModel):
@@ -56,11 +56,18 @@ class DashboardBookingsOut(BaseModel):
     upcoming: int
 
 
+class DashboardModerationOut(BaseModel):
+    new_complaints: int
+    # open complaints about a public photo/video or a listing
+    content_pending: int
+
+
 class AdminDashboardOut(BaseModel):
     users: DashboardUsersOut
     activity: DashboardActivityOut
     trainings: DashboardTrainingsOut
     bookings: DashboardBookingsOut
+    moderation: DashboardModerationOut
     registrations: list[DayCountOut]
     active_users: list[DayCountOut]
     trainings_created: list[DayCountOut]
@@ -166,3 +173,243 @@ class AdminAuditEntryOut(BaseModel):
     result: str = "success"
     created_at: datetime
     admin: str  # who acted: email of a website admin, or "telegram:<id>"
+
+
+# --- moderation ------------------------------------------------------------------------------------------------
+
+
+class ReasonIn(BaseModel):
+    """Every moderation action carries a written reason (it goes into the audit trail)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(max_length=1000)
+
+    @field_validator("reason")
+    @classmethod
+    def _check_reason(cls, value: str) -> str:
+        return _clean_reason(value)
+
+
+class ConfirmedReasonIn(ReasonIn):
+    """An irreversible action: the reason plus an explicit confirmation."""
+
+    confirm: bool
+
+    @field_validator("confirm")
+    @classmethod
+    def _must_confirm(cls, value: bool) -> bool:
+        if value is not True:
+            raise ValueError("confirmation required")
+        return value
+
+
+class MediaOwnerOut(BaseModel):
+    id: UUID
+    email: str | None
+    name: str
+
+
+class MediaRowOut(BaseModel):
+    id: UUID
+    kind: str  # avatar | logo | listing | gallery | exercise | training
+    media_type: Literal["image", "video", "other"]
+    filename: str
+    mime_type: str
+    size_bytes: int
+    created_at: datetime
+    owner: MediaOwnerOut
+    hidden: bool
+    hidden_at: datetime | None
+    moderation_reason: str | None
+    hidden_by: str | None
+    has_thumb: bool
+
+
+class RelatedObjectOut(BaseModel):
+    type: str
+    id: UUID
+    label: str
+
+
+class MediaDetailOut(MediaRowOut):
+    related: RelatedObjectOut | None
+    open_complaints: int
+
+
+class MediaPageOut(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[MediaRowOut]
+
+
+class MediaDeletedOut(BaseModel):
+    deleted: bool
+    # False when Yandex.Disk could not be reached: the file is already detached and gone from the site, and the
+    # background clean-up removes the bytes later.
+    storage_deleted: bool
+
+
+# --- trainings and listings ---------------------------------------------------------------------------------------
+
+
+class PersonOut(BaseModel):
+    id: UUID
+    name: str
+    email: str | None = None
+
+
+class TrainingRowOut(BaseModel):
+    id: UUID
+    type: Literal["team", "personal", "independent"]
+    status: Literal["scheduled", "completed", "cancelled"]
+    training_date: date
+    start_time: time
+    duration_minutes: int
+    location: str | None
+    description: str | None
+    team: dict[str, Any] | None  # {"id", "name"}
+    creator: PersonOut
+    participants: int
+    bookings: int
+    created_at: datetime
+
+
+class TrainingParticipantOut(BaseModel):
+    id: UUID
+    name: str
+    attendance: str | None
+
+
+class TrainingBookingOut(BaseModel):
+    id: UUID
+    status: str
+    starts_at: datetime
+    format: str
+    coach: str
+    athlete: str
+
+
+class TrainingDetailOut(TrainingRowOut):
+    plan_name: str | None
+    reminder_minutes_before: int | None
+    recurring: bool
+    participant_list: list[TrainingParticipantOut]
+    booking_list: list[TrainingBookingOut]
+
+
+class TrainingsPageOut(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[TrainingRowOut]
+
+
+class ListingRowOut(BaseModel):
+    id: UUID
+    title: str
+    coach: PersonOut
+    coach_blocked: bool
+    price_per_session: float | None
+    currency: str
+    location: str | None
+    # public | hidden (by a moderator) | unlisted (the coach switched it off) | deleted
+    state: Literal["public", "hidden", "unlisted", "deleted"]
+    moderation_reason: str | None
+    hidden_by: str | None
+    hidden_at: datetime | None
+    active_bookings: int
+    has_photo: bool
+    has_video: bool
+    created_at: datetime
+
+
+class ListingDetailOut(ListingRowOut):
+    description: str | None
+    open_complaints: int
+
+
+class ListingsPageOut(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[ListingRowOut]
+
+
+# --- complaints -----------------------------------------------------------------------------------------------------
+
+ComplaintStatus = Literal["new", "in_progress", "resolved", "rejected"]
+ComplaintReason = Literal["inappropriate", "fraud", "spam", "false_info", "other"]
+ComplaintTarget = Literal["user", "listing", "media"]
+
+
+class ComplaintIn(BaseModel):
+    """What a user sends to report a profile, a listing or a public photo/video."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    target_type: ComplaintTarget
+    target_id: UUID
+    reason: ComplaintReason
+    comment: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("comment")
+    @classmethod
+    def _tidy(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        text = " ".join(value.split())
+        return text or None
+
+    @model_validator(mode="after")
+    def _other_needs_words(self) -> "ComplaintIn":
+        if self.reason == "other" and len(self.comment or "") < 3:
+            raise ValueError("опишите причину жалобы")
+        return self
+
+
+class ComplaintCreatedOut(BaseModel):
+    id: UUID
+    status: ComplaintStatus
+
+
+class ComplaintTargetOut(BaseModel):
+    type: ComplaintTarget
+    id: UUID
+    label: str | None
+    state: str | None  # users: active|blocked|deleted; listings/media: visible|hidden|deleted
+    owner: PersonOut | None
+
+
+class ComplaintOut(BaseModel):
+    id: UUID
+    status: ComplaintStatus
+    reason: ComplaintReason
+    comment: str | None
+    created_at: datetime
+    reporter: PersonOut
+    target: ComplaintTargetOut
+    other_open_on_target: int
+    handled_by: str | None
+    handled_at: datetime | None
+    resolution: str | None
+
+
+class ComplaintsPageOut(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[ComplaintOut]
+
+
+class ResolveComplaintIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["resolved", "rejected"]
+    resolution: str = Field(max_length=1000)
+
+    @field_validator("resolution")
+    @classmethod
+    def _check(cls, value: str) -> str:
+        return _clean_reason(value)

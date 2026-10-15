@@ -42,6 +42,7 @@ from app.schemas.admin import (
     UnblockIn,
     DashboardActivityOut,
     DashboardBookingsOut,
+    DashboardModerationOut,
     DashboardTrainingsOut,
     DashboardUsersOut,
 )
@@ -83,6 +84,7 @@ async def dashboard(
             total=d["trainings_total"], active=d["trainings_active"], upcoming=d["trainings_upcoming"], completed=d["trainings_completed"]
         ),
         bookings=DashboardBookingsOut(total=d["bookings_total"], confirmed=d["bookings_confirmed"], upcoming=d["bookings_upcoming"]),
+        moderation=DashboardModerationOut(new_complaints=d["new_complaints"], content_pending=d["content_pending"]),
         registrations=d["registrations"],
         active_users=d["active_users"],
         trainings_created=d["trainings_created"],

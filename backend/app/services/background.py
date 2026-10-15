@@ -137,7 +137,11 @@ async def purge_soft_deleted_files(conn: asyncpg.Connection, settings: Settings)
         except YandexDiskError as exc:
             logger.error("Failed to delete a retained file %s from Yandex.Disk: %s", file_record["id"], exc)
             continue
-        await files_repo.hard_delete(conn, file_record["id"])
+        try:
+            await files_repo.hard_delete(conn, file_record["id"])
+        except asyncpg.PostgresError:
+            logger.exception("Could not remove the record of purged file %s; will retry", file_record["id"])
+            continue
         logger.info("Purged retained file %s", file_record["id"])
 
 

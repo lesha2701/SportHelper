@@ -46,11 +46,13 @@ def _fake_disk(monkeypatch: pytest.MonkeyPatch):
     never hit the real Yandex.Disk API even if a real token is configured
     in the developer's .env."""
     _shared_disk_storage.clear()
+    import app.api.routes.admin_media as admin_media_module
     import app.api.routes.files as files_module
     import app.services.uploads as uploads_module
 
     monkeypatch.setattr(files_module, "YandexDiskClient", _FakeYandexDiskClient)
     monkeypatch.setattr(uploads_module, "YandexDiskClient", _FakeYandexDiskClient)
+    monkeypatch.setattr(admin_media_module, "YandexDiskClient", _FakeYandexDiskClient)
 
 
 _video_duration_queue: list[float] = []
@@ -2233,6 +2235,10 @@ def client(monkeypatch: pytest.MonkeyPatch):
         record = listings_store.get(listing_id)
         return dict(record) if record else None
 
+    async def fake_is_public(conn, listing_id):
+        record = listings_store.get(listing_id)
+        return bool(record and record["is_listed"] and record.get("deleted_at") is None)
+
     async def fake_list_for_coach(conn, coach_user_id):
         return [dict(r) for r in listings_store.values() if r["coach_user_id"] == coach_user_id]
 
@@ -2274,6 +2280,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(coach_listings_module, "create_listing", fake_create_listing)
     monkeypatch.setattr(coach_listings_module, "get_listing", fake_get_listing)
+    monkeypatch.setattr(coach_listings_module, "is_public", fake_is_public)
     monkeypatch.setattr(coach_listings_module, "list_for_coach", fake_list_for_coach)
     monkeypatch.setattr(coach_listings_module, "update_listing", fake_update_listing)
     monkeypatch.setattr(coach_listings_module, "has_active_booking", fake_has_active_booking)
