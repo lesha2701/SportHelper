@@ -3,6 +3,8 @@ from __future__ import annotations
 import io
 from datetime import date, timedelta
 
+from PIL import Image
+from tests.image_helpers import png_bytes
 from tests.test_teams_api import _add_player_to_team, _create_coach_profile, _create_team, _member_user_id
 
 _TOMORROW = (date.today() + timedelta(days=1)).isoformat()
@@ -31,7 +33,7 @@ def _make_captain(client, coach_token, team_id, telegram_id) -> str:
 
 
 def _png_bytes(size: int = 20) -> bytes:
-    return b"\x89PNG\r\n\x1a\n" + b"0" * size
+    return png_bytes(size)
 
 
 def test_independent_training_requires_responsible_without_captain(logged_in_client) -> None:
@@ -283,7 +285,7 @@ def test_report_photo_upload_and_download(logged_in_client, login_as) -> None:
 
     download_resp = client.get(f"/api/files/{photo_id}", headers=coach_headers)
     assert download_resp.status_code == 200
-    assert download_resp.content == content
+    assert Image.open(io.BytesIO(download_resp.content)).size == (16, 16)
 
 
 def test_only_responsible_player_can_upload_report_media(logged_in_client, login_as) -> None:

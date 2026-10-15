@@ -11,7 +11,7 @@ import asyncpg
 
 _FILE_FIELDS = (
     "id, owner_id, team_id, entity_type, entity_id, disk_path, filename, "
-    "mime_type, size_bytes, status, access_level, created_at, updated_at, deleted_at"
+    "mime_type, size_bytes, status, access_level, created_at, updated_at, deleted_at, thumb_disk_path"
 )
 
 
@@ -27,14 +27,15 @@ async def create_file(
     mime_type: str,
     size_bytes: int,
     access_level: str,
+    thumb_disk_path: str | None = None,
 ) -> dict[str, Any]:
     row = await conn.fetchrow(
         f"""
         INSERT INTO files (
             owner_id, team_id, entity_type, entity_id, disk_path, filename,
-            mime_type, size_bytes, status, access_level
+            mime_type, size_bytes, status, access_level, thumb_disk_path
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'ready', $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'ready', $9, $10)
         RETURNING {_FILE_FIELDS}
         """,
         owner_id,
@@ -46,6 +47,7 @@ async def create_file(
         mime_type,
         size_bytes,
         access_level,
+        thumb_disk_path,
     )
     return dict(row)
 

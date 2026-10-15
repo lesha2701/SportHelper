@@ -291,3 +291,53 @@ def test_members_are_marked_present_on_trainings_that_took_place_and_only_on_tho
     assert (future_held, late) not in rows  # joined after the training date
     assert rows[(corrected, early)] == "absent"  # the coach's correction is never overwritten
     assert not again  # nothing left to do on the second pass
+
+
+def test_files_with_and_without_a_thumbnail_on_the_real_schema_and_the_purge_removes_both_copies(pg) -> None:  # noqa: F811
+    """The thumbnail column is optional: rows written before it existed (NULL) behave exactly as before,
+    new ones carry the path, and the retention job deletes the picture AND its thumbnail from the disk."""
+    from datetime import datetime, timedelta, timezone
+
+    from app.config import Settings
+    from app.database import create_pool, run_migrations
+    from app.repositories import files as files_repo
+    from app.services import background
+
+    deleted: list[str] = []
+
+    class RecordingDisk:
+        def __init__(self, settings):
+            pass
+
+        async def delete(self, path: str) -> None:
+            deleted.append(path)
+
+    async def scenario():
+        settings = Settings(_env_file=None, DATABASE_URL=pg, YANDEX_DISK_OAUTH_TOKEN="test-token", SOFT_DELETE_RETENTION_DAYS="1")
+        pool = await create_pool(settings)
+        try:
+            await run_migrations(pool)
+            async with pool.acquire() as conn:
+                owner = await conn.fetchval("INSERT INTO users (email, first_name) VALUES ('f@e.com', 'F') RETURNING id")
+                common = dict(owner_id=owner, team_id=None, entity_type="coach_listing_photo", entity_id=None, filename="a.webp",
+                              mime_type="image/webp", size_bytes=10, access_level="PUBLIC")
+                legacy = await files_repo.create_file(conn, disk_path="/TeamFlow/main/old.jpg", **common)
+                modern = await files_repo.create_file(conn, disk_path="/TeamFlow/main/new.webp", thumb_disk_path="/TeamFlow/main/new_thumb.webp", **common)
+                fetched = [await files_repo.get_file(conn, legacy["id"]), await files_repo.get_file(conn, modern["id"])]
+                await conn.execute("UPDATE files SET deleted_at = $1", datetime.now(timezone.utc) - timedelta(days=5))
+                background.YandexDiskClient = RecordingDisk
+                await background.purge_soft_deleted_files(conn, settings)
+                left = await conn.fetchval("SELECT count(*) FROM files")
+                return fetched, left
+        finally:
+            await pool.close()
+
+    original = background.YandexDiskClient
+    try:
+        fetched, left = asyncio.run(scenario())
+    finally:
+        background.YandexDiskClient = original
+
+    assert fetched[0]["thumb_disk_path"] is None and fetched[1]["thumb_disk_path"] == "/TeamFlow/main/new_thumb.webp"
+    assert sorted(deleted) == ["/TeamFlow/main/new.webp", "/TeamFlow/main/new_thumb.webp", "/TeamFlow/main/old.jpg"]
+    assert left == 0

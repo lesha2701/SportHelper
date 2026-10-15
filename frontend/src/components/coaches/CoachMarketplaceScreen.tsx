@@ -54,7 +54,7 @@ function ListingCardView({ token, listing, onOpen }: { token: string; listing: C
 
       <div className={styles.listingCardPhotoWrap}>
         {listing.photoFileId ? (
-          <AuthenticatedImage token={token} fileId={listing.photoFileId} alt={listing.title} className={styles.listingCardPhoto} />
+          <AuthenticatedImage token={token} fileId={listing.photoFileId} alt={listing.title} className={styles.listingCardPhoto} thumb />
         ) : (
           <div className={styles.listingCardPhotoPlaceholder}>
             <Icon name="image" size={28} />

@@ -155,6 +155,9 @@ class Settings(BaseSettings):
     max_video_size_mb: int = Field(default=100, alias="MAX_VIDEO_SIZE_MB")
     max_video_duration_seconds: int = Field(default=60, alias="MAX_VIDEO_DURATION_SECONDS")
     upload_chunk_size_kb: int = Field(default=512, alias="UPLOAD_CHUNK_SIZE_KB")
+    # Photos are verified and re-encoded before they reach Yandex.Disk (see app/services/images.py).
+    image_max_pixels: int = Field(default=64_000_000, alias="IMAGE_MAX_PIXELS")
+    image_optimize_concurrency: int = Field(default=2, ge=1, le=8, alias="IMAGE_OPTIMIZE_CONCURRENCY")
     http_client_timeout_seconds: int = Field(default=15, alias="HTTP_CLIENT_TIMEOUT_SECONDS")
     rate_limit_per_minute: int = Field(default=300, alias="RATE_LIMIT_PER_MINUTE")
 

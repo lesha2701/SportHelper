@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import io
+from tests.image_helpers import png_bytes
 
 
 def _png_bytes(size: int = 20) -> bytes:
-    return b"\x89PNG\r\n\x1a\n" + b"0" * size
+    return png_bytes(size)
 
 
 def _mp4_bytes(size: int = 20) -> bytes:

@@ -313,6 +313,7 @@ export function ExercisesScreen({ token }: { token: string }) {
                               fileId={exercise.photoFileId}
                               alt={exercise.name}
                               className={libStyles.exerciseCardMediaImg}
+                              thumb
                             />
                           ) : (
                             <div className={libStyles.exerciseCardMediaPlaceholder}>

@@ -29,7 +29,9 @@ from app.services.uploads import (
     FileTooLarge,
     VideoProbeError,
     VideoTooLong,
-    upload_to_disk,
+    discard_stored_image,
+    safe_filename,
+    store_image_or_raise,
     upload_video_to_disk,
 )
 
@@ -165,53 +167,62 @@ async def _upload_listing_media(
             f"file must be a {kind} ({', '.join(allowed_types)})", code="unsupported_media_type", status_code=415
         )
 
-    max_bytes = max_size_mb * 1024 * 1024
-    chunk_size = settings.upload_chunk_size_kb * 1024
     file_id = uuid4()
-    extension = allowed_types[file.content_type]
-    disk_path = build_user_file_path(
-        settings.yandex_disk_root_folder,
-        settings.app_mode,
-        user["id"],
-        f"listings/{listing_id}/{category}",
-        file_id,
-        extension,
-    )
 
-    try:
-        if category == "video":
+    def build_path(extension: str) -> str:
+        return build_user_file_path(
+            settings.yandex_disk_root_folder, settings.app_mode, user["id"], f"listings/{listing_id}/{category}", file_id, extension
+        )
+
+    stored = None
+    if category == "photo":
+        stored = await store_image_or_raise(settings, file, "listing_photo", build_path)
+        disk_path, mime_type, size_bytes, filename = (
+            stored.disk_path, stored.mime_type, stored.size_bytes, safe_filename(file.filename, stored.extension, "photo"),
+        )
+    else:
+        max_bytes = max_size_mb * 1024 * 1024
+        chunk_size = settings.upload_chunk_size_kb * 1024
+        extension = allowed_types[file.content_type]
+        disk_path = build_path(extension)
+        mime_type, filename = file.content_type, file.filename or f"{file_id}.{extension}"
+        try:
             size_bytes = await upload_video_to_disk(
                 settings, disk_path, file, max_bytes, chunk_size, settings.max_video_duration_seconds
             )
-        else:
-            size_bytes = await upload_to_disk(settings, disk_path, file, max_bytes, chunk_size)
-    except RuntimeError as exc:
-        raise APIError(str(exc), code="yandex_disk_not_configured", status_code=503) from exc
-    except FileTooLarge as exc:
-        raise APIError(f"file must be smaller than {max_size_mb} MB", code="file_too_large", status_code=413) from exc
-    except VideoTooLong as exc:
-        raise APIError(
-            f"video must be under {settings.max_video_duration_seconds} seconds (got {exc.duration_seconds:.0f}s)",
-            code="video_too_long",
-            status_code=413,
-        ) from exc
-    except VideoProbeError as exc:
-        raise APIError(f"could not read this video file: {exc}", code="invalid_video", status_code=415) from exc
-    except YandexDiskError as exc:
-        raise APIError("failed to store the file", code="storage_error", status_code=502) from exc
+        except RuntimeError as exc:
+            raise APIError(str(exc), code="yandex_disk_not_configured", status_code=503) from exc
+        except FileTooLarge as exc:
+            raise APIError(f"file must be smaller than {max_size_mb} MB", code="file_too_large", status_code=413) from exc
+        except VideoTooLong as exc:
+            raise APIError(
+                f"video must be under {settings.max_video_duration_seconds} seconds (got {exc.duration_seconds:.0f}s)",
+                code="video_too_long",
+                status_code=413,
+            ) from exc
+        except VideoProbeError as exc:
+            raise APIError(f"could not read this video file: {exc}", code="invalid_video", status_code=415) from exc
+        except YandexDiskError as exc:
+            raise APIError("failed to store the file", code="storage_error", status_code=502) from exc
 
-    file_record = await files_repo.create_file(
-        conn,
-        owner_id=user["id"],
-        team_id=None,
-        entity_type=f"coach_listing_{category}",
-        entity_id=listing_id,
-        disk_path=disk_path,
-        filename=file.filename or f"{file_id}.{extension}",
-        mime_type=file.content_type,
-        size_bytes=size_bytes,
-        access_level="PUBLIC",
-    )
+    try:
+        file_record = await files_repo.create_file(
+            conn,
+            owner_id=user["id"],
+            team_id=None,
+            entity_type=f"coach_listing_{category}",
+            entity_id=listing_id,
+            disk_path=disk_path,
+            filename=filename,
+            mime_type=mime_type,
+            size_bytes=size_bytes,
+            access_level="PUBLIC",
+            thumb_disk_path=stored.thumb_disk_path if stored else None,
+        )
+    except Exception:
+        if stored:
+            await discard_stored_image(settings, stored)
+        raise
     if category == "photo":
         await files_repo.replace_listing_photo(conn, listing_id, file_record["id"])
     else:

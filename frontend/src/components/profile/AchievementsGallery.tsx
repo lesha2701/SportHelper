@@ -89,7 +89,7 @@ export function AchievementsGallery({ token, userId, editable }: { token: string
         {state.items.map((item, galleryIndex) => (
           <div className={styles.mediaTile} key={item.id}>
             {item.mediaType === "photo" ? (
-              <AuthenticatedImage token={token} fileId={item.fileId} alt={item.caption ?? "Достижение"} className={styles.mediaTileMedia} zoomable gallery={gallery} galleryIndex={galleryIndex} />
+              <AuthenticatedImage token={token} fileId={item.fileId} alt={item.caption ?? "Достижение"} className={styles.mediaTileMedia} thumb zoomable gallery={gallery} galleryIndex={galleryIndex} />
             ) : (
               <AuthenticatedVideo token={token} fileId={item.fileId} className={styles.mediaTileMedia} zoomable gallery={gallery} galleryIndex={galleryIndex} />
             )}

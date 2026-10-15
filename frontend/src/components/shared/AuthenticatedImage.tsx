@@ -8,6 +8,8 @@ interface AuthenticatedImageProps {
   fileId: string;
   alt: string;
   className?: string;
+  /** A list/card image: loads the small copy (the full picture opens in the viewer). */
+  thumb?: boolean;
   /** Click opens the full-screen viewer. */
   zoomable?: boolean;
   /** With `zoomable`: page through this set of photos/videos instead of just this one. */
@@ -20,6 +22,7 @@ export function AuthenticatedImage({
   fileId,
   alt,
   className,
+  thumb,
   zoomable,
   gallery,
   galleryIndex,
@@ -31,7 +34,7 @@ export function AuthenticatedImage({
     let cancelled = false;
     let currentUrl: string | null = null;
 
-    fetchFileBlob(token, fileId)
+    fetchFileBlob(token, fileId, thumb ? "thumb" : undefined)
       .then((blob) => {
         if (cancelled) return;
         currentUrl = URL.createObjectURL(blob);
@@ -46,7 +49,7 @@ export function AuthenticatedImage({
       cancelled = true;
       if (currentUrl) URL.revokeObjectURL(currentUrl);
     };
-  }, [token, fileId]);
+  }, [token, fileId, thumb]);
 
   if (!objectUrl) {
     return <div className={className} aria-hidden="true" />;

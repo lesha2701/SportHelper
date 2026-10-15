@@ -123,8 +123,10 @@ async def purge_soft_deleted_files(conn: asyncpg.Connection, settings: Settings)
     for file_record in purgeable:
         try:
             await client.delete(file_record["disk_path"])
+            if file_record.get("thumb_disk_path"):
+                await client.delete(file_record["thumb_disk_path"])
         except YandexDiskError as exc:
-            logger.error("Failed to delete %s from Yandex.Disk: %s", file_record["disk_path"], exc)
+            logger.error("Failed to delete a retained file %s from Yandex.Disk: %s", file_record["id"], exc)
             continue
         await files_repo.hard_delete(conn, file_record["id"])
         logger.info("Purged retained file %s", file_record["id"])

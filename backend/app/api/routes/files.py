@@ -5,7 +5,9 @@ from collections.abc import AsyncIterator
 from uuid import UUID, uuid4
 
 import asyncpg
-from fastapi import APIRouter, Depends, UploadFile
+from urllib.parse import quote
+
+from fastapi import APIRouter, Depends, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
 from app.api.deps import get_current_user, get_db, get_optional_user, get_settings_dep
@@ -20,7 +22,7 @@ from app.repositories import teams as teams_repo
 from app.repositories import users as users_repo
 from app.schemas.team import TeamOut
 from app.schemas.user import UserOut
-from app.services.uploads import IMAGE_MIME_EXTENSIONS, FileTooLarge, upload_to_disk
+from app.services.uploads import IMAGE_MIME_EXTENSIONS, discard_stored_image, safe_filename, store_image_or_raise
 
 _EXERCISE_MEDIA_ENTITY_TYPES = ("exercise_photo", "exercise_video")
 
@@ -53,36 +55,28 @@ async def upload_team_logo(
             "logo must be an image (jpeg, png, webp or gif)", code="unsupported_media_type", status_code=415
         )
 
-    max_bytes = settings.max_image_size_mb * 1024 * 1024
-    chunk_size = settings.upload_chunk_size_kb * 1024
     file_id = uuid4()
-    extension = _ALLOWED_IMAGE_TYPES[file.content_type]
-    disk_path = build_team_file_path(settings.yandex_disk_root_folder, settings.app_mode, team_id, "logo", file_id, extension)
+    stored = await store_image_or_raise(
+        settings, file, "team_logo",
+        lambda extension: build_team_file_path(settings.yandex_disk_root_folder, settings.app_mode, team_id, "logo", file_id, extension),
+    )
 
     try:
-        size_bytes = await upload_to_disk(settings, disk_path, file, max_bytes, chunk_size)
-    except RuntimeError as exc:
-        raise APIError(str(exc), code="yandex_disk_not_configured", status_code=503) from exc
-    except FileTooLarge as exc:
-        raise APIError(
-            f"logo must be smaller than {settings.max_image_size_mb} MB", code="file_too_large", status_code=413
-        ) from exc
-    except YandexDiskError as exc:
-        logger.error("Yandex.Disk upload failed: %s", exc)
-        raise APIError("failed to store the file", code="storage_error", status_code=502) from exc
-
-    file_record = await files_repo.create_file(
-        conn,
-        owner_id=user["id"],
-        team_id=team_id,
-        entity_type="team_logo",
-        entity_id=team_id,
-        disk_path=disk_path,
-        filename=file.filename or f"{file_id}.{extension}",
-        mime_type=file.content_type,
-        size_bytes=size_bytes,
-        access_level="TEAM",
-    )
+        file_record = await files_repo.create_file(
+            conn,
+            owner_id=user["id"],
+            team_id=team_id,
+            entity_type="team_logo",
+            entity_id=team_id,
+            disk_path=stored.disk_path,
+            filename=safe_filename(file.filename, stored.extension, "logo"),
+            mime_type=stored.mime_type,
+            size_bytes=stored.size_bytes,
+            access_level="TEAM",
+        )
+    except Exception:
+        await discard_stored_image(settings, stored)
+        raise
     await files_repo.replace_team_logo(conn, team_id, file_record["id"])
 
     updated_team = await teams_repo.get_team(conn, team_id)
@@ -102,39 +96,31 @@ async def upload_user_avatar(
             "avatar must be an image (jpeg, png, webp or gif)", code="unsupported_media_type", status_code=415
         )
 
-    max_bytes = settings.max_image_size_mb * 1024 * 1024
-    chunk_size = settings.upload_chunk_size_kb * 1024
     file_id = uuid4()
-    extension = _ALLOWED_IMAGE_TYPES[file.content_type]
-    disk_path = build_user_file_path(settings.yandex_disk_root_folder, settings.app_mode, user["id"], "avatar", file_id, extension)
+    stored = await store_image_or_raise(
+        settings, file, "avatar",
+        lambda extension: build_user_file_path(settings.yandex_disk_root_folder, settings.app_mode, user["id"], "avatar", file_id, extension),
+    )
 
     try:
-        size_bytes = await upload_to_disk(settings, disk_path, file, max_bytes, chunk_size)
-    except RuntimeError as exc:
-        raise APIError(str(exc), code="yandex_disk_not_configured", status_code=503) from exc
-    except FileTooLarge as exc:
-        raise APIError(
-            f"avatar must be smaller than {settings.max_image_size_mb} MB", code="file_too_large", status_code=413
-        ) from exc
-    except YandexDiskError as exc:
-        logger.error("Yandex.Disk upload failed: %s", exc)
-        raise APIError("failed to store the file", code="storage_error", status_code=502) from exc
-
-    file_record = await files_repo.create_file(
-        conn,
-        owner_id=user["id"],
-        team_id=None,
-        entity_type="user_avatar",
-        entity_id=user["id"],
-        disk_path=disk_path,
-        filename=file.filename or f"{file_id}.{extension}",
-        mime_type=file.content_type,
-        size_bytes=size_bytes,
-        # PUBLIC: an avatar is meant to be seen anywhere the user's name
-        # shows up (teammates, coach marketplace, bookings), not gated to
-        # one team the way a team logo is.
-        access_level="PUBLIC",
-    )
+        file_record = await files_repo.create_file(
+            conn,
+            owner_id=user["id"],
+            team_id=None,
+            entity_type="user_avatar",
+            entity_id=user["id"],
+            disk_path=stored.disk_path,
+            filename=safe_filename(file.filename, stored.extension, "avatar"),
+            mime_type=stored.mime_type,
+            size_bytes=stored.size_bytes,
+            # PUBLIC: an avatar is meant to be seen anywhere the user's name
+            # shows up (teammates, coach marketplace, bookings), not gated to
+            # one team the way a team logo is.
+            access_level="PUBLIC",
+        )
+    except Exception:
+        await discard_stored_image(settings, stored)
+        raise
     await files_repo.replace_user_avatar(conn, user["id"], file_record["id"])
 
     updated_user = await users_repo.get_by_id(conn, user["id"])
@@ -156,6 +142,7 @@ async def remove_user_avatar(
 @files_router.get("/{file_id}")
 async def download_file(
     file_id: UUID,
+    size: str | None = Query(default=None, pattern="^thumb$"),
     user: dict | None = Depends(get_optional_user),
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
@@ -197,9 +184,15 @@ async def download_file(
     else:
         raise ForbiddenError("you do not have access to this file")
 
+    # `?size=thumb` serves the small copy for lists and cards when the file has one; every other file
+    # (all those uploaded before thumbnails existed, small pictures, videos) answers with itself.
+    thumb_path = file_record.get("thumb_disk_path") if size == "thumb" else None
+    disk_path = thumb_path or file_record["disk_path"]
+    mime_type = "image/webp" if thumb_path else file_record["mime_type"]
+
     try:
         client = YandexDiskClient(settings)
-        stream = client.stream_download(file_record["disk_path"])
+        stream = client.stream_download(disk_path)
     except RuntimeError as exc:
         raise APIError(str(exc), code="yandex_disk_not_configured", status_code=503) from exc
 
@@ -212,6 +205,24 @@ async def download_file(
 
     return StreamingResponse(
         proxy(),
-        media_type=file_record["mime_type"],
-        headers={"Content-Disposition": f'inline; filename="{file_record["filename"]}"'},
+        media_type=mime_type,
+        headers={
+            "Content-Disposition": _content_disposition(file_record["filename"]),
+            "Cache-Control": _cache_control(access_level),
+        },
     )
+
+
+def _cache_control(access_level: str) -> str:
+    """A file id never changes what it points at (a replaced photo gets a new id), so browsers may keep
+    the bytes. Public files may sit in shared caches; everything else stays in the viewer's own browser."""
+    if access_level == "PUBLIC":
+        return "public, max-age=86400"
+    return "private, max-age=3600"
+
+
+def _content_disposition(filename: str) -> str:
+    """Old records can hold any user-chosen name (quotes, Cyrillic, ...): an ASCII fallback plus the RFC 6266
+    UTF-8 form keeps the header valid whatever was stored."""
+    ascii_name = "".join(c if 32 <= ord(c) < 127 and c not in '"\\' else "_" for c in filename) or "file"
+    return f"inline; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename, safe='')}"

@@ -3,13 +3,15 @@ from __future__ import annotations
 import io
 
 import pytest
+from PIL import Image
 from fastapi.testclient import TestClient
 
+from tests.image_helpers import png_bytes
 from tests.test_teams_api import _create_coach_profile, _create_team
 
 
 def _png_bytes(size: int = 20) -> bytes:
-    return b"\x89PNG\r\n\x1a\n" + b"0" * size
+    return png_bytes(size)
 
 
 def test_upload_logo_requires_coach_staff(logged_in_client, login_as) -> None:
@@ -76,8 +78,9 @@ def test_upload_and_download_logo_roundtrip(logged_in_client) -> None:
 
     download_resp = client.get(f"/api/files/{file_id}", headers={"Authorization": f"Bearer {coach_token}"})
     assert download_resp.status_code == 200
-    assert download_resp.content == content
-    assert download_resp.headers["content-type"] == "image/png"
+    stored = Image.open(io.BytesIO(download_resp.content))
+    assert stored.size == (16, 16)  # same picture, whichever format the optimiser kept it in
+    assert download_resp.headers["content-type"] == f"image/{stored.format.lower()}"
 
 
 def test_non_member_cannot_download_team_file(logged_in_client, login_as) -> None:
@@ -142,7 +145,7 @@ def test_upload_and_download_avatar_roundtrip(logged_in_client) -> None:
 
     download_resp = client.get(f"/api/files/{file_id}", headers=headers)
     assert download_resp.status_code == 200
-    assert download_resp.content == content
+    assert Image.open(io.BytesIO(download_resp.content)).size == (16, 16)
 
 
 def test_avatar_is_publicly_viewable(logged_in_client, login_as) -> None:
@@ -245,4 +248,4 @@ def test_team_member_can_view_shared_exercise_photo(logged_in_client, login_as) 
 
     allowed = client.get(f"/api/files/{photo_file_id}", headers={"Authorization": f"Bearer {member_token}"})
     assert allowed.status_code == 200
-    assert allowed.content == _png_bytes()
+    assert Image.open(io.BytesIO(allowed.content)).size == (16, 16)

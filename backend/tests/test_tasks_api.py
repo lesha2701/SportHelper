@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 from datetime import date, timedelta
 
+from tests.image_helpers import png_bytes
 from tests.test_teams_api import _add_player_to_team, _create_coach_profile, _create_team, _member_user_id
 
 _TOMORROW = (date.today() + timedelta(days=1)).isoformat()
@@ -52,7 +53,7 @@ def _set_position(client, coach_token, team_id, user_id, position: str) -> None:
 
 
 def _png_bytes(size: int = 20) -> bytes:
-    return b"\x89PNG\r\n\x1a\n" + b"0" * size
+    return png_bytes(size)
 
 
 def test_only_coach_staff_can_create_task(logged_in_client, login_as) -> None:

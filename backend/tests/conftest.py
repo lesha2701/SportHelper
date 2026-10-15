@@ -35,6 +35,9 @@ class _FakeYandexDiskClient:
     async def stream_download(self, path: str):
         yield self.storage.get(path, b"")
 
+    async def delete(self, path: str) -> None:
+        self.storage.pop(path, None)
+
 
 @pytest.fixture(autouse=True)
 def _fake_disk(monkeypatch: pytest.MonkeyPatch):

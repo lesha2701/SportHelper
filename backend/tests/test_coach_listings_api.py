@@ -4,6 +4,7 @@ import io
 from datetime import date, datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
+from tests.image_helpers import jpeg_bytes
 from tests.test_teams_api import _create_coach_profile
 
 
@@ -215,7 +216,7 @@ def test_upload_and_replace_listing_photo(logged_in_client, login_as) -> None:
     first = client.post(
         f"/api/coach-listings/{listing['id']}/photo",
         headers=headers,
-        files={"file": ("photo.jpg", io.BytesIO(b"fake-jpeg-bytes"), "image/jpeg")},
+        files={"file": ("photo.jpg", io.BytesIO(jpeg_bytes((64, 48), seed=1)), "image/jpeg")},
     )
     assert first.status_code == 200, first.text
     first_file_id = first.json()["photo_file_id"]
@@ -224,7 +225,7 @@ def test_upload_and_replace_listing_photo(logged_in_client, login_as) -> None:
     second = client.post(
         f"/api/coach-listings/{listing['id']}/photo",
         headers=headers,
-        files={"file": ("photo2.jpg", io.BytesIO(b"other-fake-jpeg-bytes"), "image/jpeg")},
+        files={"file": ("photo2.jpg", io.BytesIO(jpeg_bytes((64, 48), seed=2)), "image/jpeg")},
     )
     assert second.status_code == 200, second.text
     second_file_id = second.json()["photo_file_id"]
@@ -308,7 +309,7 @@ def test_cannot_upload_photo_to_another_coachs_listing(logged_in_client, login_a
     resp = client.post(
         f"/api/coach-listings/{listing['id']}/photo",
         headers=other_headers,
-        files={"file": ("photo.jpg", io.BytesIO(b"bytes"), "image/jpeg")},
+        files={"file": ("photo.jpg", io.BytesIO(jpeg_bytes((64, 48))), "image/jpeg")},
     )
     assert resp.status_code == 404
 
