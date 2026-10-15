@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { getAdminSession, type AdminSession } from "../../api/admin";
+import { getAdminSession, listAdminComplaints, type AdminSession } from "../../api/admin";
 import { ApiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { Link } from "../Link";
@@ -9,7 +9,11 @@ import { Icon, type IconName } from "../shared/Icon";
 import { MfaSection } from "../profile/AccountSecurity";
 import { useLocation } from "../../router";
 import { DashboardPage } from "./DashboardPage";
+import { ComplaintsPage } from "./ComplaintsPage";
+import { ModerationPage } from "./ModerationPage";
+import { TrainingsPage } from "./TrainingsPage";
 import { UsersPage } from "./UsersPage";
+import { StepUpProvider } from "./stepUp";
 import { AdminContext } from "./adminUi";
 import styles from "./admin.module.css";
 
@@ -23,6 +27,9 @@ interface Section {
 const SECTIONS: Section[] = [
   { path: "/admin", label: "Обзор", icon: "home", render: () => <DashboardPage /> },
   { path: "/admin/users", label: "Пользователи", icon: "users", render: () => <UsersPage /> },
+  { path: "/admin/moderation", label: "Модерация", icon: "image", render: () => <ModerationPage /> },
+  { path: "/admin/trainings", label: "Тренировки", icon: "dumbbell", render: () => <TrainingsPage /> },
+  { path: "/admin/reports", label: "Жалобы", icon: "flag", render: () => <ComplaintsPage /> },
 ];
 
 type Gate =
@@ -94,7 +101,9 @@ export default function AdminApp() {
 
   return (
     <AdminContext.Provider value={context}>
-      <AdminShell email={email} />
+      <StepUpProvider>
+        <AdminShell email={email} />
+      </StepUpProvider>
     </AdminContext.Provider>
   );
 }
@@ -102,6 +111,14 @@ export default function AdminApp() {
 function AdminShell({ email }: { email: string | null }) {
   const { path } = useLocation();
   const current = SECTIONS.find((s) => s.path === path) ?? (path === "/admin" ? SECTIONS[0] : undefined);
+  const [newComplaints, setNewComplaints] = useState(0);
+
+  // The number of untouched complaints next to "Жалобы"; refreshed whenever the administrator moves between sections.
+  useEffect(() => {
+    listAdminComplaints({ status: "new", targetType: "", reason: "", q: "", limit: 1, offset: 0 })
+      .then((page) => setNewComplaints(page.total))
+      .catch(() => setNewComplaints(0));
+  }, [path]);
 
   return (
     <div className={styles.layout}>
@@ -117,6 +134,7 @@ function AdminShell({ email }: { email: string | null }) {
           <Link key={section.path} to={section.path} className={current === section ? styles.navItemActive : styles.navItem} aria-current={current === section ? "page" : undefined}>
             <Icon name={section.icon} size={19} />
             {section.label}
+            {section.path === "/admin/reports" && newComplaints > 0 && <span className={styles.navBadge}>{newComplaints}</span>}
           </Link>
         ))}
         <div className={styles.sidebarFoot}>

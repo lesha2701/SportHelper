@@ -748,3 +748,75 @@
   font-size: 12px;
   color: var(--color-text-secondary);
 }
+
+.ack {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.ack input {
+  margin-top: 3px;
+}
+
+.link {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.chip {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chipActive {
+  composes: chip;
+  background: var(--color-graphite);
+  border-color: var(--color-graphite);
+  color: #fff;
+}
+
+:root[data-theme="dark"] .chipActive {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.mediaTilePlaceholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--color-surface-alt);
+  color: var(--color-text-tertiary);
+}
+
+.hiddenMark {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+}
+
+.thumbWrap {
+  position: relative;
+}

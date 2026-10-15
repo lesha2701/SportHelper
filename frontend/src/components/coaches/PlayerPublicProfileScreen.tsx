@@ -5,6 +5,7 @@ import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
+import { ReportButton } from "../shared/ReportButton";
 import { AchievementsGallery } from "../profile/AchievementsGallery";
 import { SKILL_LEVEL_LABELS } from "../../types/profile";
 import type { PlayerPublicProfile, PlayerReviews } from "../../types/player";
@@ -160,6 +161,9 @@ export function PlayerPublicProfileScreen({
                   <span className={profileStyles.rowValue}>{profile.loadRestrictions}</span>
                 </div>
               )}
+              <div className={profileStyles.formActions}>
+                <ReportButton targetType="user" targetId={profile.userId} ownerUserId={profile.userId} label="Пожаловаться на профиль" />
+              </div>
             </div>
 
             <PlayerReviewsCard token={token} playerUserId={profile.userId} />

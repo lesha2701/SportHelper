@@ -56,6 +56,12 @@ function Dashboard({ d }: { d: Awaited<ReturnType<typeof getAdminDashboard>> }) 
         <Kpi label="Предстоящие записи" value={d.bookings.upcoming} />
       </div>
 
+      <h2 className={styles.sectionLabel}>Модерация</h2>
+      <div className={styles.grid}>
+        <Kpi label="Новые жалобы" value={d.moderation.newComplaints} accent={d.moderation.newComplaints > 0} />
+        <Kpi label="Контент ждёт решения" value={d.moderation.contentPending} note="открытые жалобы на фото, видео и объявления" />
+      </div>
+
       <h2 className={styles.sectionLabel}>Динамика за 30 дней</h2>
       <div className={styles.charts}>
         <ChartCard title="Регистрации" total={sum(d.registrations)}>

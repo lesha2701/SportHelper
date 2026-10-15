@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { deleteProfileMedia, listProfileMedia, uploadProfilePhoto, uploadProfileVideo } from "../../api/profileMedia";
 import { ApiError } from "../../api/client";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
+import { ReportButton } from "../shared/ReportButton";
 import { AuthenticatedVideo } from "../shared/AuthenticatedVideo";
 import { Icon } from "../shared/Icon";
 import type { ProfileMedia } from "../../types/profileMedia";
@@ -93,6 +94,7 @@ export function AchievementsGallery({ token, userId, editable }: { token: string
             ) : (
               <AuthenticatedVideo token={token} fileId={item.fileId} className={styles.mediaTileMedia} zoomable gallery={gallery} galleryIndex={galleryIndex} />
             )}
+            {!editable && <ReportButton targetType="media" targetId={item.fileId} ownerUserId={userId} label="Пожаловаться на материал" iconOnly className={styles.mediaTileDelete} />}
             {editable && (
               <button
                 type="button"

@@ -6,6 +6,7 @@ import { UsersPage } from "./UsersPage";
 
 vi.mock("../../api/admin", () => ({ listAdminUsers: vi.fn(), getAdminUser: vi.fn(), banAdminUser: vi.fn(), unbanAdminUser: vi.fn() }));
 
+const UID = "11111111-1111-4111-8111-111111111111";
 const listMock = vi.mocked(listAdminUsers);
 const cardMock = vi.mocked(getAdminUser);
 const banMock = vi.mocked(banAdminUser);
@@ -13,7 +14,7 @@ const unbanMock = vi.mocked(unbanAdminUser);
 
 function row(overrides: Partial<AdminUserRow> = {}): AdminUserRow {
   return {
-    id: "u1", email: "alice@example.com", emailVerified: true, firstName: "Алиса", lastName: "Иванова", isPlayer: true, isCoach: false,
+    id: UID, email: "alice@example.com", emailVerified: true, firstName: "Алиса", lastName: "Иванова", isPlayer: true, isCoach: false,
     isAdmin: false, status: "active", deletionRequested: false, bannedUntil: null, createdAt: "2026-10-01T10:00:00Z",
     lastActiveAt: "2026-10-14T10:00:00Z", lastLoginAt: null, ...overrides,
   };
@@ -30,6 +31,7 @@ const page = (items: AdminUserRow[], total = items.length) => ({ total, limit: 2
 const flush = () => act(async () => {});
 
 beforeEach(() => {
+  window.history.replaceState(null, "", "/admin/users");
   vi.useFakeTimers({ shouldAdvanceTime: true });
   [listMock, cardMock, banMock, unbanMock].forEach((m) => m.mockReset());
   listMock.mockResolvedValue(page([row()]));
@@ -129,10 +131,10 @@ describe("a user's card and blocking", () => {
     await openCard();
 
     const drawer = screen.getByRole("complementary", { name: "Карточка пользователя" });
-    expect(within(drawer).getByText("u1")).toBeTruthy();
+    expect(within(drawer).getByText(UID)).toBeTruthy();
     expect(within(drawer).getByText("Создано тренировок").nextSibling?.textContent).toBe("4");
     expect(within(drawer).getByText("Блокировок не было.")).toBeTruthy();
-    expect(cardMock).toHaveBeenCalledWith("u1");
+    expect(cardMock).toHaveBeenCalledWith(UID);
   });
 
   it("needs a written reason before it will block, and sends reason and term", async () => {
@@ -152,7 +154,7 @@ describe("a user's card and blocking", () => {
     fireEvent.click(submit);
     await flush();
 
-    expect(banMock).toHaveBeenCalledWith("u1", "Спам в объявлениях", 30);
+    expect(banMock).toHaveBeenCalledWith(UID, "Спам в объявлениях", 30);
     expect(screen.queryByRole("dialog", { name: "Заблокировать пользователя" })).toBeNull();
   });
 
@@ -167,7 +169,7 @@ describe("a user's card and blocking", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Заблокировать" }));
     await flush();
 
-    expect(banMock).toHaveBeenCalledWith("u1", "Мошенничество", null);
+    expect(banMock).toHaveBeenCalledWith(UID, "Мошенничество", null);
   });
 
   it("keeps the dialog open and shows the server's refusal", async () => {
@@ -211,6 +213,6 @@ describe("a user's card and blocking", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Снять блокировку" }));
     await flush();
 
-    expect(unbanMock).toHaveBeenCalledWith("u1", "Ошибка модератора");
+    expect(unbanMock).toHaveBeenCalledWith(UID, "Ошибка модератора");
   });
 });

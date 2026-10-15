@@ -14,6 +14,7 @@ function dashboard(overrides: Partial<AdminDashboard> = {}): AdminDashboard {
     activity: { dau: 21, wau: 88, mau: 301, trackingSince: "2026-10-01" },
     trainings: { total: 777, active: 60, upcoming: 41, completed: 700 },
     bookings: { total: 90, confirmed: 70, upcoming: 12 },
+    moderation: { newComplaints: 5, contentPending: 3 },
     registrations: days([0, 2, 1]),
     activeUsers: days([4, 5, 6]),
     trainingsCreated: days([0, 0, 0]),

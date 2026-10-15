@@ -4,7 +4,7 @@ import { getAdminDashboard, getAdminSession } from "../../api/admin";
 import { ApiError } from "../../api/client";
 import AdminApp from "./AdminApp";
 
-vi.mock("../../api/admin", () => ({ getAdminSession: vi.fn(), getAdminDashboard: vi.fn() }));
+vi.mock("../../api/admin", () => ({ getAdminSession: vi.fn(), getAdminDashboard: vi.fn(), listAdminComplaints: vi.fn(() => Promise.resolve({ total: 0, limit: 1, offset: 0, items: [] })) }));
 vi.mock("../../context/AuthContext", () => ({
   useAuth: () => ({ state: { status: "ready", user: { id: "me", email: "boss@example.com", isAdmin: true } } }),
 }));
@@ -21,6 +21,7 @@ beforeEach(() => {
     activity: { dau: 2, wau: 5, mau: 9, trackingSince: "2026-10-15" },
     trainings: { total: 40, active: 10, upcoming: 6, completed: 25 },
     bookings: { total: 4, confirmed: 3, upcoming: 1 },
+    moderation: { newComplaints: 2, contentPending: 1 },
     registrations: [], activeUsers: [], trainingsCreated: [], bookingsCreated: [],
   });
   window.history.replaceState(null, "", "/admin");

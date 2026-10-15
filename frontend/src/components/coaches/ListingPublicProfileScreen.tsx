@@ -6,6 +6,7 @@ import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { AuthenticatedVideo } from "../shared/AuthenticatedVideo";
+import { ReportButton } from "../shared/ReportButton";
 import type { CoachListingProfile } from "../../types/coachListing";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
@@ -128,6 +129,7 @@ export function ListingPublicProfileScreen({
                 <button type="button" className={profileStyles.buttonPrimary} onClick={() => onBook(listing)}>
                   Записаться
                 </button>
+                <ReportButton targetType="listing" targetId={listing.id} ownerUserId={listing.coachUserId} label="Пожаловаться на объявление" />
               </div>
             </div>
 

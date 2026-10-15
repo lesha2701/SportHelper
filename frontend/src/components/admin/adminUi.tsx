@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ApiError } from "../../api/client";
+import { navigate, useLocation } from "../../router";
 import styles from "./admin.module.css";
 
 /** Lets any admin page ask the shell to re-check the administrator's access (the server may have revoked it). */
@@ -154,6 +155,7 @@ export function ReasonDialog({
   busy,
   error,
   extra,
+  acknowledge,
   onConfirm,
   onClose,
 }: {
@@ -164,12 +166,15 @@ export function ReasonDialog({
   busy: boolean;
   error?: string | null;
   extra?: ReactNode;
+  /** For irreversible actions: a sentence the administrator must tick before the button works. */
+  acknowledge?: string;
   onConfirm: (reason: string) => void;
   onClose: () => void;
 }) {
   const [reason, setReason] = useState("");
+  const [acknowledged, setAcknowledged] = useState(false);
   const clean = reason.trim().replace(/\s+/g, " ");
-  const valid = clean.length >= REASON_MIN;
+  const valid = clean.length >= REASON_MIN && (!acknowledge || acknowledged);
   return (
     <Dialog title={title} onClose={busy ? () => {} : onClose}>
       {description && <p className={styles.dialogText}>{description}</p>}
@@ -188,6 +193,12 @@ export function ReasonDialog({
           {reason.length} / {REASON_MAX}
         </span>
       </label>
+      {acknowledge && (
+        <label className={styles.ack}>
+          <input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} disabled={busy} />
+          <span>{acknowledge}</span>
+        </label>
+      )}
       {error && <div className={styles.error}>{error}</div>}
       <div className={styles.dialogActions}>
         <button type="button" className={styles.button} onClick={onClose} disabled={busy}>
@@ -199,4 +210,51 @@ export function ReasonDialog({
       </div>
     </Dialog>
   );
+}
+
+
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The object opened in a side panel is kept in the address (?open=<id>), so a link from a complaint - or a reload -
+ * lands on the same card. Only things that look like an id are accepted; the server checks the rest. */
+export function useOpenParam(): [string | null, (id: string | null) => void] {
+  const { path, search } = useLocation();
+  const raw = new URLSearchParams(search).get("open");
+  const open = raw && UUID_SHAPE.test(raw) ? raw : null;
+  const set = useCallback(
+    (id: string | null) => {
+      const params = new URLSearchParams(window.location.search);
+      if (id) params.set("open", id);
+      else params.delete("open");
+      const query = params.toString();
+      navigate(query ? `${path}?${query}` : path, { replace: true });
+    },
+    [path],
+  );
+  return [open, set];
+}
+
+/** Turns a file/preview request into an object URL for as long as the component is mounted. */
+export function useBlobUrl(load: () => Promise<Blob>, deps: unknown[]): { url: string | null; failed: boolean } {
+  const [state, setState] = useState<{ url: string | null; failed: boolean }>({ url: null, failed: false });
+  useEffect(() => {
+    let cancelled = false;
+    let created: string | null = null;
+    setState({ url: null, failed: false });
+    load()
+      .then((blob) => {
+        if (cancelled) return;
+        created = URL.createObjectURL(blob);
+        setState({ url: created, failed: false });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ url: null, failed: true });
+      });
+    return () => {
+      cancelled = true;
+      if (created) URL.revokeObjectURL(created);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return state;
 }

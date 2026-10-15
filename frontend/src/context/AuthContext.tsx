@@ -104,6 +104,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Like useAuth, but for parts that only add a feature for signed-in people: outside a provider (or while signed
+ * out) there simply is no user, instead of an error. */
+export function useOptionalAuth(): AuthContextValue | null {
+  return useContext(AuthContext) ?? null;
+}
+
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) {

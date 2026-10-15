@@ -12,7 +12,7 @@ import {
 } from "../../api/admin";
 import { ApiError } from "../../api/client";
 import { Icon } from "../shared/Icon";
-import { ErrorBox, PageHead, Pager, Pill, ReasonDialog, formatDate, formatDateTime, useAdminQuery, useDebounced, errorText } from "./adminUi";
+import { ErrorBox, PageHead, Pager, Pill, ReasonDialog, formatDate, formatDateTime, useAdminQuery, useDebounced, useOpenParam, errorText } from "./adminUi";
 import styles from "./admin.module.css";
 
 const PAGE_SIZE = 25;
@@ -71,7 +71,7 @@ export function UsersPage() {
   const [status, setStatus] = useState<UserStatus | "">("");
   const [sort, setSort] = useState<UserSort>("created_desc");
   const [offset, setOffset] = useState(0);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useOpenParam();
   const q = useDebounced(search);
 
   useEffect(() => setOffset(0), [q, role, status, sort]);

@@ -5,6 +5,7 @@ import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
+import { ReportButton } from "../shared/ReportButton";
 import { AchievementsGallery } from "../profile/AchievementsGallery";
 import type { CoachPublicProfile } from "../../types/coach";
 import type { CoachListingCard, CoachReview } from "../../types/coachListing";
@@ -91,6 +92,10 @@ export function CoachPublicProfileScreen({
                     </p>
                   )}
                 </div>
+              </div>
+
+              <div className={profileStyles.formActions}>
+                <ReportButton targetType="user" targetId={profile.userId} ownerUserId={profile.userId} label="Пожаловаться на профиль" />
               </div>
 
               {profile.description && (
