@@ -770,6 +770,33 @@
   margin: 0;
 }
 
+.collapsibleHeader h2 {
+  margin-right: auto;
+}
+
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 11px;
+  background: var(--color-primary);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.panelSubtitle {
+  margin: 4px 0 8px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .chevron,
 .chevronOpen {
   display: inline-flex;

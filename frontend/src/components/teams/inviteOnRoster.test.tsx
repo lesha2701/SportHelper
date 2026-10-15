@@ -1,12 +1,12 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createInvite, getTeam, listInvites, listMembers } from "../../api/teams";
-import type { Invite, Team, TeamMember, TeamRole } from "../../types/team";
+import { acceptApplication, createInvite, getTeam, listApplications, listInvites, listMembers, rejectApplication } from "../../api/teams";
+import type { Invite, JoinRequest, Team, TeamMember, TeamRole } from "../../types/team";
 import { TeamDetailScreen } from "./TeamDetailScreen";
 
 vi.mock("../../api/teams", () => ({
   getTeam: vi.fn(), listMembers: vi.fn(), listInvites: vi.fn(), createInvite: vi.fn(), leaveTeam: vi.fn(),
-  listApplications: vi.fn(async () => []),
+  listApplications: vi.fn(async () => []), acceptApplication: vi.fn(), rejectApplication: vi.fn(),
 }));
 vi.mock("../../api/stats", () => ({ getTeamStats: vi.fn(async () => { throw new Error("no stats"); }) }));
 vi.mock("../../api/matches", () => ({ listTeamMatches: vi.fn(async () => []) }));
@@ -34,7 +34,15 @@ async function open(myRole: TeamRole) {
   await act(async () => {});
 }
 
+const request = (id: string, firstName: string): JoinRequest => ({
+  id, teamId: "team1", userId: `u-${id}`, firstName, lastName: null, username: null, photoUrl: null,
+  status: "pending", createdAt: "2026-10-10T00:00:00Z",
+});
+
 beforeEach(() => {
+  vi.mocked(listApplications).mockReset().mockResolvedValue([]);
+  vi.mocked(acceptApplication).mockReset();
+  vi.mocked(rejectApplication).mockReset();
   vi.mocked(createInvite).mockReset();
   vi.mocked(listInvites).mockReset();
 });
@@ -94,5 +102,61 @@ describe("inviting players from the roster", () => {
 
     expect(screen.queryByText("Пригласительная ссылка")).toBeNull();
     expect(screen.getByText(/Игорь/)).not.toBeNull();
+  });
+
+  describe("join requests", () => {
+    it("shows the number of pending requests on the collapsed header, without opening it", async () => {
+      vi.mocked(listApplications).mockResolvedValue([request("r1", "Олег"), request("r2", "Мария")]);
+      await open("head_coach");
+
+      const header = screen.getByRole("button", { name: /Пригласительная ссылка/ });
+      expect(header.getAttribute("aria-expanded")).toBe("false");
+      expect(screen.getByLabelText("Новых заявок: 2").textContent).toBe("2");
+      expect(screen.queryByText(/Олег/)).toBeNull();
+    });
+
+    it("shows no counter when there are no requests", async () => {
+      await open("head_coach");
+      expect(screen.queryByLabelText(/Новых заявок/)).toBeNull();
+    });
+
+    it("lists the requests inside the opened panel and accepts one without collapsing it", async () => {
+      vi.mocked(listApplications).mockResolvedValue([request("r1", "Олег"), request("r2", "Мария")]);
+      vi.mocked(acceptApplication).mockResolvedValue(undefined);
+      await open("head_coach");
+      await expand();
+
+      expect(screen.getByText(/Олег/)).not.toBeNull();
+      fireEvent.click(screen.getAllByRole("button", { name: "Принять" })[0]!);
+      await act(async () => {});
+
+      expect(acceptApplication).toHaveBeenCalledWith("t", "team1", "r1");
+      expect(screen.queryByText(/Олег/)).toBeNull();
+      expect(screen.getByLabelText("Новых заявок: 1")).not.toBeNull();
+      expect(screen.getByRole("button", { name: /Пригласительная ссылка/ }).getAttribute("aria-expanded")).toBe("true");
+    });
+
+    it("rejects a request", async () => {
+      vi.mocked(listApplications).mockResolvedValue([request("r1", "Олег")]);
+      vi.mocked(rejectApplication).mockResolvedValue(undefined);
+      await open("head_coach");
+      await expand();
+
+      fireEvent.click(screen.getByRole("button", { name: "Отклонить" }));
+      await act(async () => {});
+
+      expect(rejectApplication).toHaveBeenCalledWith("t", "team1", "r1");
+      expect(screen.getByText("Новых заявок нет.")).not.toBeNull();
+    });
+
+    it("is not requested for a player and is gone from the settings tab", async () => {
+      await open("player");
+      expect(listApplications).not.toHaveBeenCalled();
+
+      cleanup();
+      await open("head_coach");
+      fireEvent.click(screen.getByRole("button", { name: "Настройки" }));
+      expect(screen.queryByRole("heading", { name: /Заявки/ })).toBeNull();
+    });
   });
 });

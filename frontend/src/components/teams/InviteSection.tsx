@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { createInvite, listInvites } from "../../api/teams";
 import { ApiError } from "../../api/client";
 import type { Invite, InviteKind } from "../../types/team";
@@ -13,6 +13,10 @@ interface InviteSectionProps {
   title: string;
   /** Only the title is shown until the header is pressed; the links load on the first expand. */
   collapsible?: boolean;
+  /** Shown on the header (e.g. the number of pending join requests); nothing when 0/undefined. */
+  badge?: number;
+  /** Extra content shown above the links once the panel is open. */
+  children?: ReactNode;
 }
 
 function formatExpiry(iso: string): string {
@@ -20,7 +24,7 @@ function formatExpiry(iso: string): string {
   return date.toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
-export function InviteSection({ token, teamId, kind, title, collapsible = false }: InviteSectionProps) {
+export function InviteSection({ token, teamId, kind, title, collapsible = false, badge, children }: InviteSectionProps) {
   const [open, setOpen] = useState(!collapsible);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +85,11 @@ export function InviteSection({ token, teamId, kind, title, collapsible = false 
           onClick={() => setOpen((v) => !v)}
         >
           <h2 className={profileStyles.title}>{title}</h2>
+          {badge ? (
+            <span className={styles.countBadge} aria-label={`Новых заявок: ${badge}`}>
+              {badge}
+            </span>
+          ) : null}
           <span className={open ? styles.chevronOpen : styles.chevron}>
             <Icon name="chevron-right" size={18} />
           </span>
@@ -90,6 +99,7 @@ export function InviteSection({ token, teamId, kind, title, collapsible = false 
       )}
       {open && (
         <>
+          {children}
           {loading && <p className={profileStyles.subtitle}>Загрузка…</p>}
           {error && <p className={profileStyles.error}>{error}</p>}
 

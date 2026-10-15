@@ -9,7 +9,8 @@ import { StateScreen } from "../StateScreen";
 import { ConfirmModal } from "../shared/ConfirmModal";
 import { CreateTeamForm } from "./CreateTeamForm";
 import { InviteSection } from "./InviteSection";
-import { ApplicationsSection } from "./ApplicationsSection";
+import { ApplicationsList } from "./ApplicationsSection";
+import { useApplications } from "./useApplications";
 import { LogoSection } from "./LogoSection";
 import { MemberActionsModal } from "./MemberActionsModal";
 import { TransferOwnershipModal } from "./TransferOwnershipModal";
@@ -87,6 +88,16 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
   }, [token, teamId]);
 
   useEffect(load, [load]);
+
+  // Same data without the full-screen loader, so an open panel stays open after a request is accepted.
+  const refreshMembers = useCallback(() => {
+    Promise.all([getTeam(token, teamId), listMembers(token, teamId)])
+      .then(([team, members]) => setState({ status: "ready", team, members }))
+      .catch(() => undefined);
+  }, [token, teamId]);
+
+  const isStaffRole = state.status === "ready" && (state.team.myRole === "head_coach" || state.team.myRole === "assistant_coach");
+  const applications = useApplications(token, teamId, isStaffRole, refreshMembers);
 
   useEffect(() => {
     getTeamStats(token, teamId)
@@ -271,7 +282,18 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
       {tab === "roster" && (
         <div className={styles.teamContentLayout}>
           <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-            {isCoachStaff && <InviteSection token={token} teamId={teamId} kind="join" title="Пригласительная ссылка" collapsible />}
+            {isCoachStaff && (
+              <InviteSection
+                token={token}
+                teamId={teamId}
+                kind="join"
+                title="Пригласительная ссылка"
+                collapsible
+                badge={applications.applications.length}
+              >
+                <ApplicationsList {...applications} />
+              </InviteSection>
+            )}
             <div className={styles.cardGrid}>
               {members.map((member) => (
                 <button
@@ -380,7 +402,6 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
           {isCaptain && team.status === "without_coach" && (
             <InviteSection token={token} teamId={teamId} kind="head_coach" title="Пригласить нового тренера" />
           )}
-          {isCoachStaff && <ApplicationsSection token={token} teamId={teamId} onChanged={load} onOpenRoster={() => setTab("roster")} />}
 
           <div className={profileStyles.card}>
             {isHeadCoach && (
