@@ -146,8 +146,6 @@ class Settings(BaseSettings):
     backend_host: str = Field(default="0.0.0.0", alias="BACKEND_HOST")
     backend_port: int = Field(default=8000, alias="BACKEND_PORT")
 
-    admin_telegram_ids: str = Field(default="", alias="ADMIN_TELEGRAM_IDS")
-
     invite_expiration_hours: int = Field(default=24, alias="INVITE_EXPIRATION_HOURS")
 
     yandex_disk_oauth_token: str = Field(default="", alias="YANDEX_DISK_OAUTH_TOKEN")
@@ -243,15 +241,6 @@ class Settings(BaseSettings):
         # cookie-injection from sibling subdomains. It needs Secure, so it is
         # only used when cookies are Secure.
         return "__Host-sag_session" if self.secure_cookies else "sag_session"
-
-    @property
-    def admin_telegram_ids_list(self) -> list[int]:
-        ids: list[int] = []
-        for raw in self.admin_telegram_ids.split(","):
-            raw = raw.strip()
-            if raw:
-                ids.append(int(raw))
-        return ids
 
 
 _EMAIL_SHAPE = re.compile(r"^[^@\s*?%,;]+@[^@\s*?%,;]+\.[^@\s*?%,;]+$")

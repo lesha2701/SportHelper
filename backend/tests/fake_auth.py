@@ -486,9 +486,5 @@ def install(monkeypatch: pytest.MonkeyPatch, store: FakeAuthStore) -> None:
                 and (result is None or r.get("result", "success") == result)]
         return len(rows), rows[offset: offset + limit]
 
-    async def a_stats(conn):
-        return {"total_users": len(store.users), "banned_users": sum(u["is_banned"] for u in store.users.values()),
-                "total_teams": 0, "total_trainings": 0, "total_matches": 0, "total_tasks": 0, "pending_notifications": 0}
-
-    for name, fn in {"record_audit": a_record_audit, "list_audit": a_list_audit, "get_project_stats": a_stats}.items():
+    for name, fn in {"record_audit": a_record_audit, "list_audit": a_list_audit}.items():
         monkeypatch.setattr(admin_repo, name, fn)

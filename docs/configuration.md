@@ -37,7 +37,6 @@ Telegram в настройках, и для административных к�
 |---|---|
 | `TELEGRAM_BOT_TOKEN` | Токен бота от [@BotFather](https://t.me/BotFather). Нужен `run_bot.py` и фоновой отправке уведомлений. |
 | `TELEGRAM_BOT_USERNAME` | Username бота без `@` — для кнопки «Подключить Telegram» в настройках аккаунта. |
-| `ADMIN_TELEGRAM_IDS` | Telegram ID администраторов бота через запятую (команды `/admin`, `/stats` и т.д.). К веб-доступу не относится — см. `ADMIN_EMAILS`. |
 
 ### Вход, сессии, почта
 

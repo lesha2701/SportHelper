@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from app.bot.bot import create_bot, create_dispatcher
+from app.bot.bot import BOT_COMMANDS, create_bot, create_dispatcher
 from app.config import get_settings
 from app.core.error_log import attach_error_log_handler
 from app.core.logging import configure_logging
@@ -29,7 +29,7 @@ async def main() -> None:
     logger.info("Starting SportArenaGlobal bot (mode=%s)", settings.app_mode)
 
     # The bot runs as its own process (separate from the FastAPI backend),
-    # so admin commands need their own pool to read/write Postgres directly.
+    # so /start needs its own pool to read/write Postgres directly.
     pool = await create_pool(settings)
     await run_migrations(pool)
     attach_error_log_handler(pool, "bot")
@@ -39,6 +39,7 @@ async def main() -> None:
 
     try:
         await bot.delete_webhook(drop_pending_updates=True)
+        await bot.set_my_commands(BOT_COMMANDS)  # replaces the old command menu (/admin, /stats, ...)
         await dispatcher.start_polling(bot)
     finally:
         await bot.session.close()

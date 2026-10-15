@@ -182,31 +182,6 @@ def test_background_tick_runs_on_the_real_schema_without_a_telegram_bot(pg) -> N
     assert gone["deleted_at"] is not None and gone["email"] is None and gone["first_name"] == "Удалённый пользователь"
 
 
-def test_the_bots_admin_queries_still_work_with_users_who_have_no_telegram(pg) -> None:  # noqa: F811
-    from app.repositories import admin as admin_repo
-
-    async def scenario():
-        conn = await asyncpg.connect(pg)
-        try:
-            await _apply_all(conn)
-            await conn.execute("INSERT INTO users (telegram_id, first_name) VALUES (111, 'Old')")
-            await conn.execute("INSERT INTO users (email, email_verified_at, first_name) VALUES ('new@example.com', now(), 'New')")
-            listed = await admin_repo.list_users(conn, limit=10, offset=0)
-            detail = await admin_repo.get_user_detail(conn, 111)
-            banned = await admin_repo.set_banned(conn, 111, True)
-            recipients = await admin_repo.list_active_recipient_telegram_ids(conn)
-            stats = await admin_repo.get_project_stats(conn)
-            return listed, detail, banned, recipients, stats
-        finally:
-            await conn.close()
-
-    listed, detail, banned, recipients, stats = asyncio.run(scenario())
-
-    assert len(listed) == 2 and detail["telegram_id"] == 111 and banned["is_banned"] is True
-    assert recipients == []  # banned, and the e-mail-only user has no chat to broadcast to
-    assert stats["total_users"] == 2
-
-
 async def _apply_all(conn) -> None:
     from tests.test_auth_postgres import _apply
 
