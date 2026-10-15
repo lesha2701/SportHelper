@@ -9,6 +9,7 @@ import { Icon, type IconName } from "../shared/Icon";
 import { MfaSection } from "../profile/AccountSecurity";
 import { useLocation } from "../../router";
 import { DashboardPage } from "./DashboardPage";
+import { AuditPage } from "./AuditPage";
 import { ComplaintsPage } from "./ComplaintsPage";
 import { ModerationPage } from "./ModerationPage";
 import { TrainingsPage } from "./TrainingsPage";
@@ -30,6 +31,7 @@ const SECTIONS: Section[] = [
   { path: "/admin/moderation", label: "Модерация", icon: "image", render: () => <ModerationPage /> },
   { path: "/admin/trainings", label: "Тренировки", icon: "dumbbell", render: () => <TrainingsPage /> },
   { path: "/admin/reports", label: "Жалобы", icon: "flag", render: () => <ComplaintsPage /> },
+  { path: "/admin/audit", label: "Журнал", icon: "list", render: () => <AuditPage /> },
 ];
 
 type Gate =

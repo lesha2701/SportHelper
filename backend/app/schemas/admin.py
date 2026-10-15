@@ -163,6 +163,13 @@ class UnblockIn(BaseModel):
         return _clean_reason(value)
 
 
+class AdminAuditPageOut(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list["AdminAuditEntryOut"]
+
+
 class AdminAuditEntryOut(BaseModel):
     id: UUID
     action: str
@@ -413,3 +420,6 @@ class ResolveComplaintIn(BaseModel):
     @classmethod
     def _check(cls, value: str) -> str:
         return _clean_reason(value)
+
+
+AdminAuditPageOut.model_rebuild()

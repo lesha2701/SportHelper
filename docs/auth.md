@@ -198,21 +198,22 @@ OAuth пока **не реализован**, но модель данных и 
 ## Администраторы и MFA
 
 Администратор — подтверждённый аккаунт, чей email указан в `ADMIN_EMAILS` (регистр не важен). Изменить это можно только на
-сервере. Права проверяются зависимостями (`backend/app/api/deps.py`), а не фактом входа:
+сервере. Права проверяются зависимостями (`backend/app/api/deps.py`), а не фактом входа. **Полное описание панели, модерации,
+статистики и аудита — в [admin.md](admin.md).** Коротко:
 
 | Маршрут | Требует |
 |---|---|
-| `GET /api/admin/overview` (агрегаты, без персональных данных) | `require_admin` |
-| `GET /api/admin/users`, `POST /api/admin/users/{id}/ban`, `…/unban`, `GET /api/admin/audit` | `require_admin_mfa` |
+| `GET /api/admin/session` (что ещё нужно: настроить 2FA / ввести код) | `require_admin` |
+| любой другой `GET /api/admin/*` | `require_admin_mfa` |
+| любое изменение (`POST …`) | `require_admin_write` (= `require_admin_mfa` + лимит запросов) |
+| необратимое (`…/delete`) | `require_admin_recent_mfa` (= то же + код не старше `ADMIN_SENSITIVE_MFA_MINUTES`) |
 
 `require_admin_mfa` требует включённой двухфакторной защиты (TOTP, RFC 6238) **и** кода, введённого **в текущей сессии** за
 последние `ADMIN_MFA_SESSION_HOURS` часов (`user_sessions.mfa_verified_at`). Настроенная 2FA сама по себе ничего не открывает: новая
-сессия (другой браузер, украденный пароль) снова упирается в `mfa_required`. Блокировка пользователя завершает все его сессии,
-записывается в `admin_audit_log` (кто, кого, когда); нельзя заблокировать себя или другого администратора. Тест обходит все маршруты
-`/api/admin/*` и падает, если у какого-то нет `require_admin`/`require_admin_mfa`. Финансовые маршруты, когда появятся, должны
-использовать `require_admin_mfa`. Секрет TOTP хранится зашифрованным (Fernet, ключ выводится из
+сессия (другой браузер, украденный пароль) снова упирается в `mfa_required`. Начать подключение 2FA можно только повторно введя
+пароль. Тесты (`tests/test_admin_security.py`) обходят все маршруты `/api/admin/*` и падают, если у какого-то нет нужной
+зависимости, а также если появится неожиданный маршрут без входа. Секрет TOTP хранится зашифрованным (Fernet, ключ выводится из
 `JWT_SECRET`), резервные коды — хэшами, повтор одного и того же кода запрещён. Настройка — в «Аккаунт и безопасность».
-Платёжного модуля пока нет, поэтому финансовых маршрутов тоже нет — защита проверена тестами на тестовом маршруте.
 
 Административные команды **бота** (`/admin`, `/ban`, …) по-прежнему доступны по `ADMIN_TELEGRAM_IDS` и к веб-доступу не относятся.
 
@@ -270,7 +271,7 @@ docker compose exec backend python scripts/create_user.py boss@example.com "Бо
 | `LOGIN_MAX_FAILURES`, `LOGIN_LOCKOUT_MINUTES` | `5`, `15` | Блокировка входа после серии ошибок. |
 | `EMAIL_VERIFY_TTL_HOURS`, `PASSWORD_RESET_TTL_MINUTES`, `EMAIL_CHANGE_TTL_HOURS` | `24`, `30`, `24` | Сроки ссылок. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM` | пусто | Почта. |
-| `ADMIN_EMAILS`, `ADMIN_MFA_SESSION_HOURS` | пусто, `12` | Администраторы веб-API. |
+| `ADMIN_EMAILS`, `ADMIN_MFA_SESSION_HOURS`, `ADMIN_SENSITIVE_MFA_MINUTES`, `ADMIN_WRITE_LIMIT_PER_MINUTE` | пусто, `12`, `10`, `60` | Администраторы веб-API, срок кода 2FA, свежесть кода для необратимых действий, лимит изменений. |
 | `ACCOUNT_DELETION_GRACE_DAYS`, `TERMS_VERSION` | `14`, `2026-10` | Удаление и версия документов. |
 | `AUTH_RATE_LIMIT_ENABLED` | `true` | Только для автотестов. |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` | пусто | **Необязательно.** Перенос аккаунтов, уведомления в Telegram, админ-команды бота. |

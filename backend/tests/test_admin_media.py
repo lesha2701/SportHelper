@@ -30,7 +30,7 @@ def _delete(world, file_id: str, reason: str = "Нарушение правил"
 
 
 def _audit(world) -> list[dict]:
-    return world.admin.ok("GET", "/api/admin/audit", params={"limit": 200})
+    return world.admin.ok("GET", "/api/admin/audit", params={"limit": 200})["items"]
 
 
 class Scene:

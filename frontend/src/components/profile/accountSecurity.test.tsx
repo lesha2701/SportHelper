@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as authApi from "../../api/auth";
 import { ApiError } from "../../api/client";
 import type { User } from "../../types/user";
-import { AccountSecurity } from "./AccountSecurity";
+import { AccountSecurity, MfaSection } from "./AccountSecurity";
 
 vi.mock("../../api/auth");
 const api = vi.mocked(authApi);
@@ -209,5 +209,26 @@ describe("two-factor", () => {
     await screen.findByText(/Сохраните резервные коды/);
     expect(api.enableMfa).toHaveBeenCalledWith("123456");
     expect(screen.getByText(/aaaaaaaaaa/)).toBeTruthy();
+  });
+
+  it("tells a waiting screen about it only AFTER the recovery codes were saved - they are shown just once", async () => {
+    api.getMfaStatus.mockResolvedValue({ isAdmin: true, enabled: false, sessionVerified: false });
+    api.setupMfa.mockResolvedValue({ secret: "JBSWY3DPEHPK3PXP", otpauthUri: "otpauth://totp/x" });
+    api.enableMfa.mockResolvedValue(["aaaaaaaaaa", "bbbbbbbbbb"]);
+    const changed = vi.fn();
+    render(<MfaSection onChanged={changed} />);
+
+    await screen.findByText("Двухфакторная защита");
+    typeInto("Пароль (для подтверждения)", "correct horse battery");
+    press("Настроить");
+    await screen.findByText("JBSWY3DPEHPK3PXP");
+    expect(changed).toHaveBeenCalledTimes(1); // enrolment started
+    typeInto("Код из приложения", "123456");
+    press("Включить защиту");
+    await screen.findByText(/Сохраните резервные коды/);
+
+    expect(changed).toHaveBeenCalledTimes(1); // the codes are still on screen: do not move on yet
+    press("Я сохранил коды");
+    expect(changed).toHaveBeenCalledTimes(2);
   });
 });

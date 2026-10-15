@@ -632,9 +632,21 @@
     position: static;
     height: auto;
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
-    padding: 10px 12px;
+    gap: 2px;
+    padding: 8px 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .sidebar > * {
+    flex: 0 0 auto;
+  }
+
+  .navItem,
+  .navItemActive {
+    white-space: nowrap;
   }
 
   .brand {

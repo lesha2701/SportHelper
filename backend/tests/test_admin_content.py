@@ -42,7 +42,7 @@ def _team(dsn: str, owner: str, name: str = "Ястребы", members: int = 0) 
 
 
 def _audit(world) -> list[dict]:
-    return world.admin.ok("GET", "/api/admin/audit", params={"limit": 200})
+    return world.admin.ok("GET", "/api/admin/audit", params={"limit": 200})["items"]
 
 
 # --- trainings ----------------------------------------------------------------------------------------------------

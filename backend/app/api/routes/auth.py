@@ -70,6 +70,7 @@ from app.security.client import describe_device
 from app.security.sessions import clear_session_cookie, set_session_cookie, start_session
 from app.security.tokens import csrf_token_for, generate_token, hash_token
 from app.services import accounts as svc
+from app.services import admin_audit
 from app.services import claim as claim_service
 from app.services import identities as identities_service
 from app.services import email_templates as templates
@@ -812,6 +813,7 @@ async def mfa_enable(
     codes = totp.generate_recovery_codes()
     await mfa_repo.enable(conn, ctx.user["id"], [_hash_recovery_code(c) for c in codes], step)
     await sessions_repo.mark_mfa_verified(conn, ctx.session["id"])
+    await admin_audit.record(conn, ctx.user["id"], "mfa_enabled", target_type="user", target_id=ctx.user["id"])
     return MfaEnableOut(recovery_codes=codes)
 
 
@@ -843,6 +845,7 @@ async def mfa_disable(
     if not await _check_second_factor(conn, ctx.user["id"], payload.code, settings):
         raise APIError("Неверный код.", code="invalid_code", status_code=400, field="code")
     await mfa_repo.disable(conn, ctx.user["id"])
+    await admin_audit.record(conn, ctx.user["id"], "mfa_disabled", target_type="user", target_id=ctx.user["id"])
     return MessageOut(message="Двухфакторная защита отключена.")
 
 

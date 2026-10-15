@@ -760,8 +760,8 @@ async def test_admin_actions_are_audited_by_account_and_bans_end_sessions_in_sql
 
     assert banned["is_banned"] is True
     assert await sessions_repo.get_active(conn, hash_token("v")) is None
-    entries = await admin_repo.list_audit(conn, limit=10, offset=0)
-    assert {e["admin_email"] for e in entries} == {"boss@example.com", None}
+    total, entries = await admin_repo.list_audit(conn, limit=10, offset=0)
+    assert total == 2 and {e["admin_email"] for e in entries} == {"boss@example.com", None}
     with pytest.raises(asyncpg.CheckViolationError):
         await conn.execute("INSERT INTO admin_audit_log (action) VALUES ('anonymous action')")  # an actor is required
     total, page = await admin_users_repo.search_users(conn, query="v@ex", role=None, status=None, sort="created_desc", admin_emails=[], limit=10, offset=0)
@@ -799,7 +799,7 @@ def test_admin_api_with_real_sql_requires_the_second_factor_per_session(live_cli
 
     assert client.post("/api/auth/mfa/verify", headers=csrf_headers(csrf2), json={"code": totp._hotp(secret, totp.current_step() + 1)}).status_code == 200
     assert client.post(f"/api/admin/users/{victim_id}/ban", headers=csrf_headers(csrf2), json=ban_body).json()["status"] == "banned"
-    audit = client.get("/api/admin/audit").json()
+    audit = client.get("/api/admin/audit").json()["items"]
     assert audit[0]["action"] == "ban" and audit[0]["admin"] == "boss@example.com" and audit[0]["target_id"] == victim_id
 
 

@@ -7,7 +7,7 @@ from uuid import UUID
 import asyncpg
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import AuthContext, get_db, require_admin_mfa, require_admin_recent_mfa
+from app.api.deps import AuthContext, get_db, require_admin_mfa, require_admin_write, require_admin_recent_mfa
 from app.core.exceptions import ConflictError, NotFoundError
 from app.repositories import admin_content as content_repo
 from app.schemas.admin import (
@@ -183,7 +183,7 @@ async def _moderate_listing(listing_id: UUID, hide: bool, reason: str, ctx: Auth
 
 @router.post("/listings/{listing_id}/hide", response_model=ListingDetailOut)
 async def hide_listing(
-    listing_id: UUID, payload: ReasonIn, ctx: AuthContext = Depends(require_admin_mfa), conn: asyncpg.Connection = Depends(get_db)
+    listing_id: UUID, payload: ReasonIn, ctx: AuthContext = Depends(require_admin_write), conn: asyncpg.Connection = Depends(get_db)
 ) -> ListingDetailOut:
     """Takes it out of the catalogue, search, the coach's public profile and booking. Sessions already booked stay as they are."""
     return await _moderate_listing(listing_id, True, payload.reason, ctx, conn)
@@ -191,7 +191,7 @@ async def hide_listing(
 
 @router.post("/listings/{listing_id}/restore", response_model=ListingDetailOut)
 async def restore_listing(
-    listing_id: UUID, payload: ReasonIn, ctx: AuthContext = Depends(require_admin_mfa), conn: asyncpg.Connection = Depends(get_db)
+    listing_id: UUID, payload: ReasonIn, ctx: AuthContext = Depends(require_admin_write), conn: asyncpg.Connection = Depends(get_db)
 ) -> ListingDetailOut:
     return await _moderate_listing(listing_id, False, payload.reason, ctx, conn)
 

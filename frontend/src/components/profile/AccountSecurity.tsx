@@ -411,12 +411,12 @@ export function MfaSection({ onChanged }: { onChanged?: () => void } = {}) {
 
   if (!status?.isAdmin) return null;
 
-  const run = async (action: () => Promise<void>) => {
+  const run = async (action: () => Promise<void>, { notify = true }: { notify?: boolean } = {}) => {
     setBusy(true);
     setError(null);
     try {
       await action();
-      onChanged?.();
+      if (notify) onChanged?.();
     } catch (err) {
       setError(toFormError(err).message);
     } finally {
@@ -427,7 +427,7 @@ export function MfaSection({ onChanged }: { onChanged?: () => void } = {}) {
   return (
     <Section
       title="Двухфакторная защита"
-      hint="Для администраторов обязательна: без неё доступ к финансовым операциям закрыт. Нужно приложение-аутентификатор (Google Authenticator, Яндекс Ключ и т. п.)."
+      hint="Для администраторов обязательна: без неё админ-панель и опасные операции закрыты. Нужно приложение-аутентификатор (Google Authenticator, Яндекс Ключ и т. п.)."
     >
       {error && <Notice kind="danger">{error}</Notice>}
 
@@ -435,7 +435,14 @@ export function MfaSection({ onChanged }: { onChanged?: () => void } = {}) {
         <Notice kind="info">
           <strong>Сохраните резервные коды</strong> — каждый подходит один раз, если не будет телефона. Больше мы их не покажем.
           <pre className={styles.codes}>{recovery.join("\n")}</pre>
-          <button type="button" className={styles.linkButton} onClick={() => setRecovery(null)}>
+          <button
+            type="button"
+            className={styles.linkButton}
+            onClick={() => {
+              setRecovery(null);
+              onChanged?.(); // a screen waiting for the codes to be saved (the admin gate) moves on only now
+            }}
+          >
             Я сохранил коды
           </button>
         </Notice>
@@ -495,12 +502,15 @@ export function MfaSection({ onChanged }: { onChanged?: () => void } = {}) {
           className={styles.form}
           onSubmit={(e) => {
             e.preventDefault();
-            void run(async () => {
-              setRecovery(await enableMfa(code));
-              setSetup(null);
-              setCode("");
-              load();
-            });
+            void run(
+              async () => {
+                setRecovery(await enableMfa(code));
+                setSetup(null);
+                setCode("");
+                load();
+              },
+              { notify: false },
+            );
           }}
         >
           <p className={profileStyles.subtitle}>

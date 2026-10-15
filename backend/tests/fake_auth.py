@@ -480,8 +480,11 @@ def install(monkeypatch: pytest.MonkeyPatch, store: FakeAuthStore) -> None:
                             "admin_user_id": admin_user_id,
                             "admin_email": store.users[admin_user_id]["email"] if admin_user_id in store.users else None})
 
-    async def a_list_audit(conn, *, limit, offset):
-        return list(reversed(store.audit))[offset: offset + limit]
+    async def a_list_audit(conn, *, limit, offset, action=None, target_type=None, result=None, query=None):
+        rows = [r for r in reversed(store.audit)
+                if (action is None or r["action"] == action) and (target_type is None or r["target_type"] == target_type)
+                and (result is None or r.get("result", "success") == result)]
+        return len(rows), rows[offset: offset + limit]
 
     async def a_stats(conn):
         return {"total_users": len(store.users), "banned_users": sum(u["is_banned"] for u in store.users.values()),

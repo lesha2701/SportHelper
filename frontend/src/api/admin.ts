@@ -672,3 +672,62 @@ export async function createComplaint(input: {
     body: { target_type: input.targetType, target_id: input.targetId, reason: input.reason, comment: input.comment },
   });
 }
+
+// --- audit trail -----------------------------------------------------------------------------------------------------
+
+export interface AuditEntry {
+  id: string;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  details: Record<string, unknown> | null;
+  reason: string | null;
+  result: "success" | "denied" | "failed";
+  createdAt: string;
+  admin: string;
+}
+
+export async function listAdminAudit(query: {
+  action: string;
+  targetType: string;
+  result: "success" | "denied" | "failed" | "";
+  q: string;
+  limit: number;
+  offset: number;
+}): Promise<Page<AuditEntry>> {
+  const dto = await apiRequest<{
+    total: number;
+    limit: number;
+    offset: number;
+    items: {
+      id: string;
+      action: string;
+      target_type: string | null;
+      target_id: string | null;
+      details: Record<string, unknown> | null;
+      reason: string | null;
+      result: "success" | "denied" | "failed";
+      created_at: string;
+      admin: string;
+    }[];
+  }>(
+    `/api/admin/audit${queryString({ action: query.action, target_type: query.targetType, result: query.result, q: query.q.trim() || undefined, limit: query.limit, offset: query.offset })}`,
+    QUIET,
+  );
+  return {
+    total: dto.total,
+    limit: dto.limit,
+    offset: dto.offset,
+    items: dto.items.map((e) => ({
+      id: e.id,
+      action: e.action,
+      targetType: e.target_type,
+      targetId: e.target_id,
+      details: e.details,
+      reason: e.reason,
+      result: e.result,
+      createdAt: e.created_at,
+      admin: e.admin,
+    })),
+  };
+}

@@ -136,6 +136,9 @@ class Settings(BaseSettings):
     admin_mfa_session_hours: int = Field(default=12, alias="ADMIN_MFA_SESSION_HOURS")
     # Irreversible admin actions (deleting files from storage, deleting a listing) need the second
     # factor to have been entered this recently, not merely somewhere in the session window above.
+    # How many changes (block, hide, resolve, delete...) one administrator may make per minute - a stolen session
+    # cannot be used to rip through the data at machine speed.
+    admin_write_limit_per_minute: int = Field(default=60, ge=1, le=1000, alias="ADMIN_WRITE_LIMIT_PER_MINUTE")
     admin_sensitive_mfa_minutes: int = Field(default=10, ge=1, le=240, alias="ADMIN_SENSITIVE_MFA_MINUTES")
 
     cors_origins: str = Field(default="http://localhost:5173", alias="CORS_ORIGINS")

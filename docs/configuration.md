@@ -55,6 +55,7 @@ Telegram в настройках, и для административных к�
 | `EMAIL_VERIFY_TTL_HOURS`, `PASSWORD_RESET_TTL_MINUTES`, `EMAIL_CHANGE_TTL_HOURS` | Сроки одноразовых ссылок. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM` | Отправка писем. |
 | `ADMIN_EMAILS`, `ADMIN_MFA_SESSION_HOURS` | Администраторы веб-API и срок «свежести» кода 2FA. |
+| `ADMIN_SENSITIVE_MFA_MINUTES`, `ADMIN_WRITE_LIMIT_PER_MINUTE` | Насколько свежим должен быть код для необратимых действий (10 мин) и сколько изменений в минуту может сделать один администратор (60). См. [admin.md](admin.md). |
 | `TRUSTED_PROXY_CIDRS`, `BEARER_AUTH_ENABLED`, `API_DOCS_ENABLED` | Доверенные прокси для `X-Forwarded-For`, приём Bearer-токена, Swagger. |
 | `ACCOUNT_DELETION_GRACE_DAYS`, `TERMS_VERSION` | Удаление аккаунта и версия принятых документов. |
 

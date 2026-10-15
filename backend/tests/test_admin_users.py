@@ -20,7 +20,7 @@ def _ban(world, user_id: str, reason: str = "Спам в профиле", **extr
 
 
 def _audit(world) -> list[dict]:
-    return world.admin.ok("GET", "/api/admin/audit", params={"limit": 200})
+    return world.admin.ok("GET", "/api/admin/audit", params={"limit": 200})["items"]
 
 
 # --- search, filters, paging -------------------------------------------------------------------------------

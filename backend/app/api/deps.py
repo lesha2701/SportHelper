@@ -9,8 +9,9 @@ from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.config import Settings, get_settings
-from app.core.exceptions import ForbiddenError, UnauthorizedError
+from app.core.exceptions import ForbiddenError, RateLimitedError, UnauthorizedError
 from app.repositories import mfa as mfa_repo
+from app.repositories import rate_limits as rate_limits_repo
 from app.repositories import sessions as sessions_repo
 from app.repositories import users as users_repo
 from app.security.sessions import CSRF_HEADER, session_expiry
@@ -184,8 +185,21 @@ async def require_admin_mfa(
     return ctx
 
 
-async def require_admin_recent_mfa(
+async def require_admin_write(
     ctx: AuthContext = Depends(require_admin_mfa),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> AuthContext:
+    """For every administrative CHANGE: the second factor (as above) plus a per-administrator rate limit."""
+    if settings.auth_rate_limit_enabled:
+        allowed, retry_after = await rate_limits_repo.hit(conn, f"admin_write:{ctx.user['id']}", settings.admin_write_limit_per_minute, 60)
+        if not allowed:
+            raise RateLimitedError("Слишком много изменений подряд. Подождите минуту.", retry_after=retry_after)
+    return ctx
+
+
+async def require_admin_recent_mfa(
+    ctx: AuthContext = Depends(require_admin_write),
     settings: Settings = Depends(get_settings_dep),
 ) -> AuthContext:
     """For irreversible operations: the second factor must have been entered within the last few

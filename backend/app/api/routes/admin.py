@@ -1,15 +1,17 @@
 """Website administration.
 
-Two levels, both enforced by dependencies rather than by "the user is signed in":
+Access is enforced by dependencies, never by "the user is signed in" or anything the browser sends:
 
-  * require_admin      - the account is an administrator (ADMIN_EMAILS, verified email).
-                         Only aggregate, non-personal data.
-  * require_admin_mfa  - additionally: two-factor is enabled AND the code was
-                         entered in THIS session recently. Everything that shows
-                         personal data or changes another person's account.
+  * require_admin            - the account is an administrator (ADMIN_EMAILS, verified, active). Only GET /session uses it
+                               alone: it tells the page which step (enrol / enter the code) is still missing.
+  * require_admin_mfa        - additionally: two-factor is enabled AND the code was entered in THIS session recently.
+                               Every other admin route, reads included.
+  * require_admin_write      - ... plus a per-administrator rate limit. Every route that changes something.
+  * require_admin_recent_mfa - ... plus a code from the last few minutes. Irreversible actions (deleting a file, a listing).
 
 Having 2FA configured is never taken as proof it was passed: the second factor
-is checked per session (`user_sessions.mfa_verified_at`).
+is checked per session (`user_sessions.mfa_verified_at`). Every change is written to the audit trail in the same
+transaction as the change itself.
 """
 from __future__ import annotations
 
@@ -21,7 +23,7 @@ from uuid import UUID
 import asyncpg
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import AuthContext, get_db, get_settings_dep, is_admin, require_admin, require_admin_mfa
+from app.api.deps import AuthContext, get_db, get_settings_dep, is_admin, require_admin, require_admin_mfa, require_admin_write
 from app.config import Settings
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.repositories import admin as admin_repo
@@ -31,6 +33,7 @@ from app.repositories import mfa as mfa_repo
 from app.repositories import admin_stats as admin_stats_repo
 from app.schemas.admin import (
     AdminAuditEntryOut,
+    AdminAuditPageOut,
     AdminDashboardOut,
     AdminSessionOut,
     AdminUserCardOut,
@@ -204,7 +207,7 @@ def _snapshot(card: dict) -> dict:
 async def ban_user(
     user_id: UUID,
     payload: BlockIn,
-    ctx: AuthContext = Depends(require_admin_mfa),
+    ctx: AuthContext = Depends(require_admin_write),
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> AdminUserCardOut:
@@ -228,7 +231,7 @@ async def ban_user(
 async def unban_user(
     user_id: UUID,
     payload: UnblockIn,
-    ctx: AuthContext = Depends(require_admin_mfa),
+    ctx: AuthContext = Depends(require_admin_write),
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> AdminUserCardOut:
@@ -247,25 +250,35 @@ async def unban_user(
     return await _card(conn, user_id, settings)
 
 
-@router.get("/audit", response_model=list[AdminAuditEntryOut])
+@router.get("/audit", response_model=AdminAuditPageOut)
 async def audit_log(
+    action: str | None = Query(default=None, max_length=64),
+    target_type: str | None = Query(default=None, max_length=32),
+    result: Literal["success", "denied", "failed"] | None = None,
+    q: str | None = Query(default=None, max_length=100),
     limit: int = Query(default=50, ge=1, le=200),
-    offset: int = Query(default=0, ge=0),
+    offset: int = Query(default=0, ge=0, le=1_000_000),
     ctx: AuthContext = Depends(require_admin_mfa),
     conn: asyncpg.Connection = Depends(get_db),
-) -> list[AdminAuditEntryOut]:
-    rows = await admin_repo.list_audit(conn, limit=limit, offset=offset)
-    return [
-        AdminAuditEntryOut(
-            id=r["id"],
-            action=r["action"],
-            target_type=r["target_type"],
-            target_id=r["target_id"],
-            details=json.loads(r["details"]) if isinstance(r["details"], str) else r["details"],
-            reason=r["reason"],
-            result=r["result"],
-            created_at=r["created_at"],
-            admin=r["admin_email"] or (f"telegram:{r['admin_telegram_id']}" if r["admin_telegram_id"] else "unknown"),
-        )
-        for r in rows
-    ]
+) -> AdminAuditPageOut:
+    """Read-only. There is no endpoint that edits or removes an entry, and the table refuses it at the database level."""
+    total, rows = await admin_repo.list_audit(conn, limit=limit, offset=offset, action=action, target_type=target_type, result=result, query=q)
+    return AdminAuditPageOut(
+        total=total,
+        limit=limit,
+        offset=offset,
+        items=[
+            AdminAuditEntryOut(
+                id=r["id"],
+                action=r["action"],
+                target_type=r["target_type"],
+                target_id=r["target_id"],
+                details=json.loads(r["details"]) if isinstance(r["details"], str) else r["details"],
+                reason=r["reason"],
+                result=r["result"],
+                created_at=r["created_at"],
+                admin=r["admin_email"] or (f"telegram:{r['admin_telegram_id']}" if r["admin_telegram_id"] else "unknown"),
+            )
+            for r in rows
+        ],
+    )

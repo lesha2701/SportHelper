@@ -196,15 +196,40 @@ async def list_recent_errors(conn: asyncpg.Connection, *, limit: int) -> list[di
     return [dict(row) for row in rows]
 
 
-async def list_audit(conn: asyncpg.Connection, *, limit: int, offset: int) -> list[dict[str, Any]]:
+async def list_audit(
+    conn: asyncpg.Connection,
+    *,
+    limit: int,
+    offset: int,
+    action: str | None = None,
+    target_type: str | None = None,
+    result: str | None = None,
+    query: str | None = None,
+) -> tuple[int, list[dict[str, Any]]]:
+    """The administrators' audit trail, newest first. `query` matches the acting administrator's email, the
+    reason text, or - when it is a plain id - the object acted upon."""
+    escaped = None
+    if query and query.strip():
+        escaped = "%" + query.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+    where = """
+        WHERE ($1::text IS NULL OR a.action = $1) AND ($2::text IS NULL OR a.target_type = $2) AND ($3::text IS NULL OR a.result = $3)
+          AND ($4::text IS NULL OR u.email ILIKE $4 OR a.reason ILIKE $4 OR a.target_id = $5)
+    """
+    args = (action, target_type, result, escaped, query.strip() if query else None)
+    total = await conn.fetchval(
+        f"SELECT count(*) FROM admin_audit_log a LEFT JOIN users u ON u.id = a.admin_user_id {where}", *args
+    )
     rows = await conn.fetch(
-        """
+        f"""
         SELECT a.id, a.action, a.target_type, a.target_id, a.details, a.reason, a.result, a.created_at,
                a.admin_telegram_id, a.admin_user_id, u.email AS admin_email
         FROM admin_audit_log a LEFT JOIN users u ON u.id = a.admin_user_id
-        ORDER BY a.created_at DESC LIMIT $1 OFFSET $2
+        {where}
+        ORDER BY a.created_at DESC, a.id
+        LIMIT $6 OFFSET $7
         """,
+        *args,
         limit,
         offset,
     )
-    return [dict(row) for row in rows]
+    return total, [dict(row) for row in rows]

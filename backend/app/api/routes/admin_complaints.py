@@ -8,7 +8,7 @@ from uuid import UUID
 import asyncpg
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import AuthContext, get_db, require_admin_mfa
+from app.api.deps import AuthContext, get_db, require_admin_mfa, require_admin_write
 from app.core.exceptions import ConflictError, NotFoundError
 from app.repositories import complaints as complaints_repo
 from app.schemas.admin import (
@@ -84,7 +84,7 @@ async def complaint_detail(
 
 @router.post("/{complaint_id}/take", response_model=ComplaintOut)
 async def take_complaint(
-    complaint_id: UUID, ctx: AuthContext = Depends(require_admin_mfa), conn: asyncpg.Connection = Depends(get_db)
+    complaint_id: UUID, ctx: AuthContext = Depends(require_admin_write), conn: asyncpg.Connection = Depends(get_db)
 ) -> ComplaintOut:
     before = await _get(conn, complaint_id)
     try:
@@ -104,7 +104,7 @@ async def take_complaint(
 async def resolve_complaint(
     complaint_id: UUID,
     payload: ResolveComplaintIn,
-    ctx: AuthContext = Depends(require_admin_mfa),
+    ctx: AuthContext = Depends(require_admin_write),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> ComplaintOut:
     before = await _get(conn, complaint_id)

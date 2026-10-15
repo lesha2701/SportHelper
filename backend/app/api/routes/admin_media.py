@@ -14,7 +14,7 @@ import asyncpg
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 
-from app.api.deps import AuthContext, get_db, get_settings_dep, require_admin_mfa, require_admin_recent_mfa
+from app.api.deps import AuthContext, get_db, get_settings_dep, require_admin_mfa, require_admin_write, require_admin_recent_mfa
 from app.config import Settings
 from app.core.exceptions import APIError, ConflictError, NotFoundError
 from app.integrations.yandex_disk import YandexDiskClient, YandexDiskError
@@ -154,14 +154,14 @@ async def _set_hidden(file_id: UUID, hide: bool, reason: str, ctx: AuthContext, 
 
 @router.post("/{file_id}/hide", response_model=MediaDetailOut)
 async def hide_media(
-    file_id: UUID, payload: ReasonIn, ctx: AuthContext = Depends(require_admin_mfa), conn: asyncpg.Connection = Depends(get_db)
+    file_id: UUID, payload: ReasonIn, ctx: AuthContext = Depends(require_admin_write), conn: asyncpg.Connection = Depends(get_db)
 ) -> MediaDetailOut:
     return await _set_hidden(file_id, True, payload.reason, ctx, conn)
 
 
 @router.post("/{file_id}/restore", response_model=MediaDetailOut)
 async def restore_media(
-    file_id: UUID, payload: ReasonIn, ctx: AuthContext = Depends(require_admin_mfa), conn: asyncpg.Connection = Depends(get_db)
+    file_id: UUID, payload: ReasonIn, ctx: AuthContext = Depends(require_admin_write), conn: asyncpg.Connection = Depends(get_db)
 ) -> MediaDetailOut:
     return await _set_hidden(file_id, False, payload.reason, ctx, conn)
 
