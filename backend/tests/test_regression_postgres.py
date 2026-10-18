@@ -81,7 +81,11 @@ def test_coach_publishes_a_listing_player_books_coach_confirms_and_both_see_it_i
     assert {n["category"] for n in player.ok("GET", "/api/notifications")} >= {"booking_decided"}
 
 
-def test_profiles_both_roles_and_switching_with_a_cookie_session(live_client) -> None:  # noqa: F811
+def test_profiles_both_roles_and_switching_with_a_cookie_session(live_client, monkeypatch) -> None:  # noqa: F811
+    from app.config import get_settings
+
+    monkeypatch.setenv("ADMIN_EMAILS", "both@example.com")  # only administrators work in both roles
+    get_settings.cache_clear()
     client = live_client
     person = Browser(client, "both@example.com", "Оба", "coach")
 

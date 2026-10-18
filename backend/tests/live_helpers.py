@@ -8,7 +8,7 @@ from typing import Any
 import asyncpg
 
 from app.security import totp
-from tests.auth_helpers import PASSWORD, link_token
+from tests.auth_helpers import PASSWORD, consents_for, link_token
 
 
 class Browser:
@@ -17,9 +17,9 @@ class Browser:
     def __init__(self, client, email: str, first_name: str, role: str | None = "player", *, password: str = PASSWORD):
         self.client, self.email, self.cookies, self.csrf, self.password = client, email, {}, "", password
         client.cookies.clear()
-        payload = {"first_name": first_name, "email": email, "password": password, "password_confirm": password, "accept_terms": True}
-        if role:
-            payload["role"] = role
+        role = role or "player"  # the role is required at registration
+        payload = {"first_name": first_name, "email": email, "password": password, "password_confirm": password,
+                   "role": role, "consents": consents_for(role)}
         assert client.post("/api/auth/register", json=payload).status_code == 201
         assert client.post("/api/auth/verify-email", json={"token": link_token(client.outbox[-1]), "password": password}).status_code == 200
         self.login()

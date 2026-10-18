@@ -95,11 +95,6 @@ def test_claimed_account_keeps_its_profiles_and_relations(client) -> None:
         "last_seen_at": datetime.now(timezone.utc), "expires_at": datetime.now(timezone.utc) + timedelta(days=1),
         "revoked_at": None, "mfa_verified_at": None, "user_agent": None, "ip_address": None,
     }
-    saved = client.put(
-        "/api/profile/player", headers={"Authorization": f"Bearer {legacy_token}"},
-        json={"full_name": "Пётр Петров", "sport": "Теннис", "age": 30},
-    )
-    assert saved.status_code == 200
     _create_coach_profile(client, legacy_token)
     _create_team(client, legacy_token, name="Ястребы")
     client.auth_store.sessions.pop(sid)
@@ -110,7 +105,7 @@ def test_claimed_account_keeps_its_profiles_and_relations(client) -> None:
     login(client, email="petr@example.com")
 
     me_profile = client.get("/api/profile/me").json()
-    assert me_profile["player"]["full_name"] == "Пётр Петров"
+    assert me_profile["coach"]["full_name"] == "Coach"
     teams = client.get("/api/teams/mine").json()
     assert [t["name"] for t in teams] == ["Ястребы"]
 

@@ -10,7 +10,7 @@ from fastapi.routing import APIRoute
 from app.api.deps import require_admin, require_admin_mfa
 from app.config import get_settings
 from app.security import totp
-from tests.auth_helpers import PASSWORD, csrf_headers, login, sign_in, sign_up
+from tests.auth_helpers import PASSWORD, consents_for, csrf_headers, login, sign_in, sign_up
 
 ADMIN = "boss@example.com"
 
@@ -107,7 +107,8 @@ def test_admin_rights_do_not_come_from_anything_the_client_sends(client, admin_e
     # attacker can't read that mailbox), and an unverified account can't even sign in.
     client.cookies.clear()
     assert client.post("/api/auth/register", json={"first_name": "x", "email": ADMIN, "password": PASSWORD,
-                                                    "password_confirm": PASSWORD, "accept_terms": True}).status_code == 201
+                                                    "password_confirm": PASSWORD, "role": "player",
+                                                    "consents": consents_for("player")}).status_code == 201
     assert login(client, email=ADMIN).status_code == 403
     assert client.get("/api/admin/dashboard").status_code == 401
 

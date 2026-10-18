@@ -28,6 +28,8 @@ export function ProfileScreen({
   const { state, retry, savePlayer, saveCoach, switchMode } = useProfile();
   const { state: authState } = useAuth();
   const preferredRole = authState.status === "ready" ? authState.user.preferredRole : null;
+  // The role is fixed at registration; only administrators can work in both.
+  const isAdmin = authState.status === "ready" && authState.user.isAdmin;
   const [editing, setEditing] = useState<ActiveMode | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -86,6 +88,7 @@ export function ProfileScreen({
     return (
       <Onboarding
         preferredRole={preferredRole}
+        canChooseBoth={isAdmin}
         onChoosePlayer={() => setEditing("player")}
         onChooseCoach={() => setEditing("coach")}
       />
@@ -122,6 +125,7 @@ export function ProfileScreen({
     <ProfileSummary
       token={token}
       profile={data}
+      canSwitchRole={isAdmin}
       onEdit={(mode) => setEditing(mode)}
       onSwitchMode={(mode) => {
         void switchMode(mode);

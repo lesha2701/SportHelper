@@ -12,7 +12,7 @@ from fastapi.routing import APIRoute
 import app.main as app_main
 from app.api import deps
 from tests.admin_world import ADMIN_EMAIL, Browser, add_user, live_client, pg, publish_listing, set_admins, sql, sql_value, world  # noqa: F401
-from tests.auth_helpers import PASSWORD, link_token
+from tests.auth_helpers import PASSWORD, consents_for, link_token
 
 _ANY_ID = "00000000-0000-4000-8000-000000000001"
 
@@ -165,7 +165,8 @@ def test_the_list_of_administrators_is_never_sent_to_anyone_but_who_they_are_the
 def test_an_unverified_registration_with_an_administrators_address_gets_nothing(world) -> None:
     world.client.cookies.clear()
     impostor = world.client.post("/api/auth/register", json={"first_name": "Самозванец", "email": ADMIN_EMAIL, "password": "impostor passphrase here",
-                                                             "password_confirm": "impostor passphrase here", "accept_terms": True})
+                                                             "password_confirm": "impostor passphrase here",
+                                                             "role": "player", "consents": consents_for("player")})
 
     assert impostor.status_code in (201, 409)  # the address is taken, so no second account can exist for it
     assert world.client.post("/api/auth/login", json={"email": ADMIN_EMAIL, "password": "impostor passphrase here"}).status_code in (401, 403)

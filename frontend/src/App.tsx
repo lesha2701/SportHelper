@@ -11,11 +11,13 @@ import {
   ResetPasswordPage,
   VerifyEmailPage,
 } from "./components/auth/TokenPages";
-import { PrivacyPage, TermsPage } from "./components/legal/LegalPages";
+import { LegalDocumentPage } from "./components/legal/LegalDocumentPage";
+import { documentByPath } from "./legal/documents";
 import { HomePage } from "./components/public/HomePage";
 import { PublicCoachesPage } from "./components/public/PublicCoachesPage";
 import { PublicShell } from "./components/public/PublicShell";
 import { Link } from "./components/Link";
+import { CookieBanner } from "./components/shared/CookieBanner";
 import { StateScreen } from "./components/StateScreen";
 import { OnboardingGate } from "./components/welcome/OnboardingGate";
 import { Workspace } from "./Workspace";
@@ -51,11 +53,9 @@ function NotFoundPage() {
 /** Pages that work the same for guests and signed-in users (they are opened
  * from an email link, or are plain documents). */
 function openPage(path: string): ReactNode | null {
+  const legal = documentByPath(path);
+  if (legal) return <LegalDocumentPage meta={legal} />;
   switch (path) {
-    case "/terms":
-      return <TermsPage />;
-    case "/privacy":
-      return <PrivacyPage />;
     case "/verify-email":
       return <VerifyEmailPage />;
     case "/confirm-email-change":
@@ -135,10 +135,17 @@ function Routes() {
   }
 }
 
+/** The cookie question is for visitors who have no account yet. */
+function GuestCookieBanner() {
+  const { state } = useAuth();
+  return state.status === "guest" ? <CookieBanner /> : null;
+}
+
 function App() {
   return (
     <AuthProvider>
       <Routes />
+      <GuestCookieBanner />
     </AuthProvider>
   );
 }

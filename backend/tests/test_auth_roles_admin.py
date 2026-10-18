@@ -9,7 +9,7 @@ from fastapi import Depends
 from app.api.deps import require_admin, require_admin_mfa, require_admin_recent_mfa
 from app.config import get_settings
 from app.security import totp
-from tests.auth_helpers import PASSWORD, csrf_headers, login, sign_in
+from tests.auth_helpers import PASSWORD, consents_for, csrf_headers, login, sign_in
 
 ADMIN = "boss@example.com"
 
@@ -40,7 +40,7 @@ def _code(secret: str, offset_steps: int = 0) -> str:
 # --- one account, several roles ---------------------------------------------------------
 
 
-def test_one_account_can_be_player_and_coach_without_registering_twice(client) -> None:
+def test_an_ordinary_account_keeps_the_role_it_registered_with(client) -> None:
     info = sign_in(client, role="coach")
     headers = csrf_headers(info["csrf"])
     assert client.get("/api/auth/me").json()["preferred_role"] == "coach"
@@ -50,18 +50,34 @@ def test_one_account_can_be_player_and_coach_without_registering_twice(client) -
     player = client.put("/api/profile/player", headers=headers, json={"full_name": "Алиса", "sport": "Теннис"})
     switched = client.post("/api/profile/active-mode", headers=headers, json={"mode": "player"})
 
+    assert coach.status_code == 200
+    assert player.status_code == switched.status_code == 403
+    assert player.json()["error"]["code"] == switched.json()["error"]["code"] == "role_locked"
+    profile = client.get("/api/profile/me").json()
+    assert profile["coach"] and profile["player"] is None and profile["active_mode"] == "coach"
+
+
+def test_an_administrator_can_work_in_both_roles_and_switch(client, monkeypatch) -> None:
+    _admin_env(monkeypatch)
+    info = sign_in(client, role="coach", email=ADMIN)
+    headers = csrf_headers(info["csrf"])
+
+    coach = client.put("/api/profile/coach", headers=headers,
+                       json={"full_name": "Админ Тренер", "sport": "Теннис", "experience_years": 3})
+    player = client.put("/api/profile/player", headers=headers, json={"full_name": "Админ", "sport": "Теннис"})
+    switched = client.post("/api/profile/active-mode", headers=headers, json={"mode": "player"})
+
     assert coach.status_code == player.status_code == switched.status_code == 200
     profile = client.get("/api/profile/me").json()
     assert profile["coach"] and profile["player"] and profile["active_mode"] == "player"
-    assert len([u for u in client.auth_store.users.values()]) == 1
 
 
-def test_role_choice_at_signup_is_optional_and_validated(client) -> None:
+def test_role_choice_at_signup_is_required_and_validated(client) -> None:
     from tests.auth_helpers import register
 
-    assert register(client, role=None, email="a@example.com").status_code == 201
-    assert register(client, role="admin", email="b@example.com").status_code == 422
-    assert register(client, role="superuser", email="c@example.com").status_code == 422
+    assert register(client, role=None, email="a@example.com", consents=[]).status_code == 422
+    assert register(client, role="admin", email="b@example.com", consents=[]).status_code == 422
+    assert register(client, role="superuser", email="c@example.com", consents=[]).status_code == 422
 
 
 # --- administrators ----------------------------------------------------------------------
@@ -78,7 +94,7 @@ def test_nobody_can_make_themselves_admin_through_the_api(client) -> None:
         client.put(path, headers=headers, json=body) if "player" in path else client.post(path, headers=headers, json=body)
     registered = client.post("/api/auth/register", json={
         "first_name": "Evil", "email": "evil@example.com", "password": PASSWORD, "password_confirm": PASSWORD,
-        "accept_terms": True, "is_admin": True, "role": "player",
+        "consents": consents_for("player"), "is_admin": True, "role": "player",
     })
 
     assert registered.status_code == 201

@@ -150,6 +150,14 @@ async def clear_login_failures(conn: asyncpg.Connection, user_id: UUID) -> None:
     )
 
 
+async def set_preferred_role(conn: asyncpg.Connection, user_id: UUID, role: str) -> bool:
+    """Fixes the role of an account that has none yet. Never changes a role that is already set."""
+    updated = await conn.fetchval(
+        "UPDATE users SET preferred_role = $2 WHERE id = $1 AND preferred_role IS NULL RETURNING id", user_id, role
+    )
+    return updated is not None
+
+
 async def set_active_mode(conn: asyncpg.Connection, user_id: UUID, mode: str) -> dict[str, Any] | None:
     row = await conn.fetchrow(
         f"UPDATE users SET active_mode = $2 WHERE id = $1 RETURNING {_SELECT_FIELDS}", user_id, mode

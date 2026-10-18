@@ -59,13 +59,30 @@ describe("a visitor without an account", () => {
     expect(await screen.findByText("CATALOGUE guest=true listing=L7")).toBeTruthy();
   });
 
-  it("can read the legal documents", async () => {
-    open("/terms");
-    expect(await screen.findByRole("heading", { name: "Пользовательское соглашение" })).toBeTruthy();
+  it("can read every legal document at its own address", async () => {
+    const expected: Record<string, RegExp> = {
+      "/terms": /Пользовательское соглашение/,
+      "/coach-offer": /Оферта для тренеров/,
+      "/service-terms": /Типовые условия/,
+      "/privacy": /Политика обработки персональных данных/,
+      "/consent-player": /Согласие спортсмена/,
+      "/consent-coach": /Согласие тренера на обработку персональных данных$/,
+      "/consent-coach-dissemination": /разрешённых для распространения/,
+    };
+    for (const [path, title] of Object.entries(expected)) {
+      open(path);
+      expect(await screen.findByRole("heading", { level: 1, name: title })).toBeTruthy();
+      cleanup();
+    }
+  });
 
-    cleanup();
-    open("/privacy");
-    expect(await screen.findByRole("heading", { name: "Политика конфиденциальности" })).toBeTruthy();
+  it("links every document from the footer", async () => {
+    open("/terms");
+    await screen.findByRole("heading", { level: 1 });
+
+    const footer = screen.getByRole("navigation", { name: "Документы" });
+    const hrefs = Array.from(footer.querySelectorAll("a")).map((a) => a.getAttribute("href"));
+    expect(hrefs).toEqual(["/terms", "/coach-offer", "/service-terms", "/privacy", "/consent-player", "/consent-coach", "/consent-coach-dissemination"]);
   });
 
   it("is sent to sign in — and brought back — when opening a link meant for the app", async () => {

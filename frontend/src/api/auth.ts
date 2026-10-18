@@ -1,3 +1,4 @@
+import type { ConsentKey, DocumentKey } from "../legal/documents";
 import { apiRequest } from "./client";
 import { mapUserDto, type Role, type User, type UserDto } from "../types/user";
 
@@ -18,14 +19,21 @@ function mapAuth(dto: AuthDto): AuthResult {
 /** Auth forms show their own inline errors, so the global error toast stays off. */
 const QUIET = { silent: true } as const;
 
+export interface ConsentAcceptance {
+  key: ConsentKey;
+  documents: { key: DocumentKey; version: string }[];
+}
+
 export interface RegisterInput {
   firstName: string;
   lastName: string;
   email: string;
   password: string;
   passwordConfirm: string;
-  acceptTerms: boolean;
-  role: Role | null;
+  /** The role is chosen once, here, and cannot be changed afterwards. */
+  role: Role;
+  /** One entry per ticked box, with the documents (and editions) it covered on screen. */
+  consents: ConsentAcceptance[];
   /** Where the visitor was heading; the confirmation email carries it back. */
   next?: string | null;
 }
@@ -40,8 +48,8 @@ export async function register(input: RegisterInput): Promise<{ email: string }>
       email: input.email,
       password: input.password,
       password_confirm: input.passwordConfirm,
-      accept_terms: input.acceptTerms,
       role: input.role,
+      consents: input.consents,
       next: input.next ?? null,
     },
   });

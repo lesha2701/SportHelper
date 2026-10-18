@@ -102,13 +102,6 @@ def test_passwords_must_match(client) -> None:
     assert resp.json()["error"]["field"] == "password_confirm"
 
 
-def test_terms_must_be_accepted(client) -> None:
-    resp = register(client, accept_terms=False)
-
-    assert resp.status_code == 422
-    assert resp.json()["error"]["field"] == "accept_terms"
-
-
 def test_first_name_is_required_and_trimmed(client) -> None:
     assert register(client, first_name="   ").status_code == 422
 
@@ -121,7 +114,7 @@ def test_consent_is_recorded(client) -> None:
 
     user = client.auth_store.find_by_email("alice@example.com")
     assert user["terms_accepted_at"] is not None
-    assert user["terms_version"] == "2026-10"
+    assert user["terms_version"] == "2026-10-20"  # the edition of the agreement that was ticked
 
 
 def test_verification_link_confirms_the_email_and_unlocks_login(client) -> None:

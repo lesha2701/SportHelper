@@ -31,6 +31,7 @@ class FakeAuthStore:
         self.identities: list[dict[str, Any]] = []
         self.rate_hits: dict[str, list[float]] = {}
         self.audit: list[dict[str, Any]] = []
+        self.acceptances: list[dict[str, Any]] = []
 
     # --- helpers ---------------------------------------------------------
     def user_view(self, record: dict[str, Any]) -> dict[str, Any]:
@@ -199,6 +200,13 @@ def install(monkeypatch: pytest.MonkeyPatch, store: FakeAuthStore) -> None:
         store.consents[user_id] = allowed
         return allowed
 
+    async def set_preferred_role(conn, user_id, role):
+        record = store.users.get(user_id)
+        if record is None or record["preferred_role"] is not None:
+            return False
+        record["preferred_role"] = role
+        return True
+
     async def complete_onboarding(conn, user_id, version):
         record = store.users.get(user_id)
         if record is None:
@@ -216,7 +224,7 @@ def install(monkeypatch: pytest.MonkeyPatch, store: FakeAuthStore) -> None:
         "request_deletion": request_deletion, "cancel_deletion": cancel_deletion,
         "list_due_for_deletion": list_due_for_deletion, "anonymize": anonymize,
         "get_ai_analysis_consent": get_consent, "set_ai_analysis_consent": set_consent,
-        "complete_onboarding": complete_onboarding,
+        "complete_onboarding": complete_onboarding, "set_preferred_role": set_preferred_role,
     }.items():
         monkeypatch.setattr(users, name, fn)
 
@@ -469,6 +477,24 @@ def install(monkeypatch: pytest.MonkeyPatch, store: FakeAuthStore) -> None:
     for name, fn in {"get_by_external": i_get_by_external, "list_for_user": i_list, "link": i_link,
                      "unlink": i_unlink, "touch_login": i_touch}.items():
         monkeypatch.setattr(identities, name, fn)
+
+    # ---- what was ticked at sign-up --------------------------------------------------------------
+    import app.repositories.legal as legal_repo
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def l_atomic(conn):
+        yield
+
+    async def l_record(conn, *, user_id, role, full_name, phone, email, consent_key, documents, ip_address):
+        store.acceptances.append({"user_id": user_id, "role": role, "full_name": full_name, "phone": phone, "email": email,
+                                  "consent_key": consent_key, "documents": documents, "accepted_at": _now(), "ip_address": ip_address})
+
+    async def l_list(conn, user_id):
+        return [a for a in store.acceptances if a["user_id"] == user_id]
+
+    for name, fn in {"atomic": l_atomic, "record": l_record, "list_for_user": l_list}.items():
+        monkeypatch.setattr(legal_repo, name, fn)
 
     # ---- website administration -----------------------------------------------------------------
     import app.repositories.admin as admin_repo

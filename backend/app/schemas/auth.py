@@ -11,14 +11,27 @@ from app.schemas.user import UserOut
 Role = Literal["player", "coach"]
 
 
+class DocumentRefIn(BaseModel):
+    key: str = Field(max_length=64)
+    version: str = Field(max_length=32)
+
+
+class ConsentIn(BaseModel):
+    """One ticked box and the documents (with editions) it covered on the sign-up form."""
+
+    key: str = Field(max_length=64)
+    documents: list[DocumentRefIn] = Field(max_length=8)
+
+
 class RegisterIn(BaseModel):
     first_name: str = Field(max_length=100)
     last_name: str | None = Field(default=None, max_length=100)
     email: str = Field(max_length=320)
     password: str = Field(max_length=2048)
     password_confirm: str = Field(max_length=2048)
-    accept_terms: bool
-    role: Role | None = None
+    # The role is fixed here for good (only administrators can work in both), and decides which boxes must be ticked.
+    role: Role
+    consents: list[ConsentIn] = Field(max_length=8)
     # Where the visitor was heading (e.g. the listing they wanted to book);
     # carried through the confirmation email, validated server-side.
     next: str | None = Field(default=None, max_length=500)

@@ -54,6 +54,12 @@ afterEach(cleanup);
 
 // --- registration ---------------------------------------------------------------------------
 
+/** Picks the role (the form asks for it first) and ticks every box that role must tick. */
+function chooseRole(name: RegExp = /Я игрок/) {
+  fireEvent.click(screen.getByRole("radio", { name }));
+}
+const tickAll = () => screen.getAllByRole("checkbox").forEach((box) => fireEvent.click(box));
+
 function fillRegistration(overrides: Partial<Record<"name" | "email" | "password" | "confirm", string>> = {}) {
   type("Имя", overrides.name ?? "Алиса");
   type("Email", overrides.email ?? "alice@example.com");
@@ -70,14 +76,15 @@ describe("registration form", () => {
     expect(screen.getByText("Укажите имя.")).toBeTruthy();
     expect(screen.getByText(/Введите email полностью/)).toBeTruthy();
     expect(screen.getByText(/Пароль слишком короткий: минимум 12/)).toBeTruthy();
-    expect(screen.getByText(/Нужно принять пользовательское соглашение/)).toBeTruthy();
+    expect(screen.getByText(/Выберите, кто вы/)).toBeTruthy();
     expect(api.register).not.toHaveBeenCalled();
   });
 
   it("checks the confirmation and the 12-character minimum", () => {
     render(<RegisterPage />);
     fillRegistration({ password: "short pass", confirm: "short pass" });
-    fireEvent.click(screen.getByRole("checkbox"));
+    chooseRole();
+    tickAll();
     click("Зарегистрироваться");
     expect(screen.getByText(/слишком короткий/)).toBeTruthy();
 
@@ -91,7 +98,8 @@ describe("registration form", () => {
   it("does not demand capitals, digits or symbols", () => {
     render(<RegisterPage />);
     fillRegistration({ password: "alllowercaseletters" });
-    fireEvent.click(screen.getByRole("checkbox"));
+    chooseRole();
+    tickAll();
 
     click("Зарегистрироваться");
 
@@ -102,9 +110,9 @@ describe("registration form", () => {
   it("sends the chosen role and consent, then tells the person to check their mail", async () => {
     api.register.mockResolvedValue({ email: "alice@example.com" });
     render(<RegisterPage />);
-    fireEvent.click(screen.getByRole("radio", { name: /Я тренер/ }));
+    chooseRole(/Я тренер/);
     fillRegistration();
-    fireEvent.click(screen.getByRole("checkbox"));
+    tickAll();
 
     click("Зарегистрироваться");
 
@@ -115,8 +123,12 @@ describe("registration form", () => {
       email: "alice@example.com",
       password: STRONG,
       passwordConfirm: STRONG,
-      acceptTerms: true,
       role: "coach",
+      consents: [
+        { key: "coach_offer", documents: [{ key: "coach-offer", version: "2026-10-20" }, { key: "service-terms", version: "2026-10-20" }] },
+        { key: "personal_data", documents: [{ key: "consent-coach", version: "2026-10-20" }, { key: "privacy", version: "2026-10-20" }] },
+        { key: "data_dissemination", documents: [{ key: "consent-coach-dissemination", version: "2026-10-20" }] },
+      ],
       next: null,
     });
     expect(screen.getByText("alice@example.com")).toBeTruthy();
@@ -127,7 +139,8 @@ describe("registration form", () => {
     at("/register?next=%2F%3Fbook%3Dlisting-42");
     render(<RegisterPage />);
     fillRegistration();
-    fireEvent.click(screen.getByRole("checkbox"));
+    chooseRole();
+    tickAll();
 
     click("Зарегистрироваться");
 
@@ -142,7 +155,8 @@ describe("registration form", () => {
     api.register.mockRejectedValue(apiError(409, "email_taken", "Аккаунт с таким email уже есть.", "email"));
     render(<RegisterPage />);
     fillRegistration();
-    fireEvent.click(screen.getByRole("checkbox"));
+    chooseRole();
+    tickAll();
 
     click("Зарегистрироваться");
 
@@ -157,7 +171,8 @@ describe("registration form", () => {
     api.register.mockResolvedValue({ email: "alice@example.com" });
     render(<RegisterPage />);
     fillRegistration();
-    fireEvent.click(screen.getByRole("checkbox"));
+    chooseRole();
+    tickAll();
     click("Зарегистрироваться");
     await screen.findByText("Проверьте почту");
 
@@ -171,12 +186,85 @@ describe("registration form", () => {
     api.register.mockRejectedValue(apiError(422, "password_common", "Этот пароль слишком распространён.", "password"));
     render(<RegisterPage />);
     fillRegistration();
-    fireEvent.click(screen.getByRole("checkbox"));
+    chooseRole();
+    tickAll();
 
     click("Зарегистрироваться");
 
     const message = await screen.findByText("Этот пароль слишком распространён.");
     expect(message.closest("div")?.querySelector("input")).toBe(screen.getByLabelText("Пароль"));
+  });
+
+  it("asks for the role first and shows no boxes until it is chosen", () => {
+    render(<RegisterPage />);
+
+    expect(screen.getByText(/Роль выбирается один раз и потом не меняется/)).toBeTruthy();
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    expect(screen.getByText(/Выберите роль — ниже появятся отметки/)).toBeTruthy();
+  });
+
+  it("gives a player exactly two boxes, none ticked, linked to their documents", () => {
+    render(<RegisterPage />);
+    chooseRole();
+
+    const boxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+    expect(boxes).toHaveLength(2);
+    expect(boxes.every((box) => !box.checked)).toBe(true);
+    expect(screen.getByText(/Принимаю/)).toBeTruthy();
+    const href = (name: RegExp) => screen.getByRole("link", { name }).getAttribute("href");
+    expect(href(/Пользовательское соглашение/)).toBe("/terms");
+    expect(href(/^Согласия$/)).toBe("/consent-player");
+    expect(href(/Политикой обработки персональных данных/)).toBe("/privacy");
+    expect(screen.getByRole("link", { name: /Пользовательское соглашение/ }).getAttribute("target")).toBe("_blank");
+  });
+
+  it("gives a coach exactly three boxes, none ticked, linked to their documents", () => {
+    render(<RegisterPage />);
+    chooseRole(/Я тренер/);
+
+    const boxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+    expect(boxes).toHaveLength(3);
+    expect(boxes.every((box) => !box.checked)).toBe(true);
+    const href = (name: RegExp) => screen.getByRole("link", { name }).getAttribute("href");
+    expect(href(/Оферты для тренеров/)).toBe("/coach-offer");
+    expect(href(/Типовые условия оказания услуг тренером/)).toBe("/service-terms");
+    expect(screen.getAllByRole("link", { name: /^Согласия$/ }).map((a) => a.getAttribute("href")).sort()).toEqual([
+      "/consent-coach",
+      "/consent-coach-dissemination",
+    ]);
+    expect(screen.getByText(/в публичном профиле/)).toBeTruthy();
+  });
+
+  it("will not register while any box is missing, and says which", () => {
+    render(<RegisterPage />);
+    fillRegistration();
+    chooseRole(/Я тренер/);
+    const boxes = screen.getAllByRole("checkbox");
+    fireEvent.click(boxes[0]!);
+    fireEvent.click(boxes[1]!);
+
+    click("Зарегистрироваться");
+
+    expect(api.register).not.toHaveBeenCalled();
+    expect(screen.getAllByText("Без этой отметки зарегистрироваться нельзя.")).toHaveLength(1);
+  });
+
+  it("starts the boxes over when the role is changed, so nothing ticked for the other role is sent", async () => {
+    api.register.mockResolvedValue({ email: "alice@example.com" });
+    render(<RegisterPage />);
+    fillRegistration();
+    chooseRole(/Я тренер/);
+    tickAll();
+    chooseRole();
+
+    expect((screen.getAllByRole("checkbox") as HTMLInputElement[]).every((box) => !box.checked)).toBe(true);
+    tickAll();
+    click("Зарегистрироваться");
+
+    await screen.findByText("Проверьте почту");
+    const sent = api.register.mock.calls[0]![0];
+    expect(sent.role).toBe("player");
+    expect(sent.consents.map((c) => c.key)).toEqual(["terms", "personal_data"]);
   });
 
   it("clears a field's message as soon as that field is edited", () => {

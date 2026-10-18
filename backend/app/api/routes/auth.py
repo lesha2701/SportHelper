@@ -33,6 +33,7 @@ from app.core.exceptions import APIError, ConflictError, ForbiddenError, NotFoun
 from app.repositories import accounts as accounts_repo
 from app.repositories import auth_tokens as tokens_repo
 from app.repositories import identities as identities_repo
+from app.repositories import legal as legal_repo
 from app.repositories import mfa as mfa_repo
 from app.repositories import sessions as sessions_repo
 from app.repositories import users as users_repo
@@ -73,6 +74,7 @@ from app.services import accounts as svc
 from app.services import admin_audit
 from app.services import claim as claim_service
 from app.services import identities as identities_service
+from app.services import legal as legal_service
 from app.services import email_templates as templates
 
 logger = logging.getLogger("teamflow.auth")
@@ -115,10 +117,8 @@ async def register(
     last_name = svc.clean_name(payload.last_name, required=False, field="last_name", label="фамилию")
     assert first_name is not None
     email = svc.normalize_email(payload.email)
-    if not payload.accept_terms:
-        raise svc.validation_error(
-            "Для регистрации нужно принять пользовательское соглашение и политику конфиденциальности.", "accept_terms"
-        )
+    accepted = legal_service.check_consents(payload.role, payload.consents)
+    terms_version = accepted[0][1][0]["version"]  # the edition of the first document accepted (the agreement / the offer)
     await svc.validate_new_password(
         payload.password, payload.password_confirm, settings, email=email, first_name=first_name, last_name=last_name
     )
@@ -128,33 +128,49 @@ async def register(
         "Аккаунт с таким email уже есть. Войдите или восстановите пароль.", code="email_taken", field="email"
     )
     existing = await users_repo.get_by_email(conn, email)
-    if existing is not None:
-        if existing["email_verified_at"] is not None:
-            raise taken
-        user = await users_repo.restart_unverified_registration(
-            conn,
-            existing["id"],
-            password_hash=password_hash,
-            first_name=first_name,
-            last_name=last_name,
-            preferred_role=payload.role,
-            terms_version=settings.terms_version,
-        )
-        if user is None:
-            raise taken
-    else:
-        try:
-            user = await users_repo.create_with_password(
+    if existing is not None and existing["email_verified_at"] is not None:
+        raise taken
+    full_name = " ".join(part for part in (first_name, last_name) if part)
+    ip = svc.ip_of(request, settings)
+    # The account and the record of what its owner ticked appear together or not at all.
+    async with legal_repo.atomic(conn):
+        if existing is not None:
+            user = await users_repo.restart_unverified_registration(
                 conn,
-                email=email,
+                existing["id"],
                 password_hash=password_hash,
                 first_name=first_name,
                 last_name=last_name,
                 preferred_role=payload.role,
-                terms_version=settings.terms_version,
+                terms_version=terms_version,
             )
-        except asyncpg.UniqueViolationError as exc:  # lost a race with a concurrent sign-up
-            raise taken from exc
+            if user is None:
+                raise taken
+        else:
+            try:
+                user = await users_repo.create_with_password(
+                    conn,
+                    email=email,
+                    password_hash=password_hash,
+                    first_name=first_name,
+                    last_name=last_name,
+                    preferred_role=payload.role,
+                    terms_version=terms_version,
+                )
+            except asyncpg.UniqueViolationError as exc:  # lost a race with a concurrent sign-up
+                raise taken from exc
+        for consent, documents in accepted:
+            await legal_repo.record(
+                conn,
+                user_id=user["id"],
+                role=payload.role,
+                full_name=full_name,
+                phone=None,  # not collected yet
+                email=email,
+                consent_key=consent.key,
+                documents=documents,
+                ip_address=ip,
+            )
 
     await svc.send_verification(conn, background, settings, user, email, svc.safe_next(payload.next))
     return RegisterOut(email=email)

@@ -10,6 +10,16 @@ PASSWORD = "correct horse battery"  # a passphrase: no capitals/digits/symbols r
 OTHER_PASSWORD = "another quiet harbour"
 
 
+def consents_for(role: str) -> list[dict]:
+    """Every box the role must tick, with the documents/editions the form would report."""
+    from app.services.legal import CONSENTS_BY_ROLE, DOCUMENTS
+
+    return [
+        {"key": consent.key, "documents": [{"key": key, "version": DOCUMENTS[key].version} for key in consent.documents]}
+        for consent in CONSENTS_BY_ROLE[role]
+    ]
+
+
 def register_payload(**overrides) -> dict:
     payload = {
         "first_name": "Алиса",
@@ -17,10 +27,11 @@ def register_payload(**overrides) -> dict:
         "email": "alice@example.com",
         "password": PASSWORD,
         "password_confirm": PASSWORD,
-        "accept_terms": True,
         "role": "player",
     }
     payload.update(overrides)
+    if "consents" not in payload:
+        payload["consents"] = consents_for(payload["role"])
     if "password" in overrides and "password_confirm" not in overrides:
         payload["password_confirm"] = overrides["password"]
     return payload

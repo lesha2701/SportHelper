@@ -6,18 +6,20 @@ import { Link } from "../Link";
 import { Icon } from "../shared/Icon";
 import { AuthLayout } from "./AuthLayout";
 import { CheckEmailScreen } from "./CheckEmailScreen";
-import { Checkbox, Notice, PASSWORD_MIN_LENGTH, PasswordField, SubmitButton, TextField } from "./fields";
+import { Notice, PASSWORD_MIN_LENGTH, PasswordField, SubmitButton, TextField } from "./fields";
 import { looksLikeEmail, toFormError } from "./authForm";
+import { ConsentChecks, type ConsentState } from "./ConsentChecks";
+import { CONSENTS_BY_ROLE, DOCUMENTS, type ConsentKey } from "../../legal/documents";
 import styles from "./auth.module.css";
 
-type FieldErrors = Partial<Record<"firstName" | "email" | "password" | "passwordConfirm" | "acceptTerms", string>>;
+type FieldErrors = Partial<Record<"firstName" | "email" | "password" | "passwordConfirm" | "role", string>>;
 
 const SERVER_FIELD: Record<string, keyof FieldErrors> = {
   first_name: "firstName",
   email: "email",
   password: "password",
   password_confirm: "passwordConfirm",
-  accept_terms: "acceptTerms",
+  role: "role",
 };
 
 const ROLES: { value: Role; title: string; hint: string }[] = [
@@ -34,8 +36,9 @@ export function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [acceptTerms, setAcceptTerms] = useState(false);
   const [role, setRole] = useState<Role | null>(null);
+  const [consents, setConsents] = useState<ConsentState>({});
+  const [consentErrors, setConsentErrors] = useState<Partial<Record<ConsentKey, string>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -50,6 +53,15 @@ export function RegisterPage() {
     return <CheckEmailScreen email={sentTo} next={next} onChangeEmail={() => setSentTo(null)} />;
   }
 
+  const chooseRole = (next: Role) => {
+    if (next === role) return;
+    setRole(next);
+    // Boxes belong to a role: switching starts them over, so nothing ticked for the other role is ever sent.
+    setConsents({});
+    setConsentErrors({});
+    clearError("role");
+  };
+
   const validate = (): FieldErrors => {
     const found: FieldErrors = {};
     if (!firstName.trim()) found.firstName = "Укажите имя.";
@@ -57,8 +69,17 @@ export function RegisterPage() {
     const length = [...password].length;
     if (length < PASSWORD_MIN_LENGTH) found.password = `Пароль слишком короткий: минимум ${PASSWORD_MIN_LENGTH} символов.`;
     if (password !== passwordConfirm) found.passwordConfirm = "Пароли не совпадают.";
-    if (!acceptTerms) found.acceptTerms = "Нужно принять пользовательское соглашение и политику конфиденциальности.";
+    if (!role) found.role = "Выберите, кто вы: игрок или тренер.";
     return found;
+  };
+
+  const missingConsents = (): Partial<Record<ConsentKey, string>> => {
+    const missing: Partial<Record<ConsentKey, string>> = {};
+    if (!role) return missing;
+    for (const consent of CONSENTS_BY_ROLE[role]) {
+      if (!consents[consent.key]) missing[consent.key] = "Без этой отметки зарегистрироваться нельзя.";
+    }
+    return missing;
   };
 
   const submit = async (event: FormEvent) => {
@@ -66,8 +87,10 @@ export function RegisterPage() {
     setFormError(null);
     setEmailTaken(false);
     const found = validate();
+    const missing = missingConsents();
     setErrors(found);
-    if (Object.keys(found).length > 0) return;
+    setConsentErrors(missing);
+    if (Object.keys(found).length > 0 || Object.keys(missing).length > 0 || !role) return;
 
     setSubmitting(true);
     try {
@@ -77,8 +100,11 @@ export function RegisterPage() {
         email: email.trim(),
         password,
         passwordConfirm,
-        acceptTerms,
         role,
+        consents: CONSENTS_BY_ROLE[role].map((consent) => ({
+          key: consent.key,
+          documents: consent.documents.map((doc) => ({ key: doc, version: DOCUMENTS[doc].version })),
+        })),
         next,
       });
       setSentTo(result.email);
@@ -94,12 +120,12 @@ export function RegisterPage() {
   };
 
   return (
-    <AuthLayout title="Создать аккаунт" lead="Один аккаунт для всего: можно быть и игроком, и тренером.">
+    <AuthLayout title="Создать аккаунт" lead="Выберите роль, заполните данные и отметьте согласия.">
       <form className={styles.form} onSubmit={submit} noValidate>
         {formError && <Notice kind="danger">{formError}</Notice>}
 
         <fieldset className={styles.roles} disabled={submitting}>
-          <legend className={styles.rolesLegend}>Кто вы? (можно изменить позже)</legend>
+          <legend className={styles.rolesLegend}>Кто вы? Роль выбирается один раз и потом не меняется</legend>
           {ROLES.map((option) => (
             <label key={option.value} className={`${styles.role} ${role === option.value ? styles.roleActive : ""}`}>
               <input
@@ -108,7 +134,7 @@ export function RegisterPage() {
                 className={styles.roleInput}
                 value={option.value}
                 checked={role === option.value}
-                onChange={() => setRole(option.value)}
+                onChange={() => chooseRole(option.value)}
               />
               <span className={styles.roleName}>
                 <Icon name={option.value === "player" ? "user" : "users"} size={17} />
@@ -117,6 +143,11 @@ export function RegisterPage() {
               <span className={styles.roleHint}>{option.hint}</span>
             </label>
           ))}
+          {errors.role && (
+            <p className={styles.fieldError} role="alert">
+              {errors.role}
+            </p>
+          )}
         </fieldset>
 
         <div className={styles.row2}>
@@ -200,21 +231,20 @@ export function RegisterPage() {
           disabled={submitting}
         />
 
-        <Checkbox
-          checked={acceptTerms}
-          onChange={(checked) => {
-            setAcceptTerms(checked);
-            clearError("acceptTerms");
-          }} error={errors.acceptTerms} disabled={submitting}>
-          Я принимаю{" "}
-          <Link to="/terms" className={styles.link} target="_blank" rel="noopener">
-            пользовательское соглашение
-          </Link>{" "}
-          и{" "}
-          <Link to="/privacy" className={styles.link} target="_blank" rel="noopener">
-            политику конфиденциальности
-          </Link>
-        </Checkbox>
+        {role ? (
+          <ConsentChecks
+            role={role}
+            value={consents}
+            errors={consentErrors}
+            disabled={submitting}
+            onChange={(key, checked) => {
+              setConsents((current) => ({ ...current, [key]: checked }));
+              setConsentErrors((current) => ({ ...current, [key]: undefined }));
+            }}
+          />
+        ) : (
+          <p className={styles.footerLine}>Выберите роль — ниже появятся отметки, которые нужно поставить.</p>
+        )}
 
         <SubmitButton loading={submitting} loadingText="Создаём аккаунт…">
           Зарегистрироваться

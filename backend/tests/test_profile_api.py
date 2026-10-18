@@ -39,7 +39,9 @@ def test_creating_player_profile_auto_activates_player_mode(logged_in_client) ->
     assert me["active_mode"] == "player"
 
 
-def test_creating_second_profile_does_not_change_active_mode(logged_in_client) -> None:
+def test_creating_second_profile_does_not_change_active_mode(logged_in_client, monkeypatch) -> None:
+    # Only administrators may hold both profiles (see test_role_lock.py for everyone else).
+    monkeypatch.setattr("app.api.routes.profile.is_admin", lambda user, settings: True)
     client, token = logged_in_client
     headers = {"Authorization": f"Bearer {token}"}
 

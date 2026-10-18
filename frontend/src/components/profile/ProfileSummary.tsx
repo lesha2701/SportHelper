@@ -16,6 +16,8 @@ interface ProfileSummaryProps {
   token: string;
   profile: ProfileMe;
   onEdit: (mode: ActiveMode) => void;
+  /** Only administrators may work in both roles; everyone else keeps the role chosen at registration. */
+  canSwitchRole: boolean;
   onSwitchMode: (mode: ActiveMode) => void;
   onCreateOther: (mode: ActiveMode) => void;
   onOpenMyStats: () => void;
@@ -82,6 +84,7 @@ export function ProfileSummary({
   token,
   profile,
   onEdit,
+  canSwitchRole,
   onSwitchMode,
   onCreateOther,
   onOpenMyStats,
@@ -208,17 +211,20 @@ export function ProfileSummary({
   actionRows.push({ key: "settings", icon: "settings", label: "Настройки", onClick: onOpenSettings });
   actionRows.push({ key: "help", icon: "book", label: "Помощь", onClick: onOpenHelp });
   actionRows.push({ key: "logout", icon: "log-out", label: "Выйти из аккаунта", onClick: () => void logout() });
-  if (profile.player && profile.coach) {
-    actionRows.push({
-      key: "switch",
-      icon: "users",
-      label: `Переключиться на ${mode === "player" ? "тренера" : "игрока"}`,
-      onClick: () => onSwitchMode(mode === "player" ? "coach" : "player"),
-    });
-  } else if (!profile.player) {
-    actionRows.push({ key: "create-player", icon: "plus", label: "Завести профиль игрока", onClick: () => onCreateOther("player") });
-  } else if (!profile.coach) {
-    actionRows.push({ key: "create-coach", icon: "plus", label: "Завести профиль тренера", onClick: () => onCreateOther("coach") });
+  // The role is fixed at registration: only administrators get a switch or a second profile.
+  if (canSwitchRole) {
+    if (profile.player && profile.coach) {
+      actionRows.push({
+        key: "switch",
+        icon: "users",
+        label: `Переключиться на ${mode === "player" ? "тренера" : "игрока"}`,
+        onClick: () => onSwitchMode(mode === "player" ? "coach" : "player"),
+      });
+    } else if (!profile.player) {
+      actionRows.push({ key: "create-player", icon: "plus", label: "Завести профиль игрока", onClick: () => onCreateOther("player") });
+    } else if (!profile.coach) {
+      actionRows.push({ key: "create-coach", icon: "plus", label: "Завести профиль тренера", onClick: () => onCreateOther("coach") });
+    }
   }
 
   return (
@@ -306,7 +312,7 @@ export function ProfileSummary({
           )}
         </div>
 
-        {profile.player && profile.coach && (
+        {canSwitchRole && profile.player && profile.coach && (
           <div className={styles.modePill}>
             <button
               type="button"
