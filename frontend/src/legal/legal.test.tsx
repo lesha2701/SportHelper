@@ -16,6 +16,7 @@ describe("the documents", () => {
     expect(data.version).toBe(DOCUMENTS[key].version);
     expect(data.blocks.length).toBeGreaterThan(5);
     expect(JSON.stringify(data.blocks)).toContain(`Редакция от ${data.version.split("-").reverse().join(".")}`);
+    expect(JSON.stringify(data.blocks)).toContain("Дата размещения: 18.10.2026 года");
   });
 
   it("every box points only at documents that exist, and every document is reachable from a box or the policy", () => {
