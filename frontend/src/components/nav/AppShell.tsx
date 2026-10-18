@@ -81,7 +81,7 @@ export function AppShell<T extends string>({
   return (
     <div className={styles.mobileShell}>
       <div className={styles.mobileScroll}>
-        {children}
+        <div className={styles.mobileContent}>{children}</div>
         <SiteFooter />
       </div>
       <BottomNav items={navItems} active={activeTab} onChange={onChangeTab} />

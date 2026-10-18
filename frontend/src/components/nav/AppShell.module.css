@@ -9,6 +9,13 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* The footer sits at the bottom of the screen when the page is short, and after the content when it is long. */
+  display: flex;
+  flex-direction: column;
+}
+
+.mobileContent {
+  flex: 1 0 auto;
 }
 
 .desktopShell {
@@ -30,9 +37,13 @@
   min-height: 0;
   overflow-y: auto;
   background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
 }
 
 .desktopContentInner {
+  flex: 1 0 auto;
+  width: 100%;
   max-width: 1280px;
   margin: 0 auto;
   padding: 36px 48px 56px;
