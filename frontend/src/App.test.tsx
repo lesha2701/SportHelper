@@ -76,13 +76,20 @@ describe("a visitor without an account", () => {
     }
   });
 
-  it("links every document from the footer", async () => {
+  it("shows the operator's details and links only the agreement and the policy in the footer", async () => {
     open("/terms");
     await screen.findByRole("heading", { level: 1 });
 
-    const footer = screen.getByRole("navigation", { name: "Документы" });
-    const hrefs = Array.from(footer.querySelectorAll("a")).map((a) => a.getAttribute("href"));
-    expect(hrefs).toEqual(["/terms", "/coach-offer", "/service-terms", "/privacy", "/consent-player", "/consent-coach", "/consent-coach-dissemination"]);
+    const footer = document.querySelector("footer") as HTMLElement;
+    expect(footer.textContent).toContain(`© ${new Date().getFullYear()} SportArenaGlobal`);
+    expect(Array.from(footer.querySelectorAll("a")).map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
+      ["Пользовательское соглашение", "/terms"],
+      ["Политика конфиденциальности", "/privacy"],
+      ["perekrestov_bus@mail.ru", "mailto:perekrestov_bus@mail.ru"],
+    ]);
+    for (const line of ["ИП Перекрестов Вячеслав Дмитриевич", "ИНН: 770373336381", "ОГРН: 326774600747726", "Для связи по вопросам рекламы:"]) {
+      expect(footer.textContent).toContain(line);
+    }
   });
 
   it("is sent to sign in — and brought back — when opening a link meant for the app", async () => {

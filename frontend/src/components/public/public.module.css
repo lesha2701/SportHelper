@@ -175,10 +175,20 @@
   text-decoration: underline;
 }
 
-.footerDocs {
+.footerRequisites {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 16px 20px;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 18px;
+  gap: 4px 22px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.footerRequisites p {
+  margin: 0;
 }
 
 .footerSpacer {

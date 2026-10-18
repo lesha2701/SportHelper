@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { DOCUMENT_LIST } from "../../legal/documents";
+import { DOCUMENTS } from "../../legal/documents";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { currentPathWithSearch, loginUrl, registerUrl, useLocation } from "../../router";
@@ -64,13 +64,23 @@ export function PublicShell({ children, next }: { children: ReactNode; next?: st
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <span>© {new Date().getFullYear()} SportArenaGlobal</span>
-          <nav className={styles.footerDocs} aria-label="Документы">
-            {DOCUMENT_LIST.map((doc) => (
-              <Link key={doc.key} to={doc.path} className={styles.footerLink}>
-                {doc.label}
-              </Link>
-            ))}
-          </nav>
+          <Link to={DOCUMENTS.terms.path} className={styles.footerLink}>
+            Пользовательское соглашение
+          </Link>
+          <Link to={DOCUMENTS.privacy.path} className={styles.footerLink}>
+            Политика конфиденциальности
+          </Link>
+        </div>
+        <div className={styles.footerRequisites}>
+          <p>ИП Перекрестов Вячеслав Дмитриевич</p>
+          <p>ИНН: 770373336381</p>
+          <p>ОГРН: 326774600747726</p>
+          <p>
+            Для связи по вопросам рекламы:{" "}
+            <a href="mailto:perekrestov_bus@mail.ru" className={styles.footerLink}>
+              perekrestov_bus@mail.ru
+            </a>
+          </p>
         </div>
       </footer>
     </div>
