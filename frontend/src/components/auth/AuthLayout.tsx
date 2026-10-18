@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "../Link";
 import { BrandLogo } from "../shared/BrandLogo";
 import { Ornament } from "../shared/Ornament";
+import { SiteFooter } from "../shared/SiteFooter";
 import { Icon, type IconName } from "../shared/Icon";
 import styles from "./auth.module.css";
 
@@ -54,6 +55,9 @@ export function AuthLayout({ title, lead, children }: { title: string; lead?: Re
           <h1 className={styles.title}>{title}</h1>
           {lead && <p className={styles.lead}>{lead}</p>}
           {children}
+        </div>
+        <div className={styles.footerSlot}>
+          <SiteFooter />
         </div>
       </main>
     </div>

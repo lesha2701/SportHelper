@@ -135,9 +135,18 @@
 
 .main {
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 24px 16px 40px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 24px 16px 20px;
+}
+
+.footerSlot {
+  width: 100%;
+  max-width: 440px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 
 .card {
@@ -651,8 +660,7 @@
   }
 
   .main {
-    align-items: center;
-    padding: 48px 32px;
+    padding: 48px 32px 24px;
   }
 
   .title {

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useIsDesktop } from "../../hooks/useIsDesktop";
+import { SiteFooter } from "../shared/SiteFooter";
 import { BottomNav, type NavItem } from "./BottomNav";
 import { SideNav, type SideNavTeam, type SideNavUser } from "./SideNav";
 import { TopBar, type TopBarConfig } from "./TopBar";
@@ -66,6 +67,7 @@ export function AppShell<T extends string>({
           {topBar && <TopBar {...topBar} />}
           <div className={styles.desktopContent}>
             <div className={styles.desktopContentInner}>{children}</div>
+            <SiteFooter />
           </div>
         </div>
       </div>
@@ -78,7 +80,10 @@ export function AppShell<T extends string>({
 
   return (
     <div className={styles.mobileShell}>
-      <div className={styles.mobileScroll}>{children}</div>
+      <div className={styles.mobileScroll}>
+        {children}
+        <SiteFooter />
+      </div>
       <BottomNav items={navItems} active={activeTab} onChange={onChangeTab} />
     </div>
   );

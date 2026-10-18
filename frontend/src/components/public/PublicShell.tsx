@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
-import { DOCUMENTS } from "../../legal/documents";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { currentPathWithSearch, loginUrl, registerUrl, useLocation } from "../../router";
 import { Link } from "../Link";
 import { BrandLogo } from "../shared/BrandLogo";
 import { Icon } from "../shared/Icon";
+import { SiteFooter } from "../shared/SiteFooter";
 import styles from "./public.module.css";
 
 /** Header + footer around everything a visitor can open without an account:
@@ -61,28 +61,7 @@ export function PublicShell({ children, next }: { children: ReactNode; next?: st
 
       <div className={styles.content}>{children}</div>
 
-      <footer className={styles.footer}>
-        <div className={styles.footerInner}>
-          <span>© {new Date().getFullYear()} SportArenaGlobal</span>
-          <Link to={DOCUMENTS.terms.path} className={styles.footerLink}>
-            Пользовательское соглашение
-          </Link>
-          <Link to={DOCUMENTS.privacy.path} className={styles.footerLink}>
-            Политика конфиденциальности
-          </Link>
-        </div>
-        <div className={styles.footerRequisites}>
-          <p>ИП Перекрестов Вячеслав Дмитриевич</p>
-          <p>ИНН: 770373336381</p>
-          <p>ОГРН: 326774600747726</p>
-          <p>
-            Для связи по вопросам рекламы:{" "}
-            <a href="mailto:perekrestov_bus@mail.ru" className={styles.footerLink}>
-              perekrestov_bus@mail.ru
-            </a>
-          </p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

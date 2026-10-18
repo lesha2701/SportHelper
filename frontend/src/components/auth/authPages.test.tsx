@@ -1,5 +1,5 @@
 import { StrictMode } from "react";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as authApi from "../../api/auth";
 import { ApiError } from "../../api/client";
@@ -211,11 +211,12 @@ describe("registration form", () => {
     expect(boxes).toHaveLength(2);
     expect(boxes.every((box) => !box.checked)).toBe(true);
     expect(screen.getByText(/Принимаю/)).toBeTruthy();
-    const href = (name: RegExp) => screen.getByRole("link", { name }).getAttribute("href");
+    const form = within(document.querySelector("form") as HTMLElement);
+    const href = (name: RegExp) => form.getByRole("link", { name }).getAttribute("href");
     expect(href(/Пользовательское соглашение/)).toBe("/terms");
     expect(href(/^Согласия$/)).toBe("/consent-player");
     expect(href(/Политикой обработки персональных данных/)).toBe("/privacy");
-    expect(screen.getByRole("link", { name: /Пользовательское соглашение/ }).getAttribute("target")).toBe("_blank");
+    expect(form.getByRole("link", { name: /Пользовательское соглашение/ }).getAttribute("target")).toBe("_blank");
   });
 
   it("gives a coach exactly three boxes, none ticked, linked to their documents", () => {
