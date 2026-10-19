@@ -31,7 +31,7 @@ export function TransferOwnershipModal({
 
   const expectedPhrase = useMemo(() => {
     if (!selected) return "";
-    return `Я передаю роль основного тренера команды «${teamName}» пользователю ${selected.firstName} ${selected.lastName ?? ""}`.trim();
+    return `Я передаю роль главного тренера команды «${teamName}» пользователю ${selected.firstName} ${selected.lastName ?? ""}`.trim();
   }, [selected, teamName]);
 
   const handleSubmit = async () => {
@@ -67,7 +67,7 @@ export function TransferOwnershipModal({
   return (
     <div className={modalStyles.backdrop} role="dialog" aria-modal="true">
       <div className={modalStyles.sheet}>
-        <h2 className={modalStyles.title}>Передать роль основного тренера</h2>
+        <h2 className={modalStyles.title}>Передать роль главного тренера</h2>
 
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Кому передать</span>

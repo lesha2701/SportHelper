@@ -6,7 +6,7 @@ export type InviteKind = "join" | "head_coach";
 export type JoinRequestStatus = "pending" | "accepted" | "rejected" | "cancelled";
 
 export const TEAM_ROLE_LABELS: Record<TeamRole, string> = {
-  head_coach: "Основной тренер",
+  head_coach: "Главный тренер",
   assistant_coach: "Помощник тренера",
   captain: "Капитан",
   player: "Игрок",

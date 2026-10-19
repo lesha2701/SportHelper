@@ -3,6 +3,7 @@ import { createExercise, updateExercise } from "../../api/exercises";
 import { ApiError } from "../../api/client";
 import { SKILL_LEVEL_LABELS, type SkillLevel } from "../../types/profile";
 import type { Exercise, ExerciseInput } from "../../types/exercise";
+import { SportSelect } from "../shared/SportSelect";
 import profileStyles from "../profile/profile.module.css";
 
 interface ExerciseFormProps {
@@ -14,7 +15,7 @@ interface ExerciseFormProps {
 
 export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseFormProps) {
   const isEdit = initial !== undefined;
-  const [sport] = useState(initial?.sport ?? "Баскетбол");
+  const [sport, setSport] = useState(initial?.sport ?? "");
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [goal, setGoal] = useState(initial?.goal ?? "");
@@ -70,6 +71,8 @@ export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseForm
       <div className={profileStyles.card}>
         <h1 className={profileStyles.pageHeading}>{isEdit ? "Редактировать упражнение" : "Новое упражнение"}</h1>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
+
+        <SportSelect value={sport} onChange={setSport} />
 
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>

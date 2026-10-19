@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { createTeam, updateTeam } from "../../api/teams";
 import { ApiError } from "../../api/client";
-import { COMMON_SPORTS, SKILL_LEVEL_LABELS, type SkillLevel } from "../../types/profile";
+import { SKILL_LEVEL_LABELS, type SkillLevel } from "../../types/profile";
+import { SportSelect } from "../shared/SportSelect";
 import type { Team } from "../../types/team";
 import profileStyles from "../profile/profile.module.css";
 
@@ -66,24 +67,7 @@ export function CreateTeamForm({ token, initial, onCreated, onCancel }: CreateTe
           />
         </label>
 
-        <label className={profileStyles.field}>
-          <span className={profileStyles.label}>
-            Вид спорта<span className={profileStyles.requiredMark}>*</span>
-          </span>
-          <input
-            className={profileStyles.input}
-            value={sport}
-            onChange={(e) => setSport(e.target.value)}
-            list="team-sports-suggestions"
-            required
-            maxLength={50}
-          />
-          <datalist id="team-sports-suggestions">
-            {COMMON_SPORTS.map((s) => (
-              <option key={s} value={s} />
-            ))}
-          </datalist>
-        </label>
+        <SportSelect value={sport} onChange={setSport} />
 
         <div className={profileStyles.fieldGrid}>
           <label className={profileStyles.field}>

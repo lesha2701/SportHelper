@@ -324,7 +324,7 @@ def test_transfer_ownership_requires_exact_phrase(logged_in_client, login_as) ->
     assert wrong_phrase.status_code == 400
 
     to_user_id = _member_user_id(client, team["id"], coach_token, 999000)
-    correct_phrase = f"Я передаю роль основного тренера команды «Соколы» пользователю Ivan Petrov"
+    correct_phrase = f"Я передаю роль главного тренера команды «Соколы» пользователю Ivan Petrov"
     ok_resp = client.post(
         f"/api/teams/{team['id']}/transfer-ownership",
         headers={"Authorization": f"Bearer {coach_token}"},

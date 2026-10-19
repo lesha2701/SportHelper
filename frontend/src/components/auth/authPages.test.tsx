@@ -195,6 +195,15 @@ describe("registration form", () => {
     expect(message.closest("div")?.querySelector("input")).toBe(screen.getByLabelText("Пароль"));
   });
 
+  it("lays the role cards out in a plain group, not a fieldset (older Safari cannot grid a fieldset)", () => {
+    render(<RegisterPage />);
+
+    expect(document.querySelector("fieldset")).toBeNull();
+    const group = screen.getByRole("radiogroup");
+    expect(group.getAttribute("aria-labelledby")).toBe("role-legend");
+    expect(within(group).getAllByRole("radio")).toHaveLength(2);
+  });
+
   it("asks for the role first and shows no boxes until it is chosen", () => {
     render(<RegisterPage />);
 

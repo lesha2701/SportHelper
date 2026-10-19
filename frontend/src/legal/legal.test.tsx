@@ -32,6 +32,15 @@ describe("the documents", () => {
     expect([...used].sort()).toEqual(DOCUMENT_LIST.map((doc) => doc.key).sort());
   });
 
+  it("names ЮKassa, not Альфа-Банк, as the payment service where cards are entered", async () => {
+    const all = JSON.stringify(await Promise.all(DOCUMENT_LIST.map((doc) => loadDocument(doc.key))));
+
+    expect(all).not.toContain("Альфа");
+    expect(all).toContain("странице сервиса ЮKassa");
+    expect(all).toContain("я ввожу на странице платёжного сервиса ЮKassa");
+    expect(all).not.toContain("персональнысх");
+  });
+
   it("each document has a distinct address", () => {
     const paths = DOCUMENT_LIST.map((doc) => doc.path);
     expect(new Set(paths).size).toBe(paths.length);

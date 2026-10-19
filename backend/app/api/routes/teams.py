@@ -253,7 +253,7 @@ async def transfer_ownership(
     target_user = await users_repo.get_by_id(conn, payload.to_user_id)
     target_last_name = target_user["last_name"] or ""
     expected_phrase = (
-        f"Я передаю роль основного тренера команды «{team['name']}» "
+        f"Я передаю роль главного тренера команды «{team['name']}» "
         f"пользователю {target_user['first_name']} {target_last_name}".strip()
     )
     if payload.confirmation_phrase.strip() != expected_phrase:

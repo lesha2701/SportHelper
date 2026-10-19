@@ -34,7 +34,7 @@ describe("the admin button in the side navigation", () => {
 });
 
 describe("the team card in the side navigation", () => {
-  const team = { name: "Тест", roleLabel: "Основной тренер", initial: "Т" };
+  const team = { name: "Тест", roleLabel: "Главный тренер", initial: "Т" };
 
   it("shows the uploaded team logo over the initial", () => {
     render(<SideNav {...props} team={{ ...team, logo: { token: "t", fileId: "f1" } }} />);

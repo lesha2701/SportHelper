@@ -124,31 +124,37 @@ export function RegisterPage() {
       <form className={styles.form} onSubmit={submit} noValidate>
         {formError && <Notice kind="danger">{formError}</Notice>}
 
-        <fieldset className={styles.roles} disabled={submitting}>
-          <legend className={styles.rolesLegend}>Кто вы? Роль выбирается один раз и потом не меняется</legend>
-          {ROLES.map((option) => (
-            <label key={option.value} className={`${styles.role} ${role === option.value ? styles.roleActive : ""}`}>
-              <input
-                type="radio"
-                name="role"
-                className={styles.roleInput}
-                value={option.value}
-                checked={role === option.value}
-                onChange={() => chooseRole(option.value)}
-              />
-              <span className={styles.roleName}>
-                <Icon name={option.value === "player" ? "user" : "users"} size={17} />
-                {option.title}
-              </span>
-              <span className={styles.roleHint}>{option.hint}</span>
-            </label>
-          ))}
+        {/* A <div role="radiogroup">, not a <fieldset>: older Safari cannot lay a fieldset out as a grid, which stretched the cards and broke the form. */}
+        <div className={styles.roleGroup} role="radiogroup" aria-labelledby="role-legend">
+          <p id="role-legend" className={styles.rolesLegend}>
+            Кто вы? Роль выбирается один раз и потом не меняется
+          </p>
+          <div className={styles.roles}>
+            {ROLES.map((option) => (
+              <label key={option.value} className={`${styles.role} ${role === option.value ? styles.roleActive : ""}`}>
+                <input
+                  type="radio"
+                  name="role"
+                  className={styles.roleInput}
+                  value={option.value}
+                  checked={role === option.value}
+                  disabled={submitting}
+                  onChange={() => chooseRole(option.value)}
+                />
+                <span className={styles.roleName}>
+                  <Icon name={option.value === "player" ? "user" : "users"} size={17} />
+                  {option.title}
+                </span>
+                <span className={styles.roleHint}>{option.hint}</span>
+              </label>
+            ))}
+          </div>
           {errors.role && (
             <p className={styles.fieldError} role="alert">
               {errors.role}
             </p>
           )}
-        </fieldset>
+        </div>
 
         <div className={styles.row2}>
           <TextField

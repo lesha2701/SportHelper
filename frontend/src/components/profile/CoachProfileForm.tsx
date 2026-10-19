@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { ApiError } from "../../api/client";
 import type { CoachProfile, CoachProfileInput } from "../../types/profile";
+import { SportSelect } from "../shared/SportSelect";
 import styles from "./profile.module.css";
 
 interface CoachProfileFormProps {
@@ -11,7 +12,7 @@ interface CoachProfileFormProps {
 
 export function CoachProfileForm({ initial, onSubmit, onCancel }: CoachProfileFormProps) {
   const [fullName, setFullName] = useState(initial?.fullName ?? "");
-  const [sport] = useState(initial?.sport ?? "Баскетбол");
+  const [sport, setSport] = useState(initial?.sport ?? "");
   const [experienceYears, setExperienceYears] = useState(initial?.experienceYears?.toString() ?? "");
   const [specialization, setSpecialization] = useState(initial?.specialization ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -55,6 +56,8 @@ export function CoachProfileForm({ initial, onSubmit, onCancel }: CoachProfileFo
             maxLength={100}
           />
         </label>
+
+        <SportSelect value={sport} onChange={setSport} />
 
         <label className={styles.field}>
           <span className={styles.label}>Опыт, лет</span>

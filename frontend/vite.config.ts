@@ -4,6 +4,10 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // Older Safari (14-15, e.g. on 2013-2015 MacBooks) is still in use: compile for it instead of the newest browsers only.
+    target: ['es2020', 'safari14', 'chrome87', 'firefox78', 'edge88'],
+  },
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.{ts,tsx}'],

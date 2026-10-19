@@ -54,7 +54,7 @@ export function InviteAcceptScreen({
           </h1>
           <p className={profileStyles.subtitle}>
             {state.result === "joined"
-              ? `Теперь вы основной тренер команды «${state.team.name}».`
+              ? `Теперь вы главный тренер команды «${state.team.name}».`
               : `Тренер команды «${state.team.name}» рассмотрит вашу заявку.`}
           </p>
           <button
@@ -127,7 +127,7 @@ export function InviteAcceptScreen({
             {applying
               ? "Отправка…"
               : team.status === "without_coach"
-                ? "Стать основным тренером"
+                ? "Стать главным тренером"
                 : "Подать заявку на вступление"}
           </button>
           <button type="button" className={profileStyles.buttonSecondary} onClick={() => onDone()} disabled={applying}>

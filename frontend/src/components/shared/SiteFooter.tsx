@@ -13,7 +13,7 @@ export function SiteFooter() {
           Пользовательское соглашение
         </Link>
         <Link to={DOCUMENTS.privacy.path} className={styles.footerLink}>
-          Политика конфиденциальности
+          Политика обработки персональных данных
         </Link>
       </div>
       <div className={styles.footerRequisites}>

@@ -1,6 +1,7 @@
 .mobileShell {
   display: flex;
   flex-direction: column;
+  height: 100vh;
   height: 100svh;
   overflow: hidden;
 }
@@ -20,6 +21,7 @@
 
 .desktopShell {
   display: flex;
+  height: 100vh;
   height: 100svh;
   overflow: hidden;
 }

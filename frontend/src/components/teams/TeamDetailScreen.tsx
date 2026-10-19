@@ -406,7 +406,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
           <div className={profileStyles.card}>
             {isHeadCoach && (
               <button type="button" className={profileStyles.buttonSecondary} onClick={() => setTransferOpen(true)}>
-                Передать роль основного тренера
+                Передать роль главного тренера
               </button>
             )}
             {leaveError && <p className={profileStyles.error}>{leaveError}</p>}
@@ -454,7 +454,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
           title="Покинуть команду?"
           description={
             isHeadCoach
-              ? "Вы основной тренер — после выхода команда останется без тренера, пока капитан не пригласит нового."
+              ? "Вы главный тренер — после выхода команда останется без тренера, пока капитан не пригласит нового."
               : undefined
           }
           danger

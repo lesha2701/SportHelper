@@ -126,7 +126,14 @@
 .weekEventBlock[data-type="match"],
 .weekNoTimeChip[data-type="match"] {
   --event-color: var(--color-accent-blue);
-  --event-bg: color-mix(in srgb, var(--color-accent-blue) 18%, transparent);
+  --event-bg: var(--color-primary-glow);
+}
+
+@supports (background: color-mix(in srgb, red 50%, blue)) {
+  .weekEventBlock[data-type="match"],
+  .weekNoTimeChip[data-type="match"] {
+    --event-bg: color-mix(in srgb, var(--color-accent-blue) 18%, transparent);
+  }
 }
 
 .weekEventBlock[data-type="task_deadline"],

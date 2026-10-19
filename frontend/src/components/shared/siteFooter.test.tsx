@@ -16,7 +16,7 @@ function expectFullFooter() {
   expect(footer.textContent).toContain(`© ${new Date().getFullYear()} SportArenaGlobal`);
   for (const line of REQUISITES) expect(footer.textContent).toContain(line);
   expect(screen.getByRole("link", { name: "Пользовательское соглашение" }).getAttribute("href")).toBe("/terms");
-  expect(screen.getByRole("link", { name: "Политика конфиденциальности" }).getAttribute("href")).toBe("/privacy");
+  expect(screen.getByRole("link", { name: "Политика обработки персональных данных" }).getAttribute("href")).toBe("/privacy");
   expect(screen.getByRole("link", { name: "perekrestov_bus@mail.ru" }).getAttribute("href")).toBe("mailto:perekrestov_bus@mail.ru");
 }
 

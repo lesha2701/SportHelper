@@ -5,6 +5,7 @@ import { ApiError } from "../../api/client";
 import type { Plan, PlanInput } from "../../types/plan";
 import { Icon } from "../shared/Icon";
 import { CollapsibleSection } from "../shared/CollapsibleSection";
+import { SportSelect } from "../shared/SportSelect";
 import profileStyles from "../profile/profile.module.css";
 import aiStyles from "../stats/stats.module.css";
 
@@ -17,7 +18,7 @@ interface PlanFormProps {
 
 export function PlanForm({ token, initial, onSaved, onCancel }: PlanFormProps) {
   const isEdit = initial !== undefined;
-  const [sport, setSport] = useState(initial?.sport ?? "Баскетбол");
+  const [sport, setSport] = useState(initial?.sport ?? "");
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [durationMinutes, setDurationMinutes] = useState(initial?.durationMinutes?.toString() ?? "");
@@ -138,6 +139,8 @@ export function PlanForm({ token, initial, onSaved, onCancel }: PlanFormProps) {
             </div>
           </div>
         )}
+
+        <SportSelect value={sport} onChange={setSport} />
 
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>

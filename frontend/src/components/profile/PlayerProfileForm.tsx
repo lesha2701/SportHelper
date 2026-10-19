@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { ApiError } from "../../api/client";
 import { SKILL_LEVEL_LABELS, type PlayerProfile, type PlayerProfileInput, type SkillLevel } from "../../types/profile";
+import { SportSelect } from "../shared/SportSelect";
 import styles from "./profile.module.css";
 
 interface PlayerProfileFormProps {
@@ -14,7 +15,7 @@ export function PlayerProfileForm({ initial, onSubmit, onCancel }: PlayerProfile
   const [age, setAge] = useState(initial?.age?.toString() ?? "");
   const [heightCm, setHeightCm] = useState(initial?.heightCm?.toString() ?? "");
   const [weightKg, setWeightKg] = useState(initial?.weightKg?.toString() ?? "");
-  const [sport] = useState(initial?.sport ?? "Баскетбол");
+  const [sport, setSport] = useState(initial?.sport ?? "");
   const [position, setPosition] = useState(initial?.position ?? "");
   const [level, setLevel] = useState<SkillLevel | "">(initial?.level ?? "");
   const [goals, setGoals] = useState(initial?.goals ?? "");
@@ -65,6 +66,8 @@ export function PlayerProfileForm({ initial, onSubmit, onCancel }: PlayerProfile
             maxLength={100}
           />
         </label>
+
+        <SportSelect value={sport} onChange={setSport} />
 
         <span className={styles.fieldSectionLabel}>Физические данные</span>
 

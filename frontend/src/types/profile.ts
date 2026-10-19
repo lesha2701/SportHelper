@@ -9,14 +9,25 @@ export const SKILL_LEVEL_LABELS: Record<SkillLevel, string> = {
   professional: "Профессионал",
 };
 
+/** The sports a person can pick in every form. Older records may hold another (free-text) value: it is kept and shown. */
 export const COMMON_SPORTS = [
-  "Баскетбол",
   "Футбол",
-  "Волейбол",
+  "Баскетбол",
   "Хоккей",
+  "Волейбол",
   "Гандбол",
   "Футзал",
   "Регби",
+  "Плавание",
+  "Большой теннис",
+  "Настольный теннис",
+  "Боевые искусства",
+  "Бокс",
+  "Лёгкая атлетика",
+  "Гимнастика",
+  "Фитнес",
+  "Киберспорт",
+  "Другое",
 ];
 
 export interface PlayerProfile {

@@ -629,7 +629,7 @@ async def claim_account(
     email = svc.normalize_email(payload.email)
     if not payload.accept_terms:
         raise svc.validation_error(
-            "Для продолжения нужно принять пользовательское соглашение и политику конфиденциальности.", "accept_terms"
+            "Для продолжения нужно принять пользовательское соглашение и политику обработки персональных данных.", "accept_terms"
         )
     claim_hash = hash_token(payload.token)
     pending = await tokens_repo.peek(conn, claim_hash, "telegram_claim")

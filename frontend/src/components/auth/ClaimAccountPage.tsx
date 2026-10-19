@@ -76,7 +76,7 @@ export function ClaimAccountPage() {
     if (!looksLikeEmail(email)) found.email = "Введите email полностью, например name@example.com.";
     if ([...password].length < PASSWORD_MIN_LENGTH) found.password = `Пароль слишком короткий: минимум ${PASSWORD_MIN_LENGTH} символов.`;
     if (password !== passwordConfirm) found.passwordConfirm = "Пароли не совпадают.";
-    if (!acceptTerms) found.acceptTerms = "Нужно принять пользовательское соглашение и политику конфиденциальности.";
+    if (!acceptTerms) found.acceptTerms = "Нужно принять пользовательское соглашение и политику обработки персональных данных.";
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
@@ -159,7 +159,7 @@ export function ClaimAccountPage() {
           </Link>{" "}
           и{" "}
           <Link to="/privacy" className={styles.link} target="_blank" rel="noopener">
-            политику конфиденциальности
+            политику обработки персональных данных
           </Link>
         </Checkbox>
         <SubmitButton loading={submitting} loadingText="Переносим…">

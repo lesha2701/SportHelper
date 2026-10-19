@@ -84,7 +84,7 @@ describe("a visitor without an account", () => {
     expect(footer.textContent).toContain(`© ${new Date().getFullYear()} SportArenaGlobal`);
     expect(Array.from(footer.querySelectorAll("a")).map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
       ["Пользовательское соглашение", "/terms"],
-      ["Политика конфиденциальности", "/privacy"],
+      ["Политика обработки персональных данных", "/privacy"],
       ["perekrestov_bus@mail.ru", "mailto:perekrestov_bus@mail.ru"],
     ]);
     for (const line of ["ИП Перекрестов Вячеслав Дмитриевич", "ИНН: 770373336381", "ОГРН: 326774600747726", "Для связи по вопросам рекламы:"]) {
