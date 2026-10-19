@@ -36,6 +36,7 @@ describe("the documents", () => {
     const all = JSON.stringify(await Promise.all(DOCUMENT_LIST.map((doc) => loadDocument(doc.key))));
 
     expect(all).not.toContain("Альфа");
+    expect(all).not.toContain("или иного платёжного сервиса");
     expect(all).toContain("странице сервиса ЮKassa");
     expect(all).toContain("я ввожу на странице платёжного сервиса ЮKassa");
     expect(all).not.toContain("персональнысх");
