@@ -1,5 +1,5 @@
 // frontend/src/components/coaches/ListingEditScreen.tsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   createListing,
   getListingAvailability,
@@ -13,6 +13,7 @@ import { Icon } from "../shared/Icon";
 import { photoVideoGallery } from "../shared/MediaLightbox";
 import { toast, withoutSuccessToasts } from "../../toast";
 import { FilePicker } from "../shared/FilePicker";
+import { checkVideo, usePreviewUrl } from "../shared/pendingMedia";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { AuthenticatedVideo } from "../shared/AuthenticatedVideo";
 import type { AvailabilityWindow, CoachListing } from "../../types/coachListing";
@@ -21,41 +22,10 @@ import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 
 const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
-const MAX_VIDEO_SECONDS = 60;
-
 interface WindowDraft {
   weekday: number;
   startTime: string;
   endTime: string;
-}
-
-/** Client-side pre-check of a picked video (the server enforces the same
- * limits) so a too-big/too-long file is rejected before the long upload. */
-function checkVideo(file: File): Promise<string | null> {
-  if (file.size > MAX_VIDEO_BYTES) return Promise.resolve("Видео больше 100 МБ.");
-  return new Promise((resolve) => {
-    const probe = document.createElement("video");
-    const url = URL.createObjectURL(file);
-    const done = (result: string | null) => {
-      URL.revokeObjectURL(url);
-      resolve(result);
-    };
-    probe.preload = "metadata";
-    probe.onloadedmetadata = () =>
-      done(probe.duration > MAX_VIDEO_SECONDS + 0.5 ? "Видео должно быть короче 1 минуты." : null);
-    // Some containers can't be probed in the browser; the server still checks.
-    probe.onerror = () => done(null);
-    probe.src = url;
-  });
-}
-
-function usePreviewUrl(file: File | null): string | null {
-  const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
-  useEffect(() => () => {
-    if (url) URL.revokeObjectURL(url);
-  }, [url]);
-  return url;
 }
 
 export function ListingEditScreen({

@@ -203,6 +203,8 @@ function CoachTabContent({
           initialCoachUserId={initialCoachUserId}
           initialListingId={marketplaceStart?.listingId ?? null}
           initialBookListingId={marketplaceStart?.bookListingId ?? null}
+          myUserId={userId}
+          canCreateListing
         />
       );
     case "profile":
@@ -601,6 +603,7 @@ function MainContent({
               initialCoachUserId={marketplaceCoachId}
               initialListingId={marketplaceStart?.listingId ?? null}
               initialBookListingId={marketplaceStart?.bookListingId ?? null}
+              myUserId={myUserId}
             />
           )}
           {playerTab === "profile" && (

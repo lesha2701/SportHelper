@@ -9,6 +9,7 @@ import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { ListingPublicProfileScreen } from "./ListingPublicProfileScreen";
 import { CoachPublicProfileScreen } from "./CoachPublicProfileScreen";
 import { BookingFlow } from "./BookingFlow";
+import { ListingEditScreen } from "./ListingEditScreen";
 import { useIsDesktop } from "../../hooks/useIsDesktop";
 import type { CoachListingCard, CoachListingFilters, CoachListingProfile } from "../../types/coachListing";
 import type { Booking } from "../../types/booking";
@@ -19,6 +20,8 @@ import styles from "./coaches.module.css";
 
 type View =
   | { screen: "list" }
+  /** A coach starting a new listing straight from this tab. */
+  | { screen: "createListing" }
   | { screen: "coachProfile"; coachUserId: string }
   /** `coachUserId` is unknown when a listing is opened straight from a link. */
   | { screen: "profile"; listingId: string; coachUserId: string | null }
@@ -195,6 +198,8 @@ export function CoachMarketplaceScreen({
   initialBookListingId = null,
   guest = false,
   onRequireLogin,
+  myUserId = null,
+  canCreateListing = false,
 }: {
   token: string;
   /** Opens straight on this coach's public profile (e.g. from global search). */
@@ -206,6 +211,10 @@ export function CoachMarketplaceScreen({
   /** A visitor without an account: everything is browsable, booking asks them to sign in first. */
   guest?: boolean;
   onRequireLogin?: (listingId: string) => void;
+  /** The signed-in person: their own listings are not shown here (there is nothing to book from them). */
+  myUserId?: string | null;
+  /** A coach can start a new listing from this tab. */
+  canCreateListing?: boolean;
 }) {
   const isDesktop = useIsDesktop();
   const [view, setView] = useState<View>(
@@ -244,7 +253,9 @@ export function CoachMarketplaceScreen({
   const load = (filters: CoachListingFilters) => {
     setState({ status: "loading" });
     listListings(token, filters)
-      .then((listings) => setState({ status: "ready", listings }))
+      .then((listings) =>
+        setState({ status: "ready", listings: myUserId ? listings.filter((listing) => listing.coachUserId !== myUserId) : listings }),
+      )
       .catch((err: unknown) => {
         const message = err instanceof ApiError ? err.message : "Не удалось загрузить список тренеров";
         setState({ status: "error", message });
@@ -288,6 +299,19 @@ export function CoachMarketplaceScreen({
     setOnlineOnly(false);
     load({});
   };
+
+  if (view.screen === "createListing") {
+    return (
+      <ListingEditScreen
+        token={token}
+        listing={null}
+        onBack={() => {
+          setView({ screen: "list" });
+          load({});
+        }}
+      />
+    );
+  }
 
   if (view.screen === "coachProfile") {
     return (
@@ -367,7 +391,15 @@ export function CoachMarketplaceScreen({
 
   return (
     <div className={teamStyles.screen}>
-      <h1 className={teamStyles.heading}>Тренеры</h1>
+      <div className={teamStyles.headerRow}>
+        <h1 className={teamStyles.heading}>Тренеры</h1>
+        {canCreateListing && (
+          <button type="button" className={teamStyles.addButton} onClick={() => setView({ screen: "createListing" })}>
+            <Icon name="plus" size={16} />
+            Создать объявление
+          </button>
+        )}
+      </div>
 
       <div className={styles.marketplaceLayout}>
         <div className={styles.filterPanel}>

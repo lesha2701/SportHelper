@@ -1,10 +1,14 @@
 import { useState, type FormEvent } from "react";
-import { createExercise, updateExercise } from "../../api/exercises";
+import { createExercise, updateExercise, uploadExercisePhoto, uploadExerciseVideo } from "../../api/exercises";
 import { ApiError } from "../../api/client";
 import { SKILL_LEVEL_LABELS, type SkillLevel } from "../../types/profile";
 import type { Exercise, ExerciseInput } from "../../types/exercise";
 import { SportSelect } from "../shared/SportSelect";
+import { CollapsibleSection } from "../shared/CollapsibleSection";
+import { FilePicker } from "../shared/FilePicker";
+import { checkVideo, usePreviewUrl } from "../shared/pendingMedia";
 import profileStyles from "../profile/profile.module.css";
+import libraryStyles from "./library.module.css";
 
 interface ExerciseFormProps {
   token: string;
@@ -29,13 +33,31 @@ export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseForm
   const [commonMistakes, setCommonMistakes] = useState(initial?.commonMistakes ?? "");
   const [warnings, setWarnings] = useState(initial?.warnings ?? "");
   const [coachComment, setCoachComment] = useState(initial?.coachComment ?? "");
+  // Files picked now, uploaded right after the exercise itself is saved - no "save first, add media later".
+  const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
+  const [pendingVideo, setPendingVideo] = useState<File | null>(null);
+  const photoPreview = usePreviewUrl(pendingPhoto);
+  const videoPreview = usePreviewUrl(pendingVideo);
+  // Set once the exercise exists on the server: if a media upload fails, "save" again continues instead of creating a duplicate.
+  const [savedId, setSavedId] = useState<string | null>(initial?.id ?? null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const pickVideo = async (file: File) => {
+    setError(null);
+    const problem = await checkVideo(file);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    setPendingVideo(file);
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setSaving(true);
+    let step = "упражнение";
     try {
       const input: ExerciseInput = {
         sport: sport.trim(),
@@ -53,10 +75,24 @@ export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseForm
         warnings: warnings.trim() || null,
         coach_comment: coachComment.trim() || null,
       };
-      const exercise = isEdit && initial ? await updateExercise(token, initial.id, input) : await createExercise(token, input);
+      let exercise = savedId ? await updateExercise(token, savedId, input) : await createExercise(token, input);
+      setSavedId(exercise.id);
+      step = "фото";
+      if (pendingPhoto) {
+        exercise = await uploadExercisePhoto(token, exercise.id, pendingPhoto);
+        setPendingPhoto(null);
+      }
+      step = "видео";
+      if (pendingVideo) {
+        exercise = await uploadExerciseVideo(token, exercise.id, pendingVideo);
+        setPendingVideo(null);
+      }
       onSaved(exercise);
     } catch (err) {
-      if (err instanceof ApiError && err.code === "coach_profile_required") {
+      if (step !== "упражнение") {
+        const reason = err instanceof ApiError ? err.message : "неизвестная ошибка";
+        setError(`Упражнение сохранено, но не удалось загрузить ${step}: ${reason} Исправьте и нажмите «Сохранить» ещё раз.`);
+      } else if (err instanceof ApiError && err.code === "coach_profile_required") {
         setError("Сначала заполните профиль тренера в разделе «Профиль».");
       } else {
         setError(err instanceof ApiError ? err.message : "Не удалось сохранить упражнение");
@@ -86,6 +122,42 @@ export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseForm
           <textarea className={profileStyles.textarea} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
         </label>
 
+        <div className={profileStyles.field}>
+          <span className={profileStyles.label}>Фото и видео</span>
+          {photoPreview && <img className={libraryStyles.exercisePhoto} src={photoPreview} alt="Выбранное фото" />}
+          <FilePicker
+            icon="image"
+            label={pendingPhoto ? pendingPhoto.name : initial?.photoFileId ? "Заменить фотографию" : "Добавить фотографию"}
+            hint="JPEG, PNG, WEBP или GIF — загрузится вместе с упражнением"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onSelect={(file) => {
+              setError(null);
+              setPendingPhoto(file);
+            }}
+            disabled={saving}
+          />
+          {pendingPhoto && (
+            <button type="button" className={profileStyles.buttonSecondary} onClick={() => setPendingPhoto(null)} disabled={saving}>
+              Убрать выбранное фото
+            </button>
+          )}
+          {videoPreview && <video className={libraryStyles.exerciseVideo} src={videoPreview} controls preload="metadata" />}
+          <FilePicker
+            icon="video"
+            label={pendingVideo ? pendingVideo.name : initial?.videoFileId ? "Заменить видео" : "Добавить видео"}
+            hint="MP4, MOV или WEBM, до 1 минуты и 100 МБ"
+            accept="video/mp4,video/quicktime,video/webm"
+            onSelect={(file) => void pickVideo(file)}
+            disabled={saving}
+          />
+          {pendingVideo && (
+            <button type="button" className={profileStyles.buttonSecondary} onClick={() => setPendingVideo(null)} disabled={saving}>
+              Убрать выбранное видео
+            </button>
+          )}
+        </div>
+
+        <CollapsibleSection label="Показать ещё поля" openLabel="Скрыть дополнительные поля" defaultOpen={isEdit}>
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Цель</span>
           <input className={profileStyles.input} value={goal} onChange={(e) => setGoal(e.target.value)} maxLength={500} />
@@ -160,6 +232,8 @@ export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseForm
           <span className={profileStyles.label}>Комментарий тренера</span>
           <textarea className={profileStyles.textarea} value={coachComment} onChange={(e) => setCoachComment(e.target.value)} maxLength={1000} />
         </label>
+
+        </CollapsibleSection>
 
         {error && <p className={profileStyles.error}>{error}</p>}
 

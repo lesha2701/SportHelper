@@ -32,12 +32,16 @@ describe("the documents", () => {
     expect([...used].sort()).toEqual(DOCUMENT_LIST.map((doc) => doc.key).sort());
   });
 
-  it("names ЮKassa, not Альфа-Банк, as the payment service where cards are entered", async () => {
+  it("names the payment operators the way the owner worded them, and no longer Альфа-Банк", async () => {
+    const privacy = JSON.stringify(await loadDocument("privacy"));
+    const terms = JSON.stringify(await loadDocument("terms"));
     const all = JSON.stringify(await Promise.all(DOCUMENT_LIST.map((doc) => loadDocument(doc.key))));
 
     expect(all).not.toContain("Альфа");
-    expect(all).not.toContain("или иного платёжного сервиса");
-    expect(all).toContain("странице сервиса ЮKassa");
+    expect(privacy).toContain(
+      "6.1. Реквизиты банковской карты (полный номер, срок действия, имя владельца, код CVC/CVV) Спортсмен вводит на платёжной странице Оператора/платежного агрегатора ООО «ЮМани» / ООО «АЙТИГРУПП» или иного платёжного сервиса. Эти данные обрабатывает банк (платёжный сервис/оператор/агрегатор) как самостоятельный оператор",
+    );
+    expect(terms).toContain("странице сервиса ЮKassa");
     expect(all).toContain("я ввожу на странице платёжного сервиса ЮKassa");
     expect(all).not.toContain("персональнысх");
   });

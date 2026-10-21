@@ -6,6 +6,8 @@ import styles from "./CollapsibleSection.module.css";
 
 interface CollapsibleSectionProps {
   label: string;
+  /** Shown instead of `label` while the section is open (e.g. "Показать ещё поля" / "Скрыть дополнительные поля"). */
+  openLabel?: string;
   defaultOpen?: boolean;
   /** Bump this (e.g. a counter incremented after an AI draft or similar
    * out-of-band fill writes values into this section's fields) to force
@@ -25,7 +27,7 @@ interface CollapsibleSectionProps {
  * template prefill applied after mount) can write into this section's
  * fields, also pass `forceOpenKey` so the section opens the moment that
  * happens. */
-export function CollapsibleSection({ label, defaultOpen = false, forceOpenKey, children }: CollapsibleSectionProps) {
+export function CollapsibleSection({ label, openLabel, defaultOpen = false, forceOpenKey, children }: CollapsibleSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
   const prevForceOpenKey = useRef(forceOpenKey);
 
@@ -38,7 +40,7 @@ export function CollapsibleSection({ label, defaultOpen = false, forceOpenKey, c
   return (
     <div className={styles.section}>
       <button type="button" className={styles.toggle} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <span className={styles.toggleLabel}>{label}</span>
+        <span className={styles.toggleLabel}>{open && openLabel ? openLabel : label}</span>
         <span className={open ? `${styles.chevron} ${styles.chevronOpen}` : styles.chevron}>
           <Icon name="chevron-right" size={16} />
         </span>
