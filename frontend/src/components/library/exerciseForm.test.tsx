@@ -34,6 +34,14 @@ const pick = (label: string, file: File) =>
 const save = () => fireEvent.click(screen.getByRole("button", { name: "Создать упражнение" }));
 
 describe("creating an exercise", () => {
+  it("puts the «Дополнительные поля» toggle before the photo and video pickers", () => {
+    render(<ExerciseForm token="t" onSaved={onSaved} onCancel={() => {}} />);
+
+    const toggle = screen.getByRole("button", { name: "Дополнительные поля" });
+    const photo = screen.getByLabelText("Добавить фотографию");
+    expect(toggle.compareDocumentPosition(photo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("lets the coach pick a photo and a video before anything is saved", () => {
     render(<ExerciseForm token="t" onSaved={onSaved} onCancel={() => {}} />);
 
@@ -41,7 +49,7 @@ describe("creating an exercise", () => {
     expect(screen.getByLabelText("Добавить видео")).toBeTruthy();
   });
 
-  it("shows only the essentials at first and the rest behind «Показать ещё поля»", () => {
+  it("shows only the essentials at first and the rest behind «Дополнительные поля»", () => {
     render(<ExerciseForm token="t" onSaved={onSaved} onCancel={() => {}} />);
 
     for (const shown of [/Вид спорта/, /Название/, /Описание/]) expect(screen.getAllByText(shown).length).toBeGreaterThan(0);
@@ -49,12 +57,12 @@ describe("creating an exercise", () => {
       expect(screen.queryByText(hidden)).toBeNull();
     }
 
-    fireEvent.click(screen.getByRole("button", { name: "Показать ещё поля" }));
+    fireEvent.click(screen.getByRole("button", { name: "Дополнительные поля" }));
 
     for (const shown of ["Цель", "Подходы", "Повторения", "Инвентарь", "Сложность", "Техника выполнения", "Типичные ошибки", "Предупреждения", "Комментарий тренера"]) {
       expect(screen.getByText(shown)).toBeTruthy();
     }
-    expect(screen.getByRole("button", { name: "Скрыть дополнительные поля" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Дополнительные поля" }).getAttribute("aria-expanded")).toBe("true");
   });
 
   it("saves the exercise and then uploads the picked photo and video in one go", async () => {

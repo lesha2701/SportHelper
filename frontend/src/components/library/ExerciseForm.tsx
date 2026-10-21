@@ -122,42 +122,7 @@ export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseForm
           <textarea className={profileStyles.textarea} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
         </label>
 
-        <div className={profileStyles.field}>
-          <span className={profileStyles.label}>Фото и видео</span>
-          {photoPreview && <img className={libraryStyles.exercisePhoto} src={photoPreview} alt="Выбранное фото" />}
-          <FilePicker
-            icon="image"
-            label={pendingPhoto ? pendingPhoto.name : initial?.photoFileId ? "Заменить фотографию" : "Добавить фотографию"}
-            hint="JPEG, PNG, WEBP или GIF — загрузится вместе с упражнением"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            onSelect={(file) => {
-              setError(null);
-              setPendingPhoto(file);
-            }}
-            disabled={saving}
-          />
-          {pendingPhoto && (
-            <button type="button" className={profileStyles.buttonSecondary} onClick={() => setPendingPhoto(null)} disabled={saving}>
-              Убрать выбранное фото
-            </button>
-          )}
-          {videoPreview && <video className={libraryStyles.exerciseVideo} src={videoPreview} controls preload="metadata" />}
-          <FilePicker
-            icon="video"
-            label={pendingVideo ? pendingVideo.name : initial?.videoFileId ? "Заменить видео" : "Добавить видео"}
-            hint="MP4, MOV или WEBM, до 1 минуты и 100 МБ"
-            accept="video/mp4,video/quicktime,video/webm"
-            onSelect={(file) => void pickVideo(file)}
-            disabled={saving}
-          />
-          {pendingVideo && (
-            <button type="button" className={profileStyles.buttonSecondary} onClick={() => setPendingVideo(null)} disabled={saving}>
-              Убрать выбранное видео
-            </button>
-          )}
-        </div>
-
-        <CollapsibleSection label="Показать ещё поля" openLabel="Скрыть дополнительные поля" defaultOpen={isEdit}>
+        <CollapsibleSection label="Дополнительные поля" defaultOpen={isEdit}>
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Цель</span>
           <input className={profileStyles.input} value={goal} onChange={(e) => setGoal(e.target.value)} maxLength={500} />
@@ -234,6 +199,41 @@ export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseForm
         </label>
 
         </CollapsibleSection>
+
+        <div className={profileStyles.field}>
+          <span className={profileStyles.label}>Фото и видео</span>
+          {photoPreview && <img className={libraryStyles.exercisePhoto} src={photoPreview} alt="Выбранное фото" />}
+          <FilePicker
+            icon="image"
+            label={pendingPhoto ? pendingPhoto.name : initial?.photoFileId ? "Заменить фотографию" : "Добавить фотографию"}
+            hint="JPEG, PNG, WEBP или GIF — загрузится вместе с упражнением"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onSelect={(file) => {
+              setError(null);
+              setPendingPhoto(file);
+            }}
+            disabled={saving}
+          />
+          {pendingPhoto && (
+            <button type="button" className={profileStyles.buttonSecondary} onClick={() => setPendingPhoto(null)} disabled={saving}>
+              Убрать выбранное фото
+            </button>
+          )}
+          {videoPreview && <video className={libraryStyles.exerciseVideo} src={videoPreview} controls preload="metadata" />}
+          <FilePicker
+            icon="video"
+            label={pendingVideo ? pendingVideo.name : initial?.videoFileId ? "Заменить видео" : "Добавить видео"}
+            hint="MP4, MOV или WEBM, до 1 минуты и 100 МБ"
+            accept="video/mp4,video/quicktime,video/webm"
+            onSelect={(file) => void pickVideo(file)}
+            disabled={saving}
+          />
+          {pendingVideo && (
+            <button type="button" className={profileStyles.buttonSecondary} onClick={() => setPendingVideo(null)} disabled={saving}>
+              Убрать выбранное видео
+            </button>
+          )}
+        </div>
 
         {error && <p className={profileStyles.error}>{error}</p>}
 
