@@ -202,6 +202,24 @@ def test_the_site_says_payments_are_on_once_enabled_and_configured(world, provid
     assert world.client.get("/api/features").json()["payments"] is True
 
 
+def test_the_balance_and_withdrawal_flags_reach_the_site_and_withdrawals_need_the_balance(world, monkeypatch) -> None:  # noqa: F811
+    for name in ("TRAINER_BALANCE_ENABLED", "TRAINER_WITHDRAWALS_ENABLED"):
+        monkeypatch.delenv(name, raising=False)
+    get_settings.cache_clear()
+    features = world.client.get("/api/features").json()
+    assert (features["trainer_balance"], features["trainer_withdrawals"]) == (False, False)  # everything is off by default
+
+    monkeypatch.setenv("TRAINER_WITHDRAWALS_ENABLED", "true")
+    get_settings.cache_clear()
+    features = world.client.get("/api/features").json()
+    assert (features["trainer_balance"], features["trainer_withdrawals"]) == (False, False)  # withdrawals alone show nothing
+
+    monkeypatch.setenv("TRAINER_BALANCE_ENABLED", "true")
+    get_settings.cache_clear()
+    features = world.client.get("/api/features").json()
+    assert (features["trainer_balance"], features["trainer_withdrawals"]) == (True, True)
+
+
 # --- the provider decides, never the browser ---------------------------------------------------------------------------------
 
 
