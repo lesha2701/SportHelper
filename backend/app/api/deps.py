@@ -208,3 +208,41 @@ async def require_admin_recent_mfa(
     if verified_at is None or datetime.now(timezone.utc) - verified_at > timedelta(minutes=settings.admin_sensitive_mfa_minutes):
         raise ForbiddenError("confirm your two-factor code again to do this", code="mfa_recent_required")
     return ctx
+
+
+def is_finance_admin(user: dict, settings: Settings) -> bool:
+    """May act on money in the admin panel: an administrator (see is_admin) whose address is ALSO in FINANCE_ADMIN_EMAILS.
+    Empty list = nobody. Re-evaluated on every request; there is no stored flag."""
+    email = user.get("email")
+    return bool(is_admin(user, settings) and email and email.lower() in settings.finance_admin_emails_list)
+
+
+async def require_finance_admin(
+    ctx: AuthContext = Depends(require_admin_mfa),
+    settings: Settings = Depends(get_settings_dep),
+) -> AuthContext:
+    """Every finance route: administrator + second factor in this session + listed as a finance administrator."""
+    if not is_finance_admin(ctx.user, settings):
+        raise ForbiddenError("finance administrator access required", code="finance_access_required")
+    return ctx
+
+
+async def require_finance_write(
+    ctx: AuthContext = Depends(require_admin_write),
+    settings: Settings = Depends(get_settings_dep),
+) -> AuthContext:
+    """Every finance CHANGE: the ordinary admin-write chain (second factor + per-administrator rate limit) AND a finance administrator."""
+    if not is_finance_admin(ctx.user, settings):
+        raise ForbiddenError("finance administrator access required", code="finance_access_required")
+    return ctx
+
+
+async def require_finance_recent_mfa(
+    ctx: AuthContext = Depends(require_finance_write),
+    settings: Settings = Depends(get_settings_dep),
+) -> AuthContext:
+    """Money-moving / dangerous finance actions: the second factor entered within the last few minutes."""
+    verified_at = ctx.session.get("mfa_verified_at")
+    if verified_at is None or datetime.now(timezone.utc) - verified_at > timedelta(minutes=settings.admin_sensitive_mfa_minutes):
+        raise ForbiddenError("confirm your two-factor code again to do this", code="mfa_recent_required")
+    return ctx

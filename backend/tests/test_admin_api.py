@@ -120,7 +120,7 @@ def test_an_administrator_without_two_factor_can_only_ask_what_is_missing(client
     overview = client.get("/api/admin/dashboard")
     users = client.get("/api/admin/users")
 
-    assert session.json() == {"is_admin": True, "mfa_enabled": False, "mfa_verified": False, "mfa_recent": False}
+    assert session.json() == {"is_admin": True, "mfa_enabled": False, "mfa_verified": False, "mfa_recent": False, "finance": False}
     assert overview.status_code == 403 and overview.json()["error"]["code"] == "mfa_setup_required"
     assert users.status_code == 403 and users.json()["error"]["code"] == "mfa_setup_required"
 
@@ -138,10 +138,10 @@ def test_the_session_probe_follows_the_second_factor_of_this_session(client, adm
     info = _signed_in_admin(client)
     secret, _ = _enable_mfa(client, info["csrf"])
 
-    assert client.get("/api/admin/session").json() == {"is_admin": True, "mfa_enabled": True, "mfa_verified": True, "mfa_recent": True}
+    assert client.get("/api/admin/session").json() == {"is_admin": True, "mfa_enabled": True, "mfa_verified": True, "mfa_recent": True, "finance": False}
     client.cookies.clear()
     login(client, email=ADMIN)
-    assert client.get("/api/admin/session").json() == {"is_admin": True, "mfa_enabled": True, "mfa_verified": False, "mfa_recent": False}
+    assert client.get("/api/admin/session").json() == {"is_admin": True, "mfa_enabled": True, "mfa_verified": False, "mfa_recent": False, "finance": False}
 
 
 def test_enrolling_a_second_factor_needs_the_password_again(client, admin_env) -> None:

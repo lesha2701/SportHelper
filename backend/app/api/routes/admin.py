@@ -23,7 +23,7 @@ from uuid import UUID
 import asyncpg
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import AuthContext, get_db, get_settings_dep, is_admin, require_admin, require_admin_mfa, require_admin_write
+from app.api.deps import AuthContext, get_db, get_settings_dep, is_admin, is_finance_admin, require_admin, require_admin_mfa, require_admin_write
 from app.config import Settings
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.repositories import admin as admin_repo
@@ -69,6 +69,7 @@ async def admin_session(
         mfa_enabled=bool(mfa and mfa["enabled_at"]),
         mfa_verified=bool(verified_at and now - verified_at <= timedelta(hours=settings.admin_mfa_session_hours)),
         mfa_recent=bool(verified_at and now - verified_at <= timedelta(minutes=settings.admin_sensitive_mfa_minutes)),
+        finance=is_finance_admin(ctx.user, settings),
     )
 
 

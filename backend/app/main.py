@@ -14,6 +14,7 @@ from app.api.routes import (
     admin,
     admin_complaints,
     admin_content,
+    admin_finance,
     admin_media,
     ai,
     auth,
@@ -24,6 +25,7 @@ from app.api.routes import (
     complaints,
     exercises,
     files,
+    finance,
     health,
     matches,
     metrics,
@@ -197,6 +199,8 @@ def create_app() -> FastAPI:
     app.include_router(admin_media.router)
     app.include_router(admin_content.router)
     app.include_router(admin_complaints.router)
+    app.include_router(admin_finance.router)
+    app.include_router(finance.router)
     app.include_router(complaints.router)
     app.include_router(health.router)
     app.include_router(profile.router)

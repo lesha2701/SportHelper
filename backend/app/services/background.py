@@ -34,6 +34,7 @@ from app.repositories import sessions as sessions_repo
 from app.repositories import tasks as tasks_repo
 from app.repositories import trainings as trainings_repo
 from app.repositories import users as users_repo
+from app.services import reconcile as reconcile_service
 from app.services import notifications as notifications_service
 from app.services import nudges as nudges_service
 
@@ -206,6 +207,7 @@ async def run_tick(pool: asyncpg.Pool, bot: Bot | None, settings: Settings) -> N
         await sweep_expired_blocks(conn)
         await sweep_expired_bookings(conn)
         await schedule_training_nudges(conn, settings)
+        await reconcile_service.run_finance_tick(conn, settings)
         await send_due_notifications(conn, bot, settings)
         await purge_soft_deleted_files(conn, settings)
         await run_account_maintenance(conn, settings)

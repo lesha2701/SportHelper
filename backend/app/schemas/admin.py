@@ -16,6 +16,8 @@ class AdminSessionOut(BaseModel):
     mfa_verified: bool
     # ...and recently enough for irreversible ones (see ADMIN_SENSITIVE_MFA_MINUTES).
     mfa_recent: bool
+    # May use the «Финансы» section (FINANCE_ADMIN_EMAILS); the section does not exist for other administrators.
+    finance: bool = False
 
 
 class DayCountOut(BaseModel):

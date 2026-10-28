@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import re
+from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 
@@ -149,13 +150,40 @@ class Settings(BaseSettings):
     backend_host: str = Field(default="0.0.0.0", alias="BACKEND_HOST")
     backend_port: int = Field(default=8000, alias="BACKEND_PORT")
 
-    # --- Online payments (ЮKassa). Both keys come from the shop's cabinet; without them the "pay" button is simply not offered.
+    # --- Online payments (ЮKassa) and the finance contour. EVERY switch is off by default. ------------------------------
+    yookassa_enabled: bool = Field(default=False, alias="YOOKASSA_ENABLED")
     yookassa_shop_id: str = Field(default="", alias="YOOKASSA_SHOP_ID")
     yookassa_secret_key: str = Field(default="", alias="YOOKASSA_SECRET_KEY")
     yookassa_api_url: str = Field(default="https://api.yookassa.ru/v3", alias="YOOKASSA_API_URL")
+    # Where the customer comes back to after paying (empty: <APP_BASE_URL>/payments/return). ?booking=<id> is appended.
+    yookassa_return_url: str = Field(default="", alias="YOOKASSA_RETURN_URL")
     # Fiscal receipt (54-FZ) data is sent only when the shop's cash register is connected to ЮKassa and this is switched on.
     yookassa_send_receipt: bool = Field(default=False, alias="YOOKASSA_SEND_RECEIPT")
     yookassa_vat_code: int = Field(default=1, ge=1, le=12, alias="YOOKASSA_VAT_CODE")
+    # Accept notifications only from ЮKassa's published address ranges (one layer; the payment is ALWAYS re-read from the API too).
+    yookassa_webhook_ip_check: bool = Field(default=True, alias="YOOKASSA_WEBHOOK_IP_CHECK")
+
+    # The platform's commission, a percentage of the price. Read ONLY when a payment obligation is created and then frozen in it.
+    platform_commission_percent: Decimal = Field(default=Decimal("10"), ge=0, le=50, alias="PLATFORM_COMMISSION_PERCENT")
+    trainer_min_withdrawal_rub: int = Field(default=10000, ge=1, alias="TRAINER_MIN_WITHDRAWAL_RUB")
+    trainer_balance_enabled: bool = Field(default=False, alias="TRAINER_BALANCE_ENABLED")
+    trainer_withdrawals_enabled: bool = Field(default=False, alias="TRAINER_WITHDRAWALS_ENABLED")
+    # Confirming a REAL payout in the admin panel stays blocked until this is switched on.
+    trainer_payout_confirmation_enabled: bool = Field(default=False, alias="TRAINER_PAYOUT_CONFIRMATION_ENABLED")
+    # Who may act on money in the admin panel (a subset of ADMIN_EMAILS is expected; empty = nobody).
+    finance_admin_emails: str = Field(default="", alias="FINANCE_ADMIN_EMAILS")
+    # When on, the administrator who approved a payout cannot be the one who confirms it was paid.
+    finance_two_person_rule: bool = Field(default=False, alias="FINANCE_TWO_PERSON_RULE")
+    # "admin": a finance administrator releases each earning after checking it. "auto_after_hold": released by itself
+    # EARNING_HOLD_HOURS after the trainer marked the session conducted (only if nobody froze it).
+    earning_release_mode: str = Field(default="admin", pattern="^(admin|auto_after_hold)$", alias="EARNING_RELEASE_MODE")
+    earning_hold_hours: int = Field(default=72, ge=0, le=24 * 60, alias="EARNING_HOLD_HOURS")
+    # On a refund the platform's commission is returned in proportion (a business rule to be confirmed).
+    refund_returns_commission: bool = Field(default=True, alias="REFUND_RETURNS_COMMISSION")
+    # Reconciliation with ЮKassa: only unfinished attempts, younger than this many hours, a bounded batch per tick.
+    reconcile_max_age_hours: int = Field(default=72, ge=1, alias="PAYMENT_RECONCILE_MAX_AGE_HOURS")
+    reconcile_batch_size: int = Field(default=20, ge=1, le=200, alias="PAYMENT_RECONCILE_BATCH")
+    withdrawal_requests_per_hour: int = Field(default=5, ge=1, alias="WITHDRAWAL_REQUESTS_PER_HOUR")
 
     invite_expiration_hours: int = Field(default=24, alias="INVITE_EXPIRATION_HOURS")
 
@@ -255,8 +283,18 @@ class Settings(BaseSettings):
 
     @property
     def payments_enabled(self) -> bool:
-        """Online payment is offered only when the shop is configured."""
-        return bool(self.yookassa_shop_id and self.yookassa_secret_key)
+        """Online payment is offered only when it is switched on AND the shop keys are present."""
+        return self.yookassa_enabled and bool(self.yookassa_shop_id and self.yookassa_secret_key)
+
+    @property
+    def payment_return_url(self) -> str:
+        return (self.yookassa_return_url or f"{(self.app_base_url or '').rstrip('/')}/payments/return").rstrip("/")
+
+    @property
+    def finance_admin_emails_list(self) -> list[str]:
+        """Exact, lower-cased addresses of the administrators allowed to act on money (same parsing rules as ADMIN_EMAILS)."""
+        entries = [part.strip().lower() for part in self.finance_admin_emails.split(",")]
+        return [email for email in entries if email and _looks_like_email(email)]
 
     @property
     def telegram_active(self) -> bool:

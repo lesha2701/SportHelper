@@ -150,3 +150,18 @@ def deletion_requested_email(settings: Settings, to: str, first_name: str) -> Ou
         text="\n\n".join(paragraphs),
         html=_wrap_html("Запрос на удаление аккаунта", paragraphs, None, "Это автоматическое уведомление безопасности."),
     )
+
+
+def withdrawal_requested_email(settings: Settings, to: str, first_name: str, amount_text: str) -> OutgoingEmail:
+    """A security notice to the account owner: someone (hopefully they) asked to withdraw money. No payout details in it."""
+    paragraphs = [
+        f"Здравствуйте, {first_name}!",
+        f"В вашем аккаунте создана заявка на вывод {amount_text}. Сумма зарезервирована до решения по заявке.",
+        "Если это были не вы — срочно смените пароль в настройках аккаунта и напишите в поддержку: заявку можно отменить, пока она не передана на выплату.",
+    ]
+    return OutgoingEmail(
+        to=to,
+        subject=f"Заявка на вывод средств — {_BRAND}",
+        text="\n\n".join(paragraphs),
+        html=_wrap_html("Заявка на вывод средств", paragraphs, None, "Это автоматическое уведомление безопасности."),
+    )

@@ -205,7 +205,7 @@ async def schedule_booking_requested_notification(conn: asyncpg.Connection, book
 
 
 async def schedule_booking_decided_notification(
-    conn: asyncpg.Connection, booking: dict[str, Any], *, outcome: str
+    conn: asyncpg.Connection, booking: dict[str, Any], *, outcome: str, payable: bool = False
 ) -> None:
     """Pings the athlete once their booking request has an outcome —
     confirmed by the coach, declined by the coach, or auto-declined by the
@@ -213,6 +213,8 @@ async def schedule_booking_decided_notification(
     if outcome == "confirmed":
         when = booking["starts_at"].strftime("%d.%m в %H:%M")
         body = f"Тренер подтвердил тренировку {when}."
+        if payable and booking.get("price_per_session"):
+            body += " Теперь её можно оплатить в разделе «Мои брони»."
     elif outcome == "declined":
         body = "Заявка на тренировку отклонена."
     else:

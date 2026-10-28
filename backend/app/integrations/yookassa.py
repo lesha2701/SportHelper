@@ -7,7 +7,6 @@ read a payment back (the one way the site learns the truth: a webhook body is ne
 from __future__ import annotations
 
 import logging
-from decimal import Decimal
 from typing import Any
 
 import httpx
@@ -15,6 +14,11 @@ import httpx
 from app.config import Settings
 
 logger = logging.getLogger("teamflow.payments")
+
+
+def _rub(kopecks: int) -> str:
+    """Kopecks as the provider's decimal string ("2500.00"), without any floating point."""
+    return f"{kopecks // 100}.{kopecks % 100:02d}"
 
 
 class YooKassaError(Exception):
@@ -60,7 +64,7 @@ class YooKassaClient:
     async def create_payment(
         self,
         *,
-        amount: Decimal,
+        amount_kopecks: int,
         currency: str,
         description: str,
         return_url: str,
@@ -69,7 +73,7 @@ class YooKassaClient:
         receipt: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         body: dict[str, Any] = {
-            "amount": {"value": f"{amount:.2f}", "currency": currency},
+            "amount": {"value": _rub(amount_kopecks), "currency": currency},
             "capture": True,  # one step: the money is taken as soon as the customer pays
             "confirmation": {"type": "redirect", "return_url": return_url},
             "description": description[:128],
@@ -81,6 +85,19 @@ class YooKassaClient:
 
     async def get_payment(self, provider_payment_id: str) -> dict[str, Any]:
         return await self._request("GET", f"/payments/{provider_payment_id}")
+
+    async def create_refund(
+        self, *, provider_payment_id: str, amount_kopecks: int, currency: str, description: str, idempotence_key: str
+    ) -> dict[str, Any]:
+        body = {
+            "payment_id": provider_payment_id,
+            "amount": {"value": _rub(amount_kopecks), "currency": currency},
+            "description": description[:250],
+        }
+        return await self._request("POST", "/refunds", headers={"Idempotence-Key": idempotence_key}, json=body)
+
+    async def get_refund(self, provider_refund_id: str) -> dict[str, Any]:
+        return await self._request("GET", f"/refunds/{provider_refund_id}")
 
 
 def get_client(settings: Settings) -> YooKassaClient:
