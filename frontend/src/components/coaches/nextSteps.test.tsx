@@ -12,8 +12,6 @@ vi.mock("../../api/payments", () => ({
   syncBookingPayment: vi.fn(),
   startBookingPayment: vi.fn(),
   openPaymentPage: vi.fn(),
-  rememberPaymentTrip: vi.fn(),
-  takePaymentTrip: vi.fn(() => null),
 }));
 vi.mock("../../features", () => ({ usePaymentsEnabled: () => false }));
 vi.mock("../../api/bookings", () => ({

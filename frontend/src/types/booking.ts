@@ -1,7 +1,8 @@
 // frontend/src/types/booking.ts
 
-/** not_required: a free session; unpaid; pending: a payment page is open; paid. */
-export type PaymentStatus = "not_required" | "unpaid" | "pending" | "paid";
+/** not_required: a free session; unpaid: waiting for payment; processing: a payment page is open; paid; canceled: the last try ended
+ * without payment; refund_pending / refunded: the money is coming back (or has). */
+export type PaymentStatus = "not_required" | "unpaid" | "processing" | "paid" | "canceled" | "refund_pending" | "refunded";
 
 export type BookingStatus = "pending" | "confirmed" | "declined" | "expired" | "cancelled";
 

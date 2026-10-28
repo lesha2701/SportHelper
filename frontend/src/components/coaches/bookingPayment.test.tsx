@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { listMyBookings } from "../../api/bookings";
-import { openPaymentPage, rememberPaymentTrip, startBookingPayment, syncBookingPayment, takePaymentTrip } from "../../api/payments";
+import { openPaymentPage, startBookingPayment, syncBookingPayment } from "../../api/payments";
 import { ApiError } from "../../api/client";
 import type { Booking } from "../../types/booking";
 import { BookingPayment } from "./BookingPayment";
@@ -13,8 +13,6 @@ vi.mock("../../api/payments", () => ({
   startBookingPayment: vi.fn(),
   syncBookingPayment: vi.fn(),
   openPaymentPage: vi.fn(),
-  rememberPaymentTrip: vi.fn(),
-  takePaymentTrip: vi.fn(() => null),
 }));
 vi.mock("../../api/bookings", () => ({ listMyBookings: vi.fn(), listCoachBookings: vi.fn(), reviewBooking: vi.fn(), reviewPlayer: vi.fn(), completeBooking: vi.fn(), getCoachBookingForTraining: vi.fn() }));
 vi.mock("../trainings/TrainingDetail", () => ({
@@ -35,7 +33,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   paymentsOn = true;
   Element.prototype.scrollIntoView = vi.fn();
-  vi.mocked(takePaymentTrip).mockReturnValue(null);
 });
 afterEach(cleanup);
 
@@ -65,6 +62,27 @@ describe("the pay button", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
+  it("says «Ожидает оплаты» for an unpaid booking", () => {
+    render(<BookingPayment token="t" booking={booking()} />);
+
+    expect(screen.getByText(/Ожидает оплаты/)).toBeTruthy();
+  });
+
+  it("says «Платёж отменён» and offers another try after a cancelled payment", () => {
+    render(<BookingPayment token="t" booking={booking({ paymentStatus: "canceled" })} />);
+
+    expect(screen.getByText(/Платёж отменён/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Оплатить эту тренировку" })).toBeTruthy();
+  });
+
+  it("shows the refund states without a pay button", () => {
+    const { rerender } = render(<BookingPayment token="t" booking={booking({ paymentStatus: "refund_pending" })} />);
+    expect(screen.getByText(/Возврат обрабатывается/)).toBeTruthy();
+    rerender(<BookingPayment token="t" booking={booking({ paymentStatus: "refunded" })} />);
+    expect(screen.getByText(/Возвращено/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Оплатить эту тренировку" })).toBeNull();
+  });
+
   it("is replaced by «Оплачено» once paid", () => {
     render(<BookingPayment token="t" booking={booking({ paymentStatus: "paid", paidAt: "2026-10-10T10:00:00Z" })} />);
 
@@ -80,7 +98,6 @@ describe("the pay button", () => {
 
     await waitFor(() => expect(openPaymentPage).toHaveBeenCalledWith("https://yoomoney.ru/checkout/pay"));
     expect(startBookingPayment).toHaveBeenCalledWith("t", "b1");
-    expect(rememberPaymentTrip).toHaveBeenCalledWith("b1");
   });
 
   it("says so and stays when the payment page could not be opened", async () => {
@@ -89,15 +106,15 @@ describe("the pay button", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Оплатить эту тренировку" }));
 
-    expect(await screen.findByText(/Не удалось открыть страницу оплаты/)).toBeTruthy();
+    expect(await screen.findByText(/Ошибка оплаты\. Не удалось открыть страницу оплаты/)).toBeTruthy();
     expect(openPaymentPage).not.toHaveBeenCalled();
     expect((screen.getByRole("button", { name: "Оплатить эту тренировку" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("explains a started-but-unfinished payment and lets the person continue", () => {
-    render(<BookingPayment token="t" booking={booking({ paymentStatus: "pending" })} />);
+  it("explains a payment that is being processed and lets the person continue", () => {
+    render(<BookingPayment token="t" booking={booking({ paymentStatus: "processing" })} />);
 
-    expect(screen.getByText(/Оплата начата/)).toBeTruthy();
+    expect(screen.getByText(/Оплата обрабатывается/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Оплатить эту тренировку" })).toBeTruthy();
   });
 });
@@ -128,15 +145,13 @@ describe("«Мои брони»", () => {
     expect(screen.getByText("TRAINING SCREEN t-77")).toBeTruthy();
   });
 
-  it("coming back from the payment page stays on the list and asks how the payment ended", async () => {
-    vi.mocked(takePaymentTrip).mockReturnValue("b1");
-    vi.mocked(listMyBookings).mockResolvedValue([booking({ paymentStatus: "pending" })]);
+  it("asks the server how an unfinished payment ended and shows the answer", async () => {
+    vi.mocked(listMyBookings).mockResolvedValue([booking({ paymentStatus: "processing" })]);
     vi.mocked(syncBookingPayment).mockResolvedValue(booking({ paymentStatus: "paid", paidAt: "2026-10-10T10:00:00Z" }));
-    render(<MyBookingsSection token="t" onBack={() => {}} focusBookingId="b1" />);
+    render(<MyBookingsSection token="t" onBack={() => {}} />);
     await flush();
 
     expect(syncBookingPayment).toHaveBeenCalledWith("t", "b1");
-    expect(screen.queryByText(/TRAINING SCREEN/)).toBeNull();
     expect(screen.getByText(/Оплачено/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Оплатить эту тренировку" })).toBeNull();
   });

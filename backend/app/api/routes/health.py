@@ -25,4 +25,6 @@ async def features(settings: Settings = Depends(get_settings_dep)) -> dict:
     return {
         "telegram": settings.telegram_active and bool(settings.telegram_bot_username),
         "payments": settings.payments_enabled,
+        "trainer_balance": settings.trainer_balance_enabled,
+        "trainer_withdrawals": settings.trainer_balance_enabled and settings.trainer_withdrawals_enabled,
     }

@@ -1,5 +1,5 @@
 // frontend/src/components/coaches/MyBookingsSection.tsx
-import { syncBookingPayment, takePaymentTrip } from "../../api/payments";
+import { syncBookingPayment } from "../../api/payments";
 import { BookingPayment } from "./BookingPayment";
 import { useEffect, useRef, useState } from "react";
 import { listMyBookings, reviewBooking } from "../../api/bookings";
@@ -67,10 +67,9 @@ export function MyBookingsSection({
     if (!focusBookingId || focusHandledRef.current || state.status !== "ready") return;
     focusHandledRef.current = true;
     const target = state.bookings.find((b) => b.id === focusBookingId);
-    const justPaid = takePaymentTrip() === focusBookingId; // back from the payment page: stay and show how it went
     // A booking still waiting for payment stays on this list (its «Оплатить» button is the point of the visit).
     const settled = target?.paymentStatus === "paid" || target?.paymentStatus === "not_required";
-    if (target?.status === "confirmed" && target.trainingId && settled && !justPaid) setOpenTrainingId(target.trainingId);
+    if (target?.status === "confirmed" && target.trainingId && settled) setOpenTrainingId(target.trainingId);
   }, [focusBookingId, state]);
 
   const focusProps = (b: Booking) =>
@@ -94,7 +93,7 @@ export function MyBookingsSection({
       .then((bookings) => {
         setState({ status: "ready", bookings });
         // A payment page was opened for these: ask how it ended (the notification from the bank may not have arrived yet).
-        for (const booking of bookings.filter((b) => b.status === "confirmed" && b.paymentStatus === "pending")) {
+        for (const booking of bookings.filter((b) => b.status === "confirmed" && b.paymentStatus === "processing")) {
           syncBookingPayment(token, booking.id)
             .then((fresh) =>
               setState((current) =>

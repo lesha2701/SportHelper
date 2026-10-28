@@ -884,3 +884,9 @@
   font-weight: 700;
   color: var(--color-success, #2e9e5b);
 }
+
+.paymentNote {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}

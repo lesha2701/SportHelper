@@ -15,7 +15,7 @@ afterEach(cleanup);
 
 describe("the Telegram switch", () => {
   it("follows what the server says, and is off until it has answered", async () => {
-    features.mockResolvedValue({ telegram: true, payments: false });
+    features.mockResolvedValue({ telegram: true, payments: false, trainerBalance: false, trainerWithdrawals: false });
     render(<Probe />);
 
     expect(screen.getByText("off")).toBeTruthy();
@@ -23,7 +23,7 @@ describe("the Telegram switch", () => {
   });
 
   it("stays off when the server says it is off", async () => {
-    features.mockResolvedValue({ telegram: false, payments: false });
+    features.mockResolvedValue({ telegram: false, payments: false, trainerBalance: false, trainerWithdrawals: false });
     render(<Probe />);
 
     await waitFor(() => expect(features).toHaveBeenCalled());

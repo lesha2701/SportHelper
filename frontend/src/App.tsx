@@ -19,6 +19,7 @@ import { PublicShell } from "./components/public/PublicShell";
 import { Link } from "./components/Link";
 import { CookieBanner } from "./components/shared/CookieBanner";
 import { StateScreen } from "./components/StateScreen";
+import { PaymentReturnPage } from "./components/payments/PaymentReturnPage";
 import { OnboardingGate } from "./components/welcome/OnboardingGate";
 import { Workspace } from "./Workspace";
 
@@ -98,6 +99,7 @@ function Routes() {
       for (const key of ["coach", "listing"]) if (params.get(key)) keep.set(key, params.get(key)!);
       return <Redirect to={`/${keep.size ? `?${keep}` : ""}`} />;
     }
+    if (path === "/payments/return") return <PaymentReturnPage token={state.token} />;
     if (path === "/admin" || path.startsWith("/admin/")) {
       // Anyone who is not flagged as an administrator by the server sees exactly what a missing page looks like.
       if (!state.user.isAdmin) return <NotFoundPage />;
@@ -115,6 +117,7 @@ function Routes() {
   }
 
   // Guest.
+  if (path === "/payments/return") return <Redirect to={loginUrl(`${path}${search}`)} />; // sign in, then come straight back to the result
   switch (path) {
     case "/login":
       return <LoginPage />;

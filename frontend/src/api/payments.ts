@@ -16,24 +16,3 @@ export async function syncBookingPayment(token: string, bookingId: string): Prom
 export function openPaymentPage(url: string): void {
   window.location.assign(url);
 }
-
-const RETURN_KEY = "sag_payment_return";
-
-/** Remembered across the trip to the payment page, so coming back lands on the bookings list instead of jumping elsewhere. */
-export function rememberPaymentTrip(bookingId: string): void {
-  try {
-    window.sessionStorage.setItem(RETURN_KEY, bookingId);
-  } catch {
-    // Without storage the person simply lands where the link says; nothing is lost.
-  }
-}
-
-export function takePaymentTrip(): string | null {
-  try {
-    const id = window.sessionStorage.getItem(RETURN_KEY);
-    window.sessionStorage.removeItem(RETURN_KEY);
-    return id;
-  } catch {
-    return null;
-  }
-}

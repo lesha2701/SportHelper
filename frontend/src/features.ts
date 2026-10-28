@@ -31,3 +31,18 @@ export function usePaymentsEnabled(): boolean {
   }, []);
   return enabled;
 }
+
+/** Which parts of the money contour the server has switched on (all false until it has answered). */
+export function useFinanceFeatures(): { trainerBalance: boolean; trainerWithdrawals: boolean } {
+  const [state, setState] = useState({ trainerBalance: false, trainerWithdrawals: false });
+  useEffect(() => {
+    let cancelled = false;
+    void getFeatures().then((features) => {
+      if (!cancelled) setState({ trainerBalance: features.trainerBalance, trainerWithdrawals: features.trainerWithdrawals });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return state;
+}
