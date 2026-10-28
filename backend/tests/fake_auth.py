@@ -486,9 +486,10 @@ def install(monkeypatch: pytest.MonkeyPatch, store: FakeAuthStore) -> None:
     async def l_atomic(conn):
         yield
 
-    async def l_record(conn, *, user_id, role, full_name, phone, email, consent_key, documents, ip_address):
+    async def l_record(conn, *, user_id, role, full_name, phone, email, consent_key, documents, ip_address, booking_id=None):
         store.acceptances.append({"user_id": user_id, "role": role, "full_name": full_name, "phone": phone, "email": email,
-                                  "consent_key": consent_key, "documents": documents, "accepted_at": _now(), "ip_address": ip_address})
+                                  "consent_key": consent_key, "documents": documents, "accepted_at": _now(), "ip_address": ip_address,
+                                  "booking_id": booking_id})
 
     async def l_list(conn, user_id):
         return [a for a in store.acceptances if a["user_id"] == user_id]

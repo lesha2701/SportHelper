@@ -113,7 +113,15 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
         <BookingCard
           key={b.id}
           booking={b}
-          statusBadge={<span className={styles.bookingStatus}>Подтверждена</span>}
+          statusBadge={
+            <span className={styles.bookingStatus}>
+              {b.paymentStatus === "paid"
+                ? "Подтверждена · оплачена"
+                : b.paymentStatus === "not_required"
+                  ? "Подтверждена"
+                  : "Подтверждена · ждёт оплаты"}
+            </span>
+          }
           showPlanRow
           token={token}
           onChange={updateBooking}

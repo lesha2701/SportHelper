@@ -32,6 +32,8 @@ function makeBooking(overrides: Partial<Booking> = {}): Booking {
     trainingStatus: "scheduled",
     hasReview: false,
     hasPlayerReview: false,
+    paymentStatus: "not_required",
+    paidAt: null,
     ...overrides,
   };
 }

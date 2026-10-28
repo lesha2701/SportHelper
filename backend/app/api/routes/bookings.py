@@ -4,18 +4,23 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 import asyncpg
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_current_user, get_db, get_settings_dep
+from app.config import Settings
 from app.core.exceptions import APIError, ForbiddenError, NotFoundError
+from app.integrations.yookassa import YooKassaError
 from app.repositories import bookings as bookings_repo
 from app.repositories import coach_listings as listings_repo
 from app.repositories import coach_reviews as coach_reviews_repo
+from app.repositories import payments as payments_repo
 from app.repositories import player_reviews as player_reviews_repo
 from app.repositories import plans as plans_repo
 from app.repositories import trainings as trainings_repo
-from app.schemas.booking import BookingIn, BookingOut, BookingPlanIn, PendingBookingOut, ReviewIn, ReviewOut
+from app.schemas.booking import BookingIn, BookingOut, BookingPlanIn, PaymentStartOut, PendingBookingOut, ReviewIn, ReviewOut
 from app.services import notifications as notifications_service
+from app.services import payments as payments_service
+from app.services.accounts import ip_of
 
 router = APIRouter(prefix="/api/bookings", tags=["bookings"])
 
@@ -23,8 +28,11 @@ router = APIRouter(prefix="/api/bookings", tags=["bookings"])
 async def _to_out(conn: asyncpg.Connection, booking: dict) -> BookingOut:
     review = await coach_reviews_repo.get_by_booking(conn, booking["id"])
     player_review = await player_reviews_repo.get_by_booking(conn, booking["id"])
+    payment = await payments_repo.summary_for_booking(conn, booking["id"])
     return BookingOut(
         **booking,
+        payment_status=payments_service.payment_status_of(booking, payment),
+        paid_at=payment["paid_at"] if payment and payment["status"] == "succeeded" else None,
         is_completed=bookings_repo.is_completed(booking),
         has_review=review is not None,
         has_player_review=player_review is not None,
@@ -156,6 +164,46 @@ async def confirm_booking(
         raise APIError("booking is no longer pending", code="booking_not_pending", status_code=409)
     await notifications_service.schedule_booking_decided_notification(conn, confirmed, outcome="confirmed")
     return await _to_out(conn, confirmed)
+
+
+async def _own_booking_for_payment(conn: asyncpg.Connection, booking_id: UUID, user: dict) -> dict:
+    booking = await bookings_repo.get_booking(conn, booking_id)
+    # Someone else's booking looks exactly like a missing one.
+    if booking is None or booking["athlete_user_id"] != user["id"]:
+        raise NotFoundError("booking not found")
+    return booking
+
+
+@router.post("/{booking_id}/pay", response_model=PaymentStartOut)
+async def pay_for_booking(
+    booking_id: UUID,
+    request: Request,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> PaymentStartOut:
+    """The athlete pressed «Оплатить эту тренировку»: returns the ЮKassa page to send them to."""
+    booking = await _own_booking_for_payment(conn, booking_id, user)
+    payment = await payments_service.start_payment(conn, settings, booking=booking, user=user, ip=ip_of(request, settings))
+    return PaymentStartOut(confirmation_url=payment["confirmation_url"])
+
+
+@router.post("/{booking_id}/payment/sync", response_model=BookingOut)
+async def sync_booking_payment(
+    booking_id: UUID,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> BookingOut:
+    """Checks with ЮKassa how the booking's payment ended (the athlete has just come back from the payment page)."""
+    booking = await _own_booking_for_payment(conn, booking_id, user)
+    live = await payments_repo.get_live_for_booking(conn, booking_id)
+    if live is not None:
+        try:
+            await payments_service.sync_payment(conn, settings, live)
+        except YooKassaError as exc:
+            raise APIError("Не удалось проверить оплату. Попробуйте ещё раз.", code="payment_provider_error", status_code=502) from exc
+    return await _to_out(conn, booking)
 
 
 @router.post("/{booking_id}/decline", response_model=BookingOut)

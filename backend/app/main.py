@@ -29,6 +29,7 @@ from app.api.routes import (
     metrics,
     notifications,
     onboarding,
+    payments,
     players,
     search,
     plans,
@@ -232,6 +233,7 @@ def create_app() -> FastAPI:
     app.include_router(ai.privacy_router)
     app.include_router(onboarding.router)
     app.include_router(bookings.router)
+    app.include_router(payments.router)
 
     return app
 

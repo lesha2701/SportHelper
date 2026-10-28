@@ -501,6 +501,14 @@ def client(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(coach_reviews_module, "get_by_booking", fake_get_by_booking)
 
+    # Payments are tested against the real database (tests/test_payments.py); the in-memory layer has no payments.
+    import app.repositories.payments as payments_module
+
+    async def fake_payment_summary(conn, booking_id):
+        return None
+
+    monkeypatch.setattr(payments_module, "summary_for_booking", fake_payment_summary)
+
     async def fake_create_review(conn, *, booking_id, coach_user_id, athlete_user_id, rating, text):
         if any(r["booking_id"] == booking_id for r in reviews_store.values()):
             # Mirrors the real repository's asyncpg.UniqueViolationError ->

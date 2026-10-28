@@ -53,6 +53,15 @@ class BookingOut(BaseModel):
     has_review: bool
     # The coach's review of the athlete exists (only meaningful for the coach).
     has_player_review: bool = False
+    # not_required (free) | unpaid | pending (a payment page is open) | paid
+    payment_status: str = "unpaid"
+    paid_at: datetime | None = None
+
+
+class PaymentStartOut(BaseModel):
+    """Where to send the customer to pay (ЮKassa's payment page)."""
+
+    confirmation_url: str
 
 
 class PendingBookingOut(BaseModel):

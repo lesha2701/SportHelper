@@ -8,6 +8,14 @@ import { ToastHost } from "../shared/ToastHost";
 import { IncomingBookingsScreen } from "./IncomingBookingsScreen";
 import { MyBookingsSection } from "./MyBookingsSection";
 
+vi.mock("../../api/payments", () => ({
+  syncBookingPayment: vi.fn(),
+  startBookingPayment: vi.fn(),
+  openPaymentPage: vi.fn(),
+  rememberPaymentTrip: vi.fn(),
+  takePaymentTrip: vi.fn(() => null),
+}));
+vi.mock("../../features", () => ({ usePaymentsEnabled: () => false }));
 vi.mock("../../api/bookings", () => ({
   confirmBooking: vi.fn(),
   declineBooking: vi.fn(),
@@ -58,6 +66,8 @@ const booking = (overrides: Partial<Booking> = {}): Booking => ({
   trainingStatus: "scheduled",
   hasReview: false,
   hasPlayerReview: false,
+  paymentStatus: "not_required",
+  paidAt: null,
   ...overrides,
 });
 

@@ -1,5 +1,8 @@
 // frontend/src/types/booking.ts
 
+/** not_required: a free session; unpaid; pending: a payment page is open; paid. */
+export type PaymentStatus = "not_required" | "unpaid" | "pending" | "paid";
+
 export type BookingStatus = "pending" | "confirmed" | "declined" | "expired" | "cancelled";
 
 export interface BookingDto {
@@ -24,6 +27,8 @@ export interface BookingDto {
   training_status: "scheduled" | "completed" | "cancelled" | null;
   has_review: boolean;
   has_player_review: boolean;
+  payment_status?: PaymentStatus;
+  paid_at?: string | null;
 }
 
 export interface Booking {
@@ -50,6 +55,8 @@ export interface Booking {
   hasReview: boolean;
   /** The coach has already reviewed the player (coach side only). */
   hasPlayerReview: boolean;
+  paymentStatus: PaymentStatus;
+  paidAt: string | null;
 }
 
 export function mapBookingDto(dto: BookingDto): Booking {
@@ -75,6 +82,8 @@ export function mapBookingDto(dto: BookingDto): Booking {
     trainingStatus: dto.training_status ?? null,
     hasReview: dto.has_review,
     hasPlayerReview: dto.has_player_review ?? false,
+    paymentStatus: dto.payment_status ?? "not_required",
+    paidAt: dto.paid_at ?? null,
   };
 }
 

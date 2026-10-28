@@ -850,3 +850,37 @@
   color: var(--color-warning);
   letter-spacing: 1px;
 }
+
+/* --- paying for a confirmed booking ------------------------------------------------------------ */
+
+.paymentBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.paymentDue {
+  margin: 0;
+  font-weight: 700;
+}
+
+.paymentNotice {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.paymentNotice a {
+  color: var(--color-link);
+}
+
+.paymentPaid {
+  margin: 10px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-success, #2e9e5b);
+}

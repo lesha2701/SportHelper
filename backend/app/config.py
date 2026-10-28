@@ -149,6 +149,14 @@ class Settings(BaseSettings):
     backend_host: str = Field(default="0.0.0.0", alias="BACKEND_HOST")
     backend_port: int = Field(default=8000, alias="BACKEND_PORT")
 
+    # --- Online payments (ЮKassa). Both keys come from the shop's cabinet; without them the "pay" button is simply not offered.
+    yookassa_shop_id: str = Field(default="", alias="YOOKASSA_SHOP_ID")
+    yookassa_secret_key: str = Field(default="", alias="YOOKASSA_SECRET_KEY")
+    yookassa_api_url: str = Field(default="https://api.yookassa.ru/v3", alias="YOOKASSA_API_URL")
+    # Fiscal receipt (54-FZ) data is sent only when the shop's cash register is connected to ЮKassa and this is switched on.
+    yookassa_send_receipt: bool = Field(default=False, alias="YOOKASSA_SEND_RECEIPT")
+    yookassa_vat_code: int = Field(default=1, ge=1, le=12, alias="YOOKASSA_VAT_CODE")
+
     invite_expiration_hours: int = Field(default=24, alias="INVITE_EXPIRATION_HOURS")
 
     yandex_disk_oauth_token: str = Field(default="", alias="YANDEX_DISK_OAUTH_TOKEN")
@@ -244,6 +252,11 @@ class Settings(BaseSettings):
         # cookie-injection from sibling subdomains. It needs Secure, so it is
         # only used when cookies are Secure.
         return "__Host-sag_session" if self.secure_cookies else "sag_session"
+
+    @property
+    def payments_enabled(self) -> bool:
+        """Online payment is offered only when the shop is configured."""
+        return bool(self.yookassa_shop_id and self.yookassa_secret_key)
 
     @property
     def telegram_active(self) -> bool:

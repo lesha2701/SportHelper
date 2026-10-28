@@ -1,4 +1,6 @@
 // frontend/src/components/coaches/MyBookingsSection.tsx
+import { syncBookingPayment, takePaymentTrip } from "../../api/payments";
+import { BookingPayment } from "./BookingPayment";
 import { useEffect, useRef, useState } from "react";
 import { listMyBookings, reviewBooking } from "../../api/bookings";
 import { ApiError } from "../../api/client";
@@ -65,7 +67,10 @@ export function MyBookingsSection({
     if (!focusBookingId || focusHandledRef.current || state.status !== "ready") return;
     focusHandledRef.current = true;
     const target = state.bookings.find((b) => b.id === focusBookingId);
-    if (target?.status === "confirmed" && target.trainingId) setOpenTrainingId(target.trainingId);
+    const justPaid = takePaymentTrip() === focusBookingId; // back from the payment page: stay and show how it went
+    // A booking still waiting for payment stays on this list (its «Оплатить» button is the point of the visit).
+    const settled = target?.paymentStatus === "paid" || target?.paymentStatus === "not_required";
+    if (target?.status === "confirmed" && target.trainingId && settled && !justPaid) setOpenTrainingId(target.trainingId);
   }, [focusBookingId, state]);
 
   const focusProps = (b: Booking) =>
@@ -86,7 +91,19 @@ export function MyBookingsSection({
 
   useEffect(() => {
     listMyBookings(token)
-      .then((bookings) => setState({ status: "ready", bookings }))
+      .then((bookings) => {
+        setState({ status: "ready", bookings });
+        // A payment page was opened for these: ask how it ended (the notification from the bank may not have arrived yet).
+        for (const booking of bookings.filter((b) => b.status === "confirmed" && b.paymentStatus === "pending")) {
+          syncBookingPayment(token, booking.id)
+            .then((fresh) =>
+              setState((current) =>
+                current.status === "ready" ? { status: "ready", bookings: current.bookings.map((b) => (b.id === fresh.id ? fresh : b)) } : current,
+              ),
+            )
+            .catch(() => undefined);
+        }
+      })
       .catch((err: unknown) => setState({ status: "error", message: err instanceof ApiError ? err.message : "Не удалось загрузить брони" }));
   }, [token]);
 
@@ -227,6 +244,7 @@ export function MyBookingsSection({
             </div>
             <span className={styles.bookingStatus}>Подтверждена</span>
           </div>
+          <BookingPayment token={token} booking={b} />
         </div>
       ))}
 

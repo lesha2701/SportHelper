@@ -27,11 +27,12 @@ async def record(
     consent_key: str,
     documents: list[dict[str, str]],
     ip_address: str | None,
+    booking_id: UUID | None = None,
 ) -> None:
     await conn.execute(
         """
-        INSERT INTO legal_acceptances (user_id, role, full_name, phone, email, consent_key, documents, ip_address)
-        VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8)
+        INSERT INTO legal_acceptances (user_id, role, full_name, phone, email, consent_key, documents, ip_address, booking_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9)
         """,
         user_id,
         role,
@@ -41,6 +42,7 @@ async def record(
         consent_key,
         json.dumps(documents, ensure_ascii=False),
         ip_address,
+        booking_id,
     )
 
 

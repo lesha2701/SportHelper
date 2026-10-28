@@ -11,10 +11,10 @@ beforeEach(() => {
 
 describe("getFeatures", () => {
   it("reads the server's answer once per page load", async () => {
-    apiRequest.mockResolvedValue({ telegram: true });
+    apiRequest.mockResolvedValue({ telegram: true, payments: true });
 
-    expect(await getFeatures()).toEqual({ telegram: true });
-    expect(await getFeatures()).toEqual({ telegram: true });
+    expect(await getFeatures()).toEqual({ telegram: true, payments: true });
+    expect(await getFeatures()).toEqual({ telegram: true, payments: true });
     expect(apiRequest).toHaveBeenCalledTimes(1);
     expect(apiRequest).toHaveBeenCalledWith("/api/features", { silent: true });
   });
@@ -22,12 +22,12 @@ describe("getFeatures", () => {
   it("keeps everything optional off when the server cannot be reached", async () => {
     apiRequest.mockImplementation(() => Promise.reject(new Error("offline")));
 
-    expect(await getFeatures()).toEqual({ telegram: false });
+    expect(await getFeatures()).toEqual({ telegram: false, payments: false });
   });
 
   it("treats anything but an explicit true as off", async () => {
     apiRequest.mockResolvedValue({});
 
-    expect(await getFeatures()).toEqual({ telegram: false });
+    expect(await getFeatures()).toEqual({ telegram: false, payments: false });
   });
 });

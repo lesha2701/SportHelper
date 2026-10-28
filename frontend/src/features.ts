@@ -16,3 +16,18 @@ export function useTelegramEnabled(): boolean {
   }, []);
   return enabled;
 }
+
+/** Whether the server can take online payments (YOOKASSA_* in its .env). False until it has answered. */
+export function usePaymentsEnabled(): boolean {
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void getFeatures().then((features) => {
+      if (!cancelled) setEnabled(features.payments);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return enabled;
+}
