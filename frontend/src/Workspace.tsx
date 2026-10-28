@@ -20,6 +20,7 @@ import { MyBookingsSection } from "./components/coaches/MyBookingsSection";
 import { searchAll, type SearchResult } from "./api/search";
 import { subscribeAppNav } from "./appNav";
 import { notificationToOverlay, type Overlay } from "./overlay";
+import { FinanceScreen } from "./components/finance/FinanceScreen";
 import { NotificationsScreen } from "./components/notifications/NotificationsScreen";
 import { StateScreen } from "./components/StateScreen";
 import type { NavItem } from "./components/nav/BottomNav";
@@ -412,6 +413,8 @@ function MainContent({
     );
   } else if (overlay?.kind === "incoming-bookings") {
     overlayContent = <IncomingBookingsScreen token={token} onBack={closeOverlay} focusBookingId={overlay.focusBookingId} />;
+  } else if (overlay?.kind === "finance") {
+    overlayContent = <FinanceScreen token={token} onBack={closeOverlay} />;
   } else if (overlay?.kind === "my-bookings") {
     overlayContent = (
       <MyBookingsSection
@@ -449,6 +452,9 @@ function MainContent({
             break;
           case "incoming-bookings":
             setOverlay({ kind: "incoming-bookings" });
+            break;
+          case "finance":
+            setOverlay({ kind: "finance" });
             break;
         }
       }),

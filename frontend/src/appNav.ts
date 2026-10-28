@@ -10,7 +10,8 @@ export type AppTarget =
   | { kind: "training"; trainingId: string }
   | { kind: "training-create" }
   | { kind: "my-bookings" }
-  | { kind: "incoming-bookings" };
+  | { kind: "incoming-bookings" }
+  | { kind: "finance" };
 
 type Listener = (target: AppTarget) => void;
 

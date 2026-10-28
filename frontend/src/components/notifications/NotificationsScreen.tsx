@@ -19,6 +19,10 @@ const CATEGORY_ICON: Record<NotificationCategory, IconName> = {
   booking_decided: "inbox",
   review_requested: "award",
   training_nudge: "dumbbell",
+  payment_update: "wallet",
+  earning_update: "wallet",
+  withdrawal_update: "wallet",
+  finance_admin: "shield",
 };
 
 function formatSendAt(iso: string): string {

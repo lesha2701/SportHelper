@@ -1,0 +1,142 @@
+.balanceGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.balanceTile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border-radius: var(--radius-md, 14px);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  min-width: 0;
+}
+
+.balanceTilePrimary {
+  composes: balanceTile;
+  grid-column: 1 / -1;
+  border-color: var(--color-primary);
+}
+
+.balanceLabel {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.balanceValue {
+  font-size: 20px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.balanceValuePrimary {
+  composes: balanceValue;
+  font-size: 28px;
+}
+
+.note {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.debtNote {
+  font-size: 13px;
+  color: var(--color-danger);
+  margin: 0;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.itemMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.itemTitle {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.itemMeta {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.itemAmount {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.itemSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.statusPill {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.linkButton {
+  font: inherit;
+  font-size: 13px;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.linkButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

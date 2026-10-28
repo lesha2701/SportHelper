@@ -5,6 +5,8 @@ import { ApiError } from "../../api/client";
 import { removeUserAvatar, uploadUserAvatar } from "../../api/users";
 import { useAuth } from "../../context/AuthContext";
 import { navigate } from "../../router";
+import { navigateApp } from "../../appNav";
+import { useFinanceFeatures } from "../../features";
 import { AchievementsGallery } from "./AchievementsGallery";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { Icon, type IconName } from "../shared/Icon";
@@ -98,6 +100,7 @@ export function ProfileSummary({
   unreadNotifications,
 }: ProfileSummaryProps) {
   const { state: authState, updateUser, logout } = useAuth();
+  const { trainerBalance } = useFinanceFeatures();
   const photoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
   const avatarFileId = authState.status === "ready" ? authState.user.avatarFileId : null;
   const myUserId = authState.status === "ready" ? authState.user.id : null;
@@ -190,6 +193,9 @@ export function ProfileSummary({
       badge: pendingCount,
       onClick: onOpenIncomingBookings,
     });
+  }
+  if (mode === "coach" && profile.coach && trainerBalance) {
+    actionRows.push({ key: "finance", icon: "wallet", label: "Финансы", onClick: () => navigateApp({ kind: "finance" }) });
   }
   actionRows.push({ key: "stats", icon: "award", label: "Моя статистика", onClick: onOpenMyStats });
   actionRows.push(

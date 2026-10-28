@@ -43,7 +43,8 @@ export type IconName =
   | "mail"
   | "shield"
   | "monitor"
-  | "send";
+  | "send"
+  | "wallet";
 
 const PATHS: Record<IconName, ReactElement> = {
   home: (
@@ -279,6 +280,13 @@ const PATHS: Record<IconName, ReactElement> = {
     </>
   ),
   send: <path d="M20.5 4 3.5 11l6 2.2L11.7 19.5 20.5 4ZM9.5 13.2l5.6-4.4" />,
+  wallet: (
+    <>
+      <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3" />
+      <path d="M4 7.5V17a2 2 0 0 0 2 2h12a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 1 4 7.5Z" />
+      <path d="M15.5 13.5h.01" />
+    </>
+  ),
 };
 
 export interface IconProps extends Omit<SVGProps<SVGSVGElement>, "children"> {

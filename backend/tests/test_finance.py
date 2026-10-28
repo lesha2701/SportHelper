@@ -104,6 +104,10 @@ def test_the_full_release_path_with_notifications_and_an_audit_trail(fin) -> Non
     summary = coach.ok("GET", "/api/finance/summary")
     assert (summary["available_kopecks"], summary["pending_kopecks"]) == (225000, 0)
     assert sql_value(fin.dsn, "SELECT count(*) FROM notifications WHERE category = 'earning_update' AND title = 'Начисление доступно к выводу'") == 1
+    # the money notifications are real list items for the person (the list's schema knows their categories)
+    listed = coach.ok("GET", "/api/notifications")
+    assert "earning_update" in {n["category"] for n in listed}
+    assert "earning_update" not in {p["category"] for p in coach.ok("GET", "/api/notifications/preferences")}
     audit = sql(fin.dsn, "SELECT action, result FROM admin_audit_log WHERE action = 'finance.earning.release'")
     assert [(a["action"], a["result"]) for a in audit] == [("finance.earning.release", "success")]
     # releasing again changes nothing (idempotent) and posts nothing twice

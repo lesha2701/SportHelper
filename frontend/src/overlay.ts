@@ -11,7 +11,8 @@ export type OverlayBase =
   | { kind: "my-stats" }
   | { kind: "notifications" }
   | { kind: "incoming-bookings"; focusBookingId?: string }
-  | { kind: "my-bookings"; reviewBookingId?: string; focusBookingId?: string };
+  | { kind: "my-bookings"; reviewBookingId?: string; focusBookingId?: string }
+  | { kind: "finance" };
 
 /** `backTo` is where "Назад" returns: an overlay opened from the notification
  * list goes back to that list, not to whatever tab happened to be underneath. */
@@ -44,6 +45,12 @@ export function notificationToOverlay(category: NotificationCategory, entityId: 
     case "review_requested":
       // entityId is the booking: open "Мои брони" with its review form ready.
       return { kind: "my-bookings", reviewBookingId: entityId };
+    case "payment_update":
+      // entityId is the booking whose payment changed: the athlete sees it in "Мои брони".
+      return { kind: "my-bookings", focusBookingId: entityId };
+    case "earning_update":
+    case "withdrawal_update":
+      return { kind: "finance" };
     default:
       return null;
   }
