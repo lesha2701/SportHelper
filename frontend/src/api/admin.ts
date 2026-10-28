@@ -11,14 +11,16 @@ export interface AdminSession {
   mfaVerified: boolean;
   /** ...and recently enough for irreversible actions. */
   mfaRecent: boolean;
+  /** This administrator may also see and handle money (listed in FINANCE_ADMIN_EMAILS on the server). */
+  finance: boolean;
 }
 
 export async function getAdminSession(): Promise<AdminSession> {
-  const dto = await apiRequest<{ is_admin: boolean; mfa_enabled: boolean; mfa_verified: boolean; mfa_recent: boolean }>(
+  const dto = await apiRequest<{ is_admin: boolean; mfa_enabled: boolean; mfa_verified: boolean; mfa_recent: boolean; finance?: boolean }>(
     "/api/admin/session",
     QUIET,
   );
-  return { isAdmin: dto.is_admin, mfaEnabled: dto.mfa_enabled, mfaVerified: dto.mfa_verified, mfaRecent: dto.mfa_recent };
+  return { isAdmin: dto.is_admin, mfaEnabled: dto.mfa_enabled, mfaVerified: dto.mfa_verified, mfaRecent: dto.mfa_recent, finance: dto.finance === true };
 }
 
 export interface DayCount {

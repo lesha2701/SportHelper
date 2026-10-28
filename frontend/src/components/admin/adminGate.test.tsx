@@ -35,7 +35,7 @@ const open = async () => {
 
 describe("the administration gate", () => {
   it("shows no panel and no data while the second factor is not set up", async () => {
-    sessionMock.mockResolvedValue({ isAdmin: true, mfaEnabled: false, mfaVerified: false, mfaRecent: false });
+    sessionMock.mockResolvedValue({ isAdmin: true, mfaEnabled: false, mfaVerified: false, mfaRecent: false, finance: false });
 
     await open();
 
@@ -46,7 +46,7 @@ describe("the administration gate", () => {
   });
 
   it("asks for the code of this session before opening anything", async () => {
-    sessionMock.mockResolvedValue({ isAdmin: true, mfaEnabled: true, mfaVerified: false, mfaRecent: false });
+    sessionMock.mockResolvedValue({ isAdmin: true, mfaEnabled: true, mfaVerified: false, mfaRecent: false, finance: false });
 
     await open();
 
@@ -55,7 +55,7 @@ describe("the administration gate", () => {
   });
 
   it("opens the panel once the server confirms access and the code", async () => {
-    sessionMock.mockResolvedValue({ isAdmin: true, mfaEnabled: true, mfaVerified: true, mfaRecent: true });
+    sessionMock.mockResolvedValue({ isAdmin: true, mfaEnabled: true, mfaVerified: true, mfaRecent: true, finance: false });
 
     await open();
 
@@ -85,9 +85,9 @@ describe("the administration gate", () => {
   });
 
   it("sends the administrator back to the gate when a later request is refused", async () => {
-    sessionMock.mockResolvedValueOnce({ isAdmin: true, mfaEnabled: true, mfaVerified: true, mfaRecent: true });
+    sessionMock.mockResolvedValueOnce({ isAdmin: true, mfaEnabled: true, mfaVerified: true, mfaRecent: true, finance: false });
     vi.mocked(getAdminDashboard).mockRejectedValue(new ApiError(403, "mfa_required", "confirm your two-factor code to continue"));
-    sessionMock.mockResolvedValueOnce({ isAdmin: true, mfaEnabled: true, mfaVerified: false, mfaRecent: false });
+    sessionMock.mockResolvedValueOnce({ isAdmin: true, mfaEnabled: true, mfaVerified: false, mfaRecent: false, finance: false });
 
     await open();
     await act(async () => {});

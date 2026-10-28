@@ -14,6 +14,7 @@ import { ComplaintsPage } from "./ComplaintsPage";
 import { ModerationPage } from "./ModerationPage";
 import { TrainingsPage } from "./TrainingsPage";
 import { UsersPage } from "./UsersPage";
+import { FinancePage } from "./finance/FinancePage";
 import { StepUpProvider } from "./stepUp";
 import { AdminContext } from "./adminUi";
 import styles from "./admin.module.css";
@@ -23,6 +24,8 @@ interface Section {
   label: string;
   icon: IconName;
   render: () => ReactNode;
+  /** Shown only to administrators listed as finance administrators (the server decides and re-checks on every request). */
+  financeOnly?: boolean;
 }
 
 const SECTIONS: Section[] = [
@@ -31,6 +34,7 @@ const SECTIONS: Section[] = [
   { path: "/admin/moderation", label: "Модерация", icon: "image", render: () => <ModerationPage /> },
   { path: "/admin/trainings", label: "Тренировки", icon: "dumbbell", render: () => <TrainingsPage /> },
   { path: "/admin/reports", label: "Жалобы", icon: "flag", render: () => <ComplaintsPage /> },
+  { path: "/admin/finance", label: "Финансы", icon: "wallet", render: () => <FinancePage />, financeOnly: true },
   { path: "/admin/audit", label: "Журнал", icon: "list", render: () => <AuditPage /> },
 ];
 
@@ -104,15 +108,16 @@ export default function AdminApp() {
   return (
     <AdminContext.Provider value={context}>
       <StepUpProvider>
-        <AdminShell email={email} />
+        <AdminShell email={email} finance={gate.session.finance} />
       </StepUpProvider>
     </AdminContext.Provider>
   );
 }
 
-function AdminShell({ email }: { email: string | null }) {
+function AdminShell({ email, finance }: { email: string | null; finance: boolean }) {
   const { path } = useLocation();
-  const current = SECTIONS.find((s) => s.path === path) ?? (path === "/admin" ? SECTIONS[0] : undefined);
+  const sections = useMemo(() => SECTIONS.filter((s) => finance || !s.financeOnly), [finance]);
+  const current = sections.find((s) => s.path === path) ?? (path === "/admin" ? sections[0] : undefined);
   const [newComplaints, setNewComplaints] = useState(0);
 
   // The number of untouched complaints next to "Жалобы"; refreshed whenever the administrator moves between sections.
@@ -132,7 +137,7 @@ function AdminShell({ email }: { email: string | null }) {
             <span className={styles.brandSub}>Админ-панель</span>
           </span>
         </div>
-        {SECTIONS.map((section) => (
+        {sections.map((section) => (
           <Link key={section.path} to={section.path} className={current === section ? styles.navItemActive : styles.navItem} aria-current={current === section ? "page" : undefined}>
             <Icon name={section.icon} size={19} />
             {section.label}
