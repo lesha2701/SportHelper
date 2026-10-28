@@ -188,6 +188,7 @@ def test_nothing_is_offered_while_payments_are_switched_off(world, monkeypatch) 
     monkeypatch.setenv("YOOKASSA_ENABLED", "false")
     monkeypatch.setenv("YOOKASSA_SHOP_ID", "123456")
     monkeypatch.setenv("YOOKASSA_SECRET_KEY", SECRET)
+    monkeypatch.setenv("YOOKASSA_WEBHOOK_IP_CHECK", "false")
     get_settings.cache_clear()
     coach, player, booking = confirmed_booking(world, confirm=True)
 
@@ -196,6 +197,14 @@ def test_nothing_is_offered_while_payments_are_switched_off(world, monkeypatch) 
     assert response.status_code == 503 and response.json()["error"]["code"] == "payments_unavailable"
     assert world.client.get("/api/features").json()["payments"] is False
     assert world.client.post("/api/payments/yookassa/webhook", json={"event": "payment.succeeded", "object": {"id": "x"}}).json() == {"ok": True}
+
+
+def test_without_shop_keys_the_webhook_does_nothing_at_all(world, monkeypatch) -> None:  # noqa: F811
+    for name in ("YOOKASSA_ENABLED", "YOOKASSA_SHOP_ID", "YOOKASSA_SECRET_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    get_settings.cache_clear()
+    answer = world.client.post("/api/payments/yookassa/webhook", json={"event": "payment.succeeded", "object": {"id": "anything"}})
+    assert answer.status_code == 200 and sql_value(world.dsn, "SELECT count(*) FROM payment_events") == 0
 
 
 def test_the_site_says_payments_are_on_once_enabled_and_configured(world, provider) -> None:  # noqa: F811
@@ -492,6 +501,47 @@ def test_the_source_address_check_refuses_strangers_when_enabled(world, provider
 ])
 def test_the_published_address_ranges(address, allowed) -> None:
     assert payments_service.ip_is_from_yookassa(address) is allowed
+
+
+# --- switching NEW payments off during an incident must not strand the money already on its way ---------------------------------
+
+
+def test_switching_new_payments_off_still_books_payments_already_in_flight(world, provider, monkeypatch) -> None:  # noqa: F811
+    coach, player, booking = confirmed_booking(world, confirm=True)
+    player.ok("POST", f"/api/bookings/{booking['id']}/pay")
+    first = _first_provider_id(provider)
+    coach2, player2, booking2 = confirmed_booking(world, coach_email="coach9@example.com", player_email="player9@example.com", title="Другой спорт", confirm=True)
+    player2.ok("POST", f"/api/bookings/{booking2['id']}/pay")
+    second = [p for p in provider.payments if p != first][0]
+
+    monkeypatch.setenv("YOOKASSA_ENABLED", "false")  # the operator's emergency switch
+    get_settings.cache_clear()
+    provider.finish(first, "succeeded")
+    provider.finish(second, "succeeded")
+
+    assert webhook(world, first).status_code == 200  # a notification is still verified and booked, not thrown away
+    assert sql_value(world.dsn, "SELECT status FROM payments WHERE booking_id = $1::uuid", booking["id"]) == "paid"
+    assert world.client.get("/api/features").json()["payments"] is False  # ...while nobody can START a new payment
+    sql(world.dsn, "UPDATE payment_attempts SET created_at = now() - interval '10 minutes'")
+    settings = get_settings()
+    run(with_conn(world.dsn, lambda c: reconcile.reconcile_payments(c, settings)))
+    assert sql_value(world.dsn, "SELECT status FROM payments WHERE booking_id = $1::uuid", booking2["id"]) == "paid"  # a lost webhook too
+    coach3, player3, booking3 = confirmed_booking(world, coach_email="coach8@example.com", player_email="player8@example.com", title="Третий", confirm=True)
+    refused = _pay(player3, booking3["id"])
+    assert refused.status_code == 503 and refused.json()["error"]["code"] == "payments_unavailable"
+    assert sql_value(world.dsn, "SELECT count(*) FROM trainer_earnings") == 2
+    assert_books_are_sound(world.dsn)
+
+
+def test_a_user_session_is_needed_and_the_csrf_token_is_checked_to_start_a_payment(world, provider) -> None:  # noqa: F811
+    coach, player, booking = confirmed_booking(world, confirm=True)
+    anonymous = world.client
+    anonymous.cookies.clear()
+    assert anonymous.post(f"/api/bookings/{booking['id']}/pay").status_code == 401
+    player.call("GET", "/api/bookings/me")  # restores the player's cookies in the shared client
+    forged = world.client.post(f"/api/bookings/{booking['id']}/pay", headers={"X-CSRF-Token": "forged"})
+    assert forged.status_code == 403 and forged.json()["error"]["code"] == "csrf_failed"
+    assert provider.payments == {}
 
 
 # --- the client itself (against a mock transport) ---------------------------------------------------------------------------

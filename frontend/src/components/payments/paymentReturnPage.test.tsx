@@ -24,14 +24,14 @@ afterEach(() => {
 });
 
 describe("coming back from the payment page", () => {
-  it("shows «Оплата прошла» only when the server says paid", async () => {
+  it("shows «Оплата прошла успешно» only when the server says paid", async () => {
     at(`?booking=${ID}`);
     vi.mocked(syncBookingPayment).mockResolvedValue(booking("paid"));
     render(<PaymentReturnPage token="t" />);
     await flush();
 
     expect(syncBookingPayment).toHaveBeenCalledWith("t", ID);
-    expect(screen.getByRole("heading", { name: "Оплата прошла" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Оплата прошла успешно" })).toBeTruthy();
   });
 
   it("does not believe the address: an unpaid booking is never shown as paid, whatever the link says", async () => {
@@ -40,8 +40,8 @@ describe("coming back from the payment page", () => {
     render(<PaymentReturnPage token="t" />);
     await flush();
 
-    expect(screen.queryByRole("heading", { name: "Оплата прошла" })).toBeNull();
-    expect(screen.getByRole("heading", { name: "Оплата не найдена" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Оплата прошла успешно" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Платёж не завершён" })).toBeTruthy();
   });
 
   it("keeps asking while the payment is being processed, a limited number of times, then shows it as paid", async () => {
@@ -52,7 +52,7 @@ describe("coming back from the payment page", () => {
       .mockResolvedValue(booking("paid"));
     render(<PaymentReturnPage token="t" />);
     await flush();
-    expect(screen.getByRole("heading", { name: "Оплата обрабатывается" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Проверяем оплату" })).toBeTruthy();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3100);
@@ -61,7 +61,7 @@ describe("coming back from the payment page", () => {
       await vi.advanceTimersByTimeAsync(3100);
     });
 
-    expect(screen.getByRole("heading", { name: "Оплата прошла" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Оплата прошла успешно" })).toBeTruthy();
     expect(syncBookingPayment).toHaveBeenCalledTimes(3);
   });
 
@@ -86,8 +86,8 @@ describe("coming back from the payment page", () => {
     render(<PaymentReturnPage token="t" />);
     await flush();
 
-    expect(screen.getByRole("heading", { name: "Платёж отменён" })).toBeTruthy();
-    expect(screen.getByText(/Деньги не списаны/)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Платёж не завершён" })).toBeTruthy();
+    expect(screen.getByText(/деньги не списаны/i)).toBeTruthy();
   });
 
   it("warns not to pay again when it cannot check, and offers the bookings list", async () => {

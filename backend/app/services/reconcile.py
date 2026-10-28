@@ -25,7 +25,7 @@ logger = logging.getLogger("teamflow.payments")
 
 async def reconcile_payments(conn: asyncpg.Connection, settings: Settings) -> dict[str, int]:
     stats = {"checked": 0, "resent": 0, "errors": 0, "expired": 0}
-    if not settings.payments_enabled:
+    if not settings.payments_configured:  # with new payments switched off it still closes what is already in flight
         return stats
     stats["expired"] = await payments_repo.expire_old_attempts(conn, max_age_hours=settings.reconcile_max_age_hours)
     for attempt in await payments_repo.attempts_to_reconcile(conn, max_age_hours=settings.reconcile_max_age_hours, limit=settings.reconcile_batch_size):

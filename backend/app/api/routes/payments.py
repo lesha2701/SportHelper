@@ -22,7 +22,7 @@ from app.repositories import payments as payments_repo
 from app.repositories import refunds as refunds_repo
 from app.services import payments as payments_service
 from app.services import refunds as refunds_service
-from app.services.accounts import ip_of
+from app.security.client import client_address
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
@@ -38,9 +38,9 @@ async def yookassa_webhook(
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> dict:
-    if not settings.payments_enabled:
-        return {"ok": True}
-    if settings.yookassa_webhook_ip_check and not payments_service.ip_is_from_yookassa(ip_of(request, settings)):
+    if not settings.payments_configured:
+        return {"ok": True}  # no shop keys: nothing of ours can exist. With keys, known payments are followed even if NEW ones are switched off.
+    if settings.yookassa_webhook_ip_check and not payments_service.ip_is_from_yookassa(client_address(request, settings)):
         await payments_repo.record_event(conn, source="webhook", event="?", provider_object_id=None, outcome="refused_source")
         raise APIError("forbidden", code="forbidden_source", status_code=403)
     raw = await request.body()

@@ -24,6 +24,7 @@ from app.repositories import payments as payments_repo
 from app.repositories import refunds as refunds_repo
 from app.repositories.ledger import Leg
 from app.services import finance_notifications as notify
+from app.services import payments as payments_service
 from app.services.money import split_refund
 
 logger = logging.getLogger("teamflow.payments")
@@ -35,7 +36,7 @@ async def request_refund(
     conn: asyncpg.Connection, settings: Settings, *, payment_id: UUID, amount_kopecks: int, reason: str, admin_user_id: UUID, attempt_id: UUID | None = None
 ) -> dict[str, Any]:
     """Asks for a refund. `attempt_id` is only given for refunding a DUPLICATE charge (an attempt in state duplicate_paid)."""
-    if not settings.payments_enabled:
+    if not settings.payments_configured:
         raise APIError("Онлайн-платежи отключены.", code="payments_unavailable", status_code=503)
     if not reason.strip():
         raise APIError("Укажите причину возврата.", code="reason_required", status_code=422)
@@ -43,6 +44,7 @@ async def request_refund(
         payment = await payments_repo.get_payment(conn, payment_id, lock=True)
         if payment is None:
             raise APIError("Платёж не найден.", code="payment_not_found", status_code=404)
+        await _refund_receipt(conn, settings, payment, amount_kopecks)  # fail BEFORE anything is reserved if the receipt cannot be made
         if attempt_id is not None:
             attempt = await payments_repo.get_attempt(conn, attempt_id)
             if attempt is None or attempt["payment_id"] != payment["id"] or attempt["status"] != "duplicate_paid":
@@ -78,6 +80,18 @@ async def request_refund(
     return await _send_to_provider(conn, settings, refund)
 
 
+async def _refund_receipt(conn: asyncpg.Connection, settings: Settings, payment: dict[str, Any], kopecks: int) -> dict[str, Any] | None:
+    """The fiscal receipt of a refund (only when receipts are switched on): the same payer, the same service, the refunded amount."""
+    if not settings.yookassa_send_receipt:
+        return None
+    row = await conn.fetchrow(
+        "SELECT u.email, cl.title FROM payments p JOIN users u ON u.id = p.payer_user_id JOIN bookings b ON b.id = p.booking_id "
+        "LEFT JOIN coach_listings cl ON cl.id = b.listing_id WHERE p.id = $1", payment["id"],
+    )
+    return payments_service._receipt(settings, {"listing_title": row["title"] if row else None, "currency": payment["currency"]},
+                                     {"email": row["email"] if row else None}, kopecks)
+
+
 async def _send_to_provider(conn: asyncpg.Connection, settings: Settings, refund: dict[str, Any]) -> dict[str, Any]:
     attempt = await payments_repo.get_attempt(conn, refund["attempt_id"])
     payment = await payments_repo.get_payment(conn, refund["payment_id"])
@@ -86,6 +100,7 @@ async def _send_to_provider(conn: asyncpg.Connection, settings: Settings, refund
         data = await get_client(settings).create_refund(
             provider_payment_id=attempt["provider_payment_id"], amount_kopecks=refund["amount_kopecks"], currency=payment["currency"],
             description=refund["reason"], idempotence_key=str(refund["idempotence_key"]),
+            receipt=await _refund_receipt(conn, settings, payment, refund["amount_kopecks"]),
         )
         provider_id = data.get("id")
         if not isinstance(provider_id, str):

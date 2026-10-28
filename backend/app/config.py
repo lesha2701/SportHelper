@@ -160,6 +160,10 @@ class Settings(BaseSettings):
     # Fiscal receipt (54-FZ) data is sent only when the shop's cash register is connected to ЮKassa and this is switched on.
     yookassa_send_receipt: bool = Field(default=False, alias="YOOKASSA_SEND_RECEIPT")
     yookassa_vat_code: int = Field(default=1, ge=1, le=12, alias="YOOKASSA_VAT_CODE")
+    # The owner's written confirmation that the shop's fiscalisation was checked (cash register connected in ЮKassa or a receipt is
+    # not required for this business). With APP_MODE=main the backend refuses to start with YOOKASSA_ENABLED=true unless either
+    # receipts are sent (YOOKASSA_SEND_RECEIPT) or this is true - nobody can switch real payments on without answering the question.
+    yookassa_fiscalization_confirmed: bool = Field(default=False, alias="YOOKASSA_FISCALIZATION_CONFIRMED")
     # Accept notifications only from ЮKassa's published address ranges (one layer; the payment is ALWAYS re-read from the API too).
     yookassa_webhook_ip_check: bool = Field(default=True, alias="YOOKASSA_WEBHOOK_IP_CHECK")
 
@@ -282,9 +286,15 @@ class Settings(BaseSettings):
         return "__Host-sag_session" if self.secure_cookies else "sag_session"
 
     @property
+    def payments_configured(self) -> bool:
+        """The shop keys are present. Enough to FOLLOW payments that already exist (confirm, reconcile, refund) - never to start one."""
+        return bool(self.yookassa_shop_id and self.yookassa_secret_key)
+
+    @property
     def payments_enabled(self) -> bool:
-        """Online payment is offered only when it is switched on AND the shop keys are present."""
-        return self.yookassa_enabled and bool(self.yookassa_shop_id and self.yookassa_secret_key)
+        """New online payments are offered only when it is switched on AND the shop keys are present. Switching it off during an
+        incident stops NEW payments only: money that is already on its way is still confirmed and booked (payments_configured)."""
+        return self.yookassa_enabled and self.payments_configured
 
     @property
     def payment_return_url(self) -> str:
@@ -339,6 +349,26 @@ def production_problems(settings: "Settings") -> tuple[list[str], list[str]]:
         warnings.append("CORS_ORIGINS contains a non-https origin")
     if not settings.trust_proxy_headers:
         warnings.append("TRUST_PROXY_HEADERS is off: behind a reverse proxy every visitor shares the proxy's address in rate limits")
+    if settings.yookassa_enabled:
+        if not settings.payments_configured:
+            fatal.append("YOOKASSA_ENABLED=true needs YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY")
+        return_url = settings.payment_return_url.lower()
+        if not return_url.startswith("https://"):
+            fatal.append("YOOKASSA_RETURN_URL must be an https:// address of the site (empty = APP_BASE_URL/payments/return)")
+        elif not return_url.startswith(settings.app_base_url.rstrip("/").lower() + "/"):
+            fatal.append("YOOKASSA_RETURN_URL must be on the same site as APP_BASE_URL")
+        if not settings.yookassa_api_url.lower().startswith("https://"):
+            fatal.append("YOOKASSA_API_URL must be https://")
+        if not (settings.yookassa_send_receipt or settings.yookassa_fiscalization_confirmed):
+            fatal.append(
+                "YOOKASSA_ENABLED=true needs a decision on fiscal receipts: set YOOKASSA_SEND_RECEIPT=true (cash register connected in ЮKassa) "
+                "or, if the accountant confirmed no receipt is needed, YOOKASSA_FISCALIZATION_CONFIRMED=true"
+            )
+        if settings.yookassa_webhook_ip_check and not settings.trust_proxy_headers:
+            fatal.append(
+                "YOOKASSA_WEBHOOK_IP_CHECK=true needs TRUST_PROXY_HEADERS=true behind the reverse proxy (otherwise every notification looks "
+                "like it comes from the proxy and is refused); or set YOOKASSA_WEBHOOK_IP_CHECK=false"
+            )
     if settings.bearer_auth_enabled:
         warnings.append("BEARER_AUTH_ENABLED is on: session tokens are accepted outside the HttpOnly cookie")
     if settings.docs_enabled:

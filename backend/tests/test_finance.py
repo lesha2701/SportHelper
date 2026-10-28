@@ -615,6 +615,24 @@ def test_a_full_refund_before_release_reverses_everything(fin) -> None:
     assert_books_are_sound(fin.dsn)
 
 
+def test_a_refund_carries_the_receipt_data_when_receipts_are_on(fin, monkeypatch) -> None:
+    monkeypatch.setenv("YOOKASSA_SEND_RECEIPT", "true")
+    get_settings.cache_clear()
+    coach, player, booking, payment_id = paid_booking(fin)
+
+    assert _refund(fin, payment_id, 100000).status_code == 200
+
+    receipt = fin.provider.refund_requests[0]["receipt"]  # ЮKassa wants the receipt in a refund request as well
+    assert receipt["customer"] == {"email": player.email}
+    assert receipt["items"][0]["amount"] == {"value": "1000.00", "currency": "RUB"} and receipt["items"][0]["payment_subject"] == "service"
+
+
+def test_without_receipts_a_refund_carries_none(fin) -> None:
+    coach, player, booking, payment_id = paid_booking(fin)
+    assert _refund(fin, payment_id, 100000).status_code == 200
+    assert fin.provider.refund_requests[0]["receipt"] is None
+
+
 def test_a_partial_refund_gives_back_the_commission_in_proportion(fin) -> None:
     coach, player, booking, payment_id = paid_booking(fin)
 

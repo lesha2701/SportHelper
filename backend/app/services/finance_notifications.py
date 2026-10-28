@@ -38,12 +38,12 @@ async def finance_admin_ids(conn: asyncpg.Connection, settings: Settings) -> lis
 
 async def payment_confirmed(conn: asyncpg.Connection, payment: dict[str, Any]) -> None:
     amount = format_rub(payment["gross_kopecks"])
-    await _send(conn, user_id=payment["payer_user_id"], category="payment_update", title="Оплата прошла",
-                body=f"Мы получили оплату {amount}. Тренировка оплачена.", entity_type="booking", entity_id=payment["booking_id"],
+    await _send(conn, user_id=payment["payer_user_id"], category="payment_update", title="Оплата прошла успешно",
+                body=f"Оплата тренировки прошла успешно ({amount}). Ваша запись подтверждена.", entity_type="booking", entity_id=payment["booking_id"],
                 key=f"paid:{payment['id']}:player")
     await _send(conn, user_id=payment["coach_user_id"], category="earning_update", title="Игрок оплатил тренировку",
-                body=f"Начислено {format_rub(payment['trainer_kopecks'])} (комиссия платформы {format_rub(payment['platform_fee_kopecks'])}). "
-                     "Деньги станут доступны к выводу после проверки проведённой тренировки.",
+                body=f"Игрок оплатил тренировку. Вам начислено {format_rub(payment['trainer_kopecks'])} с учётом комиссии SportArena "
+                     f"({format_rub(payment['platform_fee_kopecks'])}). Деньги станут доступны к выводу после проверки проведённой тренировки.",
                 entity_type="booking", entity_id=payment["booking_id"], key=f"paid:{payment['id']}:coach")
 
 

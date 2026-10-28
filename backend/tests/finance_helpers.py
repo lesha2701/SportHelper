@@ -69,7 +69,7 @@ class FakeProvider:
         self.payments[pid].update({"status": status, "paid": status == "succeeded", **changes})
 
     # -- refunds
-    async def create_refund(self, *, provider_payment_id, amount_kopecks, currency, description, idempotence_key):
+    async def create_refund(self, *, provider_payment_id, amount_kopecks, currency, description, idempotence_key, receipt=None):
         if self.fail_refund_next is not None:
             error, self.fail_refund_next = self.fail_refund_next, None
             raise error
@@ -79,7 +79,7 @@ class FakeProvider:
         rid = f"3a{len(self.refunds):06d}-000f-5000-8000-1a2b3c4d5e6f"
         refund = {"id": rid, "payment_id": provider_payment_id, "status": "pending", "amount": {"value": f"{amount_kopecks // 100}.{amount_kopecks % 100:02d}", "currency": currency}, "_key": idempotence_key}
         self.refunds[rid] = refund
-        self.refund_requests.append({"payment_id": provider_payment_id, "amount_kopecks": amount_kopecks, "idempotence_key": idempotence_key})
+        self.refund_requests.append({"payment_id": provider_payment_id, "amount_kopecks": amount_kopecks, "idempotence_key": idempotence_key, "receipt": receipt})
         return self._public(refund)
 
     async def get_refund(self, provider_refund_id):

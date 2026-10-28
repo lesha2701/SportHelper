@@ -48,11 +48,15 @@ YOOKASSA_NETWORKS = [
 IDEMPOTENCE_WINDOW = timedelta(hours=23)
 
 
-def ip_is_from_yookassa(address: str) -> bool:
+def ip_is_from_yookassa(address: "str | ipaddress.IPv4Address | ipaddress.IPv6Address | None") -> bool:
+    if address is None:
+        return False
     try:
         ip = ipaddress.ip_address(address)
     except ValueError:
         return False
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
+        ip = ip.ipv4_mapped
     return any(ip in network for network in YOOKASSA_NETWORKS)
 
 
@@ -95,8 +99,11 @@ def _return_url(settings: Settings, booking_id: Any) -> str:
 
 
 def _receipt(settings: Settings, booking: dict[str, Any], user: dict[str, Any], gross_kopecks: int) -> dict[str, Any] | None:
-    if not settings.yookassa_send_receipt or not user.get("email"):
+    if not settings.yookassa_send_receipt:
         return None
+    if not user.get("email"):
+        # Fiscalisation is on: paying without a receipt address would be a tax problem, so refuse instead of quietly skipping it.
+        raise APIError("Для чека нужен адрес электронной почты в профиле.", code="receipt_email_required", status_code=422)
     value = f"{gross_kopecks // 100}.{gross_kopecks % 100:02d}"
     return {
         "customer": {"email": user["email"]},
@@ -213,7 +220,7 @@ def _provider_matches(payment: dict[str, Any], attempt: dict[str, Any], data: di
 
 async def sync_attempt(conn: asyncpg.Connection, settings: Settings, attempt: dict[str, Any], *, source: str = "api") -> dict[str, Any]:
     """Reads the attempt back from ЮKassa and applies the outcome. Safe to call any number of times from anywhere."""
-    if attempt["status"] not in ("created", "pending", "expired") or not attempt["provider_payment_id"] or not settings.payments_enabled:
+    if attempt["status"] not in ("created", "pending", "expired") or not attempt["provider_payment_id"] or not settings.payments_configured:
         return attempt
     data = await get_client(settings).get_payment(attempt["provider_payment_id"])
     status = data.get("status")

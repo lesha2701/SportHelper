@@ -32,7 +32,7 @@ class YooKassaError(Exception):
 
 class YooKassaClient:
     def __init__(self, settings: Settings):
-        if not settings.payments_enabled:
+        if not settings.payments_configured:
             raise RuntimeError("YOOKASSA_SHOP_ID / YOOKASSA_SECRET_KEY are not configured")
         self._auth = (settings.yookassa_shop_id, settings.yookassa_secret_key)
         self._base = settings.yookassa_api_url.rstrip("/")
@@ -87,13 +87,16 @@ class YooKassaClient:
         return await self._request("GET", f"/payments/{provider_payment_id}")
 
     async def create_refund(
-        self, *, provider_payment_id: str, amount_kopecks: int, currency: str, description: str, idempotence_key: str
+        self, *, provider_payment_id: str, amount_kopecks: int, currency: str, description: str, idempotence_key: str,
+        receipt: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        body = {
+        body: dict[str, Any] = {
             "payment_id": provider_payment_id,
             "amount": {"value": _rub(amount_kopecks), "currency": currency},
             "description": description[:250],
         }
+        if receipt is not None:
+            body["receipt"] = receipt  # ЮKassa wants the receipt data in a refund request too, when receipts are used
         return await self._request("POST", "/refunds", headers={"Idempotence-Key": idempotence_key}, json=body)
 
     async def get_refund(self, provider_refund_id: str) -> dict[str, Any]:
