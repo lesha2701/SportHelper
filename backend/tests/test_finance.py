@@ -361,6 +361,9 @@ def test_payout_details_are_encrypted_masked_and_fixed_per_request(fin) -> None:
     assert "912" not in stored and "Иванов" not in stored and "Сбербанк" not in stored  # nothing readable at rest
     listed = coach.ok("GET", "/api/finance/withdrawals")["items"][0]
     assert "912" not in json.dumps(listed) and listed["details_hint"] == created["details_hint"]
+    opened = fin.admin.ok("GET", f"/api/admin/finance/withdrawals/{created['id']}")["withdrawal"]
+    assert opened["coach_email"] == coach.email and opened["coach_full_name"]  # the drawer says whose request it is
+    assert "912" not in json.dumps(opened) and "details_enc" not in opened
     detail = fin.admin.ok("POST", f"/api/admin/finance/withdrawals/{created['id']}/details")
     assert detail["details"]["phone"] == "+79123456789" and detail["details"]["recipient"] == "Иванов Иван Иванович"
     audit = sql(fin.dsn, "SELECT action FROM admin_audit_log WHERE action = 'finance.withdrawal.details_viewed'")

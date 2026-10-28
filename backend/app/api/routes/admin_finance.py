@@ -242,6 +242,9 @@ async def withdrawal_detail(withdrawal_id: UUID, ctx: AuthContext = Depends(requ
     if withdrawal is None:
         raise NotFoundError("withdrawal not found")
     balances = await ledger.trainer_balances(conn, withdrawal["coach_user_id"])
+    coach = await finance_views.trainer_summary(conn, withdrawal["coach_user_id"])
+    # The same two fields the list carries, so the drawer can say whose request it is.
+    withdrawal = {**withdrawal, "coach_full_name": coach["full_name"] if coach else None, "coach_email": coach["email"] if coach else None}
     return {"withdrawal": withdrawal, "events": await withdrawals_repo.events(conn, withdrawal_id), "trainer_balances": balances}
 
 
