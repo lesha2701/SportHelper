@@ -165,3 +165,17 @@ def withdrawal_requested_email(settings: Settings, to: str, first_name: str, amo
         text="\n\n".join(paragraphs),
         html=_wrap_html("Заявка на вывод средств", paragraphs, None, "Это автоматическое уведомление безопасности."),
     )
+
+
+def money_notification_email(settings: Settings, to: str, first_name: str, title: str, body: str) -> OutgoingEmail:
+    """A copy of an in-app money notification (a payment, an earning, a payout) for people who are not on the site right now.
+    The text is the notification's own text, which never carries payment details."""
+    paragraphs = [f"Здравствуйте, {first_name}!", body]
+    base = (settings.app_base_url or "").rstrip("/")
+    button = ("Открыть на сайте", base) if base else None
+    return OutgoingEmail(
+        to=to,
+        subject=f"{title} — {_BRAND}",
+        text="\n\n".join(paragraphs + ([base] if base else [])),
+        html=_wrap_html(title, paragraphs, button, "Это автоматическое уведомление. Все уведомления также доступны на сайте в колокольчике."),
+    )

@@ -15,6 +15,8 @@ export interface TopBarConfig {
   cta?: TopBarCta;
   unreadNotifications?: number;
   onOpenNotifications?: () => void;
+  /** A trainer's money screen, always one click away next to the bell (shown only when the server has the balance switched on). */
+  onOpenFinance?: () => void;
   search?: {
     run: (query: string) => Promise<SearchResult[]>;
     onSelect: (result: SearchResult) => void;
@@ -173,7 +175,7 @@ function SearchBox({ search }: { search: NonNullable<TopBarConfig["search"]> }) 
 /** Desktop-only page header: section kicker + title, the global search, the notification bell, and the
  * screen's primary action. Persistent chrome next to SideNav, not
  * per-screen content — see AppShell. */
-export function TopBar({ kicker, title, cta, unreadNotifications, onOpenNotifications, search }: TopBarConfig) {
+export function TopBar({ kicker, title, cta, unreadNotifications, onOpenNotifications, onOpenFinance, search }: TopBarConfig) {
   return (
     <div className={styles.bar}>
       <div className={styles.heading}>
@@ -182,6 +184,12 @@ export function TopBar({ kicker, title, cta, unreadNotifications, onOpenNotifica
       </div>
       <div className={styles.spacer} />
       {search && <SearchBox search={search} />}
+      {onOpenFinance && (
+        <button type="button" className={styles.financeButton} title="Баланс, выплаты и история платежей" onClick={onOpenFinance}>
+          <Icon name="wallet" size={18} />
+          Финансы
+        </button>
+      )}
       <button type="button" className={styles.bell} title="Уведомления" onClick={onOpenNotifications}>
         <Icon name="bell" size={19} />
         {!!unreadNotifications && (

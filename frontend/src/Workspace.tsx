@@ -21,6 +21,7 @@ import { searchAll, type SearchResult } from "./api/search";
 import { subscribeAppNav } from "./appNav";
 import { notificationToOverlay, type Overlay } from "./overlay";
 import { FinanceScreen } from "./components/finance/FinanceScreen";
+import { useFinanceFeatures } from "./features";
 import { NotificationsScreen } from "./components/notifications/NotificationsScreen";
 import { StateScreen } from "./components/StateScreen";
 import type { NavItem } from "./components/nav/BottomNav";
@@ -233,6 +234,7 @@ function MainContent({
 }) {
   const { state } = useProfile();
   const { state: authState } = useAuth();
+  const { trainerBalance } = useFinanceFeatures();
   const myUserId = authState.status === "ready" ? authState.user.id : null;
   const myPhotoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
   useActivityPing(authState.status === "ready");
@@ -527,6 +529,7 @@ function MainContent({
                 ...coachTopBar(coachTab, onCreateTraining),
                 unreadNotifications,
                 onOpenNotifications: () => setOverlay({ kind: "notifications" }),
+                onOpenFinance: trainerBalance ? () => setOverlay({ kind: "finance" }) : undefined,
                 search: searchConfig,
               }
         }
