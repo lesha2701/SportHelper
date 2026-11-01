@@ -17,3 +17,13 @@ describe("where a money notification leads", () => {
     expect(notificationToOverlay("finance_admin", ID)).toBeNull();
   });
 });
+
+describe("where a chat notification leads", () => {
+  it("opens the personal-training chat of that booking", () => {
+    expect(notificationToOverlay("chat_booking", ID)).toEqual({ kind: "chat", target: { kind: "booking", id: ID } });
+  });
+
+  it("opens the chat of that team", () => {
+    expect(notificationToOverlay("chat_team", ID)).toEqual({ kind: "chat", target: { kind: "team", id: ID } });
+  });
+});

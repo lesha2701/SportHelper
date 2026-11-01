@@ -28,6 +28,7 @@ export const KIND_LABELS: Record<MediaKind | "other", string> = {
   gallery: "Достижения",
   exercise: "Упражнение",
   training: "Тренировки и задания",
+  chat: "Чаты",
   other: "Другое",
 };
 
@@ -70,7 +71,7 @@ export function ModerationPage() {
         <input className={styles.input} type="search" placeholder="Автор (email, имя, ID) или имя файла" value={search} maxLength={100} onChange={(e) => setSearch(e.target.value)} aria-label="Поиск по автору" />
         <select className={styles.select} value={kind} onChange={(e) => setKind(e.target.value as MediaKind | "")} aria-label="Тип материала">
           <option value="">Все материалы</option>
-          {(["avatar", "logo", "listing", "gallery", "exercise", "training"] as MediaKind[]).map((k) => (
+          {(["avatar", "logo", "listing", "gallery", "exercise", "training", "chat"] as MediaKind[]).map((k) => (
             <option key={k} value={k}>
               {KIND_LABELS[k]}
             </option>

@@ -5,6 +5,9 @@ import { listTeamMatches } from "../../api/matches";
 import { listTeamTrainings } from "../../api/trainings";
 import { getTeamSummary } from "../../api/ai";
 import { ApiError } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
+import { useChatUnread } from "../../hooks/useChatUnread";
+import { ChatScreen } from "../chat/ChatScreen";
 import { StateScreen } from "../StateScreen";
 import { ConfirmModal } from "../shared/ConfirmModal";
 import { CreateTeamForm } from "./CreateTeamForm";
@@ -29,12 +32,14 @@ import type { Match } from "../../types/match";
 import type { Training } from "../../types/training";
 import profileStyles from "../profile/profile.module.css";
 import aiStyles from "../stats/stats.module.css";
+import chatStyles from "../chat/chat.module.css";
 import styles from "./teams.module.css";
 
-type Tab = "roster" | "trainings" | "tasks" | "matches" | "stats" | "settings";
+type Tab = "roster" | "chat" | "trainings" | "tasks" | "matches" | "stats" | "settings";
 
 const TAB_LABELS: Record<Tab, string> = {
   roster: "Состав",
+  chat: "Чат",
   trainings: "Тренировки",
   tasks: "Задания",
   matches: "Матчи",
@@ -62,6 +67,10 @@ type LoadState =
 export function TeamDetailScreen({ token, teamId, onBack }: { token: string; teamId: string; onBack: () => void }) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [tab, setTab] = useState<Tab>("roster");
+  const { state: authState } = useAuth();
+  const myUserId = authState.status === "ready" ? authState.user.id : "";
+  const { unread, refresh: refreshUnread } = useChatUnread(token);
+  const teamUnread = unread.team[teamId] ?? 0;
   const [editing, setEditing] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [viewingProfileOf, setViewingProfileOf] = useState<TeamMember | null>(null);
@@ -273,8 +282,21 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
 
       <div className={styles.realTabBar}>
         {visibleTabs.map((t) => (
-          <button key={t} type="button" className={tab === t ? styles.realTabActive : styles.realTab} onClick={() => setTab(t)}>
+          <button
+            key={t}
+            type="button"
+            className={tab === t ? styles.realTabActive : styles.realTab}
+            onClick={() => {
+              if (tab === "chat" && t !== "chat") refreshUnread(); // what was read in the chat is no longer counted
+              setTab(t);
+            }}
+          >
             {TAB_LABELS[t]}
+            {t === "chat" && teamUnread > 0 && tab !== "chat" && (
+              <span className={chatStyles.badge} aria-label={`Непрочитанных: ${teamUnread}`}>
+                {teamUnread > 9 ? "9+" : teamUnread}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -378,6 +400,8 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
           </div>
         </div>
       )}
+
+      {tab === "chat" && <ChatScreen token={token} target={{ kind: "team", id: teamId }} myUserId={myUserId} embedded onBack={() => setTab("roster")} />}
 
       {tab === "trainings" && <TeamTrainingsTab token={token} teamId={teamId} canManage={isCoachStaff} />}
 

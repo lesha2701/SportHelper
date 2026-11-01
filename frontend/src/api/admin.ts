@@ -274,7 +274,7 @@ export { queryString };
 
 // --- media moderation ----------------------------------------------------------------------------------------------
 
-export type MediaKind = "avatar" | "logo" | "listing" | "gallery" | "exercise" | "training";
+export type MediaKind = "avatar" | "logo" | "listing" | "gallery" | "exercise" | "training" | "chat";
 export type MediaState = "visible" | "hidden";
 
 export interface AdminMedia {

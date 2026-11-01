@@ -5,6 +5,10 @@ import { useEffect, useRef, useState } from "react";
 import { listMyBookings, reviewBooking } from "../../api/bookings";
 import { ApiError } from "../../api/client";
 import { navigateApp } from "../../appNav";
+import { useAuth } from "../../context/AuthContext";
+import { useChatUnread } from "../../hooks/useChatUnread";
+import { BookingChatButton } from "../chat/BookingChatButton";
+import { ChatScreen } from "../chat/ChatScreen";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
 import { TrainingDetail } from "../trainings/TrainingDetail";
@@ -61,6 +65,10 @@ export function MyBookingsSection({
   const [reviewing, setReviewing] = useState<Booking | null>(null);
   const [openTrainingId, setOpenTrainingId] = useState<string | null>(null);
   const [coachView, setCoachView] = useState<CoachView | null>(null);
+  const [chatFor, setChatFor] = useState<Booking | null>(null);
+  const { state: authState } = useAuth();
+  const myUserId = authState.status === "ready" ? authState.user.id : "";
+  const { unread, refresh: refreshUnread } = useChatUnread(token);
 
   const focusHandledRef = useRef(false);
   useEffect(() => {
@@ -113,6 +121,20 @@ export function MyBookingsSection({
         coachUserId={coachView.coachUserId}
         onBack={() => setCoachView(null)}
         onOpenListing={(listingId) => setCoachView({ screen: "listing", listingId, coachUserId: coachView.coachUserId })}
+      />
+    );
+  }
+
+  if (chatFor) {
+    return (
+      <ChatScreen
+        token={token}
+        target={{ kind: "booking", id: chatFor.id }}
+        myUserId={myUserId}
+        onBack={() => {
+          setChatFor(null);
+          refreshUnread();
+        }}
       />
     );
   }
@@ -244,6 +266,7 @@ export function MyBookingsSection({
             <span className={styles.bookingStatus}>Подтверждена</span>
           </div>
           <BookingPayment token={token} booking={b} />
+          <BookingChatButton booking={b} label="Чат с тренером" unread={unread.booking[b.id] ?? 0} onOpen={() => setChatFor(b)} />
         </div>
       ))}
 
@@ -278,6 +301,7 @@ export function MyBookingsSection({
               </button>
             )}
           </div>
+          <BookingChatButton booking={b} label="Чат с тренером" unread={unread.booking[b.id] ?? 0} onOpen={() => setChatFor(b)} />
         </div>
       ))}
 

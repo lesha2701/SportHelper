@@ -26,6 +26,7 @@ from app.api.routes import (
     exercises,
     files,
     finance,
+    chat,
     health,
     matches,
     metrics,
@@ -201,6 +202,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_complaints.router)
     app.include_router(admin_finance.router)
     app.include_router(finance.router)
+    app.include_router(chat.router)
     app.include_router(complaints.router)
     app.include_router(health.router)
     app.include_router(profile.router)

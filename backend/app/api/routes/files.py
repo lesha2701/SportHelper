@@ -22,6 +22,7 @@ from app.repositories import teams as teams_repo
 from app.repositories import users as users_repo
 from app.schemas.team import TeamOut
 from app.schemas.user import UserOut
+from app.services import chat as chat_service
 from app.services.uploads import IMAGE_MIME_EXTENSIONS, discard_stored_image, safe_filename, store_image_or_raise
 
 _EXERCISE_MEDIA_ENTITY_TYPES = ("exercise_photo", "exercise_video")
@@ -179,6 +180,10 @@ async def download_file(
         if member is None:
             raise ForbiddenError("you do not have access to this file")
         if access_level == "COACHES_ONLY" and member["role"] not in ("head_coach", "assistant_coach"):
+            raise ForbiddenError("you do not have access to this file")
+    elif access_level == "CHAT":
+        # A photo or video sent in a chat: only people who can read that chat, and only while its message exists.
+        if not await chat_service.can_read_file(conn, user, file_id):
             raise ForbiddenError("you do not have access to this file")
     elif access_level == "PUBLIC":
         pass  # anyone, signed in or not, may view a public avatar / coach-listing photo or video

@@ -23,6 +23,8 @@ const CATEGORY_ICON: Record<NotificationCategory, IconName> = {
   earning_update: "wallet",
   withdrawal_update: "wallet",
   finance_admin: "shield",
+  chat_booking: "message",
+  chat_team: "message",
 };
 
 function formatSendAt(iso: string): string {

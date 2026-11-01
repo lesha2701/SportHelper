@@ -1,4 +1,5 @@
 import type { NotificationCategory } from "./types/notification";
+import type { ChatTarget } from "./types/chat";
 import type { Training } from "./types/training";
 
 export type OverlayBase =
@@ -12,7 +13,8 @@ export type OverlayBase =
   | { kind: "notifications" }
   | { kind: "incoming-bookings"; focusBookingId?: string }
   | { kind: "my-bookings"; reviewBookingId?: string; focusBookingId?: string }
-  | { kind: "finance" };
+  | { kind: "finance" }
+  | { kind: "chat"; target: ChatTarget };
 
 /** `backTo` is where "Назад" returns: an overlay opened from the notification
  * list goes back to that list, not to whatever tab happened to be underneath. */
@@ -51,6 +53,12 @@ export function notificationToOverlay(category: NotificationCategory, entityId: 
     case "earning_update":
     case "withdrawal_update":
       return { kind: "finance" };
+    case "chat_booking":
+      // entityId is the booking.
+      return { kind: "chat", target: { kind: "booking", id: entityId } };
+    case "chat_team":
+      // entityId is the team.
+      return { kind: "chat", target: { kind: "team", id: entityId } };
     default:
       return null;
   }
