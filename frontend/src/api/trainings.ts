@@ -3,6 +3,8 @@ import {
   mapAttendanceDto,
   mapTrainingDto,
   mapTrainingFeedbackDto,
+  mapWorkoutDto,
+  workoutToDto,
   type Attendance,
   type AttendanceDto,
   type AttendanceStatus,
@@ -13,6 +15,8 @@ import {
   type TrainingFeedbackDto,
   type TrainingFeedbackInput,
   type TrainingUpdateInput,
+  type TrainingWorkout,
+  type TrainingWorkoutDto,
 } from "../types/training";
 
 export async function createTeamTraining(token: string, teamId: string, input: TrainingCreateInput): Promise<Training[]> {
@@ -96,4 +100,23 @@ export async function skipTrainingFeedback(token: string, trainingId: string): P
     token,
   });
   return mapTrainingFeedbackDto(dto);
+}
+
+export async function getTrainingWorkout(token: string, trainingId: string): Promise<TrainingWorkout | null> {
+  const dto = await apiRequest<TrainingWorkoutDto | null>(`/api/trainings/${trainingId}/workout`, { token, silent: true });
+  return dto ? mapWorkoutDto(dto) : null;
+}
+
+export async function saveTrainingWorkout(
+  token: string,
+  trainingId: string,
+  workout: Omit<TrainingWorkout, "trainingId">,
+): Promise<TrainingWorkout> {
+  const dto = await apiRequest<TrainingWorkoutDto>(`/api/trainings/${trainingId}/workout`, {
+    method: "PUT",
+    successMessage: "Результат тренировки сохранён",
+    token,
+    body: workoutToDto(workout),
+  });
+  return mapWorkoutDto(dto);
 }

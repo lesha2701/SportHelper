@@ -62,9 +62,12 @@ class PersonalTrainingDraftIn(BaseModel):
 
 class PersonalTrainingExerciseDraft(BaseModel):
     exercise: str
+    # What one set is measured in: repetitions, time (a plank) or distance (a run, with an optional target time).
+    type: Literal["reps", "time", "distance"] = "reps"
     reps: int | None = None
     sets: int | None = None
     duration_seconds: int | None = None
+    distance_meters: int | None = None
 
 
 class PersonalTrainingDraftOut(BaseModel):

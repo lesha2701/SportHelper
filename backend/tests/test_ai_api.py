@@ -345,3 +345,48 @@ def test_training_evaluation_rejected_before_completed(logged_in_client, login_a
     )
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "training_not_completed"
+
+
+def test_personal_training_draft_picks_the_kind_and_sane_numbers_for_every_exercise(logged_in_client, queue_ai_response) -> None:
+    client, token = logged_in_client
+    _create_player_profile(client, token)
+    queue_ai_response(
+        json.dumps(
+            {
+                "exercises": [
+                    {"exercise": "Приседания", "type": "reps", "sets": 3, "reps": 15},
+                    {"exercise": "Планка", "type": "time", "sets": 3, "duration_seconds": 45},
+                    {"exercise": "Бег", "type": "distance", "distance_meters": 3000, "duration_seconds": 1080},
+                    # Model slips: a run counted in repetitions, a plank without a time, nonsense numbers.
+                    {"exercise": "Пробежка по парку", "type": "reps", "sets": 3, "reps": 10},
+                    {"exercise": "Растяжка", "sets": None},
+                    {"exercise": "Отжимания", "type": "reps", "sets": 0, "reps": 5000},
+                ],
+                "notes": None,
+                "duration_minutes": 45,
+            }
+        )
+    )
+
+    response = client.post("/api/ai/personal-training-draft", headers={"Authorization": f"Bearer {token}"}, json={})
+
+    assert response.status_code == 200, response.text
+    by_name = {e["exercise"]: e for e in response.json()["exercises"]}
+    assert (by_name["Приседания"]["type"], by_name["Приседания"]["sets"], by_name["Приседания"]["reps"]) == ("reps", 3, 15)
+    assert (by_name["Планка"]["type"], by_name["Планка"]["duration_seconds"], by_name["Планка"]["reps"]) == ("time", 45, None)
+    assert (by_name["Бег"]["type"], by_name["Бег"]["distance_meters"], by_name["Бег"]["duration_seconds"], by_name["Бег"]["sets"]) == ("distance", 3000, 1080, 1)
+    assert (by_name["Пробежка по парку"]["type"], by_name["Пробежка по парку"]["sets"], by_name["Пробежка по парку"]["reps"]) == ("distance", 1, None)
+    assert (by_name["Растяжка"]["type"], by_name["Растяжка"]["duration_seconds"]) == ("time", 30)
+    assert (by_name["Отжимания"]["sets"], by_name["Отжимания"]["reps"]) == (3, 100)
+
+
+def test_circuit_draft_is_timed_exercises_only(logged_in_client, queue_ai_response) -> None:
+    client, token = logged_in_client
+    _create_player_profile(client, token)
+    queue_ai_response(json.dumps({"exercises": [{"exercise": "Бёрпи", "type": "reps", "reps": 10, "sets": 3}], "notes": None, "duration_minutes": 20}))
+
+    response = client.post("/api/ai/personal-training-draft", headers={"Authorization": f"Bearer {token}"}, json={"style": "circuit"})
+
+    assert response.status_code == 200, response.text
+    exercise = response.json()["exercises"][0]
+    assert (exercise["type"], exercise["duration_seconds"], exercise["reps"], exercise["sets"]) == ("time", 30, None, None)

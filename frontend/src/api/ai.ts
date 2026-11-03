@@ -122,9 +122,12 @@ export interface PersonalTrainingDraftInput {
 
 export interface PersonalTrainingExerciseDraft {
   exercise: string;
+  /** What one set is measured in: repetitions, time (a plank) or distance (a run). */
+  type: "reps" | "time" | "distance";
   reps: number | null;
   sets: number | null;
   durationSeconds: number | null;
+  distanceMeters: number | null;
 }
 
 export interface PersonalTrainingDraft {
@@ -136,9 +139,11 @@ export interface PersonalTrainingDraft {
 
 interface PersonalTrainingExerciseDraftDto {
   exercise: string;
+  type?: "reps" | "time" | "distance";
   reps: number | null;
   sets: number | null;
   duration_seconds: number | null;
+  distance_meters?: number | null;
 }
 
 interface PersonalTrainingDraftDto {
@@ -159,7 +164,14 @@ export async function createPersonalTrainingDraft(
   });
   return {
     style: dto.style,
-    exercises: dto.exercises.map((e) => ({ exercise: e.exercise, reps: e.reps, sets: e.sets, durationSeconds: e.duration_seconds })),
+    exercises: dto.exercises.map((e) => ({
+      exercise: e.exercise,
+      type: e.type ?? "reps",
+      reps: e.reps,
+      sets: e.sets,
+      durationSeconds: e.duration_seconds,
+      distanceMeters: e.distance_meters ?? null,
+    })),
     notes: dto.notes,
     durationMinutes: dto.duration_minutes,
   };

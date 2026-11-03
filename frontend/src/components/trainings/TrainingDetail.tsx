@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { cancelTrainingSeries, getTraining, getTrainingFeedback, skipTrainingFeedback, submitTrainingFeedback, updateTraining } from "../../api/trainings";
+import {
+  cancelTrainingSeries,
+  getTraining,
+  getTrainingFeedback,
+  getTrainingWorkout,
+  skipTrainingFeedback,
+  submitTrainingFeedback,
+  updateTraining,
+} from "../../api/trainings";
 import { getPlan } from "../../api/plans";
 import { getTrainingEvaluation } from "../../api/ai";
 import { ApiError } from "../../api/client";
@@ -13,8 +21,18 @@ import { AthleteSessionCard } from "./AthleteSessionCard";
 import { CoachSessionCard } from "./CoachSessionCard";
 import { PlayerAiAnalysisCard } from "./PlayerAiAnalysisCard";
 import { TrainingSessionScreen } from "./TrainingSessionScreen";
+import { RepsWorkoutScreen, hasWorkoutDraft } from "./RepsWorkoutScreen";
+import { count } from "../../lib/plural";
+import { describePlan, describeSets, formatClock, formatMeters, parseExerciseTarget, workoutTotals } from "../../lib/workout";
 import { PLAN_SECTIONS, PLAN_SECTION_LABELS, type Plan } from "../../types/plan";
-import { TRAINING_STATUS_LABELS, isTrainingOverdue, type Training, type TrainingFeedback, type TrainingStatus } from "../../types/training";
+import {
+  TRAINING_STATUS_LABELS,
+  isTrainingOverdue,
+  type Training,
+  type TrainingFeedback,
+  type TrainingStatus,
+  type TrainingWorkout,
+} from "../../types/training";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 import libraryStyles from "../library/library.module.css";
@@ -89,6 +107,60 @@ function parseExerciseChecklist(description: string): ParsedExerciseChecklist | 
   return { items, rounds, restSeconds, notes };
 }
 
+/** An exercise line of the plan as it is read on the screen: "Бег — 3 км за 15:00" instead of the raw units. */
+function exerciseLabel(text: string): string {
+  const target = parseExerciseTarget(text);
+  if (target.metric === null) return text;
+  const plan = describePlan({
+    metric: target.metric,
+    targetSets: target.sets,
+    targetReps: target.reps,
+    targetSeconds: target.seconds,
+    targetMeters: target.meters,
+  });
+  return plan ? `${target.name} — ${plan}` : target.name;
+}
+
+const WELLBEING_WORDS = ["очень тяжело", "тяжело", "нормально", "хорошо", "отлично"];
+
+function WorkoutResultCard({ workout }: { workout: TrainingWorkout }) {
+  const totals = workoutTotals(workout.exercises);
+  const seconds =
+    workout.startedAt && workout.finishedAt ? Math.round((new Date(workout.finishedAt).getTime() - new Date(workout.startedAt).getTime()) / 1000) : null;
+  return (
+    <div className={profileStyles.card}>
+      <h2 className={profileStyles.title}>Результаты тренировки</h2>
+      <p className={profileStyles.subtitle}>
+        {[
+          `${totals.setsDone} из ${totals.setsTotal} подходов`,
+          totals.reps > 0 ? count(totals.reps, "повторение", "повторения", "повторений") : null,
+          totals.volumeKg > 0 ? `${totals.volumeKg} кг тоннаж` : null,
+          totals.seconds > 0 ? `${formatClock(totals.seconds)} под нагрузкой` : null,
+          totals.meters > 0 ? formatMeters(totals.meters) : null,
+          seconds !== null && seconds > 0 ? formatClock(seconds) : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      </p>
+      {workout.exercises.map((exercise, index) => (
+        <div key={index} className={profileStyles.row}>
+          <span className={profileStyles.rowLabel}>{exercise.name}</span>
+          <span className={profileStyles.rowValue}>{describeSets(exercise) || "не выполнено"}</span>
+        </div>
+      ))}
+      {workout.wellbeing !== null && (
+        <div className={profileStyles.row}>
+          <span className={profileStyles.rowLabel}>Самочувствие</span>
+          <span className={profileStyles.rowValue}>
+            {workout.wellbeing} из 5, {WELLBEING_WORDS[workout.wellbeing - 1]}
+          </span>
+        </div>
+      )}
+      {workout.note && <p className={profileStyles.subtitle}>Заметка: {workout.note}</p>}
+    </div>
+  );
+}
+
 export function TrainingDetail({
   token,
   trainingId,
@@ -138,12 +210,9 @@ export function TrainingDetail({
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  // Client-side only — lets a player tick off exercises while training;
-  // there's no backend field for per-exercise completion, so this resets
-  // on reload. Keyed by trainingId so switching trainings starts fresh.
-  const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
-  useEffect(() => setCheckedItems(new Set()), [trainingId]);
   const [sessionActive, setSessionActive] = useState(false);
+  // What the person recorded in the guided workout (sets, repetitions, weights), once it is saved.
+  const [workout, setWorkout] = useState<TrainingWorkout | null>(null);
 
   const handleAiEvaluate = useCallback(async () => {
     setAiError(null);
@@ -227,6 +296,21 @@ export function TrainingDetail({
     [isPersonalTraining, trainingDescription],
   );
 
+  const ownsPersonalTraining = isPersonalTraining && !isBookedCoachViewer;
+  useEffect(() => {
+    if (!ownsPersonalTraining) {
+      setWorkout(null);
+      return;
+    }
+    let cancelled = false;
+    getTrainingWorkout(token, trainingId)
+      .then((saved) => !cancelled && setWorkout(saved))
+      .catch(() => !cancelled && setWorkout(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [token, trainingId, ownsPersonalTraining]);
+
   if (state.status === "loading") {
     return <StateScreen kind="loading" title="Загрузка тренировки…" />;
   }
@@ -247,6 +331,39 @@ export function TrainingDetail({
   const isTeamCoach = canEdit && training.type !== "personal";
 
   if (sessionActive && checklist) {
+    if (checklist.rounds === null) {
+      return (
+        <RepsWorkoutScreen
+          token={token}
+          trainingId={training.id}
+          items={checklist.items}
+          notes={checklist.notes}
+          onExit={() => setSessionActive(false)}
+          onSaved={(saved) => {
+            setWorkout(saved);
+            // Doing the workout is the training: the plan is marked as held without another tap.
+            if (training.status === "scheduled") {
+              updateTraining(token, training.id, {
+                training_date: training.trainingDate,
+                start_time: training.startTime,
+                duration_minutes: training.durationMinutes,
+                location: training.location,
+                description: training.description,
+                plan_id: training.planId,
+                reminder_minutes_before: training.reminderMinutesBefore,
+                status: "completed",
+                is_independent: false,
+                responsible_user_id: training.responsibleUserId,
+              })
+                // A quiet refresh: reloading through the loading state would rebuild the workout screen under the person.
+                .then(() => getTraining(token, trainingId))
+                .then((fresh) => setState({ status: "ready", training: fresh }))
+                .catch(() => undefined);
+            }
+          }}
+        />
+      );
+    }
     return <TrainingSessionScreen checklist={checklist} onExit={() => setSessionActive(false)} />;
   }
 
@@ -352,18 +469,6 @@ export function TrainingDetail({
   const showTeamRatingSummary = isTeamCoach && feedbackReady && savedFeedback !== null && !editingTeamRating;
   const showFeedbackError = !isBookedCoachViewer && training.status === "completed" && feedbackState.status === "error";
 
-  const toggleChecked = (index: number) => {
-    setCheckedItems((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-      return next;
-    });
-  };
-
   return (
     <div className={styles.screen}>
       <div className={styles.headerRow}>
@@ -431,30 +536,23 @@ export function TrainingDetail({
             {!isBookedCoachViewer && (
               <button type="button" className={profileStyles.buttonPrimary} style={{ flex: "0 0 auto", width: "auto", padding: "8px 16px" }} onClick={() => setSessionActive(true)}>
                 <Icon name="clock" size={15} />
-                Начать тренировку
+                {hasWorkoutDraft(training.id) ? "Продолжить тренировку" : workout ? "Тренироваться снова" : "Начать тренировку"}
               </button>
             )}
           </div>
-          {checklist.items.map((item, index) => {
-            const done = checkedItems.has(index);
-            return (
-              <label key={index} className={trainingStyles.checklistItem}>
-                <input
-                  type="checkbox"
-                  className={trainingStyles.checklistCheckbox}
-                  checked={done}
-                  onChange={() => toggleChecked(index)}
-                />
-                <span className={done ? trainingStyles.checklistLabelDone : trainingStyles.checklistLabel}>
-                  {item.text}
-                  {item.durationSeconds !== null ? ` — ${item.durationSeconds} сек` : ""}
-                </span>
-              </label>
-            );
-          })}
+          <ol className={trainingStyles.exerciseList}>
+            {checklist.items.map((item, index) => (
+              <li key={index} className={trainingStyles.exerciseListItem}>
+                {exerciseLabel(item.text)}
+                {item.durationSeconds !== null ? ` — ${item.durationSeconds} сек` : ""}
+              </li>
+            ))}
+          </ol>
           {checklist.notes && <p className={profileStyles.subtitle}>Пометки: {checklist.notes}</p>}
         </div>
       )}
+
+      {workout && <WorkoutResultCard workout={workout} />}
 
       {plan && (
         <div className={profileStyles.card}>
