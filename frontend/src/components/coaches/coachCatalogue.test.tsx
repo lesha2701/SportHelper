@@ -57,7 +57,7 @@ describe("the coaches tab for a coach", () => {
 
     await screen.findByText("Чужое объявление");
     expect(screen.queryByText("Моё объявление")).toBeNull();
-    expect(screen.getByText("Найдено 1 объявлений")).toBeTruthy();
+    expect(screen.getByText("Найдено 1 объявление")).toBeTruthy();
   });
 });
 

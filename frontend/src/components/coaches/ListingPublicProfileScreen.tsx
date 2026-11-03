@@ -12,6 +12,7 @@ import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 import { photoVideoGallery } from "../shared/MediaLightbox";
+import { count, years } from "../../lib/plural";
 
 const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -69,11 +70,11 @@ export function ListingPublicProfileScreen({
                   <h1 className={profileStyles.title}>{listing.title}</h1>
                   <p className={profileStyles.subtitle}>
                     {listing.coachFullName} · {listing.sport}
-                    {listing.experienceYears !== null ? ` · ${listing.experienceYears} лет опыта` : ""}
+                    {listing.experienceYears !== null ? ` · ${years(listing.experienceYears)} опыта` : ""}
                   </p>
                   {listing.averageRating !== null && (
                     <p className={profileStyles.subtitle}>
-                      <span className={styles.starRating}>★ {listing.averageRating.toFixed(1)}</span> ({listing.reviewCount} отзывов)
+                      <span className={styles.starRating}>★ {listing.averageRating.toFixed(1)}</span> ({count(listing.reviewCount, "отзыв", "отзыва", "отзывов")})
                     </p>
                   )}
                 </div>

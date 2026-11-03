@@ -12,6 +12,7 @@ import type { PlayerPublicProfile, PlayerReviews } from "../../types/player";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
+import { years } from "../../lib/plural";
 
 const stars = (n: number) => "★".repeat(n) + "☆".repeat(5 - n);
 
@@ -124,7 +125,7 @@ export function PlayerPublicProfileScreen({
                 <div className={sharedStyles.statGrid}>
                   {profile.age !== null && (
                     <div className={sharedStyles.statTile}>
-                      <span className={sharedStyles.statValue}>{profile.age}</span>
+                      <span className={sharedStyles.statValue}>{years(profile.age)}</span>
                       <span className={sharedStyles.statLabel}>Возраст</span>
                     </div>
                   )}

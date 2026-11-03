@@ -16,6 +16,7 @@ import type { Plan } from "../../types/plan";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 import libStyles from "./library.module.css";
+import { count } from "../../lib/plural";
 
 function formatDuration(seconds: number | null): string | null {
   if (!seconds) return null;
@@ -301,7 +302,7 @@ export function ExercisesScreen({ token }: { token: string }) {
                 {sport}
               </button>
             ))}
-            <span className={libStyles.resultCount}>{filtered.length} упражнений</span>
+            <span className={libStyles.resultCount}>{count(filtered.length, "упражнение", "упражнения", "упражнений")}</span>
           </div>
 
           {filtered.length === 0 ? (
@@ -342,7 +343,7 @@ export function ExercisesScreen({ token }: { token: string }) {
                           <div className={libStyles.exerciseCardFooter}>
                             <span className={libStyles.exerciseCardCategory}>{exercise.sport}</span>
                             <span className={libStyles.exerciseCardShared}>
-                              {exercise.sharedTeamIds.length > 0 ? `${exercise.sharedTeamIds.length} команд` : "личное"}
+                              {exercise.sharedTeamIds.length > 0 ? count(exercise.sharedTeamIds.length, "команда", "команды", "команд") : "личное"}
                             </span>
                           </div>
                         </div>

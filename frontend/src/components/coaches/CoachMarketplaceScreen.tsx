@@ -17,6 +17,7 @@ import teamStyles from "../teams/teams.module.css";
 import profileStyles from "../profile/profile.module.css";
 import libStyles from "../library/library.module.css";
 import styles from "./coaches.module.css";
+import { count, years } from "../../lib/plural";
 
 type View =
   | { screen: "list" }
@@ -45,7 +46,7 @@ function ListingCardView({ token, listing, onOpen }: { token: string; listing: C
           <h3 className={styles.coachName}>{listing.title}</h3>
           <p className={styles.coachMeta}>
             {listing.coachFullName} · {listing.sport}
-            {listing.experienceYears !== null ? ` · ${listing.experienceYears} лет опыта` : ""}
+            {listing.experienceYears !== null ? ` · ${years(listing.experienceYears)} опыта` : ""}
           </p>
           {listing.averageRating !== null && (
             <p className={styles.coachMeta}>
@@ -110,11 +111,11 @@ function ListingDetailPanel({
         </div>
         <p className={profileStyles.subtitle} style={{ margin: 0 }}>
           {listing.coachFullName}
-          {listing.experienceYears !== null ? ` · ${listing.experienceYears} лет опыта` : ""}
+          {listing.experienceYears !== null ? ` · ${years(listing.experienceYears)} опыта` : ""}
         </p>
         {listing.averageRating !== null && (
           <p className={profileStyles.subtitle} style={{ margin: 0 }}>
-            <span className={styles.starRating}>★ {listing.averageRating.toFixed(1)}</span> ({listing.reviewCount} отзывов)
+            <span className={styles.starRating}>★ {listing.averageRating.toFixed(1)}</span> ({count(listing.reviewCount, "отзыв", "отзыва", "отзывов")})
           </p>
         )}
         <p className={libStyles.detailDescription}>{listing.description || "Без описания."}</p>
@@ -504,7 +505,7 @@ export function CoachMarketplaceScreen({
         <div className={styles.resultsColumn}>
           {state.status === "ready" && (
             <div className={styles.resultsHeader}>
-              <span>Найдено {state.listings.length} объявлений</span>
+              <span>Найдено {count(state.listings.length, "объявление", "объявления", "объявлений")}</span>
               <div className={styles.layoutToggleRow}>
                 <button
                   type="button"

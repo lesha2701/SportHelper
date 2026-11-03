@@ -18,6 +18,7 @@ import styles from "./dashboard.module.css";
 import profileStyles from "../profile/profile.module.css";
 import { navigateApp } from "../../appNav";
 import { WeekOverview } from "./WeekOverview";
+import { count } from "../../lib/plural";
 
 const COACH_STAFF_ROLES = new Set<string>(["head_coach", "assistant_coach"]);
 const WAVE_PATH = "M-20 90 C 60 40, 140 140, 220 60 S 380 20, 440 70";
@@ -265,7 +266,7 @@ export function CoachDashboard({
                     <span className={styles.attentionName}>
                       {p.firstName} {p.lastName ?? ""}
                     </span>
-                    <span className={styles.attentionWhy}>{p.absentCount} пропусков</span>
+                    <span className={styles.attentionWhy}>{count(p.absentCount, "пропуск", "пропуска", "пропусков")}</span>
                   </div>
                   <span className={styles.attentionRate}>{formatRate(p.attendanceRate)}</span>
                 </div>

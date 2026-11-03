@@ -199,10 +199,14 @@
   line-height: 1.05;
   font-weight: 800;
   text-transform: uppercase;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .heroSub {
   margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   font-size: 13px;
   color: var(--panel-muted);
 }
@@ -267,6 +271,7 @@
 }
 
 .goalCard {
+  min-width: 0;
   border-radius: 20px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -287,6 +292,7 @@
 
 .goalCardText {
   margin: 0;
+  overflow-wrap: anywhere; /* a very long unbroken text wraps instead of running off the card */
   font-size: 14px;
   line-height: 1.45;
   color: var(--color-text);
@@ -623,6 +629,8 @@
 }
 
 .rowValue {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--color-text);
   text-align: right;
   font-weight: 500;
