@@ -1,5 +1,5 @@
-/* Sign-in / sign-up screens. Same tokens and type as the app (Barlow
-   Condensed display + Montserrat body, graphite + signal red); the wave
+/* Sign-in / sign-up screens. Same tokens and type as the app (Oswald
+   display + Montserrat body, graphite + signal red); the wave
    motif comes from the shared <Ornament />. */
 
 .page {
@@ -522,6 +522,25 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
   min-width: 0;
+}
+
+.requiredMark {
+  color: var(--color-danger);
+  margin-left: 2px;
+}
+
+/* The star of a mandatory field is drawn by CSS, so the label's text (and its accessible name) stays as written. */
+.labelRequired::after {
+  content: "*";
+  color: var(--color-danger);
+  margin-left: 2px;
+}
+
+.requiredHint {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
 }
 
 .rolesLegend {
