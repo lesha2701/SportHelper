@@ -205,10 +205,30 @@ async def inspect_verification(
     return VerifyInspectOut(valid=True, email=claim_service.mask_email(token["new_email"] or ""), first_name=user["first_name"])
 
 
+async def _sign_in_after_verification(
+    conn: asyncpg.Connection, request: Request, response: Response, user_id: UUID, settings: Settings
+) -> AuthOut | None:
+    """Opens a session right after the address is confirmed, so a new person lands in the app
+    without a separate login. Only for someone who just proved both the mailbox (the link) and the
+    password, and never for a blocked account or one protected by two-factor (that one signs in
+    the usual way, with its code)."""
+    user = await users_repo.get_by_id(conn, user_id)
+    if user is None or user.get("deleted_at") is not None or user.get("is_banned"):
+        return None
+    mfa = await mfa_repo.get(conn, user_id)
+    if mfa is not None and mfa["enabled_at"]:
+        return None
+    await users_repo.clear_login_failures(conn, user_id)
+    token, _session = await start_session(conn, request, user_id, settings)
+    set_session_cookie(response, token, settings)
+    return _auth_out(user, token, settings)
+
+
 @router.post("/verify-email", response_model=VerifyEmailOut)
 async def verify_email(
     payload: VerifyEmailIn,
     request: Request,
+    response: Response,
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> VerifyEmailOut:
@@ -233,13 +253,15 @@ async def verify_email(
         raise ConflictError("Этот email уже привязан к другому аккаунту.", code="email_taken")
     if status != "ok" or user is None:
         raise APIError(_INVALID_LINK, code="invalid_token", status_code=400)
-    return VerifyEmailOut(verified=True, email=user["email"])
+    session = await _sign_in_after_verification(conn, request, response, user["id"], settings)
+    return VerifyEmailOut(verified=True, email=user["email"], session=session)
 
 
 @router.post("/verify-email/set-password", response_model=VerifyEmailOut)
 async def verify_email_with_new_password(
     payload: VerifyEmailSetPasswordIn,
     request: Request,
+    response: Response,
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> VerifyEmailOut:
@@ -266,7 +288,8 @@ async def verify_email_with_new_password(
         raise APIError(_INVALID_LINK, code="invalid_token", status_code=400)
     # Anything signed in with the previous password is gone (there should be nothing, but be sure).
     await sessions_repo.revoke_all(conn, user["id"])
-    return VerifyEmailOut(verified=True, email=user["email"])
+    session = await _sign_in_after_verification(conn, request, response, user["id"], settings)
+    return VerifyEmailOut(verified=True, email=user["email"], session=session)
 
 
 @router.post("/resend-verification", response_model=MessageOut)

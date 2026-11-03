@@ -44,8 +44,8 @@ export function CheckEmailScreen({
         <Icon name="mail" size={30} />
       </div>
       <p className={styles.lead} style={{ margin: 0 }}>
-        Мы отправили письмо со ссылкой на <span className={styles.address}>{email}</span>. Откройте его и нажмите «Подтвердить
-        email» — после этого можно войти. Ссылка действует 24 часа.
+        Мы отправили письмо со ссылкой на <span className={styles.address}>{email}</span>. Откройте его, нажмите «Подтвердить
+        email» и введите пароль — вы сразу попадёте в приложение. Ссылка действует 24 часа.
       </p>
 
       <div className={styles.stack}>

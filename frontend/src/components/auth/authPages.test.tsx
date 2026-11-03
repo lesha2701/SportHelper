@@ -514,7 +514,7 @@ describe("email confirmation page", () => {
   });
 
   it("confirms with the password and offers to sign in", async () => {
-    api.verifyEmail.mockResolvedValue({ email: "alice@example.com" });
+    api.verifyEmail.mockResolvedValue({ email: "alice@example.com", session: null });
     at("/verify-email?token=tok-ok");
     render(<VerifyEmailPage />);
     await screen.findByText("Подтвердите email");
@@ -527,9 +527,23 @@ describe("email confirmation page", () => {
     expect(screen.getByRole("link", { name: "Войти" }).getAttribute("href")).toBe("/login?verified=1");
   });
 
+  it("signs the person in and opens the app as soon as the address is confirmed", async () => {
+    const session = { user: { id: "u1" } as never, csrfToken: "csrf" };
+    api.verifyEmail.mockResolvedValue({ email: "alice@example.com", session });
+    at("/verify-email?token=tok-ok&next=%2Fcoaches");
+    render(<VerifyEmailPage />);
+    await screen.findByText("Подтвердите email");
+
+    type("Пароль", STRONG);
+    click("Подтвердить email");
+
+    await waitFor(() => expect(signIn).toHaveBeenCalledWith(session));
+    expect(window.location.pathname + window.location.search).toBe("/coaches");
+  });
+
   it("a wrong password does not confirm, and points the real owner to setting a new one", async () => {
     api.verifyEmail.mockRejectedValue(apiError(403, "password_mismatch", "Пароль не совпадает с тем, что указан при регистрации.", "password"));
-    api.verifyEmailWithNewPassword.mockResolvedValue({ email: "alice@example.com" });
+    api.verifyEmailWithNewPassword.mockResolvedValue({ email: "alice@example.com", session: null });
     at("/verify-email?token=tok-hijack");
     render(<VerifyEmailPage />);
     await screen.findByText("Подтвердите email");
@@ -563,7 +577,7 @@ describe("email confirmation page", () => {
   });
 
   it("after confirming, the sign-in link still leads to the booking the person started", async () => {
-    api.verifyEmail.mockResolvedValue({ email: "alice@example.com" });
+    api.verifyEmail.mockResolvedValue({ email: "alice@example.com", session: null });
     at("/verify-email?token=tok-next&next=%2F%3Fbook%3Dlisting-42");
     render(<VerifyEmailPage />);
     await screen.findByText("Подтвердите email");
@@ -576,7 +590,7 @@ describe("email confirmation page", () => {
   });
 
   it("ignores a hostile next in the link", async () => {
-    api.verifyEmail.mockResolvedValue({ email: "alice@example.com" });
+    api.verifyEmail.mockResolvedValue({ email: "alice@example.com", session: null });
     at("/verify-email?token=tok-evil&next=https%3A%2F%2Fevil.example");
     render(<VerifyEmailPage />);
     await screen.findByText("Подтвердите email");

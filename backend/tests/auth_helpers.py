@@ -75,7 +75,12 @@ def login(client: TestClient, email: str = "alice@example.com", password: str = 
 
 def sign_in(client: TestClient, **overrides) -> dict:
     """Sign up + log in with the cookie; returns {'csrf': ..., 'user': ...}."""
+    before = set(client.auth_store.sessions)
     payload = sign_up(client, **overrides)
+    # Confirming the address already opened a session; start from the explicit login these tests are about.
+    client.cookies.clear()
+    for key in set(client.auth_store.sessions) - before:
+        del client.auth_store.sessions[key]
     resp = login(client, payload["email"], payload["password"])
     assert resp.status_code == 200, resp.text
     body = resp.json()

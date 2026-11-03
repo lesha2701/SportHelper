@@ -115,7 +115,7 @@ export function VerifyEmailPage() {
   const { search } = useLocation();
   const token = readToken(search);
   const next = safeNext(new URLSearchParams(search).get("next"));
-  const { state } = useAuth();
+  const { state, signIn } = useAuth();
 
   const [info, setInfo] = useState<VerificationInfo | null | "error">(token ? null : { valid: false, email: null, firstName: null });
   const [mode, setMode] = useState<VerifyMode>("confirm");
@@ -158,6 +158,11 @@ export function VerifyEmailPage() {
     try {
       const result = mode === "set-password" ? await verifyEmailWithNewPassword(token, password, confirm) : await verifyEmail(token, password);
       setDone(result.email);
+      if (result.session) {
+        // The address is confirmed and the password proven: go straight into the app, no separate login.
+        signIn(result.session);
+        navigate(next ?? "/", { replace: true });
+      }
     } catch (err) {
       const failure = toFormError(err);
       if (failure.code === "invalid_token") setInfo({ valid: false, email: null, firstName: null });
