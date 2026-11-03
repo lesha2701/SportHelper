@@ -113,7 +113,7 @@ function SearchBox({ search }: { search: NonNullable<TopBarConfig["search"]> }) 
         <input
           ref={inputRef}
           className={styles.searchInput}
-          placeholder="Поиск по команде, тренерам, заданиям…"
+          placeholder="Поиск по сайту"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -129,7 +129,6 @@ function SearchBox({ search }: { search: NonNullable<TopBarConfig["search"]> }) 
             }
           }}
         />
-        <span className={styles.searchKey}>⌘K</span>
       </div>
       {showPanel && (
         <div className={styles.searchPanel}>

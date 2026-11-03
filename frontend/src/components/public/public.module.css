@@ -162,18 +162,19 @@
   isolation: isolate;
   margin: 14px 16px 0;
   border-radius: 20px;
-  background: #17181b;
-  color: #f2f1ef;
+  background: var(--panel-bg);
+  color: var(--panel-text);
+  border: 1px solid var(--panel-border);
   padding: 34px 22px 38px;
 }
 
 /* Decoration only: sits in the lower-right corner, behind the text, never under it. */
 .heroWaves {
   position: absolute;
-  right: -8%;
-  bottom: -22%;
-  width: 66%;
-  height: 44%;
+  right: 4%;
+  bottom: 6%;
+  width: 44%;
+  height: 30%;
   z-index: -1;
   opacity: 0.9;
   pointer-events: none;
@@ -186,7 +187,7 @@
   font-size: 14px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-accent-blue);
+  color: var(--panel-eyebrow);
   margin-bottom: 14px;
 }
 
@@ -194,11 +195,13 @@
   font-family: var(--font-display);
   font-weight: 800;
   font-size: clamp(46px, 11vw, 92px);
-  line-height: 0.93;
+  line-height: 1.06;
   letter-spacing: 0.005em;
   text-transform: uppercase;
   margin: 0 0 18px;
-  max-width: 13ch;
+  /* Sized in em (not ch, which follows the font's zero) so the title always breaks as
+     «Тренируйся / с планом. / Расти с / командой.» */
+  max-width: 6em;
 }
 
 .heroTitle em {
@@ -210,7 +213,7 @@
   font-size: 16px;
   line-height: 1.55;
   max-width: 44ch;
-  color: rgba(242, 241, 239, 0.8);
+  color: var(--panel-lead);
   margin: 0 0 26px;
 }
 
@@ -249,13 +252,13 @@
 }
 
 .ctaGhost {
-  color: #f2f1ef;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  color: var(--panel-text);
+  background: var(--panel-ghost-bg);
+  border: 1.5px solid var(--panel-ghost-border);
 }
 
 .ctaGhost:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--panel-ghost-hover);
 }
 
 .section {
@@ -414,9 +417,9 @@
 }
 
 .roleCardDark {
-  background: #17181b;
-  color: #f2f1ef;
-  border-color: transparent;
+  background: var(--panel-bg);
+  color: var(--panel-text);
+  border-color: var(--panel-border);
 }
 
 .roleList {

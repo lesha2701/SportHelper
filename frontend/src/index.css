@@ -18,6 +18,18 @@
   --color-graphite: #17181b;
   --color-graphite-elevated: #1f2024;
 
+  /* Feature panels (landing hero, dashboard hero, team/profile headers, stat tile): light in this theme. */
+  --panel-bg: #f2f1ef;
+  --panel-text: #17181b;
+  --panel-muted: #5c5e66;
+  --panel-lead: #3d3f45;
+  --panel-border: #e0deda;
+  --panel-divider: rgba(23, 24, 27, 0.12);
+  --panel-eyebrow: #d91e2b;
+  --panel-ghost-bg: rgba(23, 24, 27, 0.04);
+  --panel-ghost-border: rgba(23, 24, 27, 0.28);
+  --panel-ghost-hover: rgba(23, 24, 27, 0.09);
+
   --color-primary: #d91e2b;
   --color-primary-hover: #b8121e;
   --color-primary-text: #ffffff;
@@ -42,7 +54,9 @@
   --shadow-raised: 0 12px 28px rgba(217, 30, 43, 0.14);
 
   --font-body: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Barlow Condensed", "Oswald", var(--font-body);
+  /* One family for every glyph: Barlow Condensed has no Cyrillic, so with it first the letters came from Oswald
+     while digits and punctuation (? . , — 1) came from Barlow and looked a different size and weight. */
+  --font-display: "Oswald", "Arial Narrow", var(--font-body);
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -68,6 +82,17 @@
 
   --color-graphite: #f2f1ef;
   --color-graphite-elevated: #17181b;
+
+  --panel-bg: #17181b;
+  --panel-text: #ffffff;
+  --panel-muted: rgba(255, 255, 255, 0.64);
+  --panel-lead: rgba(242, 241, 239, 0.8);
+  --panel-border: rgba(255, 255, 255, 0.06);
+  --panel-divider: rgba(255, 255, 255, 0.1);
+  --panel-eyebrow: var(--color-accent-blue);
+  --panel-ghost-bg: rgba(255, 255, 255, 0.06);
+  --panel-ghost-border: rgba(255, 255, 255, 0.28);
+  --panel-ghost-hover: rgba(255, 255, 255, 0.12);
 
   --color-primary: #ff3b3f;
   --color-primary-hover: #ff5a5d;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useProfile } from "../../context/ProfileContext";
 import { StateScreen } from "../StateScreen";
@@ -19,11 +19,16 @@ export function ProfileScreen({
   onOpenMyStats,
   onOpenNotifications,
   unreadNotifications,
+  startInSettings,
+  onSettingsOpened,
 }: {
   token: string;
   onOpenMyStats: () => void;
   onOpenNotifications: () => void;
   unreadNotifications?: number;
+  /** Set when the person came here through the sidebar gear: the settings screen opens straight away. */
+  startInSettings?: boolean;
+  onSettingsOpened?: () => void;
 }) {
   const { state, retry, savePlayer, saveCoach, switchMode } = useProfile();
   const { state: authState } = useAuth();
@@ -32,7 +37,12 @@ export function ProfileScreen({
   const isAdmin = authState.status === "ready" && authState.user.isAdmin;
   const [editing, setEditing] = useState<ActiveMode | null>(null);
   const [showHelp, setShowHelp] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(!!startInSettings);
+  useEffect(() => {
+    if (!startInSettings) return;
+    setShowSettings(true);
+    onSettingsOpened?.();
+  }, [startInSettings, onSettingsOpened]);
   const [showMarketplaceSettings, setShowMarketplaceSettings] = useState(false);
   const [showMyBookings, setShowMyBookings] = useState(false);
   const [showCoachBookings, setShowCoachBookings] = useState(false);

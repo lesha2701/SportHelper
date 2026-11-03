@@ -7,6 +7,8 @@ interface OrnamentProps {
   tone?: "primary" | "graphite" | "blush";
   intensity?: "subtle" | "bold";
   className?: string;
+  /** Draw the stripes entirely inside the box, with rounded ends, instead of bleeding off its edges. */
+  contained?: boolean;
 }
 
 const TONE_COLORS: Record<NonNullable<OrnamentProps["tone"]>, string> = {
@@ -15,34 +17,35 @@ const TONE_COLORS: Record<NonNullable<OrnamentProps["tone"]>, string> = {
   blush: "var(--color-accent-blue)",
 };
 
-export function Ornament({ tone = "primary", intensity = "subtle", className }: OrnamentProps) {
+export function Ornament({ tone = "primary", intensity = "subtle", className, contained = false }: OrnamentProps) {
   const opacity = intensity === "bold" ? 1 : 0.1;
   const color = TONE_COLORS[tone];
+  const [x0, x1, xc] = contained ? [20, 380, 340] : [-20, 440, 380];
   return (
     <svg
       className={className}
-      viewBox="0 0 400 120"
-      preserveAspectRatio="none"
+      viewBox={contained ? "0 -50 400 180" : "0 0 400 120"}
+      preserveAspectRatio={contained ? "xMidYMid meet" : "none"}
       aria-hidden="true"
       focusable="false"
-      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity, pointerEvents: "none" }}
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity, pointerEvents: "none", overflow: contained ? "visible" : undefined }}
     >
       <path
-        d="M-20 90 C 60 40, 140 140, 220 60 S 380 20, 440 70"
+        d={`M${x0} 90 C 60 40, 140 140, 220 60 S ${xc} 20, ${x1} 70`}
         stroke={color}
         strokeWidth="26"
         fill="none"
         strokeLinecap="round"
       />
       <path
-        d="M-20 40 C 60 -10, 140 90, 220 10 S 380 -30, 440 20"
+        d={`M${x0} 40 C 60 -10, 140 90, 220 10 S ${xc} -30, ${x1} 20`}
         stroke={color}
         strokeWidth="14"
         fill="none"
         strokeLinecap="round"
       />
       <path
-        d="M-20 110 C 60 60, 140 160, 220 80 S 380 40, 440 90"
+        d={`M${x0} 110 C 60 60, 140 160, 220 80 S ${xc} 40, ${x1} 90`}
         stroke={color}
         strokeWidth="8"
         fill="none"

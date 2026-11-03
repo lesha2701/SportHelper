@@ -51,7 +51,7 @@ export function HomePage() {
     <PublicShell>
       <section className={styles.hero} aria-labelledby="hero-title">
         <div className={styles.heroWaves} aria-hidden="true">
-          <Ornament tone="primary" intensity="bold" />
+          <Ornament tone="primary" intensity="bold" contained />
         </div>
         <span className={styles.eyebrow}>Платформа для игроков и тренеров</span>
         <h1 id="hero-title" className={styles.heroTitle}>

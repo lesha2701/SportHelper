@@ -27,6 +27,8 @@ interface SideNavProps<T extends string> {
   onOpenTeam?: () => void;
   user: SideNavUser;
   onOpenProfile: () => void;
+  /** The gear next to the user row: opens the profile settings directly. */
+  onOpenSettings?: () => void;
   /** Present only for administrators (the server says who they are): opens /admin. */
   onOpenAdmin?: () => void;
 }
@@ -36,7 +38,7 @@ interface SideNavProps<T extends string> {
  * screen is open, unlike the mobile bottom bar). Also carries the brand
  * mark, an optional primary-team switcher card, and the signed-in user row
  * — see docs/superpowers/specs/2026-09-22-bento-redesign-design.md. */
-export function SideNav<T extends string>({ items, active, onChange, team, onOpenTeam, user, onOpenProfile, onOpenAdmin }: SideNavProps<T>) {
+export function SideNav<T extends string>({ items, active, onChange, team, onOpenTeam, user, onOpenProfile, onOpenSettings, onOpenAdmin }: SideNavProps<T>) {
   return (
     <nav className={styles.nav}>
       <div className={styles.brandRow}>
@@ -90,20 +92,22 @@ export function SideNav<T extends string>({ items, active, onChange, team, onOpe
         )}
       </div>
 
-      <button type="button" className={styles.userRow} onClick={onOpenProfile}>
-        {user.photoUrl ? (
-          <img className={styles.userAvatar} src={user.photoUrl} alt="" />
-        ) : (
-          <div className={styles.userAvatarPlaceholder}>{user.initial}</div>
-        )}
-        <div className={styles.userText}>
-          <span className={styles.userName}>{user.name}</span>
-          <span className={styles.userSub}>{user.sub}</span>
-        </div>
-        <span className={styles.userSettings}>
+      <div className={styles.userRow}>
+        <button type="button" className={styles.userMain} onClick={onOpenProfile}>
+          {user.photoUrl ? (
+            <img className={styles.userAvatar} src={user.photoUrl} alt="" />
+          ) : (
+            <div className={styles.userAvatarPlaceholder}>{user.initial}</div>
+          )}
+          <div className={styles.userText}>
+            <span className={styles.userName}>{user.name}</span>
+            <span className={styles.userSub}>{user.sub}</span>
+          </div>
+        </button>
+        <button type="button" className={styles.userSettings} onClick={onOpenSettings} aria-label="Настройки" title="Настройки">
           <Icon name="settings" size={18} />
-        </span>
-      </button>
+        </button>
+      </div>
     </nav>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ProfileProvider, useProfile } from "./context/ProfileContext";
 import { useAuth } from "./context/AuthContext";
 import { ProfileScreen } from "./components/profile/ProfileScreen";
@@ -165,6 +165,8 @@ function CoachTabContent({
   onCreateTraining,
   onOpenNotifications,
   unreadNotifications,
+  startProfileInSettings,
+  onProfileSettingsOpened,
 }: {
   initialCoachUserId: string | null;
   marketplaceStart: MarketplaceIntent | null;
@@ -177,6 +179,8 @@ function CoachTabContent({
   onCreateTraining: () => void;
   onOpenNotifications: () => void;
   unreadNotifications: number;
+  startProfileInSettings: boolean;
+  onProfileSettingsOpened: () => void;
 }) {
   switch (tab) {
     case "dashboard":
@@ -215,6 +219,8 @@ function CoachTabContent({
           onOpenMyStats={onOpenMyStats}
           onOpenNotifications={onOpenNotifications}
           unreadNotifications={unreadNotifications}
+          startInSettings={startProfileInSettings}
+          onSettingsOpened={onProfileSettingsOpened}
         />
       );
   }
@@ -239,6 +245,9 @@ function MainContent({
   const openAdmin = authState.status === "ready" && authState.user.isAdmin ? () => navigate("/admin") : undefined;
   const [coachTab, setCoachTab] = useState<CoachTab>(marketplaceIntent ? "coaches" : "dashboard");
   const [playerTab, setPlayerTab] = useState<PlayerTab>(marketplaceIntent ? "coaches" : "dashboard");
+  // The sidebar gear opens the profile tab straight on its settings screen.
+  const [profileSettingsRequested, setProfileSettingsRequested] = useState(false);
+  const clearProfileSettingsRequest = useCallback(() => setProfileSettingsRequested(false), []);
 
   const [teams, setTeams] = useState<Team[] | null>(null);
   useEffect(() => {
@@ -520,6 +529,11 @@ function MainContent({
           setOverlay(null);
           setCoachTab("profile");
         }}
+        onOpenSettings={() => {
+          setOverlay(null);
+          setCoachTab("profile");
+          setProfileSettingsRequested(true);
+        }}
         topBar={
           hasOverlay
             ? undefined
@@ -544,6 +558,8 @@ function MainContent({
             onCreateTraining={onCreateTraining}
             onOpenNotifications={() => setOverlay({ kind: "notifications" })}
             unreadNotifications={unreadNotifications}
+            startProfileInSettings={profileSettingsRequested}
+            onProfileSettingsOpened={clearProfileSettingsRequest}
           />
         )}
       </AppShell>
@@ -568,6 +584,11 @@ function MainContent({
       onOpenProfile={() => {
         setOverlay(null);
         setPlayerTab("profile");
+      }}
+      onOpenSettings={() => {
+        setOverlay(null);
+        setPlayerTab("profile");
+        setProfileSettingsRequested(true);
       }}
       topBar={
         hasOverlay
@@ -618,6 +639,8 @@ function MainContent({
               onOpenMyStats={() => setOverlay({ kind: "my-stats" })}
               onOpenNotifications={() => setOverlay({ kind: "notifications" })}
               unreadNotifications={unreadNotifications}
+              startInSettings={profileSettingsRequested}
+              onSettingsOpened={clearProfileSettingsRequest}
             />
           )}
         </>

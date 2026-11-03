@@ -43,10 +43,16 @@
 .searchWrap {
   position: relative;
   flex-shrink: 0;
+  width: clamp(200px, 24vw, 340px);
+  height: 42px;
 }
 
 .search {
-  width: 320px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  width: 100%;
   flex-shrink: 0;
   height: 42px;
   display: flex;
@@ -57,6 +63,15 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   color: var(--color-text-tertiary);
+  transition: width var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+/* While it is being used the field opens leftwards over the page title, so a longer query stays readable. */
+.search:focus-within {
+  width: clamp(260px, 36vw, 460px);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  color: var(--color-primary);
 }
 
 .searchInput {
@@ -67,6 +82,11 @@
   border: none;
   background: transparent;
   color: var(--color-text);
+  text-overflow: ellipsis;
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-secondary);
 }
 
 .searchInput:focus {
@@ -168,15 +188,6 @@
   text-overflow: ellipsis;
 }
 
-.searchKey {
-  flex-shrink: 0;
-  font: 500 11px var(--font-mono);
-  padding: 2px 6px;
-  border-radius: 5px;
-  border: 1px solid var(--color-border-strong);
-  color: var(--color-text-tertiary);
-}
-
 .bell {
   position: relative;
   flex-shrink: 0;
@@ -240,15 +251,15 @@
 }
 
 @media (max-width: 1180px) {
-  .search {
-    width: 220px;
+  .searchWrap {
+    width: 200px;
+  }
+
+  .search:focus-within {
+    width: 300px;
   }
 
   .searchPanel {
     width: 340px;
-  }
-
-  .searchKey {
-    display: none;
   }
 }
