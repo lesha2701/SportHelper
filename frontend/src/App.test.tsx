@@ -106,11 +106,11 @@ describe("a visitor without an account", () => {
     expect(decodeURIComponent(here())).toContain("/?open=booking_requested&id=77");
   });
 
-  it("an unknown address gets a page with a way home, not a blank screen", async () => {
+  it("an unknown address is sent to the home page", async () => {
     open("/no-such-page");
 
-    expect(await screen.findByText("Такой страницы нет")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "На главную" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: /Тренируйся с планом/i })).toBeTruthy();
+    expect(here()).toBe("/");
   });
 
   it("serves the sign-up, sign-in and recovery pages", async () => {
@@ -180,28 +180,32 @@ describe("the administration panel route", () => {
     vi.doMock("./components/admin/AdminApp", () => ({ default: () => <div>ADMIN PANEL</div> }));
   });
 
-  it("looks like a missing page to a visitor without an account", async () => {
+  it("sends a visitor without an account to the home page", async () => {
     asGuest();
     open("/admin");
 
-    expect(await screen.findByText("Такой страницы нет")).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: /Тренируйся с планом/i })).toBeTruthy();
+    expect(here()).toBe("/");
+    expect(screen.queryByText("Такой страницы нет")).toBeNull();
     expect(screen.queryByText("ADMIN PANEL")).toBeNull();
   });
 
-  it("looks like a missing page to an ordinary signed-in user, even deep inside /admin", async () => {
+  it("sends an ordinary signed-in user to the home page, even from deep inside /admin", async () => {
     asUser();
     open("/admin/users");
 
-    expect(await screen.findByText("Такой страницы нет")).toBeTruthy();
+    expect(await screen.findByText(/SIGNED-IN APP/)).toBeTruthy();
+    expect(here()).toBe("/");
+    expect(screen.queryByText("Такой страницы нет")).toBeNull();
     expect(screen.queryByText("ADMIN PANEL")).toBeNull();
-    expect(screen.queryByText(/SIGNED-IN APP/)).toBeNull();
   });
 
   it("is not unlocked by anything in the URL", async () => {
     asUser();
     open("/admin?isAdmin=true&admin=1");
 
-    expect(await screen.findByText("Такой страницы нет")).toBeTruthy();
+    expect(await screen.findByText(/SIGNED-IN APP/)).toBeTruthy();
+    expect(screen.queryByText("ADMIN PANEL")).toBeNull();
   });
 
   it("opens for an account the server marks as an administrator", async () => {
@@ -209,5 +213,15 @@ describe("the administration panel route", () => {
     open("/admin");
 
     expect(await screen.findByText("ADMIN PANEL")).toBeTruthy();
+  });
+});
+
+describe("an unknown address for a signed-in user", () => {
+  it("is sent to the home page", async () => {
+    asUser();
+    open("/no-such-page");
+
+    expect(await screen.findByText(/SIGNED-IN APP/)).toBeTruthy();
+    expect(here()).toBe("/");
   });
 });
