@@ -89,6 +89,18 @@ struct TeamDetailView: View {
                 Label("Тренировки команды", systemImage: "figure.run")
             }
             .accessibilityIdentifier("team.trainings")
+            NavigationLink {
+                TeamTasksView(team: team)
+            } label: {
+                Label("Задания", systemImage: "checklist")
+            }
+            .accessibilityIdentifier("team.tasks")
+            NavigationLink {
+                TeamMatchesView(team: team)
+            } label: {
+                Label("Матчи", systemImage: "sportscourt")
+            }
+            .accessibilityIdentifier("team.matches")
         }
     }
 

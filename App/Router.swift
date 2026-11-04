@@ -11,6 +11,7 @@ enum ProfileRoute: Hashable {
     case incomingRequests
     case coachBookings
     case bookingChat(UUID)
+    case myTasks
 }
 
 /// Lets any screen send the person elsewhere (after booking: to "Мои брони") without knowing how the app is laid out.

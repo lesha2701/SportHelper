@@ -39,6 +39,7 @@ struct ProfileView: View {
                 case .incomingRequests: IncomingRequestsView()
                 case .coachBookings: CoachBookingsView()
                 case .bookingChat(let id): ChatView(store: auth.chatStore(for: .booking(id)))
+                case .myTasks: MyTasksView()
                 }
             }
             .task {
@@ -146,6 +147,8 @@ struct ProfileView: View {
                 NavigationLink(value: ProfileRoute.myBookings) { Label("Мои брони", systemImage: "calendar.badge.clock") }
                     .accessibilityIdentifier("profile.myBookings")
             }
+            NavigationLink(value: ProfileRoute.myTasks) { Label("Мои задания", systemImage: "checklist") }
+                .accessibilityIdentifier("profile.myTasks")
         }
     }
 

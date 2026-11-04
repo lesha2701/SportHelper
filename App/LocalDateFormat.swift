@@ -49,3 +49,22 @@ enum LocalDateFormat {
         return "\(shortDay(monday)) – \(shortDay(sunday))"
     }
 }
+
+extension LocalDateFormat {
+    /// "10 ноября, 18:00" — a deadline is an instant, so it is shown in the person's own time zone.
+    static func deadline(_ date: Date) -> String {
+        date.formatted(.dateTime.day().month(.wide).hour().minute().locale(Locale(identifier: "ru_RU")))
+    }
+
+    /// A number the way a person writes it: "80,5", "12".
+    static func number(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0...2)).locale(Locale(identifier: "ru_RU")))
+    }
+
+    /// What a person typed as a number ("80,5" or "80.5"); nil when it is not one.
+    static func parseNumber(_ text: String) -> Double? {
+        let clean = text.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+        guard !clean.isEmpty, let value = Double(clean), value.isFinite else { return nil }
+        return value
+    }
+}
