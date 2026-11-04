@@ -10,6 +10,8 @@ interface AuthState {
   status: Status;
   user: User | null;
   signIn: (email: string, password: string) => Promise<void>;
+  /** Starts the session handed out by the server (e.g. after the address was confirmed). */
+  applySession: (result: authApi.LoginResult) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -54,12 +56,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // A 401 on any signed-in request (session expired or revoked elsewhere) returns to the sign-in screen.
   useEffect(() => onSessionExpired(() => void endSession()), [endSession]);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const result = await authApi.login(email.trim(), password);
+  const applySession = useCallback(async (result: authApi.LoginResult) => {
     await setToken(result.accessToken);
     setUser(result.user);
     setStatus("signedIn");
   }, []);
+
+  const signIn = useCallback(
+    async (email: string, password: string) => applySession(await authApi.login(email.trim(), password)),
+    [applySession],
+  );
 
   const signOut = useCallback(async () => {
     try {
@@ -70,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await endSession();
   }, [endSession]);
 
-  const value = useMemo(() => ({ status, user, signIn, signOut }), [status, user, signIn, signOut]);
+  const value = useMemo(() => ({ status, user, signIn, applySession, signOut }), [status, user, signIn, applySession, signOut]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

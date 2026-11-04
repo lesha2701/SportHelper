@@ -5,7 +5,9 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "@/auth/AuthProvider";
+import { ProfileProvider } from "@/profile/ProfileProvider";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
+import { fonts } from "@/theme/tokens";
 import { LoadingView } from "@/ui/StateViews";
 import { ToastProvider } from "@/ui/Toast";
 
@@ -16,13 +18,29 @@ function Routes() {
   return (
     <>
       <StatusBar style={dark ? "light" : "dark"} />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.bg },
+          headerStyle: { backgroundColor: colors.surface },
+          headerTintColor: colors.text,
+          headerTitleStyle: { fontFamily: fonts.bodySemi },
+        }}
+      >
         <Stack.Screen name="index" />
+        <Stack.Screen name="legal/[key]" />
         <Stack.Protected guard={signedIn}>
-          <Stack.Screen name="home" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="profile-edit" />
+          <Stack.Screen name="settings" />
         </Stack.Protected>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="login" />
+          <Stack.Screen name="register" />
+          <Stack.Screen name="check-email" />
+          <Stack.Screen name="verify" />
+          <Stack.Screen name="forgot-password" />
+          <Stack.Screen name="reset-password" />
         </Stack.Protected>
       </Stack>
     </>
@@ -41,7 +59,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider>
         <ToastProvider>
-          <AuthProvider>{fontsLoaded || fontError ? <Routes /> : <LoadingView />}</AuthProvider>
+          <AuthProvider>
+            <ProfileProvider>{fontsLoaded || fontError ? <Routes /> : <LoadingView />}</ProfileProvider>
+          </AuthProvider>
         </ToastProvider>
       </ThemeProvider>
     </SafeAreaProvider>
