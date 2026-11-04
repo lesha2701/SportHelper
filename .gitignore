@@ -16,3 +16,7 @@ xcuserdata/
 *.cer
 Secrets.xcconfig
 GoogleService-Info.plist
+
+# Xcode project is generated from project.yml (xcodegen generate)
+SportArena.xcodeproj/
+build-ios/

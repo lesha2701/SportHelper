@@ -1,0 +1,74 @@
+name: SportArena
+options:
+  bundleIdPrefix: ru.sportarenaglobal
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: ""            # set your team in Xcode (Signing & Capabilities); never commit certificates
+    CODE_SIGN_STYLE: Automatic
+packages:
+  SportArenaKit:
+    path: .
+targets:
+  SportArena:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+    dependencies:
+      - package: SportArenaKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ru.sportarenaglobal.app
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: App/Resources/Info.plist
+        TARGETED_DEVICE_FAMILY: "1"     # iPhone
+      configs:
+        Debug:
+          API_BASE_URL: "http://localhost:8010"
+        Release:
+          API_BASE_URL: "https://sportarenaglobal.ru"
+    info:
+      path: App/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: SportArena
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        API_BASE_URL: "$(API_BASE_URL)"
+        # Plain http is allowed only for a server on this Mac (the simulator reaches it as localhost); the release build talks https.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+  SportArenaTests:
+    type: bundle.unit-test
+    platform: iOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    sources:
+      - path: AppTests
+    dependencies:
+      - target: SportArena
+  SportArenaUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    sources:
+      - path: AppUITests
+    dependencies:
+      - target: SportArena
+schemes:
+  SportArena:
+    build:
+      targets:
+        SportArena: all
+    test:
+      targets:
+        - SportArenaTests
+        - SportArenaUITests
