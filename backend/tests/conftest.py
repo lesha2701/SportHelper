@@ -156,12 +156,14 @@ def client(monkeypatch: pytest.MonkeyPatch):
     # Hermetic: nothing in a developer's real .env may leak into the tests.
     for hermetic in ("CORS_ORIGINS", "COOKIE_SECURE", "COOKIE_SAMESITE", "COOKIE_DOMAIN", "TRUST_PROXY_HEADERS",
                      "ADMIN_EMAILS", "ADMIN_TELEGRAM_IDS", "SESSION_LIFETIME_DAYS", "PASSWORD_BREACH_CHECK",
-                     "TRUSTED_PROXY_CIDRS", "API_DOCS_ENABLED", "BEARER_AUTH_ENABLED"):
+                     "TRUSTED_PROXY_CIDRS", "API_DOCS_ENABLED", "BEARER_AUTH_ENABLED", "MOBILE_AUTH_ENABLED"):
         monkeypatch.delenv(hermetic, raising=False)
     monkeypatch.setenv("CORS_ORIGINS", "http://localhost:5173")
     # The test suite authenticates with `Authorization: Bearer <session>`; the
     # production default is cookie-only (see tests/test_auth_hardening.py).
     monkeypatch.setenv("BEARER_AUTH_ENABLED", "true")
+    # Off unless a test turns it on (a developer's .env may enable it for the mobile app).
+    monkeypatch.setenv("MOBILE_AUTH_ENABLED", "false")
     # Cheap Argon2 parameters keep hashing fast in tests (the hash is still
     # real Argon2id). Auth rate limits are switched back on by the tests that
     # exercise them; everything else registers many users from one "IP".

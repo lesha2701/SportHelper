@@ -115,3 +115,37 @@ def test_the_mobile_session_is_listed_and_can_be_revoked(client, monkeypatch) ->
 
     assert any(s["current"] for s in sessions)
     assert token not in str(sessions)
+
+
+# --- confirming the address from the app ---------------------------------------------------------------------------
+
+
+def _register_and_get_token(client) -> str:
+    from tests.auth_helpers import link_token, mails_to, register
+
+    assert register(client).status_code == 201
+    return link_token(mails_to(client, "alice@example.com")[-1])
+
+
+def test_mobile_verify_email_signs_the_person_in_with_a_token(client, monkeypatch) -> None:
+    _set_env(monkeypatch, MOBILE_AUTH_ENABLED="true")
+    link = _register_and_get_token(client)
+
+    resp = client.post("/api/auth/mobile/verify-email", json={"token": link, "password": PASSWORD})
+
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["verified"] is True and body["email"] == "alice@example.com"
+    token = body["session"]["access_token"]
+    assert "set-cookie" not in resp.headers
+    assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"}).status_code == 200
+
+
+def test_mobile_verify_email_is_off_by_default_and_checks_the_password(client, monkeypatch) -> None:
+    link = _register_and_get_token(client)
+    assert client.post("/api/auth/mobile/verify-email", json={"token": link, "password": PASSWORD}).status_code == 404
+
+    _set_env(monkeypatch, MOBILE_AUTH_ENABLED="true")
+    wrong = client.post("/api/auth/mobile/verify-email", json={"token": link, "password": "not the password at all"})
+    assert wrong.status_code == 403 and wrong.json()["error"]["code"] == "password_mismatch"
+    assert _mobile_login(client).status_code == 403  # still unconfirmed

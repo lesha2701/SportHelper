@@ -21,9 +21,11 @@ Cookie не ставится, `csrf_token` не отдаётся. Токен ш�
 с Bearer CSRF не нужен. Выход — `POST /api/auth/logout` (сессия отзывается на сервере), список и завершение
 сессий — `GET /api/auth/sessions`, `DELETE /api/auth/sessions/{id}`.
 
+`POST /api/auth/mobile/verify-email` — подтверждение почты с автовходом: тело как у `/verify-email`, в ответе `session` (как у mobile/login) или `null` для заблокированного аккаунта или аккаунта с 2FA.
+
 `MOBILE_AUTH_ENABLED=true` включает приём Bearer для всех маршрутов (так же, как `BEARER_AUTH_ENABLED`).
 
 ## Ещё не сделано
 
-Подтверждение почты с автовходом по токену, вход с 2FA (второй шаг кодом), регистрация устройств для push,
+Вход с 2FA (второй шаг кодом), регистрация устройств для push,
 `app-config`, App Links — отдельными этапами (релизные пункты в конце).

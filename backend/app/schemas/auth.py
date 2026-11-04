@@ -64,6 +64,13 @@ class MobileAuthOut(UserOut):
     expires_at: datetime
 
 
+class MobileVerifyEmailOut(BaseModel):
+    verified: bool
+    email: str | None = None
+    # Set when confirming the address also signed the person in (not for blocked or two-factor accounts).
+    session: MobileAuthOut | None = None
+
+
 class TokenIn(BaseModel):
     token: str = Field(max_length=512)
 

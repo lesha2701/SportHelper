@@ -54,6 +54,7 @@ from app.schemas.auth import (
     MfaSetupOut,
     MfaStatusOut,
     MobileAuthOut,
+    MobileVerifyEmailOut,
     PasswordIn,
     RegisterIn,
     RegisterOut,
@@ -225,14 +226,23 @@ async def _sign_in_after_verification(
     return _auth_out(user, token, settings)
 
 
-@router.post("/verify-email", response_model=VerifyEmailOut)
-async def verify_email(
-    payload: VerifyEmailIn,
-    request: Request,
-    response: Response,
-    conn: asyncpg.Connection = Depends(get_db),
-    settings: Settings = Depends(get_settings_dep),
-) -> VerifyEmailOut:
+async def _mobile_sign_in_after_verification(
+    conn: asyncpg.Connection, request: Request, user_id: UUID, settings: Settings
+) -> MobileAuthOut | None:
+    """The token variant of _sign_in_after_verification (same rules: never for a blocked or two-factor account)."""
+    user = await users_repo.get_by_id(conn, user_id)
+    if user is None or user.get("deleted_at") is not None or user.get("is_banned"):
+        return None
+    mfa = await mfa_repo.get(conn, user_id)
+    if mfa is not None and mfa["enabled_at"]:
+        return None
+    await users_repo.clear_login_failures(conn, user_id)
+    token, session = await start_session(conn, request, user_id, settings)
+    return MobileAuthOut(**user, access_token=token, expires_at=session.get("expires_at") or session_expiry(settings))
+
+
+async def _confirm_email(payload: VerifyEmailIn, request: Request, conn: asyncpg.Connection, settings: Settings) -> dict:
+    """Spends an email-confirmation link for someone who knows the registration password; returns the user."""
     token_hash = hash_token(payload.token)
     await svc.enforce_rate_limit(request, conn, settings, "verify-ip", svc.ip_of(request, settings), limit=30, window_seconds=3600)
     # Guessing the registration password for a link you hold buys nothing, but cap it anyway.
@@ -254,8 +264,35 @@ async def verify_email(
         raise ConflictError("Этот email уже привязан к другому аккаунту.", code="email_taken")
     if status != "ok" or user is None:
         raise APIError(_INVALID_LINK, code="invalid_token", status_code=400)
+    return user
+
+
+@router.post("/verify-email", response_model=VerifyEmailOut)
+async def verify_email(
+    payload: VerifyEmailIn,
+    request: Request,
+    response: Response,
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> VerifyEmailOut:
+    user = await _confirm_email(payload, request, conn, settings)
     session = await _sign_in_after_verification(conn, request, response, user["id"], settings)
     return VerifyEmailOut(verified=True, email=user["email"], session=session)
+
+
+@router.post("/mobile/verify-email", response_model=MobileVerifyEmailOut)
+async def mobile_verify_email(
+    payload: VerifyEmailIn,
+    request: Request,
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> MobileVerifyEmailOut:
+    """Same as /verify-email, but the automatic sign-in returns the session token in the body (no cookie)."""
+    if not settings.mobile_auth_enabled:
+        raise NotFoundError("Not found")
+    user = await _confirm_email(payload, request, conn, settings)
+    session = await _mobile_sign_in_after_verification(conn, request, user["id"], settings)
+    return MobileVerifyEmailOut(verified=True, email=user["email"], session=session)
 
 
 @router.post("/verify-email/set-password", response_model=VerifyEmailOut)
