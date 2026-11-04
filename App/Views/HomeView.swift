@@ -9,12 +9,13 @@ struct HomeView: View {
     let user: AuthUser
 
     private enum Quick: Identifiable {
-        case training(Team), task(Team), match(Team)
+        case training(Team), task(Team), match(Team), personal
         var id: String {
             switch self {
             case .training: "training"
             case .task: "task"
             case .match: "match"
+            case .personal: "personal"
             }
         }
     }
@@ -48,6 +49,7 @@ struct HomeView: View {
                 case .training(let team): TrainingFormView(mode: .schedule(team)) { Task { await reload() } }
                 case .task(let team): TaskFormView(mode: .give(team)) { Task { await reload() } }
                 case .match(let team): MatchFormView(mode: .add(team)) { _ in Task { await reload() } }
+                case .personal: PersonalTrainingFormView { Task { await reload() } }
                 }
             }
         }
@@ -68,6 +70,12 @@ struct HomeView: View {
 
     @ViewBuilder private var playerContent: some View {
         nextEventCard
+        Button { quick = .personal } label: {
+            Label("Запланировать личную тренировку", systemImage: "plus.circle").frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .tint(Theme.primary)
+        .accessibilityIdentifier("home.addPersonal")
         switch home.playerStats {
         case .loaded(let stats):
             StatTiles([

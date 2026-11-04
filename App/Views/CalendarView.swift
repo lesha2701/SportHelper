@@ -3,6 +3,7 @@ import SwiftUI
 
 struct CalendarView: View {
     @Bindable var store: CalendarStore
+    @State private var addingPersonal = false
 
     var body: some View {
         NavigationStack {
@@ -21,6 +22,14 @@ struct CalendarView: View {
             }
             .navigationTitle("Календарь")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { addingPersonal = true } label: { Image(systemName: "plus") }
+                        .accessibilityLabel("Личная тренировка")
+                        .accessibilityIdentifier("calendar.addPersonal")
+                }
+            }
+            .sheet(isPresented: $addingPersonal) { PersonalTrainingFormView {} }
             .task(id: store.requestKey) { await store.reload() }
         }
     }

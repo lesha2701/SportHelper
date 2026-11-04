@@ -17,6 +17,19 @@ public final class TrainingsService: Sendable {
         try await client.send(.post, "/api/teams/\(team.uuidString.lowercased())/trainings", body: TrainingCreateBody(input))
     }
 
+    /// A training of the person's own (no team). One training, or the whole series when the input repeats weekly.
+    public func schedulePersonal(_ input: TrainingInput) async throws -> [Training] {
+        try await client.send(.post, "/api/trainings/personal", body: TrainingCreateBody(input))
+    }
+
+    /// A training the assistant suggests. Needs a player profile (409 `player_profile_required`); it takes a while to be written.
+    public func personalDraft(style: WorkoutStyle, goals: String, durationMinutes: Int?) async throws -> PersonalTrainingDraft {
+        try await client.send(
+            .post, "/api/ai/personal-training-draft", body: PersonalDraftBody(style: style, goals: goals, durationMinutes: durationMinutes),
+            timeout: StatsService.analysisTimeout
+        )
+    }
+
     public func update(_ id: UUID, _ input: TrainingInput, status: TrainingStatus) async throws -> Training {
         try await client.send(.put, path(id), body: TrainingUpdateBody(input: input, status: status.rawValue))
     }

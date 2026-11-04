@@ -37,6 +37,9 @@ struct TrainingFormView: View {
 
     private var isSchedule: Bool { if case .schedule = mode { true } else { false } }
 
+    /// A training of the person's own has no team and cannot be made «самостоятельной».
+    private var isPersonal: Bool { if case .edit(let training) = mode { training.type == "personal" } else { false } }
+
     private var planId: UUID? { if case .edit(let training) = mode { training.planId } else { nil } }
 
     private var input: TrainingInput? {
@@ -71,7 +74,7 @@ struct TrainingFormView: View {
                     TextField("Что будет на тренировке (необязательно)", text: $details, axis: .vertical).lineLimit(3...8)
                 }
                 if isSchedule { repeatSection }
-                independentSection
+                if !isPersonal { independentSection }
                 if let message = error ?? problem {
                     Section { Text(message).foregroundStyle(.red).accessibilityIdentifier("trainingForm.error") }
                 }
@@ -139,11 +142,12 @@ struct TrainingFormView: View {
     }
 
     private func save() async {
-        guard let input, let teamId else { return }
+        guard let input else { return }
         saving = true
         defer { saving = false }
         switch mode {
         case .schedule:
+            guard let teamId else { return }
             switch await auth.trainings.schedule(input, for: teamId) {
             case .success:
                 onDone()

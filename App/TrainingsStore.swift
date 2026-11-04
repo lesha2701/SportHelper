@@ -18,6 +18,14 @@ final class TrainingsStore {
         changed(await run { try await self.service.schedule(input, for: team) })
     }
 
+    func schedulePersonal(_ input: TrainingInput) async -> Result<[Training], APIError> {
+        changed(await run { try await self.service.schedulePersonal(input) })
+    }
+
+    func personalDraft(style: WorkoutStyle, goals: String, durationMinutes: Int?) async -> Result<PersonalTrainingDraft, APIError> {
+        await run { try await self.service.personalDraft(style: style, goals: goals, durationMinutes: durationMinutes) }
+    }
+
     func update(_ id: UUID, _ input: TrainingInput, status: TrainingStatus) async -> Result<Training, APIError> {
         changed(await run { try await self.service.update(id, input, status: status) })
     }
@@ -46,6 +54,9 @@ final class TrainingsStore {
         let text: String? = switch error.code {
         case "responsible_player_required": "В команде нет капитана: выберите игрока, который будет отвечать за тренировку."
         case "invalid_training_type": "Личную тренировку нельзя сделать самостоятельной."
+        case "player_profile_required": "Сначала заполните профиль игрока в разделе «Профиль»."
+        // A server without the AI keys names its settings in the message: that is for the one who runs it, not for the person.
+        case "ai_unavailable" where error.message.contains("YANDEX"): "ИИ сейчас недоступен. Попробуйте позже."
         default: nil
         }
         return text.map { APIError(status: error.status, code: error.code, message: $0, field: error.field, retryAfter: error.retryAfter) } ?? error

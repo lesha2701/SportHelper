@@ -63,15 +63,21 @@ struct TrainingDetailView: View {
                 Button("Отменить все тренировки серии", role: .destructive) { Task { await cancelSeries() } }
             }
         } message: {
-            Text(confirming == .delete ? "Она исчезнет из расписания команды." : "Все тренировки серии получат статус «Отменена».")
+            Text(confirming == .delete ? deleteWarning : "Все тренировки серии получат статус «Отменена».")
         }
+    }
+
+    private var deleteWarning: String {
+        if case .loaded(let training) = load, training.type == "personal" { return "Она исчезнет из вашего календаря." }
+        return "Она исчезнет из расписания команды."
     }
 
     // MARK: rights
 
-    /// Team and independent trainings are managed by the team's coaching staff.
+    /// Team and independent trainings are managed by the team's coaching staff, a personal one by the person who made it.
     private func canManage(_ training: Training) -> Bool {
-        guard training.type != "personal", let teamId = training.teamId, case .loaded(let teams) = auth.teams.mine else { return false }
+        if training.type == "personal" { return training.createdBy == auth.user?.id }
+        guard let teamId = training.teamId, case .loaded(let teams) = auth.teams.mine else { return false }
         return teams.first { $0.id == teamId }?.canManage ?? false
     }
 
