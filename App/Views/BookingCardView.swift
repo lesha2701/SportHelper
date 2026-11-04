@@ -11,6 +11,9 @@ struct BookingCardView: View {
     let payError: String?
     let onPay: () -> Void
     let onCheck: () -> Void
+    /// Opens the chat of this session; nil where chats are not offered. `chatUnread` is the number of messages not read yet.
+    var onChat: (() -> Void)?
+    var chatUnread = 0
 
     enum Viewer { case athlete, coach }
 
@@ -30,10 +33,27 @@ struct BookingCardView: View {
                 Text("Пожелания: \(notes)").font(.footnote).foregroundStyle(.secondary)
             }
             payment
+            if booking.hasChat, let onChat { chatButton(onChat) }
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("booking.card")
+    }
+
+    private func chatButton(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Label("Чат тренировки", systemImage: "bubble.left.and.bubble.right")
+                Spacer()
+                if chatUnread > 0 {
+                    Text("\(chatUnread)").font(.caption.bold()).foregroundStyle(.white)
+                        .padding(.horizontal, 7).padding(.vertical, 2).background(Theme.primary, in: Capsule())
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .accessibilityIdentifier("booking.chat")
     }
 
     private var when: String {

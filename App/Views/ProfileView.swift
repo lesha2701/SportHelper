@@ -38,6 +38,7 @@ struct ProfileView: View {
                 case .myBookings: MyBookingsView()
                 case .incomingRequests: IncomingRequestsView()
                 case .coachBookings: CoachBookingsView()
+                case .bookingChat(let id): ChatView(store: auth.chatStore(for: .booking(id)))
                 }
             }
             .task {

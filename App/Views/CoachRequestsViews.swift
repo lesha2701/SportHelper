@@ -135,7 +135,11 @@ struct CoachBookingsView: View {
         if !items.isEmpty {
             Section(title) {
                 ForEach(items) {
-                    BookingCardView(booking: $0, viewer: .coach, paymentsOn: false, isChecking: false, payError: nil, onPay: {}, onCheck: {})
+                    BookingCardView(
+                        booking: $0, viewer: .coach, paymentsOn: false, isChecking: false, payError: nil, onPay: {}, onCheck: {},
+                        onChat: { [id = $0.id] in auth.router.profilePath.append(.bookingChat(id)) },
+                        chatUnread: auth.chatUnread.unread.forBooking($0.id)
+                    )
                 }
             }
         }

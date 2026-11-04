@@ -76,11 +76,24 @@ final class ProfileStore {
     }
 
     /// An avatar picture (kept in memory once loaded; a replaced avatar has a new id, so nothing goes stale).
-    func image(for fileId: UUID) async -> UIImage? {
-        let key = fileId.uuidString as NSString
+    func image(for fileId: UUID, thumbnail: Bool = true) async -> UIImage? {
+        let key = (fileId.uuidString + (thumbnail ? "" : ":full")) as NSString
         if let cached = images.object(forKey: key) { return cached }
-        guard let data = try? await service.fileData(id: fileId), let image = UIImage(data: data) else { return nil }
+        guard let data = try? await service.fileData(id: fileId, thumbnail: thumbnail), let image = UIImage(data: data) else { return nil }
         images.setObject(image, forKey: key)
         return image
+    }
+
+    /// A file (a video from a chat) saved to a temporary place so a player can open it.
+    func temporaryFile(for fileId: UUID, name: String) async -> URL? {
+        guard let data = try? await service.fileData(id: fileId, thumbnail: false) else { return nil }
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("chat-\(fileId.uuidString)", isDirectory: true)
+        let safe = name.replacingOccurrences(of: "/", with: "_")
+        let url = folder.appendingPathComponent(safe.isEmpty ? "video.mp4" : safe)
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try data.write(to: url)
+            return url
+        } catch { return nil }
     }
 }

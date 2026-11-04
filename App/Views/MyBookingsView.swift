@@ -65,7 +65,9 @@ struct MyBookingsView: View {
                         booking: booking, viewer: .athlete, paymentsOn: auth.features.payments,
                         isChecking: store.checking.contains(booking.id) || starting.contains(booking.id),
                         payError: payErrors[booking.id], onPay: { Task { await pay(booking) } },
-                        onCheck: { Task { await store.settlePayment(booking.id) } }
+                        onCheck: { Task { await store.settlePayment(booking.id) } },
+                        onChat: { auth.router.profilePath.append(.bookingChat(booking.id)) },
+                        chatUnread: auth.chatUnread.unread.forBooking(booking.id)
                     )
                 }
             }

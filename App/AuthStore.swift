@@ -26,6 +26,8 @@ final class AuthStore {
     let calendar: CalendarStore
     let coaches: CoachesStore
     let bookings: BookingsStore
+    let teams: TeamsStore
+    let chatUnread: ChatUnreadStore
     let router = Router()
     private let service: AuthService
     private let persistence: SessionPersistence
@@ -38,6 +40,8 @@ final class AuthStore {
         self.calendar = CalendarStore(client: client)
         self.coaches = CoachesStore(client: client)
         self.bookings = BookingsStore(client: client)
+        self.teams = TeamsStore(client: client)
+        self.chatUnread = ChatUnreadStore(client: client)
         self.service = AuthService(client: client)
         self.persistence = SessionPersistence(
             store: KeychainSecretStore(service: "ru.sportarenaglobal.app", account: "session-cookie"), baseURL: environment.baseURL
@@ -110,11 +114,20 @@ final class AuthStore {
         state = .signedOut
     }
 
+    /// A chat of the signed-in person (a personal training or a team). Reading it clears its unread count.
+    func chatStore(for target: ChatStore.Target) -> ChatStore {
+        var userId = UUID()
+        if case .signedIn(let user) = state { userId = user.id }
+        return ChatStore(client: client, target: target, userId: userId, onRead: { [weak self] in Task { await self?.chatUnread.refresh() } })
+    }
+
     /// Everything that belongs to the person who was signed in: the next person must never see it.
     private func resetPersonalData() {
         calendar.reset()
         coaches.reset()
         bookings.reset()
+        teams.reset()
+        chatUnread.reset()
         router.reset()
     }
 
