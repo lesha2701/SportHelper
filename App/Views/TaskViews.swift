@@ -47,7 +47,7 @@ struct TeamTasksView: View {
             }
         }
         .task { await fetch() }
-        .sheet(isPresented: $giving) { TaskFormView(mode: .give(team)) { _ in Task { await fetch() } } }
+        .sheet(isPresented: $giving) { TaskFormView(mode: .give(team)) { Task { await fetch() } } }
     }
 
     private func list(_ tasks: [TeamTask]) -> some View {
@@ -160,7 +160,7 @@ struct TaskDetailView: View {
             if case .loading = auth.teams.mine { await auth.teams.reloadMine() }
             await fetch()
         }
-        .sheet(item: $editing) { task in TaskFormView(mode: .edit(task)) { _ in Task { await fetch() } } }
+        .sheet(item: $editing) { task in TaskFormView(mode: .edit(task)) { Task { await fetch() } } }
         .sheet(item: $submitting) { task in
             TaskSubmitView(task: task, assignment: auth.user.flatMap { task.assignment(of: $0.id) }) { Task { await fetch() } }
         }

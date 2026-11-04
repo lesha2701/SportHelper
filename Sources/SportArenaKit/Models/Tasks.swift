@@ -55,9 +55,9 @@ public enum AssignmentStatus: Equatable, Hashable, Sendable {
     }
 }
 
+/// An exercise attached to a task or to a task template (the server names the owner `task_id` or `template_id`; neither is needed here).
 public struct TaskExercise: Decodable, Equatable, Hashable, Identifiable, Sendable {
     public let id: UUID
-    public let taskId: UUID
     public let exerciseId: UUID
     public let exerciseName: String?
     public let orderIndex: Int

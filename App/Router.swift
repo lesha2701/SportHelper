@@ -2,7 +2,7 @@ import Observation
 import SwiftUI
 
 enum AppTab: Hashable {
-    case home, teams, calendar, coaches, profile
+    case home, library, teams, calendar, coaches, profile
 }
 
 /// Where inside the profile a screen lives ("Мои брони" and the coach's requests are reached from the profile, like on the site).

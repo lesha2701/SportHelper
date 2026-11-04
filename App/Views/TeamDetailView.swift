@@ -101,6 +101,12 @@ struct TeamDetailView: View {
                 Label("Матчи", systemImage: "sportscourt")
             }
             .accessibilityIdentifier("team.matches")
+            NavigationLink {
+                TeamLibraryView(team: team)
+            } label: {
+                Label("Упражнения и планы", systemImage: "book")
+            }
+            .accessibilityIdentifier("team.library")
         }
     }
 

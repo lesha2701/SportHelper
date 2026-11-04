@@ -4,9 +4,11 @@ import XCTest
 final class ProfileUITests: SignedInUITestCase {
     func testTheSameFiveSectionsAsTheSiteAreThere() throws {
         try launchSignedIn()
-        for title in ["Главная", "Команды", "Календарь", "Тренеры", "Профиль"] {
+        for title in ["Команды", "Календарь", "Тренеры", "Профиль"] {
             XCTAssertTrue(app.tabBars.buttons[title].exists, "no «\(title)» tab")
         }
+        // A coach has the Библиотека where a player has the Главная (the phone's tab bar holds five).
+        XCTAssertTrue(app.tabBars.buttons["Библиотека"].exists != app.tabBars.buttons["Главная"].exists, "exactly one of «Библиотека» and «Главная»")
     }
 
     func testTheProfileShowsWhoIsSignedInAndTheirDetails() throws {

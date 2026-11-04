@@ -30,6 +30,7 @@ final class AuthStore {
     let trainings: TrainingsStore
     let tasks: TasksStore
     let matches: MatchesStore
+    let library: LibraryStore
     let chatUnread: ChatUnreadStore
     let router = Router()
     private let service: AuthService
@@ -47,6 +48,7 @@ final class AuthStore {
         self.trainings = TrainingsStore(client: client)
         self.tasks = TasksStore(client: client)
         self.matches = MatchesStore(client: client)
+        self.library = LibraryStore(client: client)
         self.chatUnread = ChatUnreadStore(client: client)
         self.service = AuthService(client: client)
         self.persistence = SessionPersistence(
