@@ -23,6 +23,7 @@ final class AuthStore {
     let client: APIClient
     /// The signed-in person's profile data; emptied on sign-out so the next person never sees it.
     let profile: ProfileStore
+    let calendar: CalendarStore
     private let service: AuthService
     private let persistence: SessionPersistence
 
@@ -31,6 +32,7 @@ final class AuthStore {
         let client = APIClient(baseURL: environment.baseURL, onSessionExpired: { holder.fire() })
         self.client = client
         self.profile = ProfileStore(client: client)
+        self.calendar = CalendarStore(client: client)
         self.service = AuthService(client: client)
         self.persistence = SessionPersistence(
             store: KeychainSecretStore(service: "ru.sportarenaglobal.app", account: "session-cookie"), baseURL: environment.baseURL
@@ -99,6 +101,7 @@ final class AuthStore {
         try? await service.logout()
         persistence.clear()
         profile.reset()
+        calendar.reset()
         state = .signedOut
     }
 
@@ -106,6 +109,7 @@ final class AuthStore {
         if case .signedIn = state {
             persistence.clear()
             profile.reset()
+            calendar.reset()
             state = .signedOut
         }
     }

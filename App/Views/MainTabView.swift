@@ -12,7 +12,7 @@ struct MainTabView: View {
                 .tabItem { Label("Главная", systemImage: "house") }
             ComingSoonView(title: "Команды", symbol: "trophy", text: "Составы команд, приглашения и чат команды.")
                 .tabItem { Label("Команды", systemImage: "trophy") }
-            ComingSoonView(title: "Календарь", symbol: "calendar", text: "Тренировки, матчи и сроки заданий.")
+            CalendarView(store: auth.calendar)
                 .tabItem { Label("Календарь", systemImage: "calendar") }
             ComingSoonView(title: "Тренеры", symbol: "person.2", text: "Каталог тренеров, запись на личные тренировки и оплата.")
                 .tabItem { Label("Тренеры", systemImage: "person.2") }
