@@ -26,6 +26,10 @@ describe("parseResponse", () => {
     });
   });
 
+  it("explains FastAPI's own validation answer", async () => {
+    await expect(parseResponse(respond(422, { detail: [{ loc: ["body", "x"], msg: "bad" }] }))).rejects.toMatchObject({ code: "validation_error", status: 422 });
+  });
+
   it("falls back to a generic error for an unexpected body", async () => {
     await expect(parseResponse(respond(500, null))).rejects.toMatchObject({ code: "unknown_error", status: 500 });
   });

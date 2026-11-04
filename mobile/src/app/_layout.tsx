@@ -33,6 +33,16 @@ function Routes() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="profile-edit" />
           <Stack.Screen name="settings" />
+          <Stack.Screen name="join" />
+          <Stack.Screen name="team/new" />
+          <Stack.Screen name="team/[id]" />
+          <Stack.Screen name="training/new" />
+          <Stack.Screen name="training/[id]" />
+          <Stack.Screen name="workout/[id]" />
+          <Stack.Screen name="task/new" />
+          <Stack.Screen name="task/[id]" />
+          <Stack.Screen name="match/new" />
+          <Stack.Screen name="match/[id]" />
         </Stack.Protected>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="login" />

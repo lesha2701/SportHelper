@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
+import { onSuccessMessage } from "@/api/client";
 import { useTheme } from "@/theme/ThemeProvider";
 import { radius } from "@/theme/tokens";
 import { Text } from "./Text";
@@ -25,6 +26,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     timer.current = setTimeout(() => setToast(null), 3500);
   }, []);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  // Changes that succeeded announce themselves (the `successMessage` of the API call).
+  useEffect(() => onSuccessMessage((message) => show(message, "success")), [show]);
 
   const api = useMemo<ToastApi>(
     () => ({ show, success: (m) => show(m, "success"), error: (m) => show(m, "error") }),

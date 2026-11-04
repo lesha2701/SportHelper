@@ -40,6 +40,10 @@ export async function parseResponse<T>(response: Response): Promise<T> {
       const { code, message, field, retry_after } = data.error;
       throw new ApiError(response.status, code, message, field ?? null, retry_after ?? null);
     }
+    if (response.status === 422) {
+      // FastAPI's own validation answer ({"detail": [...]}) for a body the app should have kept within limits.
+      throw new ApiError(422, "validation_error", "Проверьте введённые данные: одно из значений вне допустимых пределов.");
+    }
     throw new ApiError(response.status, "unknown_error", "Неизвестная ошибка сервера");
   }
   return data as T;
@@ -59,10 +63,32 @@ export function onSessionExpired(listener: Listener): () => void {
 /** Paths where a 401 means "wrong credentials" or "not signed in yet", not "your session ended". */
 const AUTH_FORM_PATHS = ["/api/auth/mobile/login", "/api/auth/register", "/api/auth/me"];
 
+type NoticeListener = (message: string) => void;
+const successListeners = new Set<NoticeListener>();
+
+/** Called with the `successMessage` of every change that succeeded (the toast host shows it). */
+export function onSuccessMessage(listener: NoticeListener): () => void {
+  successListeners.add(listener);
+  return () => {
+    successListeners.delete(listener);
+  };
+}
+
 export interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   signal?: AbortSignal;
+  /** Shown as a toast when a change succeeds. */
+  successMessage?: string;
+  /** Accepted for parity with the website's API layer; screens show their own errors. */
+  silent?: boolean;
+}
+
+/** A file picked on the phone (camera, gallery): React Native uploads it by uri. */
+export interface UploadFile {
+  uri: string;
+  name: string;
+  type: string;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -86,5 +112,27 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   if (response.status === 401 && token && !AUTH_FORM_PATHS.some((prefix) => path.startsWith(prefix))) {
     sessionEndedListeners.forEach((listener) => listener());
   }
-  return parseResponse<T>(response);
+  const result = await parseResponse<T>(response);
+  if (options.successMessage) successListeners.forEach((listener) => listener(options.successMessage!));
+  return result;
+}
+
+/** multipart/form-data upload (photos, videos). The Content-Type boundary is set by fetch itself. */
+export async function apiUpload<T>(
+  path: string,
+  options: { formData: FormData; method?: "POST" | "PUT"; successMessage?: string; silent?: boolean },
+): Promise<T> {
+  const headers: Record<string, string> = { Accept: "application/json" };
+  const token = await getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, { method: options.method ?? "POST", headers, body: options.formData });
+  } catch {
+    throw new ApiError(0, "network_error", "Не удалось связаться с сервером");
+  }
+  if (response.status === 401 && token) sessionEndedListeners.forEach((listener) => listener());
+  const result = await parseResponse<T>(response);
+  if (options.successMessage) successListeners.forEach((listener) => listener(options.successMessage!));
+  return result;
 }

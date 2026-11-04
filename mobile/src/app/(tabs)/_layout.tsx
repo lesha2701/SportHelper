@@ -37,6 +37,18 @@ export default function TabsLayout() {
         options={{ title: "Главная", tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" color={color as string} size={size} /> }}
       />
       <Tabs.Screen
+        name="calendar"
+        options={{ title: "Календарь", tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" color={color as string} size={size} /> }}
+      />
+      <Tabs.Screen
+        name="teams"
+        options={{ title: "Команды", tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" color={color as string} size={size} /> }}
+      />
+      <Tabs.Screen
+        name="tasks"
+        options={{ title: "Задания", tabBarIcon: ({ color, size }) => <Ionicons name="clipboard-outline" color={color as string} size={size} /> }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{ title: "Профиль", tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" color={color as string} size={size} /> }}
       />
