@@ -19,7 +19,7 @@ _ANY_ID = "00000000-0000-4000-8000-000000000001"
 # Routes that may be called without a session. Everything else needs one. Adding to this list is a deliberate decision.
 PUBLIC_ROUTES = {
     ("POST", "/api/auth/claim"), ("POST", "/api/auth/claim/inspect"), ("POST", "/api/auth/confirm-email-change"),
-    ("POST", "/api/auth/forgot-password"), ("POST", "/api/auth/login"), ("POST", "/api/auth/logout"), ("POST", "/api/auth/register"),
+    ("POST", "/api/auth/forgot-password"), ("POST", "/api/auth/login"), ("POST", "/api/auth/mobile/login"), ("POST", "/api/auth/logout"), ("POST", "/api/auth/register"),
     ("POST", "/api/auth/resend-verification"), ("POST", "/api/auth/reset-password"), ("POST", "/api/auth/verify-email"),
     ("POST", "/api/auth/verify-email/inspect"), ("POST", "/api/auth/verify-email/set-password"),
     ("GET", "/api/coach-listings"), ("GET", "/api/coach-listings/{listing_id}"), ("GET", "/api/coach-listings/{listing_id}/slots"),

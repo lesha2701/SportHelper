@@ -86,6 +86,9 @@ class Settings(BaseSettings):
     # Session tokens may also be presented as `Authorization: Bearer` (scripts,
     # Swagger). Off by default: the browser site only needs the HttpOnly cookie.
     bearer_auth_enabled: bool = Field(default=False, alias="BEARER_AUTH_ENABLED")
+    # Native mobile app: POST /api/auth/mobile/login returns the session token and Bearer is
+    # accepted for it, independently of BEARER_AUTH_ENABLED. Off by default.
+    mobile_auth_enabled: bool = Field(default=False, alias="MOBILE_AUTH_ENABLED")
     # Swagger/ReDoc/openapi.json. Default: on for sandbox, off when APP_MODE=main.
     api_docs_enabled: bool | None = Field(default=None, alias="API_DOCS_ENABLED")
 
@@ -371,6 +374,8 @@ def production_problems(settings: "Settings") -> tuple[list[str], list[str]]:
             )
     if settings.bearer_auth_enabled:
         warnings.append("BEARER_AUTH_ENABLED is on: session tokens are accepted outside the HttpOnly cookie")
+    if settings.mobile_auth_enabled:
+        warnings.append("MOBILE_AUTH_ENABLED is on: the mobile app signs in with a Bearer session token")
     if settings.docs_enabled:
         warnings.append("API docs (Swagger) are enabled")
     return fatal, warnings

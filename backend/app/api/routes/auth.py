@@ -53,6 +53,7 @@ from app.schemas.auth import (
     MfaSetupIn,
     MfaSetupOut,
     MfaStatusOut,
+    MobileAuthOut,
     PasswordIn,
     RegisterIn,
     RegisterOut,
@@ -68,7 +69,7 @@ from app.schemas.auth import (
 from app.schemas.user import UserOut
 from app.security import passwords, totp
 from app.security.client import describe_device
-from app.security.sessions import clear_session_cookie, set_session_cookie, start_session
+from app.security.sessions import clear_session_cookie, session_expiry, set_session_cookie, start_session
 from app.security.tokens import csrf_token_for, generate_token, hash_token
 from app.services import accounts as svc
 from app.services import admin_audit
@@ -317,14 +318,12 @@ async def resend_verification(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/login", response_model=AuthOut)
-async def login(
-    payload: LoginIn,
-    request: Request,
-    response: Response,
-    conn: asyncpg.Connection = Depends(get_db),
-    settings: Settings = Depends(get_settings_dep),
-) -> AuthOut:
+async def _verify_login(
+    payload: LoginIn, request: Request, conn: asyncpg.Connection, settings: Settings
+) -> dict:
+    """Rate limits, lockout and the password / account-state checks shared by the
+    cookie login and the mobile login. Returns the credentials row of a person who
+    may now be given a session; raises otherwise."""
     ip = svc.ip_of(request, settings)
     await svc.enforce_rate_limit(request, conn, settings, "login-ip", ip, limit=30, window_seconds=600)
     email = svc.try_normalize_email(payload.email)
@@ -376,12 +375,42 @@ async def login(
     if passwords.needs_rehash(creds["password_hash"], settings):
         await users_repo.set_password(conn, creds["id"], await svc.hash_in_thread(payload.password, settings))
     await users_repo.clear_login_failures(conn, creds["id"])
+    return creds
 
+
+@router.post("/login", response_model=AuthOut)
+async def login(
+    payload: LoginIn,
+    request: Request,
+    response: Response,
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> AuthOut:
+    creds = await _verify_login(payload, request, conn, settings)
     token, _session = await start_session(conn, request, creds["id"], settings)
     set_session_cookie(response, token, settings)
     user = await users_repo.get_by_id(conn, creds["id"])
     assert user is not None
     return _auth_out(user, token, settings)
+
+
+@router.post("/mobile/login", response_model=MobileAuthOut)
+async def mobile_login(
+    payload: LoginIn,
+    request: Request,
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> MobileAuthOut:
+    """Sign-in for the native app: same checks as /login, but the session token is returned in the
+    body (the app keeps it in the system secure storage) and no cookie is set. The token is then sent
+    as `Authorization: Bearer`, which needs no CSRF token. Off unless MOBILE_AUTH_ENABLED."""
+    if not settings.mobile_auth_enabled:
+        raise NotFoundError("Not found")
+    creds = await _verify_login(payload, request, conn, settings)
+    token, session = await start_session(conn, request, creds["id"], settings)
+    user = await users_repo.get_by_id(conn, creds["id"])
+    assert user is not None
+    return MobileAuthOut(**user, access_token=token, expires_at=session.get("expires_at") or session_expiry(settings))
 
 
 async def _burn_time(password: str, settings: Settings) -> None:

@@ -263,6 +263,7 @@ docker compose exec backend python scripts/create_user.py boss@example.com "Бо
 | `TRUST_PROXY_HEADERS` | `false` (в `docker-compose.yml` — `true`) | Брать IP клиента из `X-Forwarded-For` (за Caddy). |
 | `TRUSTED_PROXY_CIDRS` | loopback + частные сети | Адреса прокси, чьему `X-Forwarded-For` верим. Если перед Caddy стоит ещё один прокси/CDN — добавьте его сеть **и** настройте Caddy `trusted_proxies`. |
 | `BEARER_AUTH_ENABLED` | `false` | Принимать токен сессии в `Authorization: Bearer` (скрипты, Swagger). |
+| `MOBILE_AUTH_ENABLED` | `false` | Вход мобильного приложения: `POST /api/auth/mobile/login` возвращает токен сессии; Bearer принимается независимо от `BEARER_AUTH_ENABLED` (см. `docs/mobile.md`). |
 | `API_DOCS_ENABLED` | пусто (выкл. при `APP_MODE=main`) | Swagger / ReDoc / openapi.json. |
 | `SESSION_LIFETIME_DAYS` / `SESSION_ABSOLUTE_MAX_DAYS` | `30` / `90` | Сроки сессии. |
 | `PASSWORD_MIN_LENGTH` | `12` | |
