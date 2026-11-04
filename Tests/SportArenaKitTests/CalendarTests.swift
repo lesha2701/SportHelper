@@ -101,7 +101,10 @@ private func event(_ kind: String = "training", date: String, time: String?, tit
 
 struct CalendarModelTests {
     @Test func anEventIsReadWithItsDayAndTime() throws {
-        let text = #"{"id":"11111111-2222-4333-8444-555555555555","type":"match","date":"2026-11-07","time":"12:00:00","title":"Матч","team_id":"99999999-2222-4333-8444-555555555555","team_name":"Ястребы","status":"scheduled"}"#
+        let text = """
+        {"id":"11111111-2222-4333-8444-555555555555","type":"match","date":"2026-11-07","time":"12:00:00","title":"Матч",
+         "team_id":"99999999-2222-4333-8444-555555555555","team_name":"Ястребы","status":"scheduled"}
+        """
         let event = try APIClient.decoder.decode(CalendarEvent.self, from: Data(text.utf8))
         #expect(event.kind == .match && event.date.iso == "2026-11-07" && event.time?.display == "12:00")
         #expect(event.teamName == "Ястребы" && event.teamId != nil && !event.isTraining)
