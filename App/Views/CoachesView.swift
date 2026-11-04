@@ -6,16 +6,20 @@ struct CoachesView: View {
     @Environment(AuthStore.self) private var auth
     @Bindable var store: CoachesStore
     @State private var query = ""
+    /// Shown inside another navigation stack (a coach reaches the catalogue from the profile) instead of being a tab of its own.
+    var embedded = false
 
     var body: some View {
-        NavigationStack {
-            content
-                .navigationTitle("Тренеры")
-                .searchable(text: $query, prompt: "Имя тренера или объявление")
-                .toolbar { ToolbarItem(placement: .topBarTrailing) { filterMenu } }
-                .task(id: store.filter) { await store.reload() }
-                .navigationDestination(for: CoachListingCard.self) { ListingDetailView(card: $0, store: store) }
-        }
+        if embedded { screen } else { NavigationStack { screen } }
+    }
+
+    private var screen: some View {
+        content
+            .navigationTitle("Тренеры")
+            .searchable(text: $query, prompt: "Имя тренера или объявление")
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { filterMenu } }
+            .task(id: store.filter) { await store.reload() }
+            .navigationDestination(for: CoachListingCard.self) { ListingDetailView(card: $0, store: store) }
     }
 
     @ViewBuilder private var content: some View {

@@ -5,7 +5,7 @@ public enum CalendarEventKind: Equatable, Sendable {
     /// A kind a newer server may add: shown as a plain entry instead of failing the whole calendar.
     case other(String)
 
-    init(raw: String) {
+    public init(raw: String) {
         switch raw {
         case "training": self = .training
         case "match": self = .match

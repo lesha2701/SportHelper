@@ -58,8 +58,11 @@ final class CalendarUITests: SignedInUITestCase {
         try openCalendar()
         app.buttons["Неделя"].tap()
 
-        XCTAssertTrue(text(containing: "Сегодня").waitForExistence(timeout: 15), "the week did not load, or today is not marked")
         // The local scenario's trainings start tomorrow, so the days before today are empty: they must still be listed, saying so.
-        XCTAssertTrue(text(containing: "Нет событий").exists, "an empty day should say it has no events")
+        XCTAssertTrue(app.staticTexts["Нет событий"].firstMatch.waitForExistence(timeout: 15), "an empty day should say it has no events")
+        // The list builds its rows lazily, and a busy day before today can push today off the screen: scroll to it.
+        let today = text(containing: "Сегодня")
+        scrollUntilVisible(today, attempts: 12)
+        XCTAssertTrue(today.exists, "the week did not load, or today is not marked")
     }
 }

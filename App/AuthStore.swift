@@ -31,6 +31,7 @@ final class AuthStore {
     let tasks: TasksStore
     let matches: MatchesStore
     let library: LibraryStore
+    let home: HomeStore
     let chatUnread: ChatUnreadStore
     let router = Router()
     private let service: AuthService
@@ -49,6 +50,7 @@ final class AuthStore {
         self.tasks = TasksStore(client: client)
         self.matches = MatchesStore(client: client)
         self.library = LibraryStore(client: client)
+        self.home = HomeStore(client: client)
         self.chatUnread = ChatUnreadStore(client: client)
         self.service = AuthService(client: client)
         self.persistence = SessionPersistence(
@@ -137,6 +139,7 @@ final class AuthStore {
         bookings.reset()
         teams.reset()
         chatUnread.reset()
+        home.reset()
         router.reset()
     }
 

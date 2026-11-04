@@ -40,6 +40,7 @@ struct ProfileView: View {
                 case .coachBookings: CoachBookingsView()
                 case .bookingChat(let id): ChatView(store: auth.chatStore(for: .booking(id)))
                 case .myTasks: MyTasksView()
+                case .coachCatalog: CoachesView(store: auth.coaches, embedded: true)
                 }
             }
             .task {
@@ -149,6 +150,11 @@ struct ProfileView: View {
             }
             NavigationLink(value: ProfileRoute.myTasks) { Label("Мои задания", systemImage: "checklist") }
                 .accessibilityIdentifier("profile.myTasks")
+            if user.isCoach {
+                // A phone's tab bar holds five tabs: a coach has «Библиотека» in the place of «Тренеры», which is reached from here.
+                NavigationLink(value: ProfileRoute.coachCatalog) { Label("Каталог тренеров", systemImage: "person.2") }
+                    .accessibilityIdentifier("profile.coachCatalog")
+            }
         }
     }
 
