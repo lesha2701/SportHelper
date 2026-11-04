@@ -34,6 +34,7 @@ import profileStyles from "../profile/profile.module.css";
 import aiStyles from "../stats/stats.module.css";
 import chatStyles from "../chat/chat.module.css";
 import styles from "./teams.module.css";
+import { count } from "../../lib/plural";
 
 type Tab = "roster" | "chat" | "trainings" | "tasks" | "matches" | "stats" | "settings";
 
@@ -233,7 +234,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
               team.sport,
               team.ageCategory,
               team.level ? SKILL_LEVEL_LABELS[team.level] : null,
-              `${team.membersCount} игроков`,
+              count(team.membersCount, "игрок", "игрока", "игроков"),
               myRole ? TEAM_ROLE_LABELS[myRole] : null,
             ]
               .filter(Boolean)

@@ -191,21 +191,36 @@
   margin-top: auto;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
   width: 100%;
-  padding: 10px;
+  padding: 4px;
   border-radius: 14px;
   border: 1px solid var(--color-border);
-  background: transparent;
-  cursor: pointer;
-  text-align: left;
-  font: inherit;
-  color: inherit;
   transition: border-color var(--transition-fast);
 }
 
 .userRow:hover {
   border-color: var(--color-border-strong);
+}
+
+.userMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.userMain:hover {
+  background: var(--color-surface-alt);
 }
 
 .userAvatar,
@@ -254,6 +269,21 @@
 
 .userSettings {
   flex-shrink: 0;
+  width: 36px;
+  height: 36px;
   display: flex;
-  color: var(--color-text-tertiary);
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-base);
+}
+
+.userSettings:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-primary);
+  transform: rotate(45deg);
 }

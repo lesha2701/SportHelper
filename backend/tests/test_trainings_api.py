@@ -297,3 +297,100 @@ def test_training_feedback_skip_marks_prompt_handled(logged_in_client, login_as)
     fetched = client.get(f"/api/trainings/{training['id']}/feedback", headers=player_headers)
     assert fetched.status_code == 200
     assert fetched.json()["skipped"] is True
+
+
+_WORKOUT = {
+    "exercises": [
+        {
+            "name": "Приседания",
+            "target_sets": 3,
+            "target_reps": 15,
+            "sets": [{"reps": 15, "weight_kg": 20, "done": True}, {"reps": 14, "weight_kg": None, "done": True}, {"reps": 0, "weight_kg": None, "done": False}],
+        }
+    ],
+    "wellbeing": 4,
+    "note": "Тяжело на последнем подходе",
+    "started_at": "2026-11-03T09:00:00+00:00",
+    "finished_at": "2026-11-03T09:40:00+00:00",
+}
+
+
+def _personal_training(client, headers: dict) -> dict:
+    payload = {**_TRAINING_PAYLOAD, "is_independent": False}
+    resp = client.post("/api/trainings/personal", headers=headers, json=payload)
+    assert resp.status_code == 200, resp.text
+    return resp.json()[0]
+
+
+def test_the_owner_saves_and_reads_back_workout_results(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    training = _personal_training(client, headers)
+
+    assert client.get(f"/api/trainings/{training['id']}/workout", headers=headers).json() is None
+
+    saved = client.put(f"/api/trainings/{training['id']}/workout", headers=headers, json=_WORKOUT)
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["exercises"][0]["sets"][0] == {"reps": 15, "weight_kg": 20.0, "seconds": None, "meters": None, "done": True}
+
+    again = client.get(f"/api/trainings/{training['id']}/workout", headers=headers).json()
+    assert again["wellbeing"] == 4
+    assert again["note"] == "Тяжело на последнем подходе"
+    assert len(again["exercises"][0]["sets"]) == 3
+
+    replaced = client.put(f"/api/trainings/{training['id']}/workout", headers=headers, json={**_WORKOUT, "wellbeing": 2})
+    assert replaced.status_code == 200
+    assert client.get(f"/api/trainings/{training['id']}/workout", headers=headers).json()["wellbeing"] == 2
+
+
+def test_workout_results_are_refused_for_a_team_training(logged_in_client) -> None:
+    client, coach_token = logged_in_client
+    coach_headers = {"Authorization": f"Bearer {coach_token}"}
+    _create_coach_profile(client, coach_token)
+    team = _create_team(client, coach_token)
+    training = client.post(f"/api/teams/{team['id']}/trainings", headers=coach_headers, json=_TRAINING_PAYLOAD).json()[0]
+
+    resp = client.put(f"/api/trainings/{training['id']}/workout", headers=coach_headers, json=_WORKOUT)
+
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "invalid_workout"
+
+
+def test_nobody_else_can_record_or_read_a_personal_workout(logged_in_client, login_as) -> None:
+    client, token = logged_in_client
+    training = _personal_training(client, {"Authorization": f"Bearer {token}"})
+    stranger = {"Authorization": f"Bearer {login_as(830777, first_name='Stranger')}"}
+
+    assert client.put(f"/api/trainings/{training['id']}/workout", headers=stranger, json=_WORKOUT).status_code == 403
+    assert client.get(f"/api/trainings/{training['id']}/workout", headers=stranger).status_code == 403
+
+
+def test_a_workout_needs_valid_numbers(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    training = _personal_training(client, headers)
+    bad = {**_WORKOUT, "exercises": [{"name": "Подтягивания", "sets": [{"reps": -1, "done": True}]}]}
+
+    assert client.put(f"/api/trainings/{training['id']}/workout", headers=headers, json=bad).status_code == 422
+    assert client.put(f"/api/trainings/{training['id']}/workout", headers=headers, json={**_WORKOUT, "exercises": []}).status_code == 422
+
+
+def test_workout_sets_can_be_measured_in_time_and_distance(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    training = _personal_training(client, headers)
+    workout = {
+        "exercises": [
+            {"name": "Планка", "metric": "time", "sets": [{"seconds": 45, "done": True}]},
+            {"name": "Бег", "metric": "distance", "sets": [{"meters": 1500.5, "done": True}]},
+        ],
+    }
+
+    saved = client.put(f"/api/trainings/{training['id']}/workout", headers=headers, json=workout)
+
+    assert saved.status_code == 200, saved.text
+    first, second = saved.json()["exercises"]
+    assert (first["metric"], first["sets"][0]["seconds"]) == ("time", 45)
+    assert (second["metric"], second["sets"][0]["meters"]) == ("distance", 1500.5)
+    bad = {"exercises": [{"name": "Бег", "metric": "swimming", "sets": []}]}
+    assert client.put(f"/api/trainings/{training['id']}/workout", headers=headers, json=bad).status_code == 422

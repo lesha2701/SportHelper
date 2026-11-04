@@ -12,6 +12,7 @@ import type { Team } from "../../types/team";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 import libStyles from "./library.module.css";
+import { count } from "../../lib/plural";
 
 type ListState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; plans: Plan[] };
 
@@ -260,7 +261,7 @@ export function PlansScreen({ token }: { token: string }) {
                 {sport}
               </button>
             ))}
-            <span className={libStyles.resultCount}>{filteredPlans.length} планов</span>
+            <span className={libStyles.resultCount}>{count(filteredPlans.length, "план", "плана", "планов")}</span>
           </div>
 
           {filteredPlans.length === 0 ? (
@@ -285,8 +286,8 @@ export function PlansScreen({ token }: { token: string }) {
                         {plan.durationMinutes !== null ? ` · ${plan.durationMinutes} мин` : ""}
                       </p>
                       <div className={libStyles.libCardFooter}>
-                        <span>{plan.exercises.length} упражнений</span>
-                        <span>{plan.sharedTeamIds.length > 0 ? `${plan.sharedTeamIds.length} команд` : "личное"}</span>
+                        <span>{count(plan.exercises.length, "упражнение", "упражнения", "упражнений")}</span>
+                        <span>{plan.sharedTeamIds.length > 0 ? count(plan.sharedTeamIds.length, "команда", "команды", "команд") : "личное"}</span>
                       </div>
                     </button>
                   ))}

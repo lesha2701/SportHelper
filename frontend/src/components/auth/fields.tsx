@@ -15,12 +15,21 @@ function describedBy(id: string, error?: string | null, hint?: ReactNode): strin
   return ids.length ? ids.join(" ") : undefined;
 }
 
-export function TextField({ label, error, hint, labelAside, ...input }: BaseFieldProps) {
+/** The red star after the label of a mandatory field; the input itself carries `required` for assistive technology. */
+export function RequiredMark() {
+  return (
+    <span className={styles.requiredMark} aria-hidden="true">
+      *
+    </span>
+  );
+}
+
+export function TextField({ label, error, hint, labelAside, required, ...input }: BaseFieldProps) {
   const id = useId();
   return (
     <div className={styles.field}>
       <div className={styles.labelRow}>
-        <label className={styles.label} htmlFor={id}>
+        <label className={required ? `${styles.label} ${styles.labelRequired}` : styles.label} htmlFor={id}>
           {label}
         </label>
         {labelAside}
@@ -28,6 +37,7 @@ export function TextField({ label, error, hint, labelAside, ...input }: BaseFiel
       <div className={styles.inputWrap}>
         <input
           {...input}
+          required={required}
           id={id}
           className={styles.input}
           aria-invalid={error ? true : undefined}
@@ -78,14 +88,14 @@ interface PasswordFieldProps extends Omit<BaseFieldProps, "type"> {
 
 /** A password input with a show/hide button. `autoComplete` must be set
  * (`current-password` / `new-password`) so password managers behave. */
-export function PasswordField({ label, error, hint, labelAside, showMeter, value, ...input }: PasswordFieldProps) {
+export function PasswordField({ label, error, hint, labelAside, showMeter, value, required, ...input }: PasswordFieldProps) {
   const id = useId();
   const [visible, setVisible] = useState(false);
   const text = typeof value === "string" ? value : "";
   return (
     <div className={styles.field}>
       <div className={styles.labelRow}>
-        <label className={styles.label} htmlFor={id}>
+        <label className={required ? `${styles.label} ${styles.labelRequired}` : styles.label} htmlFor={id}>
           {label}
         </label>
         {labelAside}
@@ -93,6 +103,7 @@ export function PasswordField({ label, error, hint, labelAside, showMeter, value
       <div className={styles.inputWrap}>
         <input
           {...input}
+          required={required}
           value={value}
           id={id}
           type={visible ? "text" : "password"}
@@ -133,12 +144,14 @@ export function Checkbox({
   onChange,
   error,
   disabled,
+  required,
   children,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   error?: string | null;
   disabled?: boolean;
+  required?: boolean;
   children: ReactNode;
 }) {
   const id = useId();
@@ -150,11 +163,12 @@ export function Checkbox({
           className={styles.check}
           checked={checked}
           disabled={disabled}
+          required={required}
           onChange={(e) => onChange(e.target.checked)}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${id}-error` : undefined}
         />
-        <span>{children}</span>
+        <span className={required ? styles.labelRequired : undefined}>{children}</span>
       </label>
       {error && (
         <p id={`${id}-error`} className={styles.fieldError} role="alert">

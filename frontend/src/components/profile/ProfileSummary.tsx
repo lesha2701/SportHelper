@@ -13,6 +13,7 @@ import { Icon, type IconName } from "../shared/Icon";
 import { SKILL_LEVEL_LABELS, type ActiveMode, type ProfileMe } from "../../types/profile";
 import { formatRate } from "../../types/stats";
 import styles from "./profile.module.css";
+import { pluralize, years } from "../../lib/plural";
 
 interface ProfileSummaryProps {
   token: string;
@@ -157,12 +158,12 @@ export function ProfileSummary({
   const heroStats: { value: string; label: string }[] =
     mode === "player" && profile.player
       ? [
-          profile.player.age !== null && { value: String(profile.player.age), label: "лет" },
+          profile.player.age !== null && { value: String(profile.player.age), label: pluralize(profile.player.age, "год", "года", "лет") },
           profile.player.heightCm !== null && { value: String(profile.player.heightCm), label: "см" },
           profile.player.weightKg !== null && { value: String(profile.player.weightKg), label: "кг" },
         ].filter((x): x is { value: string; label: string } => !!x)
       : mode === "coach" && profile.coach && profile.coach.experienceYears !== null
-        ? [{ value: String(profile.coach.experienceYears), label: "лет опыта" }]
+        ? [{ value: String(profile.coach.experienceYears), label: `${pluralize(profile.coach.experienceYears, "год", "года", "лет")} опыта` }]
         : [];
 
   const goalText = mode === "player" ? profile.player?.goals : profile.coach?.description;
@@ -179,7 +180,7 @@ export function ProfileSummary({
         ? [
             { k: "Вид спорта", v: profile.coach.sport },
             ...(profile.coach.specialization ? [{ k: "Специализация", v: profile.coach.specialization }] : []),
-            ...(profile.coach.experienceYears !== null ? [{ k: "Опыт", v: `${profile.coach.experienceYears} лет` }] : []),
+            ...(profile.coach.experienceYears !== null ? [{ k: "Опыт", v: years(profile.coach.experienceYears) }] : []),
           ]
         : [];
 
@@ -240,7 +241,7 @@ export function ProfileSummary({
           <div className={styles.heroRingWrap}>
             {mode === "player" && (
               <svg width="120" height="120" viewBox="0 0 120 120" className={styles.heroRingSvg}>
-                <circle cx="60" cy="60" r={RING_RADIUS} fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="5" />
+                <circle cx="60" cy="60" r={RING_RADIUS} fill="none" stroke="var(--panel-divider)" strokeWidth="5" />
                 <circle
                   cx="60"
                   cy="60"

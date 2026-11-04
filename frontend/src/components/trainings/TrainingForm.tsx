@@ -6,6 +6,7 @@ import { createPersonalTrainingDraft, type PersonalTrainingStyle } from "../../a
 import { ApiError } from "../../api/client";
 import { ConfirmModal } from "../shared/ConfirmModal";
 import { Icon } from "../shared/Icon";
+import { detectMetric } from "../../lib/workout";
 import { CollapsibleSection } from "../shared/CollapsibleSection";
 import type { Plan } from "../../types/plan";
 import type { TeamMember } from "../../types/team";
@@ -26,18 +27,77 @@ interface TrainingFormProps {
   onDeleted?: () => void;
 }
 
+type ExerciseKind = "reps" | "time" | "distance";
+
+const EXERCISE_KINDS: { kind: ExerciseKind; label: string }[] = [
+  { kind: "reps", label: "Повторения" },
+  { kind: "time", label: "Время" },
+  { kind: "distance", label: "Расстояние" },
+];
+
 interface ExerciseRow {
   key: string;
   exercise: string;
+  /** What one set is measured in. It follows the name until the person picks it by hand. */
+  kind: ExerciseKind;
+  kindChosen: boolean;
   reps: string;
   sets: string;
   durationSeconds: string;
+  distanceMeters: string;
+  /** The target time of a distance exercise, in minutes (a run is easier to plan as "15 min" than "900 s"). */
+  timeMinutes: string;
 }
 
 let rowKeySeq = 0;
 function newRow(): ExerciseRow {
   rowKeySeq += 1;
-  return { key: `row-${rowKeySeq}`, exercise: "", reps: "", sets: "", durationSeconds: "" };
+  return {
+    key: `row-${rowKeySeq}`,
+    exercise: "",
+    kind: "reps",
+    kindChosen: false,
+    reps: "",
+    sets: "",
+    durationSeconds: "",
+    distanceMeters: "",
+    timeMinutes: "",
+  };
+}
+
+/** One exercise line of a "reps" training: the plan with its units, read back by the workout screen. */
+function describeExerciseRow(r: ExerciseRow): string {
+  const name = r.exercise.trim();
+  const sets = Number(r.sets) > 0 ? Number(r.sets) : null;
+  if (r.kind === "time") {
+    return `${name} — ${[`${sets ?? 1} подх.`, `${Number(r.durationSeconds) > 0 ? Number(r.durationSeconds) : 30} сек`].join(" x ")}`;
+  }
+  if (r.kind === "distance") {
+    const minutes = Number(r.timeMinutes.replace(",", "."));
+    const parts = [
+      sets && sets > 1 ? `${sets} подх.` : null,
+      `${Number(r.distanceMeters) > 0 ? Number(r.distanceMeters) : 1000} м`,
+      minutes > 0 ? `${Math.round(minutes * 60)} сек` : null,
+    ].filter(Boolean);
+    return `${name} — ${parts.join(" x ")}`;
+  }
+  const parts = [sets ? `${sets} подх.` : null, Number(r.reps) > 0 ? `${r.reps} повт.` : null].filter(Boolean);
+  return `${name}${parts.length ? ` — ${parts.join(" x ")}` : ""}`;
+}
+
+/** A draft exercise (from the AI or typed) as a form row. */
+function rowFromDraft(e: { exercise: string; type: ExerciseKind; reps: number | null; sets: number | null; durationSeconds: number | null; distanceMeters: number | null }): ExerciseRow {
+  return {
+    ...newRow(),
+    exercise: e.exercise,
+    kind: e.type,
+    kindChosen: true,
+    reps: e.reps?.toString() ?? "",
+    sets: e.sets?.toString() ?? "",
+    durationSeconds: e.type === "distance" ? "" : (e.durationSeconds?.toString() ?? ""),
+    distanceMeters: e.distanceMeters?.toString() ?? "",
+    timeMinutes: e.type === "distance" && e.durationSeconds ? String(Math.round((e.durationSeconds / 60) * 10) / 10) : "",
+  };
 }
 
 type RecurrencePreset = "1m" | "6m" | "12m" | "custom";
@@ -64,10 +124,7 @@ function buildPersonalTrainingDescription(
   const lines = rows
     .filter((r) => r.exercise.trim())
     .map((r, i) => {
-      if (style === "reps") {
-        const parts = [r.sets ? `${r.sets} подх.` : null, r.reps ? `${r.reps} повт.` : null].filter(Boolean);
-        return `${i + 1}. ${r.exercise.trim()}${parts.length ? ` — ${parts.join(" x ")}` : ""}`;
-      }
+      if (style === "reps") return `${i + 1}. ${describeExerciseRow(r)}`;
       return `${i + 1}. ${r.exercise.trim()}${r.durationSeconds ? ` — ${r.durationSeconds} сек` : ""}`;
     });
   let text = lines.join("\n");
@@ -91,6 +148,9 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
   const [description, setDescription] = useState(initial?.description ?? "");
   const [planId, setPlanId] = useState(initial?.planId ?? "");
   const [reminderMinutesBefore, setReminderMinutesBefore] = useState(initial?.reminderMinutesBefore?.toString() ?? "60");
+  // A reminder is on for a new training and for one that already has it; the box switches it off.
+  const [remind, setRemind] = useState(initial ? initial.reminderMinutesBefore !== null : true);
+  const reminderValue = remind ? (reminderMinutesBefore ? Number(reminderMinutesBefore) : 60) : null;
   const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [recurrencePreset, setRecurrencePreset] = useState<RecurrencePreset>("1m");
   const [customMonths, setCustomMonths] = useState("1");
@@ -140,13 +200,7 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
       setTrainingStyle(draft.style);
       setExerciseRows(
         draft.exercises.length
-          ? draft.exercises.map((e) => ({
-              key: newRow().key,
-              exercise: e.exercise,
-              reps: e.reps?.toString() ?? "",
-              sets: e.sets?.toString() ?? "",
-              durationSeconds: e.durationSeconds?.toString() ?? "",
-            }))
+          ? draft.exercises.map((e) => (draft.style === "circuit" ? { ...rowFromDraft({ ...e, type: "time" }), kindChosen: false } : rowFromDraft(e)))
           : [newRow()],
       );
       setNotes(draft.notes ?? "");
@@ -208,7 +262,7 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
           location: location.trim() || null,
           description: description.trim() || null,
           plan_id: planId || null,
-          reminder_minutes_before: reminderMinutesBefore ? Number(reminderMinutesBefore) : null,
+          reminder_minutes_before: reminderValue,
           status: initial.status,
           is_independent: mode === "team" ? isIndependent : false,
           responsible_user_id: mode === "team" && isIndependent ? responsibleUserId || null : null,
@@ -227,7 +281,7 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
           ? buildPersonalTrainingDescription(trainingStyle, exerciseRows, notes, { rounds: circuitRounds, restSeconds: circuitRestSeconds }) || null
           : description.trim() || null,
         plan_id: mode === "team" ? planId || null : null,
-        reminder_minutes_before: reminderMinutesBefore ? Number(reminderMinutesBefore) : null,
+        reminder_minutes_before: reminderValue,
         repeat_weekly_until: repeatWeeklyUntil,
         is_independent: mode === "team" ? isIndependent : false,
         responsible_user_id: mode === "team" && isIndependent ? responsibleUserId || null : null,
@@ -400,7 +454,13 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
                     className={`${profileStyles.input} ${styles.exerciseNameInput}`}
                     placeholder={`Упражнение ${index + 1}`}
                     value={row.exercise}
-                    onChange={(e) => updateRow(row.key, { exercise: e.target.value })}
+                    onChange={(e) =>
+                      updateRow(row.key, {
+                        exercise: e.target.value,
+                        // The kind follows the name ("Бег" -> distance) until it is picked by hand.
+                        ...(row.kindChosen ? {} : { kind: detectMetric(e.target.value).metric }),
+                      })
+                    }
                     maxLength={150}
                   />
                   <button
@@ -415,28 +475,87 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
                 </div>
 
                 {trainingStyle === "reps" ? (
-                  <div className={styles.exerciseFieldsRow}>
-                    <label className={styles.exerciseField}>
-                      <span className={styles.exerciseFieldLabel}>Повторения за подход</span>
-                      <input
-                        className={profileStyles.input}
-                        type="number"
-                        min={0}
-                        value={row.reps}
-                        onChange={(e) => updateRow(row.key, { reps: e.target.value })}
-                      />
-                    </label>
-                    <label className={styles.exerciseField}>
-                      <span className={styles.exerciseFieldLabel}>Количество подходов</span>
-                      <input
-                        className={profileStyles.input}
-                        type="number"
-                        min={0}
-                        value={row.sets}
-                        onChange={(e) => updateRow(row.key, { sets: e.target.value })}
-                      />
-                    </label>
-                  </div>
+                  <>
+                    <div className={styles.kindPicker} role="group" aria-label="Чем измеряется упражнение">
+                      {EXERCISE_KINDS.map((option) => (
+                        <button
+                          key={option.kind}
+                          type="button"
+                          className={row.kind === option.kind ? `${styles.kindOption} ${styles.kindOptionOn}` : styles.kindOption}
+                          aria-pressed={row.kind === option.kind}
+                          onClick={() => updateRow(row.key, { kind: option.kind, kindChosen: true })}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className={styles.exerciseFieldsRow}>
+                      {row.kind === "reps" && (
+                        <label className={styles.exerciseField}>
+                          <span className={styles.exerciseFieldLabel}>Повторения за подход</span>
+                          <input
+                            className={profileStyles.input}
+                            type="number"
+                            min={0}
+                            placeholder="10"
+                            value={row.reps}
+                            onChange={(e) => updateRow(row.key, { reps: e.target.value })}
+                          />
+                        </label>
+                      )}
+                      {row.kind === "time" && (
+                        <label className={styles.exerciseField}>
+                          <span className={styles.exerciseFieldLabel}>Время за подход, сек</span>
+                          <input
+                            className={profileStyles.input}
+                            type="number"
+                            min={0}
+                            placeholder="30"
+                            value={row.durationSeconds}
+                            onChange={(e) => updateRow(row.key, { durationSeconds: e.target.value })}
+                          />
+                        </label>
+                      )}
+                      {row.kind === "distance" && (
+                        <>
+                          <label className={styles.exerciseField}>
+                            <span className={styles.exerciseFieldLabel}>Расстояние, м</span>
+                            <input
+                              className={profileStyles.input}
+                              type="number"
+                              min={0}
+                              placeholder="1000"
+                              value={row.distanceMeters}
+                              onChange={(e) => updateRow(row.key, { distanceMeters: e.target.value })}
+                            />
+                          </label>
+                          <label className={styles.exerciseField}>
+                            <span className={styles.exerciseFieldLabel}>Время, мин (по желанию)</span>
+                            <input
+                              className={profileStyles.input}
+                              type="number"
+                              min={0}
+                              step={0.5}
+                              placeholder="10"
+                              value={row.timeMinutes}
+                              onChange={(e) => updateRow(row.key, { timeMinutes: e.target.value })}
+                            />
+                          </label>
+                        </>
+                      )}
+                      <label className={styles.exerciseField}>
+                        <span className={styles.exerciseFieldLabel}>Количество подходов</span>
+                        <input
+                          className={profileStyles.input}
+                          type="number"
+                          min={0}
+                          placeholder={row.kind === "distance" ? "1" : "3"}
+                          value={row.sets}
+                          onChange={(e) => updateRow(row.key, { sets: e.target.value })}
+                        />
+                      </label>
+                    </div>
+                  </>
                 ) : (
                   <div className={styles.exerciseFieldsRowSingle}>
                     <label className={styles.exerciseField}>
@@ -497,17 +616,23 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
         )}
 
         <CollapsibleSection label="Напоминание" defaultOpen={isEdit}>
-          <label className={profileStyles.field}>
-            <span className={profileStyles.label}>Напомнить за, мин</span>
-            <input
-              className={profileStyles.input}
-              type="number"
-              min={0}
-              max={10080}
-              value={reminderMinutesBefore}
-              onChange={(e) => setReminderMinutesBefore(e.target.value)}
-            />
+          <label className={profileStyles.field} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <input type="checkbox" checked={remind} onChange={(e) => setRemind(e.target.checked)} />
+            <span className={profileStyles.label}>Напоминать об этой тренировке</span>
           </label>
+          {remind && (
+            <label className={profileStyles.field}>
+              <span className={profileStyles.label}>Напомнить за, мин</span>
+              <input
+                className={profileStyles.input}
+                type="number"
+                min={0}
+                max={10080}
+                value={reminderMinutesBefore}
+                onChange={(e) => setReminderMinutesBefore(e.target.value)}
+              />
+            </label>
+          )}
         </CollapsibleSection>
 
         {!isEdit && (

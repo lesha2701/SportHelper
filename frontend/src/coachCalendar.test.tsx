@@ -28,6 +28,8 @@ const props = {
   onOpenTeam: () => {},
   onOpenNotifications: () => {},
   unreadNotifications: 0,
+  startProfileInSettings: false,
+  onProfileSettingsOpened: () => {},
 };
 
 describe("the trainer's calendar", () => {

@@ -144,6 +144,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
     import app.repositories.tasks as tasks_module
     import app.repositories.trainings as trainings_module
     import app.repositories.training_feedback as training_feedback_module
+    import app.repositories.training_workouts as training_workouts_module
     import app.repositories.users as users_module
     from app.config import get_settings
 
@@ -1468,6 +1469,20 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(training_feedback_module, "get_feedback", fake_get_feedback)
     monkeypatch.setattr(training_feedback_module, "upsert_feedback", fake_upsert_feedback)
     monkeypatch.setattr(training_feedback_module, "mark_skipped", fake_mark_skipped)
+
+    workouts_store: dict = {}  # (training_id, user_id) -> dict
+
+    async def fake_get_workout(conn, training_id, user_id):
+        record = workouts_store.get((training_id, user_id))
+        return dict(record) if record else None
+
+    async def fake_upsert_workout(conn, training_id, user_id, *, data, started_at, finished_at):
+        record = {"training_id": training_id, "started_at": started_at, "finished_at": finished_at, "updated_at": datetime.now(timezone.utc), **data}
+        workouts_store[(training_id, user_id)] = record
+        return dict(record)
+
+    monkeypatch.setattr(training_workouts_module, "get_workout", fake_get_workout)
+    monkeypatch.setattr(training_workouts_module, "upsert_workout", fake_upsert_workout)
 
     reports_store: dict = {}  # training_id -> dict
 

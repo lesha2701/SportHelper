@@ -17,6 +17,7 @@ import styles from "../teams/teams.module.css";
 import dashStyles from "../dashboard/dashboard.module.css";
 import statsStyles from "./stats.module.css";
 import { navigateApp } from "../../appNav";
+import { pluralize } from "../../lib/plural";
 
 const RING_RADIUS = 68;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
@@ -118,7 +119,7 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
         <div className={`${statsStyles.ringCard} ${dashStyles.span5}`}>
           <div className={statsStyles.ringWrap}>
             <svg width="150" height="150" viewBox="0 0 150 150" className={statsStyles.ringSvg}>
-              <circle cx="75" cy="75" r={RING_RADIUS} fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="14" />
+              <circle cx="75" cy="75" r={RING_RADIUS} fill="none" stroke="var(--panel-divider)" strokeWidth="14" />
               <circle
                 cx="75"
                 cy="75"
@@ -138,7 +139,7 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
             <span className={statsStyles.ringSubtitle}>
               {stats.trainingsAttended} из {stats.teamTrainingsCount}
               <br />
-              тренировок
+              {pluralize(stats.teamTrainingsCount, "тренировки", "тренировок", "тренировок")}
             </span>
           </div>
         </div>

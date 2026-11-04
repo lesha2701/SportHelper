@@ -9,6 +9,7 @@ import { formatRate, type TeamStats } from "../../types/stats";
 import profileStyles from "../profile/profile.module.css";
 import dashStyles from "../dashboard/dashboard.module.css";
 import aiStyles from "./stats.module.css";
+import { count } from "../../lib/plural";
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; stats: TeamStats };
 
@@ -155,7 +156,7 @@ export function TeamStatsTab({ token, teamId }: { token: string; teamId: string 
                   <span className={dashStyles.attentionName}>
                     {p.firstName} {p.lastName ?? ""}
                   </span>
-                  <span className={dashStyles.attentionWhy}>{p.absentCount} пропусков</span>
+                  <span className={dashStyles.attentionWhy}>{count(p.absentCount, "пропуск", "пропуска", "пропусков")}</span>
                 </div>
                 <span className={dashStyles.attentionRate}>{formatRate(p.attendanceRate)}</span>
               </div>

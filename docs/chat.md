@@ -43,7 +43,7 @@
 `GET /unread` · `GET /for-booking/{booking_id}` · `GET /for-team/{team_id}` · `GET /{id}` · `GET /{id}/messages?before_id&after_id&limit` ·
 `POST /{id}/messages` · `POST /{id}/messages/media` (multipart) · `DELETE /{id}/messages/{message_id}` · `POST /{id}/read`.
 
-## Данные (миграция `0040_chat.sql`)
+## Данные (миграция `0041_chat.sql`)
 
 `chat_conversations` (одна на бронь / команду), `chat_messages` (порядок — `BIGSERIAL`, `client_key` уникален на отправителя и чат),
 `chat_reads` (до какого сообщения прочитано). В `files.access_level` добавлено значение `CHAT`, в категории уведомлений — `chat_booking`,

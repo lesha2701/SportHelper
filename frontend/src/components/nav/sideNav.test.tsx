@@ -49,3 +49,19 @@ describe("the team card in the side navigation", () => {
     expect(screen.getByText("Т")).not.toBeNull();
   });
 });
+
+describe("the user row in the side navigation", () => {
+  it("opens the profile from the name and the settings from the gear", () => {
+    const openProfile = vi.fn();
+    const openSettings = vi.fn();
+    render(<SideNav {...props} onOpenProfile={openProfile} onOpenSettings={openSettings} />);
+
+    fireEvent.click(screen.getByText("Алиса"));
+    expect(openProfile).toHaveBeenCalledTimes(1);
+    expect(openSettings).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Настройки" }));
+    expect(openSettings).toHaveBeenCalledTimes(1);
+    expect(openProfile).toHaveBeenCalledTimes(1);
+  });
+});

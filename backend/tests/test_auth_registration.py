@@ -126,9 +126,47 @@ def test_verification_link_confirms_the_email_and_unlocks_login(client) -> None:
     resp = client.post("/api/auth/verify-email", json={"token": link_token(mails_to(client, "alice@example.com")[0]), "password": PASSWORD})
 
     assert resp.status_code == 200
-    assert resp.json() == {"verified": True, "email": "alice@example.com"}
+    assert resp.json()["verified"] is True
+    assert resp.json()["email"] == "alice@example.com"
     assert client.auth_store.find_by_email("alice@example.com")["email_verified_at"] is not None
     assert login(client).status_code == 200
+
+
+def test_confirming_the_address_signs_the_person_in(client) -> None:
+    register(client)
+
+    resp = client.post("/api/auth/verify-email", json={"token": link_token(mails_to(client, "alice@example.com")[0]), "password": PASSWORD})
+
+    assert resp.status_code == 200
+    session = resp.json()["session"]
+    assert session["email"] == "alice@example.com"
+    me = client.get("/api/auth/me")
+    assert me.status_code == 200
+    assert me.json()["email"] == "alice@example.com"
+    assert me.json()["csrf_token"] == session["csrf_token"]
+
+
+def test_confirming_with_a_new_password_signs_the_person_in_too(client) -> None:
+    register(client)
+    new_password = "Another long phrase 2026!"
+
+    resp = client.post(
+        "/api/auth/verify-email/set-password",
+        json={"token": link_token(mails_to(client, "alice@example.com")[0]), "password": new_password, "password_confirm": new_password},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["session"]["email"] == "alice@example.com"
+    assert client.get("/api/auth/me").status_code == 200
+
+
+def test_a_wrong_password_on_the_confirmation_page_signs_nobody_in(client) -> None:
+    register(client)
+
+    resp = client.post("/api/auth/verify-email", json={"token": link_token(mails_to(client, "alice@example.com")[0]), "password": "not the password"})
+
+    assert resp.status_code == 403
+    assert client.get("/api/auth/me").status_code == 401
 
 
 def test_verification_token_is_single_use(client) -> None:

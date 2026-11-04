@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ProfileProvider, useProfile } from "./context/ProfileContext";
 import { useAuth } from "./context/AuthContext";
 import { ProfileScreen } from "./components/profile/ProfileScreen";
@@ -37,6 +37,7 @@ import type { CalendarEvent } from "./types/calendar";
 import type { NotificationCategory } from "./types/notification";
 import { navigate } from "./router";
 import { useActivityPing } from "./hooks/useActivityPing";
+import { loadView, saveView } from "./lib/viewState";
 function initialOf(name: string): string {
   return name.trim().charAt(0).toUpperCase() || "?";
 }
@@ -167,6 +168,8 @@ export function CoachTabContent({
   onCreateTraining,
   onOpenNotifications,
   unreadNotifications,
+  startProfileInSettings,
+  onProfileSettingsOpened,
 }: {
   initialCoachUserId: string | null;
   marketplaceStart: MarketplaceIntent | null;
@@ -179,6 +182,8 @@ export function CoachTabContent({
   onCreateTraining: () => void;
   onOpenNotifications: () => void;
   unreadNotifications: number;
+  startProfileInSettings: boolean;
+  onProfileSettingsOpened: () => void;
 }) {
   switch (tab) {
     case "dashboard":
@@ -217,6 +222,8 @@ export function CoachTabContent({
           onOpenMyStats={onOpenMyStats}
           onOpenNotifications={onOpenNotifications}
           unreadNotifications={unreadNotifications}
+          startInSettings={startProfileInSettings}
+          onSettingsOpened={onProfileSettingsOpened}
         />
       );
   }
@@ -240,8 +247,20 @@ function MainContent({
   const myPhotoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
   useActivityPing(authState.status === "ready");
   const openAdmin = authState.status === "ready" && authState.user.isAdmin ? () => navigate("/admin") : undefined;
-  const [coachTab, setCoachTab] = useState<CoachTab>(marketplaceIntent ? "coaches" : "dashboard");
-  const [playerTab, setPlayerTab] = useState<PlayerTab>(marketplaceIntent ? "coaches" : "dashboard");
+  // A reload returns to the screen the person was on; a link (invite, notification, coach page) takes priority over that.
+  const [savedView] = useState(() =>
+    loadView(
+      myUserId,
+      COACH_NAV_ITEMS.map((item) => item.key),
+      PLAYER_NAV_ITEMS.map((item) => item.key),
+    ),
+  );
+  const startsFromLink = !!(marketplaceIntent || deepLink || initialTeamId);
+  const [coachTab, setCoachTab] = useState<CoachTab>(marketplaceIntent ? "coaches" : (savedView.coachTab ?? "dashboard"));
+  const [playerTab, setPlayerTab] = useState<PlayerTab>(marketplaceIntent ? "coaches" : (savedView.playerTab ?? "dashboard"));
+  // The sidebar gear opens the profile tab straight on its settings screen.
+  const [profileSettingsRequested, setProfileSettingsRequested] = useState(false);
+  const clearProfileSettingsRequest = useCallback(() => setProfileSettingsRequested(false), []);
 
   const [teams, setTeams] = useState<Team[] | null>(null);
   useEffect(() => {
@@ -306,7 +325,10 @@ function MainContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
-  const [overlay, setOverlay] = useState<Overlay>(null);
+  const [overlay, setOverlay] = useState<Overlay>(startsFromLink ? null : (savedView.overlay ?? null));
+  useEffect(() => {
+    saveView(myUserId, { coachTab, playerTab, overlay });
+  }, [myUserId, coachTab, playerTab, overlay]);
   const closeOverlay = () => setOverlay(overlay?.backTo ?? null);
   const isStaffOfTeam = (teamId: string) =>
     (teams ?? []).some((t) => t.id === teamId && (t.myRole === "head_coach" || t.myRole === "assistant_coach"));
@@ -525,6 +547,11 @@ function MainContent({
           setOverlay(null);
           setCoachTab("profile");
         }}
+        onOpenSettings={() => {
+          setOverlay(null);
+          setCoachTab("profile");
+          setProfileSettingsRequested(true);
+        }}
         topBar={
           hasOverlay
             ? undefined
@@ -550,6 +577,8 @@ function MainContent({
             onCreateTraining={onCreateTraining}
             onOpenNotifications={() => setOverlay({ kind: "notifications" })}
             unreadNotifications={unreadNotifications}
+            startProfileInSettings={profileSettingsRequested}
+            onProfileSettingsOpened={clearProfileSettingsRequest}
           />
         )}
       </AppShell>
@@ -574,6 +603,11 @@ function MainContent({
       onOpenProfile={() => {
         setOverlay(null);
         setPlayerTab("profile");
+      }}
+      onOpenSettings={() => {
+        setOverlay(null);
+        setPlayerTab("profile");
+        setProfileSettingsRequested(true);
       }}
       topBar={
         hasOverlay
@@ -624,6 +658,8 @@ function MainContent({
               onOpenMyStats={() => setOverlay({ kind: "my-stats" })}
               onOpenNotifications={() => setOverlay({ kind: "notifications" })}
               unreadNotifications={unreadNotifications}
+              startInSettings={profileSettingsRequested}
+              onSettingsOpened={clearProfileSettingsRequest}
             />
           )}
         </>

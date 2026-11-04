@@ -91,6 +91,8 @@ class VerifyInspectOut(BaseModel):
 class VerifyEmailOut(BaseModel):
     verified: bool
     email: str | None = None
+    # Set when confirming the address also signed the person in (the session cookie travels with the response).
+    session: AuthOut | None = None
 
 
 class ResetPasswordIn(BaseModel):

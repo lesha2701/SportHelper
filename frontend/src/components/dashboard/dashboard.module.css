@@ -25,8 +25,9 @@
   gap: 4px;
   padding: 20px 18px;
   border-radius: var(--radius-lg);
-  background: var(--color-graphite-elevated);
-  color: #ffffff;
+  background: var(--panel-bg);
+  color: var(--panel-text);
+  border: 1px solid var(--panel-border);
 }
 
 @media (min-width: 900px) {
@@ -42,7 +43,7 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.64);
+  color: var(--panel-muted);
 }
 
 .heroTitle {
@@ -276,14 +277,14 @@
   position: relative;
   overflow: hidden;
   border-radius: 24px;
-  background: var(--color-graphite-elevated);
-  color: #fff;
+  background: var(--panel-bg);
+  color: var(--panel-text);
   padding: 24px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--panel-border);
   min-height: 220px;
   cursor: pointer;
   text-align: left;
@@ -322,7 +323,7 @@
 
 .heroBadgeMeta {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.64);
+  color: var(--panel-muted);
 }
 
 .heroTitleRow {
@@ -346,7 +347,7 @@
 .heroSubtitle {
   margin: 4px 0 0;
   font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.64);
+  color: var(--panel-muted);
 }
 
 /* Week overview */

@@ -13,6 +13,7 @@ from app.repositories import plans as plans_repo
 from app.repositories import teams as teams_repo
 from app.repositories import trainings as trainings_repo
 from app.repositories import training_feedback as training_feedback_repo
+from app.repositories import training_workouts as training_workouts_repo
 from app.schemas.training import (
     AttendanceOut,
     AttendanceStatusIn,
@@ -21,6 +22,7 @@ from app.schemas.training import (
     TrainingUpdateIn,
 )
 from app.schemas.training_feedback import TrainingFeedbackIn, TrainingFeedbackOut
+from app.schemas.training_workout import TrainingWorkoutIn, TrainingWorkoutOut
 from app.services.notifications import schedule_new_training_notification, schedule_training_reminders
 
 router = APIRouter(prefix="/api/trainings", tags=["trainings"])
@@ -379,3 +381,35 @@ async def skip_training_feedback(
         )
     feedback = await training_feedback_repo.mark_skipped(conn, training_id, user["id"])
     return TrainingFeedbackOut(**feedback)
+
+
+@router.get("/{training_id}/workout", response_model=TrainingWorkoutOut | None)
+async def get_training_workout(
+    training_id: UUID,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> TrainingWorkoutOut | None:
+    """The person's own recorded results for this personal training, or null if none were saved."""
+    training = await _get_training_or_404(conn, training_id)
+    await _check_view_access(conn, training, user["id"])
+    workout = await training_workouts_repo.get_workout(conn, training_id, user["id"])
+    return TrainingWorkoutOut(**workout) if workout else None
+
+
+@router.put("/{training_id}/workout", response_model=TrainingWorkoutOut)
+async def save_training_workout(
+    training_id: UUID,
+    payload: TrainingWorkoutIn,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> TrainingWorkoutOut:
+    """Saves (replaces) the results of a guided workout. Only the owner of a personal training can record them."""
+    training = await _get_training_or_404(conn, training_id)
+    if training["type"] != "personal":
+        raise APIError("workout results can only be recorded for a personal training", code="invalid_workout", status_code=400)
+    await _check_edit_access(conn, training, user["id"])
+    data = payload.model_dump(mode="json", exclude={"started_at", "finished_at"})
+    workout = await training_workouts_repo.upsert_workout(
+        conn, training_id, user["id"], data=data, started_at=payload.started_at, finished_at=payload.finished_at
+    )
+    return TrainingWorkoutOut(**workout)

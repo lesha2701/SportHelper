@@ -75,6 +75,7 @@ export function ConsentChecks({
           onChange={(checked) => onChange(consent.key, checked)}
           error={errors[consent.key]}
           disabled={disabled}
+          required
         >
           {CONSENT_TEXT[role][consent.key]}
         </Checkbox>

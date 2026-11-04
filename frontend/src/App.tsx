@@ -15,8 +15,6 @@ import { LegalDocumentPage } from "./components/legal/LegalDocumentPage";
 import { documentByPath } from "./legal/documents";
 import { HomePage } from "./components/public/HomePage";
 import { PublicCoachesPage } from "./components/public/PublicCoachesPage";
-import { PublicShell } from "./components/public/PublicShell";
-import { Link } from "./components/Link";
 import { CookieBanner } from "./components/shared/CookieBanner";
 import { StateScreen } from "./components/StateScreen";
 import { PaymentReturnPage } from "./components/payments/PaymentReturnPage";
@@ -37,19 +35,6 @@ function Redirect({ to }: { to: string }) {
 /** Links that only make sense inside the signed-in app (a team invite, a
  * notification's deep link, a booking started as a guest). */
 const APP_INTENT_PARAMS = ["invite", "open", "book", "coach", "listing"];
-
-function NotFoundPage() {
-  return (
-    <PublicShell>
-      <StateScreen kind="empty" title="Такой страницы нет" description="Возможно, ссылка устарела или в ней опечатка." />
-      <div style={{ display: "flex", justifyContent: "center", paddingBottom: 40 }}>
-        <Link to="/" style={{ fontWeight: 600 }}>
-          На главную
-        </Link>
-      </div>
-    </PublicShell>
-  );
-}
 
 /** Pages that work the same for guests and signed-in users (they are opened
  * from an email link, or are plain documents). */
@@ -101,14 +86,16 @@ function Routes() {
     }
     if (path === "/payments/return") return <PaymentReturnPage token={state.token} />;
     if (path === "/admin" || path.startsWith("/admin/")) {
-      // Anyone who is not flagged as an administrator by the server sees exactly what a missing page looks like.
-      if (!state.user.isAdmin) return <NotFoundPage />;
+      // Anyone who is not flagged as an administrator by the server is quietly sent to the home page.
+      if (!state.user.isAdmin) return <Redirect to="/" />;
       return (
         <Suspense fallback={<StateScreen kind="loading" title="Загрузка…" />}>
           <AdminApp />
         </Suspense>
       );
     }
+    // The signed-in app lives at "/" only; any other address goes home.
+    if (path !== "/") return <Redirect to="/" />;
     return (
       <OnboardingGate token={state.token} user={state.user} onUserUpdated={updateUser}>
         <Workspace token={state.token} />
@@ -134,7 +121,7 @@ function Routes() {
       }
       return <HomePage />;
     default:
-      return <NotFoundPage />;
+      return <Redirect to="/" />;
   }
 }
 

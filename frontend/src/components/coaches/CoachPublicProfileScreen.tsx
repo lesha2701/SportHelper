@@ -12,6 +12,7 @@ import type { CoachListingCard, CoachReview } from "../../types/coachListing";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
+import { count, years } from "../../lib/plural";
 
 type LoadState =
   | { status: "loading" }
@@ -84,11 +85,11 @@ export function CoachPublicProfileScreen({
                   <h1 className={profileStyles.title}>{profile.fullName}</h1>
                   <p className={profileStyles.subtitle}>
                     {[profile.specialization, profile.sport].filter(Boolean).join(" · ")}
-                    {profile.experienceYears !== null ? ` · ${profile.experienceYears} лет опыта` : ""}
+                    {profile.experienceYears !== null ? ` · ${years(profile.experienceYears)} опыта` : ""}
                   </p>
                   {profile.averageRating !== null && (
                     <p className={profileStyles.subtitle}>
-                      <span className={styles.starRating}>★ {profile.averageRating.toFixed(1)}</span> ({profile.reviewCount} отзывов)
+                      <span className={styles.starRating}>★ {profile.averageRating.toFixed(1)}</span> ({count(profile.reviewCount, "отзыв", "отзыва", "отзывов")})
                     </p>
                   )}
                 </div>

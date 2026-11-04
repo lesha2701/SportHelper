@@ -11,6 +11,7 @@ import type { TaskTemplate } from "../../types/taskTemplate";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 import libStyles from "./library.module.css";
+import { count } from "../../lib/plural";
 
 type ListState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; templates: TaskTemplate[] };
 
@@ -244,7 +245,7 @@ export function TaskTemplatesScreen({ token }: { token: string }) {
         <div className={libStyles.libraryLayout}>
           <div className={libStyles.libraryMain}>
             <div className={libStyles.resultCount} style={{ marginLeft: 0 }}>
-              {filtered.length} шаблонов
+              {count(filtered.length, "шаблон", "шаблона", "шаблонов")}
             </div>
             <div className={libStyles.exerciseGrid}>
               {filtered.map((template) => (
@@ -260,7 +261,7 @@ export function TaskTemplatesScreen({ token }: { token: string }) {
                   <h2 className={libStyles.libCardTitle}>{template.title}</h2>
                   {template.description && <p className={libStyles.libCardMeta}>{template.description}</p>}
                   <div className={libStyles.libCardFooter}>
-                    <span>{template.exercises.length} упражнений</span>
+                    <span>{count(template.exercises.length, "упражнение", "упражнения", "упражнений")}</span>
                   </div>
                 </button>
               ))}

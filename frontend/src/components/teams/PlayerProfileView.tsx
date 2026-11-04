@@ -8,6 +8,7 @@ import { SKILL_LEVEL_LABELS } from "../../types/profile";
 import type { PlayerProfile } from "../../types/profile";
 import profileStyles from "../profile/profile.module.css";
 import styles from "./teams.module.css";
+import { years } from "../../lib/plural";
 
 type LoadState =
   | { status: "loading" }
@@ -83,7 +84,7 @@ export function PlayerProfileView({
             <div className={styles.statGrid}>
               {state.profile.age !== null && (
                 <div className={styles.statTile}>
-                  <span className={styles.statValue}>{state.profile.age}</span>
+                  <span className={styles.statValue}>{years(state.profile.age)}</span>
                   <span className={styles.statLabel}>Возраст</span>
                 </div>
               )}

@@ -28,6 +28,7 @@ from app.ai.prompts import load_system_prompt, render_user_prompt
 from app.api.routes.stats import get_player_stats, get_team_stats
 from app.config import Settings
 from app.core.exceptions import AIServiceError
+from app.services.exercise_metrics import normalize_exercise
 from app.integrations.yandex_ai import YandexAIClient, YandexAIError
 from app.repositories import exercises as exercises_repo
 from app.repositories import matches as matches_repo
@@ -295,12 +296,27 @@ async def build_personal_training_draft(
         name = _coerce_text(raw.get("exercise"))
         if not name:
             continue
+        if payload.style == "circuit":
+            # A circuit is timed by definition: every exercise is a number of seconds.
+            exercises.append(
+                PersonalTrainingExerciseDraft(
+                    exercise=name,
+                    type="time",
+                    duration_seconds=max(5, min(3600, _coerce_int(raw.get("duration_seconds")) or 30)),
+                )
+            )
+            continue
         exercises.append(
             PersonalTrainingExerciseDraft(
                 exercise=name,
-                reps=_coerce_int(raw.get("reps")),
-                sets=_coerce_int(raw.get("sets")),
-                duration_seconds=_coerce_int(raw.get("duration_seconds")),
+                **normalize_exercise(
+                    name,
+                    metric=_coerce_text(raw.get("type")),
+                    sets=_coerce_int(raw.get("sets")),
+                    reps=_coerce_int(raw.get("reps")),
+                    seconds=_coerce_int(raw.get("duration_seconds")),
+                    meters=_coerce_int(raw.get("distance_meters")),
+                ),
             )
         )
     if not exercises:

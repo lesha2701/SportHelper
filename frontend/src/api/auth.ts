@@ -88,14 +88,32 @@ export async function inspectVerification(token: string): Promise<VerificationIn
   return { valid: dto.valid, email: dto.email, firstName: dto.first_name };
 }
 
+interface VerifyDto {
+  verified: boolean;
+  email: string | null;
+  session?: AuthDto | null;
+}
+
+export interface VerifyResult {
+  email: string | null;
+  /** Present when confirming the address also signed the person in (not for blocked or two-factor accounts). */
+  session: AuthResult | null;
+}
+
+function mapVerified(dto: VerifyDto): VerifyResult {
+  return { email: dto.email, session: dto.session ? mapAuth(dto.session) : null };
+}
+
 /** Confirms the address. The password is the one the account was registered
  * with: a click on the link alone never activates a password someone else chose. */
-export async function verifyEmail(token: string, password: string): Promise<{ email: string | null }> {
-  return apiRequest<{ verified: boolean; email: string | null }>("/api/auth/verify-email", {
-    method: "POST",
-    ...QUIET,
-    body: { token, password },
-  });
+export async function verifyEmail(token: string, password: string): Promise<VerifyResult> {
+  return mapVerified(
+    await apiRequest<VerifyDto>("/api/auth/verify-email", {
+      method: "POST",
+      ...QUIET,
+      body: { token, password },
+    }),
+  );
 }
 
 /** For whoever controls the mailbox but isn't the person who registered (or forgot
@@ -104,12 +122,14 @@ export async function verifyEmailWithNewPassword(
   token: string,
   password: string,
   passwordConfirm: string,
-): Promise<{ email: string | null }> {
-  return apiRequest<{ verified: boolean; email: string | null }>("/api/auth/verify-email/set-password", {
-    method: "POST",
-    ...QUIET,
-    body: { token, password, password_confirm: passwordConfirm },
-  });
+): Promise<VerifyResult> {
+  return mapVerified(
+    await apiRequest<VerifyDto>("/api/auth/verify-email/set-password", {
+      method: "POST",
+      ...QUIET,
+      body: { token, password, password_confirm: passwordConfirm },
+    }),
+  );
 }
 
 export async function resendVerification(email: string, next?: string | null): Promise<string> {

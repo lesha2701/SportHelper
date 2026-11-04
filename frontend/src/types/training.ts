@@ -161,3 +161,91 @@ export function mapTrainingFeedbackDto(dto: TrainingFeedbackDto): TrainingFeedba
     skipped: dto.skipped,
   };
 }
+
+/** What one set of an exercise is measured in: repetitions (with a weight), time under load, or distance. */
+export type WorkoutMetric = "reps" | "time" | "distance";
+
+export interface WorkoutSet {
+  reps: number;
+  weightKg: number | null;
+  /** Time metric: how long the set lasted. */
+  seconds: number | null;
+  /** Distance metric: how far, in meters. */
+  meters: number | null;
+  done: boolean;
+}
+
+export interface WorkoutExercise {
+  name: string;
+  metric: WorkoutMetric;
+  targetSets: number | null;
+  targetReps: number | null;
+  /** The planned time of a timed exercise, or the target time of a distance one. */
+  targetSeconds: number | null;
+  targetMeters: number | null;
+  sets: WorkoutSet[];
+}
+
+/** What a person actually did in a guided workout: every set with its repetitions and weight. */
+export interface TrainingWorkout {
+  trainingId: string;
+  exercises: WorkoutExercise[];
+  wellbeing: number | null;
+  note: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+export interface TrainingWorkoutDto {
+  training_id: string;
+  exercises: {
+    name: string;
+    metric?: WorkoutMetric;
+    target_sets: number | null;
+    target_reps: number | null;
+    target_seconds?: number | null;
+    target_meters?: number | null;
+    sets: { reps: number; weight_kg: number | null; seconds?: number | null; meters?: number | null; done: boolean }[];
+  }[];
+  wellbeing: number | null;
+  note: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export function mapWorkoutDto(dto: TrainingWorkoutDto): TrainingWorkout {
+  return {
+    trainingId: dto.training_id,
+    exercises: dto.exercises.map((e) => ({
+      name: e.name,
+      metric: e.metric ?? "reps",
+      targetSets: e.target_sets,
+      targetReps: e.target_reps,
+      targetSeconds: e.target_seconds ?? null,
+      targetMeters: e.target_meters ?? null,
+      sets: e.sets.map((s) => ({ reps: s.reps, weightKg: s.weight_kg, seconds: s.seconds ?? null, meters: s.meters ?? null, done: s.done })),
+    })),
+    wellbeing: dto.wellbeing,
+    note: dto.note,
+    startedAt: dto.started_at,
+    finishedAt: dto.finished_at,
+  };
+}
+
+export function workoutToDto(workout: Omit<TrainingWorkout, "trainingId">): Omit<TrainingWorkoutDto, "training_id"> {
+  return {
+    exercises: workout.exercises.map((e) => ({
+      name: e.name,
+      metric: e.metric,
+      target_sets: e.targetSets,
+      target_reps: e.targetReps,
+      target_seconds: e.targetSeconds,
+      target_meters: e.targetMeters,
+      sets: e.sets.map((s) => ({ reps: s.reps, weight_kg: s.weightKg, seconds: s.seconds, meters: s.meters, done: s.done })),
+    })),
+    wellbeing: workout.wellbeing,
+    note: workout.note,
+    started_at: workout.startedAt,
+    finished_at: workout.finishedAt,
+  };
+}

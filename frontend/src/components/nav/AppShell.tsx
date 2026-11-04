@@ -19,6 +19,8 @@ interface AppShellProps<T extends string> {
   onOpenTeam?: () => void;
   sideUser: SideNavUser;
   onOpenProfile: () => void;
+  /** Desktop only: the gear in the sidebar user row. */
+  onOpenSettings?: () => void;
   /** Desktop only, administrators only: the sidebar's "Админ-панель" button. */
   onOpenAdmin?: () => void;
   /** Desktop only: the page header (kicker/title/search/bell/CTA) shown
@@ -44,6 +46,7 @@ export function AppShell<T extends string>({
   onOpenTeam,
   sideUser,
   onOpenProfile,
+  onOpenSettings,
   onOpenAdmin,
   topBar,
   children,
@@ -61,6 +64,7 @@ export function AppShell<T extends string>({
           onOpenTeam={onOpenTeam}
           user={sideUser}
           onOpenProfile={onOpenProfile}
+          onOpenSettings={onOpenSettings}
           onOpenAdmin={onOpenAdmin}
         />
         <div className={styles.desktopMain}>

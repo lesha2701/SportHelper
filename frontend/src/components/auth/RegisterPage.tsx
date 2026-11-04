@@ -6,7 +6,7 @@ import { Link } from "../Link";
 import { Icon } from "../shared/Icon";
 import { AuthLayout } from "./AuthLayout";
 import { CheckEmailScreen } from "./CheckEmailScreen";
-import { Notice, PASSWORD_MIN_LENGTH, PasswordField, SubmitButton, TextField } from "./fields";
+import { Notice, PASSWORD_MIN_LENGTH, PasswordField, RequiredMark, SubmitButton, TextField } from "./fields";
 import { looksLikeEmail, toFormError } from "./authForm";
 import { ConsentChecks, type ConsentState } from "./ConsentChecks";
 import { CONSENTS_BY_ROLE, DOCUMENTS, type ConsentKey } from "../../legal/documents";
@@ -124,6 +124,10 @@ export function RegisterPage() {
       <form className={styles.form} onSubmit={submit} noValidate>
         {formError && <Notice kind="danger">{formError}</Notice>}
 
+        <p className={styles.requiredHint}>
+          Поля со звёздочкой (<RequiredMark />) обязательны для заполнения. Фамилия — по желанию.
+        </p>
+
         {/* A <div role="radiogroup">, not a <fieldset>: older Safari cannot lay a fieldset out as a grid, which stretched the cards and broke the form. */}
         <div className={styles.roleGroup} role="radiogroup" aria-labelledby="role-legend">
           <p id="role-legend" className={styles.rolesLegend}>
@@ -159,6 +163,7 @@ export function RegisterPage() {
         <div className={styles.row2}>
           <TextField
             label="Имя"
+            required
             name="given-name"
             autoComplete="given-name"
             autoFocus
@@ -182,6 +187,7 @@ export function RegisterPage() {
 
         <TextField
           label="Email"
+          required
           type="email"
           name="email"
           autoComplete="username"
@@ -212,6 +218,7 @@ export function RegisterPage() {
 
         <PasswordField
           label="Пароль"
+          required
           name="new-password"
           autoComplete="new-password"
           showMeter
@@ -226,6 +233,7 @@ export function RegisterPage() {
         />
         <PasswordField
           label="Повторите пароль"
+          required
           name="new-password-confirm"
           autoComplete="new-password"
           value={passwordConfirm}
