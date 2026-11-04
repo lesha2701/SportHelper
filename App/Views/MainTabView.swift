@@ -7,17 +7,23 @@ struct MainTabView: View {
     let user: AuthUser
 
     var body: some View {
-        TabView {
+        @Bindable var router = auth.router
+        return TabView(selection: $router.tab) {
             ComingSoonView(title: "Главная", symbol: "house", text: "Здесь будут ближайшие тренировки и задания.")
                 .tabItem { Label("Главная", systemImage: "house") }
+                .tag(AppTab.home)
             ComingSoonView(title: "Команды", symbol: "trophy", text: "Составы команд, приглашения и чат команды.")
                 .tabItem { Label("Команды", systemImage: "trophy") }
+                .tag(AppTab.teams)
             CalendarView(store: auth.calendar)
                 .tabItem { Label("Календарь", systemImage: "calendar") }
-            ComingSoonView(title: "Тренеры", symbol: "person.2", text: "Каталог тренеров, запись на личные тренировки и оплата.")
+                .tag(AppTab.calendar)
+            CoachesView(store: auth.coaches)
                 .tabItem { Label("Тренеры", systemImage: "person.2") }
+                .tag(AppTab.coaches)
             ProfileView(user: user, store: auth.profile)
                 .tabItem { Label("Профиль", systemImage: "person.crop.circle") }
+                .tag(AppTab.profile)
         }
     }
 }

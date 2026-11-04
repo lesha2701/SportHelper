@@ -193,6 +193,13 @@ public final class APIClient: Sendable {
     static var encoder: JSONEncoder {
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
+        // "2026-11-05T10:00:00Z": an instant the server reads as UTC.
+        encoder.dateEncodingStrategy = .custom { date, encoder in
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime]
+            var container = encoder.singleValueContainer()
+            try container.encode(formatter.string(from: date))
+        }
         return encoder
     }
 }

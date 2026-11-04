@@ -28,7 +28,17 @@ class SignedInUITestCase: XCTestCase {
         app.launch()
         if app.tabBars.firstMatch.waitForExistence(timeout: 4) {
             profileTab.tap()
+            scrollUntilVisible(app.buttons["main.logout"])
             app.buttons["main.logout"].tap()
+        }
+    }
+
+    /// Long lists build their rows lazily, so what is far down is not on screen (and not tappable) until scrolled to.
+    func scrollUntilVisible(_ element: XCUIElement, attempts: Int = 8) {
+        var left = attempts
+        while !element.exists || !element.isHittable, left > 0 {
+            app.swipeUp()
+            left -= 1
         }
     }
 

@@ -1,0 +1,83 @@
+import Foundation
+
+/// Booking a personal training, answering requests, and paying.
+public final class BookingsService: Sendable {
+    private let client: APIClient
+
+    public init(client: APIClient) { self.client = client }
+
+    private func path(_ id: UUID, _ tail: String = "") -> String { "/api/bookings/\(id.uuidString.lowercased())\(tail)" }
+
+    // MARK: the athlete
+
+    public func request(_ booking: BookingRequest) async throws -> Booking {
+        try await client.send(.post, "/api/bookings", body: booking)
+    }
+
+    public func mine() async throws -> [Booking] {
+        try await client.send(.get, "/api/bookings/me")
+    }
+
+    // MARK: the coach
+
+    /// Requests waiting for an answer.
+    public func pending() async throws -> [PendingBooking] {
+        try await client.send(.get, "/api/bookings/coach/pending")
+    }
+
+    /// The coach's confirmed, past and declined sessions.
+    public func coachBookings() async throws -> [Booking] {
+        try await client.send(.get, "/api/bookings/coach")
+    }
+
+    public func confirm(_ id: UUID) async throws -> Booking {
+        try await client.send(.post, path(id, "/confirm"))
+    }
+
+    public func decline(_ id: UUID) async throws -> Booking {
+        try await client.send(.post, path(id, "/decline"))
+    }
+
+    // MARK: payment
+
+    /// Asks the server for a payment page. The amount is never sent: the server takes it from the booking.
+    public func startPayment(_ id: UUID) async throws -> URL {
+        let start: PaymentStart = try await client.send(.post, path(id, "/pay"))
+        guard let url = start.url else { throw APIError(status: 0, code: "unsafe_payment_url", message: "Не удалось открыть страницу оплаты.") }
+        return url
+    }
+
+    /// Asks the server how the payment ended. The ONLY thing that says a booking is paid: never the address the person came back by.
+    public func syncPayment(_ id: UUID) async throws -> Booking {
+        try await client.send(.post, path(id, "/payment/sync"))
+    }
+}
+
+/// After the person comes back from the payment page, the bank may still be confirming: ask again a few times, then give up
+/// (the status stays visible in the list and can be refreshed). Bounded on purpose.
+public struct PaymentPolling: Sendable {
+    public var maxTries: Int
+    public var interval: Duration
+
+    public init(maxTries: Int = 10, interval: Duration = .seconds(3)) {
+        self.maxTries = maxTries
+        self.interval = interval
+    }
+
+    /// Returns the booking as the server last reported it. The first failure is thrown (nothing is known yet); a failure after the
+    /// server has already answered ends the waiting and returns what is known.
+    public func settle(
+        sync: @Sendable () async throws -> Booking,
+        sleep: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+    ) async throws -> Booking {
+        var latest = try await sync()
+        var tries = 1
+        while latest.paymentStatus == .processing, tries < maxTries {
+            try await sleep(interval)
+            guard let next = try? await sync() else { return latest }
+            latest = next
+            tries += 1
+        }
+        return latest
+    }
+}

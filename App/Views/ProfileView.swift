@@ -14,7 +14,8 @@ struct ProfileView: View {
     @State private var isUploading = false
 
     var body: some View {
-        NavigationStack {
+        @Bindable var router = auth.router
+        return NavigationStack(path: $router.profilePath) {
             Group {
                 switch store.load {
                 case .loading:
@@ -32,7 +33,17 @@ struct ProfileView: View {
                 }
             }
             .navigationTitle("Профиль")
-            .task { await store.refresh() }
+            .navigationDestination(for: ProfileRoute.self) { route in
+                switch route {
+                case .myBookings: MyBookingsView()
+                case .incomingRequests: IncomingRequestsView()
+                case .coachBookings: CoachBookingsView()
+                }
+            }
+            .task {
+                await store.refresh()
+                if user.isCoach { await auth.bookings.reloadPending() }
+            }
             .refreshable { await store.refresh() }
         }
     }
@@ -44,6 +55,7 @@ struct ProfileView: View {
             headerSection(me)
             if user.deletionRequestedAt != nil { deletionBanner }
             if me.player == nil && me.coach == nil { emptyProfileSection } else { detailsSection(me) }
+            trainingsSection
             accountSection
         }
         .sheet(isPresented: $editing) { ProfileEditView(user: user, store: store, current: me) }
@@ -109,6 +121,30 @@ struct ProfileView: View {
             }
             Button("Редактировать профиль") { editing = true }
                 .accessibilityIdentifier("profile.edit")
+        }
+    }
+
+    /// The person's lessons: an athlete's bookings, a coach's inbox and sessions (reached from the profile, like on the site).
+    private var trainingsSection: some View {
+        Section("Тренировки") {
+            if user.isCoach {
+                NavigationLink(value: ProfileRoute.incomingRequests) {
+                    HStack {
+                        Label("Входящие заявки", systemImage: "tray")
+                        Spacer()
+                        if auth.bookings.pendingCount > 0 {
+                            Text("\(auth.bookings.pendingCount)").font(.caption.bold()).foregroundStyle(.white)
+                                .padding(.horizontal, 7).padding(.vertical, 2).background(Theme.primary, in: Capsule())
+                        }
+                    }
+                }
+                .accessibilityIdentifier("profile.requests")
+                NavigationLink(value: ProfileRoute.coachBookings) { Label("Записи", systemImage: "calendar") }
+                    .accessibilityIdentifier("profile.coachBookings")
+            } else {
+                NavigationLink(value: ProfileRoute.myBookings) { Label("Мои брони", systemImage: "calendar.badge.clock") }
+                    .accessibilityIdentifier("profile.myBookings")
+            }
         }
     }
 

@@ -24,6 +24,9 @@ final class AuthStore {
     /// The signed-in person's profile data; emptied on sign-out so the next person never sees it.
     let profile: ProfileStore
     let calendar: CalendarStore
+    let coaches: CoachesStore
+    let bookings: BookingsStore
+    let router = Router()
     private let service: AuthService
     private let persistence: SessionPersistence
 
@@ -33,6 +36,8 @@ final class AuthStore {
         self.client = client
         self.profile = ProfileStore(client: client)
         self.calendar = CalendarStore(client: client)
+        self.coaches = CoachesStore(client: client)
+        self.bookings = BookingsStore(client: client)
         self.service = AuthService(client: client)
         self.persistence = SessionPersistence(
             store: KeychainSecretStore(service: "ru.sportarenaglobal.app", account: "session-cookie"), baseURL: environment.baseURL
@@ -101,15 +106,23 @@ final class AuthStore {
         try? await service.logout()
         persistence.clear()
         profile.reset()
-        calendar.reset()
+        resetPersonalData()
         state = .signedOut
+    }
+
+    /// Everything that belongs to the person who was signed in: the next person must never see it.
+    private func resetPersonalData() {
+        calendar.reset()
+        coaches.reset()
+        bookings.reset()
+        router.reset()
     }
 
     private func sessionEnded() {
         if case .signedIn = state {
             persistence.clear()
             profile.reset()
-            calendar.reset()
+            resetPersonalData()
             state = .signedOut
         }
     }

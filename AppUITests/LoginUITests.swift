@@ -21,6 +21,7 @@ final class LoginUITests: SignedInUITestCase {
     func testSigningOutReturnsToTheSignInScreen() throws {
         try launchSignedIn()
         profileTab.tap()
+        scrollUntilVisible(app.buttons["main.logout"])
         app.buttons["main.logout"].tap()
         XCTAssertTrue(app.textFields["login.email"].waitForExistence(timeout: 10), "sign-out should return to the sign-in screen")
     }
