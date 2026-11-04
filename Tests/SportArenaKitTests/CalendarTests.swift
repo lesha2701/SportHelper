@@ -95,6 +95,7 @@ private func event(_ kind: String = "training", date: String, time: String?, tit
     let text = """
     {"id":"\(UUID().uuidString)","type":"\(kind)","date":"\(date)","time":\(timeJSON),"title":"\(title)","team_id":null,"team_name":null,"status":"\(status)"}
     """
+    // swiftlint:disable:next force_try
     return try! APIClient.decoder.decode(CalendarEvent.self, from: Data(text.utf8))
 }
 
@@ -112,7 +113,10 @@ struct CalendarModelTests {
     }
 
     @Test func aWholeCalendarFailsNotOnOneBadDayButItIsReportedNotCrashed() throws {
-        let text = #"[{"id":"11111111-2222-4333-8444-555555555555","type":"training","date":"2026-02-30","time":null,"title":"x","team_id":null,"team_name":null,"status":"scheduled"}]"#
+        let text = """
+        [{"id":"11111111-2222-4333-8444-555555555555","type":"training","date":"2026-02-30","time":null,"title":"x",
+          "team_id":null,"team_name":null,"status":"scheduled"}]
+        """
         #expect(throws: DecodingError.self) { try APIClient.decoder.decode([CalendarEvent].self, from: Data(text.utf8)) }
     }
 
