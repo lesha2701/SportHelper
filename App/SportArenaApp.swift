@@ -9,6 +9,7 @@ struct SportArenaApp: App {
         WindowGroup {
             RootView()
                 .environment(auth)
+                .tint(Theme.primary)
                 .task { await auth.start() }
         }
     }

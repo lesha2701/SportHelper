@@ -38,4 +38,17 @@ public final class AuthService: Sendable {
     public func features() async throws -> ServerFeatures {
         try await client.send(.get, "/api/features")
     }
+
+    private struct PasswordBody: Encodable, Sendable { let password: String }
+
+    /// Asks to delete the account (an App Store requirement). The server keeps it for a grace period and can still undo it;
+    /// the password is asked again, so a lost phone cannot delete an account.
+    public func requestAccountDeletion(password: String) async throws -> String {
+        let answer: MessageResponse = try await client.send(.post, "/api/auth/account/delete", body: PasswordBody(password: password))
+        return answer.message
+    }
+
+    public func cancelAccountDeletion() async throws {
+        try await client.sendIgnoringResponse(.post, "/api/auth/account/delete/cancel")
+    }
 }

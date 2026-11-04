@@ -84,6 +84,11 @@ public final class APIClient: Sendable {
 
     private func perform(_ method: HTTPMethod, _ path: String, query: [URLQueryItem], body: (any Encodable & Sendable)?) async throws -> Data {
         let request = try await makeRequest(method, path, query: query, body: body)
+        return try await execute(request, path: path)
+    }
+
+    /// Sends a prepared request and turns every failure into an `APIError`.
+    private func execute(_ request: URLRequest, path: String) async throws -> Data {
         let data: Data
         let response: URLResponse
         do {
@@ -98,6 +103,46 @@ public final class APIClient: Sendable {
             throw error
         }
         return data
+    }
+
+    /// A GET whose answer is not JSON (a photo, a video): the bytes as they are.
+    public func data(_ path: String, query: [URLQueryItem] = []) async throws -> Data {
+        var request = try await makeRequest(.get, path, query: query, body: nil)
+        request.setValue("*/*", forHTTPHeaderField: "Accept")
+        return try await execute(request, path: path)
+    }
+
+    /// A multipart upload (one file and any number of text fields), answered with JSON.
+    public func upload<Response: Decodable & Sendable>(
+        _ path: String,
+        file: UploadFile,
+        fields: [String: String] = [:],
+        as type: Response.Type = Response.self
+    ) async throws -> Response {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var request = try await makeRequest(.post, path, query: [], body: nil)
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Self.multipartBody(boundary: boundary, file: file, fields: fields)
+        let data = try await execute(request, path: path)
+        do {
+            return try Self.decoder.decode(Response.self, from: data)
+        } catch {
+            throw APIError.unreadable
+        }
+    }
+
+    static func multipartBody(boundary: String, file: UploadFile, fields: [String: String]) -> Data {
+        var body = Data()
+        func append(_ text: String) { body.append(Data(text.utf8)) }
+        for (name, value) in fields.sorted(by: { $0.key < $1.key }) {
+            append("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(name)\"\r\n\r\n\(value)\r\n")
+        }
+        let safeName = file.filename.replacingOccurrences(of: "\"", with: "_").replacingOccurrences(of: "\r", with: "").replacingOccurrences(of: "\n", with: "")
+        append("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(file.field)\"; filename=\"\(safeName)\"\r\n")
+        append("Content-Type: \(file.mimeType)\r\n\r\n")
+        body.append(file.data)
+        append("\r\n--\(boundary)--\r\n")
+        return body
     }
 
     func makeRequest(_ method: HTTPMethod, _ path: String, query: [URLQueryItem], body: (any Encodable & Sendable)?) async throws -> URLRequest {

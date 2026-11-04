@@ -82,7 +82,7 @@ struct LoginView: View {
                     .frame(maxWidth: .infinity, minHeight: 28)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(Color(red: 0.85, green: 0.12, blue: 0.17))
+                .tint(Theme.primary)
                 .disabled(!canSubmit)
                 .accessibilityIdentifier("login.submit")
             }

@@ -39,3 +39,18 @@ struct APIErrorEnvelope: Decodable {
     }
     let error: Body
 }
+
+/// A file for a multipart upload (`file` is the field name the server expects).
+public struct UploadFile: Sendable {
+    public let field: String
+    public let filename: String
+    public let mimeType: String
+    public let data: Data
+
+    public init(field: String = "file", filename: String, mimeType: String, data: Data) {
+        self.field = field
+        self.filename = filename
+        self.mimeType = mimeType
+        self.data = data
+    }
+}
