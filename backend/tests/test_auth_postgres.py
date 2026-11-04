@@ -483,8 +483,10 @@ def test_full_account_lifecycle_over_http_with_real_sql(live_client) -> None:
     assert login(client).status_code == 403  # not confirmed yet
 
     token = link_token(client.outbox[-1])
-    assert client.post("/api/auth/verify-email", json={"token": token, "password": PASSWORD}).status_code == 200
-    assert client.post("/api/auth/verify-email", json={"token": token, "password": PASSWORD}).status_code == 400
+    confirmed = client.post("/api/auth/verify-email", json={"token": token, "password": PASSWORD})
+    assert confirmed.status_code == 200
+    assert client.get("/api/auth/me").status_code == 200  # confirming the address already signed the person in (no separate login)
+    assert client.post("/api/auth/verify-email", json={"token": token, "password": PASSWORD}).status_code == 400  # the link works once
 
     signed_in = login(client)
     assert signed_in.status_code == 200
@@ -494,7 +496,7 @@ def test_full_account_lifecycle_over_http_with_real_sql(live_client) -> None:
     assert client.post("/api/profile/active-mode", json={"mode": "player"}, headers=csrf_headers(csrf)).status_code == 409
 
     second = login(client)
-    assert len(client.get("/api/auth/sessions").json()) == 2
+    assert len(client.get("/api/auth/sessions").json()) == 3  # the one opened by confirming the address, plus the two logins
     assert client.post("/api/auth/logout-all", headers=csrf_headers(second.json()["csrf_token"])).status_code == 200
     assert client.get("/api/auth/me").status_code == 401
 
