@@ -137,7 +137,7 @@ struct CalendarView: View {
     @ViewBuilder private func row(_ event: CalendarEvent, showDay: Bool) -> some View {
         if event.isTraining {
             NavigationLink {
-                TrainingDetailView(event: event, store: store)
+                TrainingDetailView(trainingId: event.id, title: event.title, teamName: event.teamName)
             } label: {
                 EventRow(event: event, today: store.today, showDay: showDay)
             }

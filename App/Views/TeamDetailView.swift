@@ -83,6 +83,12 @@ struct TeamDetailView: View {
                 }
             }
             .accessibilityIdentifier("team.chat")
+            NavigationLink {
+                TeamTrainingsView(team: team)
+            } label: {
+                Label("Тренировки команды", systemImage: "figure.run")
+            }
+            .accessibilityIdentifier("team.trainings")
         }
     }
 

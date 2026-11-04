@@ -27,6 +27,7 @@ final class AuthStore {
     let coaches: CoachesStore
     let bookings: BookingsStore
     let teams: TeamsStore
+    let trainings: TrainingsStore
     let chatUnread: ChatUnreadStore
     let router = Router()
     private let service: AuthService
@@ -41,11 +42,13 @@ final class AuthStore {
         self.coaches = CoachesStore(client: client)
         self.bookings = BookingsStore(client: client)
         self.teams = TeamsStore(client: client)
+        self.trainings = TrainingsStore(client: client)
         self.chatUnread = ChatUnreadStore(client: client)
         self.service = AuthService(client: client)
         self.persistence = SessionPersistence(
             store: KeychainSecretStore(service: "ru.sportarenaglobal.app", account: "session-cookie"), baseURL: environment.baseURL
         )
+        trainings.onChange = { [weak self] in Task { await self?.calendar.reload() } }
         holder.action = { [weak self] in Task { @MainActor in self?.sessionEnded() } }
     }
 

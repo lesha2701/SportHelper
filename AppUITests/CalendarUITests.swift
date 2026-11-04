@@ -13,9 +13,12 @@ final class CalendarUITests: SignedInUITestCase {
     func testTheListShowsTheTrainingsWithTheirTimeAndTeam() throws {
         try openCalendar()
 
-        let training = app.buttons["calendar.training"].firstMatch
-        XCTAssertTrue(training.waitForExistence(timeout: 15), "no training in the list")
-        XCTAssertTrue(training.label.contains("Сессия с"), "a booked session is named after the athlete: \(training.label)")
+        XCTAssertTrue(app.buttons["calendar.training"].firstMatch.waitForExistence(timeout: 15), "no training in the list")
+        // team trainings may stand before it: look for a booked session among the rows
+        let session = app.buttons.matching(identifier: "calendar.training").containing(NSPredicate(format: "label CONTAINS %@", "Сессия с")).firstMatch
+        scrollUntilVisible(session, attempts: 20)
+        XCTAssertTrue(session.exists, "a booked session is named after the athlete")
+        let training = session
         XCTAssertTrue(training.label.range(of: #"\d{2}:\d{2}"#, options: .regularExpression) != nil, "the time should be shown: \(training.label)")
     }
 

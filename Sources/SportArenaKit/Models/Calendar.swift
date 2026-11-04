@@ -136,7 +136,7 @@ public enum TrainingStatus: String, Sendable {
     }
 }
 
-public struct Training: Decodable, Equatable, Identifiable, Sendable {
+public struct Training: Decodable, Equatable, Hashable, Identifiable, Sendable {
     public let id: UUID
     public let teamId: UUID?
     public let createdBy: UUID
