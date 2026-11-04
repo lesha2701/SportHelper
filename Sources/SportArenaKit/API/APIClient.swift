@@ -62,9 +62,10 @@ public final class APIClient: Sendable {
         _ path: String,
         query: [URLQueryItem] = [],
         body: (any Encodable & Sendable)? = nil,
+        timeout: TimeInterval? = nil,
         as type: Response.Type = Response.self
     ) async throws -> Response {
-        let data = try await perform(method, path, query: query, body: body)
+        let data = try await perform(method, path, query: query, body: body, timeout: timeout)
         do {
             return try Self.decoder.decode(Response.self, from: data)
         } catch {
@@ -82,8 +83,11 @@ public final class APIClient: Sendable {
         _ = try await perform(method, path, query: query, body: body)
     }
 
-    private func perform(_ method: HTTPMethod, _ path: String, query: [URLQueryItem], body: (any Encodable & Sendable)?) async throws -> Data {
-        let request = try await makeRequest(method, path, query: query, body: body)
+    private func perform(
+        _ method: HTTPMethod, _ path: String, query: [URLQueryItem], body: (any Encodable & Sendable)?, timeout: TimeInterval? = nil
+    ) async throws -> Data {
+        var request = try await makeRequest(method, path, query: query, body: body)
+        if let timeout { request.timeoutInterval = timeout }
         return try await execute(request, path: path)
     }
 

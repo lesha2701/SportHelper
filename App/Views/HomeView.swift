@@ -70,10 +70,11 @@ struct HomeView: View {
         nextEventCard
         switch home.playerStats {
         case .loaded(let stats):
-            tiles([
+            StatTiles([
                 (StatsFormat.rate(stats.attendanceRate), "Посещаемость"), ("\(stats.activityStreak)", "Серия посещений"),
                 ("\(stats.tasksCompleted)", "Заданий выполнено"), ("\(stats.tasksOverdue)", "Просрочено"),
             ])
+            moreLink("Вся статистика", id: "home.myStats") { PlayerStatsView(userId: user.id) }
         case .failed(let message): problem(message)
         case .loading: ProgressView().frame(maxWidth: .infinity).padding()
         }
@@ -92,7 +93,7 @@ struct HomeView: View {
 
     private var tasksCard: some View {
         let todo = HomeLogic.tasksToDo(home.tasks.value ?? [])
-        return card("Нужно сделать", trailing: AnyView(NavigationLink("Все задания") { MyTasksView() }.font(.subheadline).accessibilityIdentifier("home.allTasks"))) {
+        return DashboardCard("Нужно сделать", trailing: AnyView(NavigationLink("Все задания") { MyTasksView() }.font(.subheadline).accessibilityIdentifier("home.allTasks"))) {
             if todo.isEmpty {
                 Text(home.tasks.value == nil ? "Загрузка…" : "Заданий на сейчас нет.").foregroundStyle(.secondary)
             }
@@ -164,10 +165,11 @@ struct HomeView: View {
     @ViewBuilder private var teamNumbers: some View {
         switch home.teamStats {
         case .loaded(let stats):
-            tiles([
+            StatTiles([
                 (StatsFormat.rate(stats.attendanceRate), "Посещаемость"), ("\(stats.trainingsUpcoming)", "Тренировок впереди"),
                 ("\(stats.tasksOverdue)", "Просрочено заданий"), (stats.recordText, "Победы–ничьи–поражения"),
             ])
+            if let team = selectedTeam { moreLink("Статистика команды", id: "home.teamStats") { TeamStatsView(team: team) } }
         case .failed(let message): problem(message)
         case .loading: ProgressView().frame(maxWidth: .infinity).padding()
         }
@@ -175,7 +177,7 @@ struct HomeView: View {
 
     private var attentionCard: some View {
         let list = Array((home.teamStats.value?.needAttention ?? []).prefix(4))
-        return card("Требуют внимания") {
+        return DashboardCard("Требуют внимания") {
             if list.isEmpty { Text("Все в порядке.").foregroundStyle(.secondary) }
             ForEach(list) { player in
                 HStack(spacing: 12) {
@@ -199,7 +201,7 @@ struct HomeView: View {
 
     @ViewBuilder private var workloadCard: some View {
         if let stats = home.teamStats.value {
-            card("Нагрузка команды") {
+            DashboardCard("Нагрузка команды") {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     workload("\(stats.trainingsCompleted)", "Тренировок проведено")
                     workload("\(stats.tasksCompleted)/\(stats.tasksTotal)", "Заданий выполнено")
@@ -264,7 +266,7 @@ struct HomeView: View {
             // the first one is already the big card
             let rest = Array(list.dropFirst().prefix(4))
             if !rest.isEmpty {
-                card("Ближайшие события", trailing: AnyView(Button("Календарь") { auth.router.tab = .calendar }.font(.subheadline))) {
+                DashboardCard("Ближайшие события", trailing: AnyView(Button("Календарь") { auth.router.tab = .calendar }.font(.subheadline))) {
                     ForEach(rest) { event in
                         EventLink(event: event, identifier: "home.event") {
                             EventRow(event: event, today: .today(), showDay: true).frame(maxWidth: .infinity, alignment: .leading)
@@ -285,7 +287,7 @@ struct HomeView: View {
     }
 
     private func matchesCard(_ lines: [MatchLine]) -> some View {
-        card("Последние матчи") {
+        DashboardCard("Последние матчи") {
             if lines.isEmpty { Text("Пока нет сыгранных матчей.").foregroundStyle(.secondary) }
             ForEach(lines) { line in
                 HStack {
@@ -313,35 +315,17 @@ struct HomeView: View {
         }
     }
 
-    private func tiles(_ items: [(String, String)]) -> some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.0).font(.title.bold()).minimumScaleFactor(0.7).lineLimit(1)
-                    Text(item.1).font(.footnote).lineLimit(2)
-                }
-                .foregroundStyle(index == 0 ? Color.white : Color.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(14)
-                .background(index == 0 ? AnyShapeStyle(Theme.primary) : AnyShapeStyle(Color(.secondarySystemGroupedBackground)), in: RoundedRectangle(cornerRadius: 16))
-                .accessibilityElement(children: .combine)
-                .accessibilityIdentifier("home.tile")
-            }
-        }
-    }
-
-    private func card<Content: View>(_ title: String, trailing: AnyView? = nil, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+    private func moreLink<Destination: View>(_ title: String, id: String, @ViewBuilder destination: () -> Destination) -> some View {
+        NavigationLink(destination: destination) {
             HStack {
-                Text(title).font(.headline)
+                Text(title)
                 Spacer()
-                trailing
+                Image(systemName: "chevron.right").font(.footnote)
             }
-            content()
+            .font(.subheadline.weight(.semibold))
+            .padding(.horizontal, 4)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityIdentifier(id)
     }
 
     private func problem(_ message: String) -> some View {

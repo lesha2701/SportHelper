@@ -17,7 +17,7 @@ final class HomeUITests: SignedInUITestCase {
         try launchSignedIn()
         guard app.navigationBars["Тренерская панель"].waitForExistence(timeout: 10) else { throw XCTSkip("This needs a coach account.") }
         XCTAssertTrue(app.staticTexts["Посещаемость"].waitForExistence(timeout: 15), "no attendance tile")
-        XCTAssertTrue(element("home.tile").exists)
+        XCTAssertTrue(element("stats.tile").exists)
         XCTAssertTrue(app.staticTexts["Нагрузка команды"].exists || app.staticTexts["Требуют внимания"].exists)
         scrollUntilVisible(element("home.quick.task"))
         element("home.quick.task").tap()

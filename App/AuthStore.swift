@@ -32,6 +32,7 @@ final class AuthStore {
     let matches: MatchesStore
     let library: LibraryStore
     let home: HomeStore
+    let stats: StatsStore
     let chatUnread: ChatUnreadStore
     let router = Router()
     private let service: AuthService
@@ -51,6 +52,7 @@ final class AuthStore {
         self.matches = MatchesStore(client: client)
         self.library = LibraryStore(client: client)
         self.home = HomeStore(client: client)
+        self.stats = StatsStore(client: client)
         self.chatUnread = ChatUnreadStore(client: client)
         self.service = AuthService(client: client)
         self.persistence = SessionPersistence(

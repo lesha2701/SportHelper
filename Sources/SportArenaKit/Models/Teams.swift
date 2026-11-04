@@ -28,6 +28,9 @@ public enum TeamRole: Equatable, Hashable, Sendable {
         }
     }
 
+    /// A player or the captain: the people whose statistics the coaching staff looks at.
+    public var isPlayer: Bool { self == .player || self == .captain }
+
     public var title: String {
         switch self {
         case .headCoach: "Главный тренер"

@@ -65,22 +65,62 @@ public struct PlayerMatchEntry: Decodable, Equatable, Hashable, Identifiable, Se
     }
 }
 
-/// What a player sees of themselves (`GET /api/players/{id}/stats`). Only what the home screen needs is read.
+/// What a player sees of themselves, and the coaching staff of their teams sees of them (`GET /api/players/{id}/stats`).
 public struct PlayerStats: Decodable, Equatable, Sendable {
     public let trainingsAttended: Int
     public let trainingsTotal: Int
     public let attendanceRate: Double?
     public let trainingMinutes: Int
+    /// The team trainings the attendance rate is counted over.
+    public let teamTrainingsCount: Int
+    public let personalTrainingsCount: Int
     public let activityStreak: Int
     public let tasksTotal: Int
     public let tasksCompleted: Int
     public let tasksOverdue: Int
     public let matchesHistory: [PlayerMatchEntry]
+    public let coachComments: [CoachComment]
+    public let metrics: [Metric]
+    public let personalRecords: [PersonalRecord]
+
+    private enum CodingKeys: String, CodingKey {
+        case trainingsAttended, trainingsTotal, attendanceRate, trainingMinutes, teamTrainingsCount, personalTrainingsCount
+        case activityStreak, tasksTotal, tasksCompleted, tasksOverdue, matchesHistory, coachComments, metrics, personalRecords
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        trainingsAttended = try c.decode(Int.self, forKey: .trainingsAttended)
+        trainingsTotal = try c.decode(Int.self, forKey: .trainingsTotal)
+        attendanceRate = try c.decodeIfPresent(Double.self, forKey: .attendanceRate)
+        trainingMinutes = try c.decode(Int.self, forKey: .trainingMinutes)
+        teamTrainingsCount = try c.decodeIfPresent(Int.self, forKey: .teamTrainingsCount) ?? trainingsTotal
+        personalTrainingsCount = try c.decodeIfPresent(Int.self, forKey: .personalTrainingsCount) ?? 0
+        activityStreak = try c.decode(Int.self, forKey: .activityStreak)
+        tasksTotal = try c.decode(Int.self, forKey: .tasksTotal)
+        tasksCompleted = try c.decode(Int.self, forKey: .tasksCompleted)
+        tasksOverdue = try c.decode(Int.self, forKey: .tasksOverdue)
+        matchesHistory = try c.decodeIfPresent([PlayerMatchEntry].self, forKey: .matchesHistory) ?? []
+        coachComments = try c.decodeIfPresent([CoachComment].self, forKey: .coachComments) ?? []
+        metrics = try c.decodeIfPresent([Metric].self, forKey: .metrics) ?? []
+        personalRecords = try c.decodeIfPresent([PersonalRecord].self, forKey: .personalRecords) ?? []
+    }
 
     /// The latest played matches, the newest first.
     public func recentMatches(limit: Int = 3) -> [PlayerMatchEntry] {
         Array(matchesHistory.filter { $0.outcome != nil }.sorted { $0.matchDate > $1.matchDate }.prefix(limit))
     }
+
+    /// Every played match, the newest first (what the history lists).
+    public var playedMatches: [PlayerMatchEntry] { matchesHistory.filter { $0.outcome != nil }.sorted { $0.matchDate > $1.matchDate } }
+
+    /// False while there is nothing at all to count: then the screen says the numbers will come later.
+    public var hasActivity: Bool { trainingsTotal > 0 || tasksTotal > 0 || !matchesHistory.isEmpty || !metrics.isEmpty }
+}
+
+extension TeamStats {
+    /// False before the first held training, task or match: the numbers are all zeros, and the screen says so instead.
+    public var hasActivity: Bool { trainingsCompleted > 0 || tasksTotal > 0 || matchesPlayed > 0 }
 }
 
 public enum StatsFormat {
@@ -94,6 +134,20 @@ public enum StatsFormat {
     public static func average(_ value: Double?) -> String {
         guard let value else { return "—" }
         return value.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "ru_RU")))
+    }
+
+    /// "9 из 10 тренировок", "1 из 1 тренировки": the word after «из» is in the genitive.
+    public static func attended(_ attended: Int, of total: Int) -> String {
+        let last = total % 10, lastTwo = total % 100
+        let word = last == 1 && lastTwo != 11 ? "тренировки" : "тренировок"
+        return "\(attended) из \(total) \(word)"
+    }
+
+    /// "5 ч 30 мин", "2 ч", "45 мин", "0 мин".
+    public static func duration(minutes: Int) -> String {
+        let hours = minutes / 60, rest = minutes % 60
+        if hours == 0 { return "\(rest) мин" }
+        return rest == 0 ? "\(hours) ч" : "\(hours) ч \(rest) мин"
     }
 
     /// "1 пропуск", "2 пропуска", "5 пропусков".

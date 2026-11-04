@@ -107,6 +107,14 @@ struct TeamDetailView: View {
                 Label("Упражнения и планы", systemImage: "book")
             }
             .accessibilityIdentifier("team.library")
+            if team.canManage {
+                NavigationLink {
+                    TeamStatsView(team: team)
+                } label: {
+                    Label("Статистика", systemImage: "chart.bar")
+                }
+                .accessibilityIdentifier("team.stats")
+            }
         }
     }
 
@@ -145,23 +153,36 @@ struct TeamDetailView: View {
         case .loaded(let members):
             Section("Состав (\(members.count))") {
                 ForEach(members.sorted(by: Self.staffFirst)) { member in
-                    HStack(spacing: 12) {
-                        ZStack {
-                            Circle().fill(Theme.primary.opacity(0.15))
-                            Text(String(member.firstName.prefix(1)).uppercased()).font(.subheadline.bold()).foregroundStyle(Theme.primary)
+                    if team.canManage, member.role.isPlayer {
+                        // The coaching staff opens a player's statistics from the line.
+                        NavigationLink {
+                            PlayerStatsView(userId: member.userId, name: member.fullName)
+                        } label: {
+                            memberRow(member)
                         }
-                        .frame(width: 36, height: 36)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(member.fullName)
-                            Text([member.role.title, member.position].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
-                                .font(.footnote).foregroundStyle(.secondary)
-                        }
+                        .accessibilityIdentifier("team.member")
+                    } else {
+                        memberRow(member).accessibilityIdentifier("team.member")
                     }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityIdentifier("team.member")
                 }
             }
         }
+    }
+
+    private func memberRow(_ member: TeamMember) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(Theme.primary.opacity(0.15))
+                Text(String(member.firstName.prefix(1)).uppercased()).font(.subheadline.bold()).foregroundStyle(Theme.primary)
+            }
+            .frame(width: 36, height: 36)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(member.fullName)
+                Text([member.role.title, member.position].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private var inviteSection: some View {
