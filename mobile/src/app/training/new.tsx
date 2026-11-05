@@ -77,8 +77,8 @@ export default function NewTrainingScreen() {
     if (!iso) found.date = "Введите дату как ДД.ММ.ГГГГ.";
     if (!start) found.time = "Введите время как ЧЧ:ММ.";
     if (!(minutes >= 5 && minutes <= 600)) found.duration = "От 5 до 600 минут.";
-    // A personal training is a list of exercises: without at least one named exercise there is nothing to do.
-    if (!isTeam && !rows.some((r) => r.exercise.trim())) found.exercises = "Укажите название хотя бы одного упражнения.";
+    // Every exercise on the list needs a name (an unwanted row is removed with its button, not left empty).
+    if (!isTeam && rows.some((r) => !r.exercise.trim())) found.exercises = "Укажите название упражнения.";
     if (until.trim() && (!untilIso || (iso && untilIso <= iso))) found.until = "Дата окончания повтора должна быть после первой тренировки.";
     setErrors(found);
     if (Object.keys(found).length) return;
