@@ -52,7 +52,7 @@ export default function NewMetricScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Новый показатель" }} />
-      <Screen>
+      <Screen header>
         {errors.form ? <Notice kind="danger">{errors.form}</Notice> : null}
         <TextField label="Название" required value={name} onChangeText={setName} maxLength={100} error={errors.name} />
         <TextField label="Значение" required value={value} onChangeText={setValue} keyboardType="decimal-pad" error={errors.value} />

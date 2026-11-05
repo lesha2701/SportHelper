@@ -56,7 +56,7 @@ export default function SearchScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Поиск" }} />
-      <Screen>
+      <Screen header>
         <TextField label="Что искать" value={query} onChangeText={setQuery} autoFocus placeholder="Команда, игрок, упражнение…" />
         {error ? <Notice kind="danger">{error}</Notice> : null}
         {results?.length === 0 ? <Text muted>Ничего не найдено.</Text> : null}

@@ -7,6 +7,7 @@ import type { Team } from "@/shared/types/team";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { Notice } from "@/ui/Notice";
+import { PasteButton } from "@/ui/PasteButton";
 import { Screen } from "@/ui/Screen";
 import { Text } from "@/ui/Text";
 import { TextField } from "@/ui/TextField";
@@ -55,7 +56,7 @@ export default function JoinScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Вступить в команду" }} />
-      <Screen>
+      <Screen header>
         {result ? (
           <>
             <Text variant="title">{result === "joined" ? "Вы в команде" : "Заявка отправлена"}</Text>
@@ -66,6 +67,7 @@ export default function JoinScreen() {
           <>
             <Text muted>Вставьте ссылку-приглашение, которую прислал тренер.</Text>
             <TextField label="Ссылка-приглашение" value={link} onChangeText={setLink} autoCapitalize="none" autoCorrect={false} error={error} />
+            <PasteButton onPaste={setLink} />
             {!team ? <Button title="Проверить" onPress={check} loading={busy} /> : null}
             {team ? (
               <>

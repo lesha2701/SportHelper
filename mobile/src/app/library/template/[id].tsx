@@ -43,7 +43,7 @@ export default function TemplateScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Шаблон" }} />
-      <Screen>
+      <Screen header>
         <Text variant="title">{t.title}</Text>
         {t.description ? <Text>{t.description}</Text> : null}
         <Card>

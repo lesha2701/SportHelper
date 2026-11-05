@@ -57,7 +57,7 @@ export default function ListingScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Предложение" }} />
-      <Screen>
+      <Screen header>
         <Text variant="title">{p.title}</Text>
         <Card onPress={() => router.push({ pathname: "/coach/[id]", params: { id: p.coachUserId } })}>
           <Text variant="label">{p.coachFullName}</Text>

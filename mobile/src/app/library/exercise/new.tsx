@@ -68,7 +68,7 @@ export default function NewExerciseScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Новое упражнение" }} />
-      <Screen>
+      <Screen header>
         {errors.form ? <Notice kind="danger">{errors.form}</Notice> : null}
         <TextField label="Название" required value={name} onChangeText={setName} maxLength={200} error={errors.name} />
         <Choice label="Вид спорта *" layout="chips" options={COMMON_SPORTS.map((s) => ({ value: s, title: s }))} value={sport || null} onChange={setSport} error={errors.sport} />

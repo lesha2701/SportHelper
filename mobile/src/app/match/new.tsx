@@ -51,7 +51,7 @@ export default function NewMatchScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Новый матч" }} />
-      <Screen>
+      <Screen header>
         {errors.form ? <Notice kind="danger">{errors.form}</Notice> : null}
         <TextField label="Соперник" required value={opponent} onChangeText={setOpponent} maxLength={100} error={errors.opponent} />
         <DateField label="Дата" required value={date} onChange={setDate} error={errors.date} shortcuts />

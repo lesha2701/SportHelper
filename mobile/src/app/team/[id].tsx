@@ -11,7 +11,6 @@ import { TrainingsSection } from "@/team/TrainingsSection";
 import { Choice } from "@/ui/Choice";
 import { Screen } from "@/ui/Screen";
 import { ErrorView, LoadingView } from "@/ui/StateViews";
-import { Text } from "@/ui/Text";
 
 type Section = "overview" | "members" | "trainings" | "matches" | "tasks" | "stats";
 
@@ -37,8 +36,7 @@ export default function TeamScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: t.name }} />
-      <Screen>
-        <Text variant="title">{t.name}</Text>
+      <Screen header>
         <Choice layout="chips" options={SECTIONS} value={section} onChange={setSection} />
         {section === "overview" ? <OverviewSection team={t} staff={staff} /> : null}
         {section === "members" ? <MembersSection team={t} staff={staff} /> : null}

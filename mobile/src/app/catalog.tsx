@@ -19,7 +19,7 @@ export default function CatalogScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Каталог тренеров" }} />
-      <Screen>
+      <Screen header>
         <Choice layout="chips" options={SPORTS} value={sport} onChange={setSport} />
         {listings.loading && !listings.data ? <LoadingView /> : null}
         {listings.error && !listings.data ? <ErrorView message={listings.error} onRetry={listings.reload} /> : null}

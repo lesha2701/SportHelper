@@ -116,7 +116,7 @@ export default function MatchScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Матч" }} />
-      <Screen>
+      <Screen header>
         <Text variant="title">{match.isHome ? "Дома" : "В гостях"}: {match.opponentName}</Text>
         <Card>
           <Text variant="heading">

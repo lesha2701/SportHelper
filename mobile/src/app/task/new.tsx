@@ -109,7 +109,7 @@ export default function NewTaskScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Новое задание" }} />
-      <Screen>
+      <Screen header>
         {errors.form ? <Notice kind="danger">{errors.form}</Notice> : null}
         {templates.data && templates.data.length > 0 ? (
           <Choice

@@ -36,7 +36,7 @@ export default function FinanceScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Финансы" }} />
-      <Screen>
+      <Screen header>
         <StatGrid>
           <StatTile value={formatKopecks(s.availableKopecks)} label="доступно к выводу" />
           <StatTile value={formatKopecks(s.pendingKopecks)} label="ожидает" />

@@ -50,7 +50,7 @@ export default function NotificationsScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Уведомления" }} />
-      <Screen>
+      <Screen header>
         {unread > 0 ? <Button title={`Прочитать все (${unread})`} variant="secondary" onPress={readAll} /> : null}
         {items.length === 0 ? <Text muted>Уведомлений пока нет.</Text> : null}
         {items.map((n) => (

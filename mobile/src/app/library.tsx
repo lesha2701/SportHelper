@@ -73,7 +73,7 @@ export default function LibraryScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Библиотека" }} />
-      <Screen>
+      <Screen header>
         <Choice
           layout="chips"
           options={[

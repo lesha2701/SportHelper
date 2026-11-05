@@ -1,12 +1,12 @@
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { createPersonalTrainingDraft } from "@/api/ai";
-import { createPersonalTraining, createTeamTraining } from "@/api/trainings";
+import { createPersonalTraining, createTeamTraining, getTraining, updateTraining } from "@/api/trainings";
 import { toFormError } from "@/lib/formError";
 import { parseRuDate, parseTime, todayIso, formatRuDate } from "@/shared/lib/dates";
-import { buildPersonalDescription, newRow, type ExerciseKind, type ExerciseRow } from "@/shared/lib/trainingDescription";
-import type { TrainingCreateInput } from "@/shared/types/training";
+import { buildPersonalDescription, newRow, parseExerciseChecklist, rowsFromChecklist, type ExerciseKind, type ExerciseRow } from "@/shared/lib/trainingDescription";
+import type { Training, TrainingCreateInput } from "@/shared/types/training";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { Choice } from "@/ui/Choice";
@@ -53,8 +53,12 @@ function ExerciseRowEditor({ row, onChange, onRemove, error }: { row: ExerciseRo
 
 /** A new training: of the team (when `teamId` is given, for coaches) or the person's own. */
 export default function NewTrainingScreen() {
-  const { teamId } = useLocalSearchParams<{ teamId?: string }>();
+  const { teamId: teamParam, id } = useLocalSearchParams<{ teamId?: string; id?: string }>();
   const toast = useToast();
+  const editing = !!id;
+  const [loaded, setLoaded] = useState<Training | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const teamId = teamParam ?? loaded?.teamId ?? undefined;
   const isTeam = !!teamId;
 
   const [date, setDate] = useState(formatRuDate(todayIso()));
@@ -70,6 +74,32 @@ export default function NewTrainingScreen() {
   const [busy, setBusy] = useState(false);
 
   const [aiBusy, setAiBusy] = useState(false);
+
+  // Editing: fill the form from the saved training.
+  useEffect(() => {
+    if (!id) return;
+    getTraining(id)
+      .then((t) => {
+        setLoaded(t);
+        setDate(formatRuDate(t.trainingDate));
+        setTime(t.startTime.slice(0, 5));
+        setDuration(String(t.durationMinutes));
+        setLocation(t.location ?? "");
+        setReminder(t.reminderMinutesBefore === null ? "none" : String(t.reminderMinutesBefore));
+        if (t.teamId) setDescription(t.description ?? "");
+        else {
+          const list = t.description ? parseExerciseChecklist(t.description) : null;
+          if (list) {
+            setRows(rowsFromChecklist(list.items));
+            setNotes(list.notes ?? "");
+          } else {
+            setRows([newRow()]);
+            setNotes(t.description ?? "");
+          }
+        }
+      })
+      .catch((e: unknown) => setLoadError(toFormError(e).message));
+  }, [id]);
 
   async function draftWithAi() {
     setAiBusy(true);
@@ -110,12 +140,13 @@ export default function NewTrainingScreen() {
     setErrors(found);
     if (Object.keys(found).length) return;
 
+    const description_ = (isTeam ? description.trim() : buildPersonalDescription(rows, notes)) || null;
     const input: TrainingCreateInput = {
       training_date: iso!,
       start_time: start!,
       duration_minutes: minutes,
       location: location.trim() || null,
-      description: (isTeam ? description.trim() : buildPersonalDescription(rows, notes)) || null,
+      description: description_,
       plan_id: null,
       reminder_minutes_before: reminder === "none" ? null : Number(reminder),
       repeat_weekly_until: untilIso,
@@ -124,7 +155,23 @@ export default function NewTrainingScreen() {
     };
     setBusy(true);
     try {
-      const created = isTeam ? await createTeamTraining(teamId, input) : await createPersonalTraining(input);
+      if (editing && loaded) {
+        await updateTraining(loaded.id, {
+          training_date: input.training_date,
+          start_time: input.start_time,
+          duration_minutes: input.duration_minutes,
+          location: input.location,
+          description: input.description,
+          plan_id: loaded.planId,
+          reminder_minutes_before: input.reminder_minutes_before,
+          status: loaded.status,
+          is_independent: loaded.type === "independent",
+          responsible_user_id: loaded.responsibleUserId,
+        });
+        router.back();
+        return;
+      }
+      const created = isTeam ? await createTeamTraining(teamId!, input) : await createPersonalTraining(input);
       toast.success(created.length > 1 ? `Создано тренировок: ${created.length}` : "Тренировка создана");
       router.back();
     } catch (e) {
@@ -136,8 +183,9 @@ export default function NewTrainingScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: isTeam ? "Тренировка команды" : "Личная тренировка" }} />
-      <Screen>
+      <Stack.Screen options={{ headerShown: true, title: editing ? "Изменить тренировку" : isTeam ? "Тренировка команды" : "Личная тренировка" }} />
+      <Screen header>
+        {loadError ? <Notice kind="danger">{loadError}</Notice> : null}
         {errors.form ? <Notice kind="danger">{errors.form}</Notice> : null}
         <DateField label="Дата" required value={date} onChange={setDate} error={errors.date} shortcuts />
         <TimeField label="Начало" required value={time} onChange={setTime} error={errors.time} />
@@ -168,8 +216,8 @@ export default function NewTrainingScreen() {
         )}
 
         <Choice label="Напоминание" layout="chips" options={REMINDERS} value={reminder} onChange={setReminder} />
-        <DateField label="Повторять каждую неделю до (необязательно)" value={until} onChange={setUntil} error={errors.until} />
-        <Button title="Создать" onPress={submit} loading={busy} />
+        {!editing ? <DateField label="Повторять каждую неделю до (необязательно)" value={until} onChange={setUntil} error={errors.until} /> : null}
+        <Button title={editing ? "Сохранить" : "Создать"} onPress={submit} loading={busy} />
       </Screen>
     </>
   );

@@ -15,6 +15,9 @@ function Routes() {
   const { status } = useAuth();
   const { colors, dark } = useTheme();
   const signedIn = status === "signedIn";
+  // Until the saved sign-in is checked, no route can be matched: mounting the navigator now would drop a deep link
+  // (a notification, an invitation) onto the start page. Wait, then open exactly what was asked for.
+  if (status === "loading") return <LoadingView />;
   return (
     <>
       <StatusBar style={dark ? "light" : "dark"} />

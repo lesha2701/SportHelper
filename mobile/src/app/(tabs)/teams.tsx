@@ -19,7 +19,7 @@ export default function TeamsScreen() {
   if (teams.error && !teams.data) return <ErrorView message={teams.error} onRetry={teams.reload} />;
 
   return (
-    <Screen>
+    <Screen onRefresh={teams.reload} refreshing={teams.loading && !!teams.data}>
       <Text variant="title">Команды</Text>
       {teams.data?.length === 0 ? (
         <Card>

@@ -210,7 +210,7 @@ export default function TaskScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Задание" }} />
-      <Screen>
+      <Screen header>
         <Text variant="title">{task.title}</Text>
         <Text muted>{[team.name, task.deadline ? `до ${formatRuDate(task.deadline.slice(0, 10))}` : null].filter(Boolean).join(" · ")}</Text>
         {task.description ? <Text>{task.description}</Text> : null}

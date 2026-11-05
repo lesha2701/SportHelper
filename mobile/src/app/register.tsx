@@ -215,7 +215,7 @@ export default function RegisterScreen() {
               }}
               error={consentErrors[consent.key]}
             >
-              <Text variant="caption">{CONSENT_TEXT[role][consent.key]}</Text>
+              <Text style={{ fontSize: 13, lineHeight: 19 }}>{CONSENT_TEXT[role][consent.key]}</Text>
             </Checkbox>
           ))}
         </View>

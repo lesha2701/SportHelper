@@ -91,7 +91,7 @@ export default function LegalDocumentScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: meta.label }} />
-      <Screen>
+      <Screen header>
         {doc.blocks.map((block, index) => (
           <BlockView key={index} block={block} />
         ))}

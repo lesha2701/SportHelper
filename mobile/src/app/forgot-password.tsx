@@ -34,7 +34,7 @@ export default function ForgotPasswordScreen() {
       {sent ? (
         <>
           <Notice kind="success">{sent}</Notice>
-          <Text muted>Ссылка в письме действует 30 минут. Скопируйте её и вставьте на следующем экране.</Text>
+          <Text muted>Ссылка в письме действует 30 минут. Скопируйте её (удерживайте палец на ссылке и выберите «Копировать адрес») и вставьте на следующем экране.</Text>
           <Button title="У меня есть ссылка из письма" onPress={() => router.replace("/reset-password")} />
         </>
       ) : (

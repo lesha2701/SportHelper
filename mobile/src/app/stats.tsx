@@ -49,7 +49,7 @@ export default function StatsScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Моя статистика" }} />
-      <Screen>
+      <Screen header>
         <StatGrid>
           <StatTile value={formatRate(s.attendanceRate)} label="посещаемость" />
           <StatTile value={`${s.trainingsAttended}/${s.trainingsTotal}`} label="тренировок" />

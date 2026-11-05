@@ -15,6 +15,7 @@ import { getTrainingEvaluation } from "@/api/ai";
 import { AiText } from "@/ui/AiText";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
+import { Choice } from "@/ui/Choice";
 import { ConfirmModal } from "@/ui/ConfirmModal";
 import { Screen } from "@/ui/Screen";
 import { ErrorView, LoadingView } from "@/ui/StateViews";
@@ -27,25 +28,33 @@ function Attendance({ training }: { training: Training }) {
   if (list.loading && !list.data) return <LoadingView />;
   if (list.error && !list.data) return <ErrorView message={list.error} onRetry={list.reload} />;
 
-  async function toggle(userId: string, present: boolean) {
+  async function mark(userId: string, status: "present" | "absent") {
     try {
-      await setAttendanceStatus(training.id, userId, present ? "absent" : "present");
+      await setAttendanceStatus(training.id, userId, status);
       list.reload();
     } catch (e) {
       toast.error(toFormError(e).message);
     }
   }
 
+  const present = (list.data ?? []).filter((a) => a.status === "present").length;
   return (
     <Card>
       <Text variant="heading">Посещаемость</Text>
+      <Text muted>
+        Были: {present} из {list.data?.length ?? 0}
+      </Text>
       {list.data?.map((a) => (
         <View key={a.userId} style={{ gap: 6 }}>
-          <Text>{[a.firstName, a.lastName].filter(Boolean).join(" ")}</Text>
-          <Button
-            title={a.status === "present" ? "Был(а) — нажмите, чтобы снять" : "Не был(а) — нажмите, чтобы отметить"}
-            variant={a.status === "present" ? "primary" : "secondary"}
-            onPress={() => void toggle(a.userId, a.status === "present")}
+          <Text variant="label">{[a.firstName, a.lastName].filter(Boolean).join(" ")}</Text>
+          <Choice
+            layout="chips"
+            options={[
+              { value: "present", title: "Был(а)" },
+              { value: "absent", title: "Не был(а)" },
+            ]}
+            value={a.status}
+            onChange={(status) => void mark(a.userId, status)}
           />
         </View>
       ))}
@@ -130,7 +139,7 @@ export default function TrainingScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Тренировка" }} />
-      <Screen>
+      <Screen header>
         <Text variant="title">{formatDayTitle(t.trainingDate)}</Text>
         <Card>
           <Text variant="heading">{shortTime(t.startTime)}</Text>
@@ -148,7 +157,7 @@ export default function TrainingScreen() {
               </Text>
             ))}
             {checklist.notes ? <Text muted>Пометки: {checklist.notes}</Text> : null}
-            {t.status !== "cancelled" ? <Button title="Начать тренировку" onPress={() => router.push({ pathname: "/workout/[id]", params: { id: t.id } })} /> : null}
+            {t.status !== "cancelled" ? <Button title={t.status === "completed" ? "Пройти ещё раз (результат заменится)" : "Начать тренировку"} onPress={() => router.push({ pathname: "/workout/[id]", params: { id: t.id } })} /> : null}
           </Card>
         ) : null}
 
@@ -156,6 +165,7 @@ export default function TrainingScreen() {
         {mine && t.status === "completed" ? <AiText title="Оценка тренировки (ИИ)" heading="Оценка тренировки" load={() => getTrainingEvaluation(t.id)} /> : null}
         {staff ? <Attendance training={t} /> : null}
 
+        {(staff || mine) && t.status !== "cancelled" ? <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/training/new", params: { id: t.id } })} /> : null}
         {staff && t.status === "scheduled" ? <Button title="Отметить проведённой" variant="secondary" onPress={() => setConfirm("complete")} /> : null}
         {staff || mine ? <Button title="Удалить тренировку" variant="ghost" onPress={() => setConfirm("delete")} /> : null}
 

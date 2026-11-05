@@ -41,7 +41,7 @@ export default function CalendarScreen() {
   }
 
   return (
-    <Screen>
+    <Screen onRefresh={events.reload} refreshing={events.loading && !!events.data}>
       <Text variant="title">Календарь</Text>
       <Choice
         layout="chips"

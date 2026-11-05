@@ -50,7 +50,7 @@ export default function ExerciseScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Упражнение" }} />
-      <Screen>
+      <Screen header>
         <Text variant="title">{e.name}</Text>
         {e.photoFileId ? <AuthImage fileId={e.photoFileId} height={220} /> : null}
         <Card>

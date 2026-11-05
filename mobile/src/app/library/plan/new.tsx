@@ -69,7 +69,7 @@ export default function NewPlanScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Новый план" }} />
-      <Screen>
+      <Screen header>
         {errors.form ? <Notice kind="danger">{errors.form}</Notice> : null}
         <Card>
           <Text variant="heading">Составить с ИИ</Text>

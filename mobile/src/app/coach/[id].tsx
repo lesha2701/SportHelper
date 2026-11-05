@@ -23,7 +23,7 @@ export default function CoachScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Тренер" }} />
-      <Screen>
+      <Screen header>
         <Text variant="title">{p.fullName}</Text>
         <Text muted>{[p.sport, p.specialization, p.experienceYears != null ? `опыт ${p.experienceYears} л.` : null].filter(Boolean).join(" · ")}</Text>
         {p.averageRating !== null ? <Text>★ {p.averageRating.toFixed(1)} · отзывов: {p.reviewCount}</Text> : null}

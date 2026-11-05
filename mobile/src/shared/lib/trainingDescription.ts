@@ -1,6 +1,8 @@
 /** A personal training's exercise list is stored as plain text; these functions write and read that exact format
  * (the same one the website's training form produces), so a training made on either side opens on the other. */
 
+import { parseExerciseTarget } from "./workout";
+
 export type ExerciseKind = "reps" | "time" | "distance";
 
 export interface ExerciseRow {
@@ -15,6 +17,24 @@ export interface ExerciseRow {
 
 export function newRow(): ExerciseRow {
   return { exercise: "", kind: "reps", sets: "3", reps: "10", durationSeconds: "30", distanceMeters: "1000", timeMinutes: "" };
+}
+
+/** The form rows of a stored exercise list, for editing it again. */
+export function rowsFromChecklist(items: { text: string }[]): ExerciseRow[] {
+  return items.map((item) => {
+    const target = parseExerciseTarget(item.text);
+    const kind: ExerciseKind = target.metric ?? "reps";
+    return {
+      ...newRow(),
+      exercise: target.name,
+      kind,
+      sets: target.sets ? String(target.sets) : kind === "distance" ? "1" : "3",
+      reps: target.reps ? String(target.reps) : "10",
+      durationSeconds: target.seconds && kind === "time" ? String(target.seconds) : "30",
+      distanceMeters: target.meters ? String(target.meters) : "1000",
+      timeMinutes: target.seconds && kind === "distance" ? String(Math.round((target.seconds / 60) * 10) / 10) : "",
+    };
+  });
 }
 
 export function describeExerciseRow(r: ExerciseRow): string {

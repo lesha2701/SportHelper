@@ -68,7 +68,7 @@ export default function SettingsScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Настройки" }} />
-      <Screen>
+      <Screen header>
         <Card>
           <Text variant="heading">Тема</Text>
           <Choice layout="chips" options={THEMES} value={preference} onChange={setPreference} />

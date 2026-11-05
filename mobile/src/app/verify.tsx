@@ -7,6 +7,7 @@ import { extractToken } from "@/shared/lib/links";
 import { Button } from "@/ui/Button";
 import { LinkText } from "@/ui/LinkText";
 import { Notice } from "@/ui/Notice";
+import { PasteButton } from "@/ui/PasteButton";
 import { Screen } from "@/ui/Screen";
 import { Text } from "@/ui/Text";
 import { TextField } from "@/ui/TextField";
@@ -18,7 +19,7 @@ export default function VerifyScreen() {
   const [link, setLink] = useState(tokenParam);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<{ field: "link" | "password" | null; text: string } | null>(null);
+  const [error, setError] = useState<{ field: "link" | "password" | null; text: string; code?: string | null } | null>(null);
   const [confirmed, setConfirmed] = useState(false);
 
   async function submit() {
@@ -33,7 +34,7 @@ export default function VerifyScreen() {
       else setConfirmed(true);
     } catch (e) {
       const failure = toFormError(e);
-      setError({ field: failure.field === "password" ? "password" : null, text: failure.message });
+      setError({ field: failure.field === "password" ? "password" : null, text: failure.message, code: failure.code });
     } finally {
       setBusy(false);
     }
@@ -62,6 +63,7 @@ export default function VerifyScreen() {
         autoCorrect={false}
         error={error?.field === "link" ? error.text : null}
       />
+      <PasteButton onPaste={setLink} />
       <TextField
         label="Пароль"
         value={password}
@@ -71,6 +73,9 @@ export default function VerifyScreen() {
         onSubmitEditing={submit}
         error={error?.field === "password" ? error.text : null}
       />
+      {error?.code === "password_mismatch" ? (
+        <Notice>Забыли пароль? Откройте ссылку из письма в браузере: на сайте можно задать новый пароль, а потом войти в приложении.</Notice>
+      ) : null}
       <Button title="Подтвердить" onPress={submit} loading={busy} />
       <LinkText style={{ textAlign: "center" }} onPress={() => router.replace("/login")}>
         Вернуться ко входу

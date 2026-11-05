@@ -184,7 +184,7 @@ export default function BookingsScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: isCoach ? "Записи ко мне" : "Мои записи" }} />
-      <Screen>
+      <Screen header>
         {!isCoach ? <Button title="Найти тренера" variant="secondary" onPress={() => router.push("/catalog")} /> : null}
         {pending.length > 0 ? <Text variant="heading">Новые заявки</Text> : null}
         {pending.map((b) => (

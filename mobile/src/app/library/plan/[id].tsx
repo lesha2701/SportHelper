@@ -76,7 +76,7 @@ export default function PlanScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "План" }} />
-      <Screen>
+      <Screen header>
         <Text variant="title">{p.name}</Text>
         <Text muted>{[p.sport, p.durationMinutes ? `${p.durationMinutes} мин` : null, p.equipment].filter(Boolean).join(" · ")}</Text>
         {p.description ? <Text>{p.description}</Text> : null}

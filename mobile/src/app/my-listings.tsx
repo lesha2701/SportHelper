@@ -33,7 +33,7 @@ export default function MyListingsScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Мои предложения" }} />
-      <Screen>
+      <Screen header>
         <Button title="Новое предложение" onPress={() => router.push("/listing/new")} />
         {list.data?.length === 0 ? <Text muted>Предложений пока нет. Опубликуйте первое, и спортсмены смогут записаться на занятие.</Text> : null}
         {list.data?.map((l) => (

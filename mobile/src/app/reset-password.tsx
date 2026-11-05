@@ -6,6 +6,7 @@ import { extractToken } from "@/shared/lib/links";
 import { Button } from "@/ui/Button";
 import { LinkText } from "@/ui/LinkText";
 import { Notice } from "@/ui/Notice";
+import { PasteButton } from "@/ui/PasteButton";
 import { Screen } from "@/ui/Screen";
 import { Text } from "@/ui/Text";
 import { TextField } from "@/ui/TextField";
@@ -55,6 +56,7 @@ export default function ResetPasswordScreen() {
       <Text variant="title">Новый пароль</Text>
       {errors.form ? <Notice kind="danger">{errors.form}</Notice> : null}
       <TextField label="Ссылка из письма" value={link} onChangeText={setLink} autoCapitalize="none" autoCorrect={false} error={errors.link} />
+      <PasteButton onPaste={setLink} />
       <TextField
         label={`Новый пароль (минимум ${PASSWORD_MIN_LENGTH} символов)`}
         value={password}

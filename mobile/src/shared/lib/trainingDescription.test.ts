@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { buildWorkoutExercises } from "./workout";
-import { buildPersonalDescription, newRow, parseExerciseChecklist } from "./trainingDescription";
+import { buildPersonalDescription, newRow, parseExerciseChecklist, rowsFromChecklist } from "./trainingDescription";
 
 describe("personal training description", () => {
   it("writes numbered exercises with their plan and the notes", () => {
@@ -20,6 +20,18 @@ describe("personal training description", () => {
     const exercises = buildWorkoutExercises(parsed.items);
     expect(exercises[0]).toMatchObject({ name: "Приседания", metric: "reps", targetSets: 4, targetReps: 12 });
     expect(exercises[0]!.sets).toHaveLength(4);
+  });
+
+  it("opens a saved list for editing and writes it back unchanged", () => {
+    const squat = { ...newRow(), exercise: "Приседания", sets: "4", reps: "12" };
+    const plank = { ...newRow(), exercise: "Планка", kind: "time" as const, sets: "3", durationSeconds: "45" };
+    const run = { ...newRow(), exercise: "Бег", kind: "distance" as const, sets: "1", distanceMeters: "3000", timeMinutes: "15" };
+    const text = buildPersonalDescription([squat, plank, run], "Не торопиться");
+
+    const parsed = parseExerciseChecklist(text)!;
+    const again = buildPersonalDescription(rowsFromChecklist(parsed.items), parsed.notes ?? "");
+
+    expect(again).toBe(text);
   });
 
   it("leaves free text and empty descriptions alone", () => {

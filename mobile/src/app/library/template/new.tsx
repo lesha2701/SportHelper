@@ -51,7 +51,7 @@ export default function NewTemplateScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Новый шаблон" }} />
-      <Screen>
+      <Screen header>
         {errors.form ? <Notice kind="danger">{errors.form}</Notice> : null}
         <TextField label="Название" required value={title} onChangeText={setTitle} maxLength={200} error={errors.title} />
         <TextField label="Описание" value={description} onChangeText={setDescription} multiline numberOfLines={4} maxLength={2000} />

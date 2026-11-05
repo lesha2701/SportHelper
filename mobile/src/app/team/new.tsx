@@ -46,7 +46,7 @@ export default function NewTeamScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Новая команда" }} />
-      <Screen>
+      <Screen header>
         {errors.form ? <Notice kind="danger">{errors.form}</Notice> : null}
         <TextField label="Название" required value={name} onChangeText={setName} maxLength={100} error={errors.name} />
         <Choice label="Вид спорта *" layout="chips" options={COMMON_SPORTS.map((s) => ({ value: s, title: s }))} value={sport || null} onChange={setSport} error={errors.sport} />
