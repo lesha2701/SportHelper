@@ -274,6 +274,17 @@ struct TasksServiceTests {
         #expect(String(decoding: try #require(request.bodyData), as: UTF8.self).contains("name=\"file\"; filename=\"photo.jpg\""))
     }
 
+    @Test func aVideoIsUploadedAsMp4MultipartToTheSubmitVideoPathWithALongTimeout() async throws {
+        let seen = RequestLog()
+        let (service, _) = make { request in seen.add(request); return json(assignmentJSON(extra: "")) }
+        _ = try await service.attachVideo(Data([1, 2, 3]), filename: "video.mp4", to: taskId)
+        let request = try #require(seen.all.first)
+        #expect(request.url?.path == "/api/tasks/\(taskId.uuidString.lowercased())/submit/video" && request.httpMethod == "POST")
+        #expect(request.timeoutInterval >= 120, "a video takes a while to be stored")
+        let body = String(decoding: try #require(request.bodyData), as: UTF8.self)
+        #expect(body.contains("name=\"file\"; filename=\"video.mp4\"") && body.contains("Content-Type: video/mp4"))
+    }
+
     @Test func aTaskThatIsNotYoursIsRefusedWithItsCode() async throws {
         let (service, _) = make { _ in json(#"{"error":{"code":"forbidden","message":"this task is not assigned to you","field":null,"retry_after":null}}"#, status: 403) }
         do {

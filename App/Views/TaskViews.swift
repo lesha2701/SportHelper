@@ -310,9 +310,7 @@ struct SubmissionDetails: View {
             if let difficulty = assignment.difficulty { LabeledContent("Сложность", value: "\(difficulty) из 10") }
             if let wellbeing = assignment.wellbeing { LabeledContent("Самочувствие", value: "\(wellbeing) из 5") }
             if let photo = assignment.photoFileId { SubmittedPhoto(fileId: photo) }
-            if assignment.videoFileId != nil {
-                Label("Приложено видео (посмотреть его можно на сайте)", systemImage: "video").font(.footnote).foregroundStyle(.secondary)
-            }
+            if let video = assignment.videoFileId { WatchVideoButton(fileId: video) }
         }
     }
 }

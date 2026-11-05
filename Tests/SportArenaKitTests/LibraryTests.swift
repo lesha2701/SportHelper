@@ -295,6 +295,15 @@ struct LibraryServiceTests {
         #expect(request.value(forHTTPHeaderField: "Content-Type")?.hasPrefix("multipart/form-data") == true)
     }
 
+    @Test func aVideoOfAnExerciseIsUploadedAsMp4Multipart() async throws {
+        let seen = RequestLog()
+        let (service, _) = make { request in seen.add(request); return json(exerciseJSON()) }
+        _ = try await service.attachVideo(Data([1, 2, 3]), filename: "video.mp4", to: exerciseId)
+        let request = try #require(seen.all.first)
+        #expect(request.url?.path == "/api/exercises/\(exerciseId.uuidString.lowercased())/video" && request.timeoutInterval >= 120)
+        #expect(String(decoding: try #require(request.bodyData), as: UTF8.self).contains("Content-Type: video/mp4"))
+    }
+
     @Test func thePlanCallsUseTheirOwnPaths() async throws {
         let seen = RequestLog()
         let (service, _) = make { request in

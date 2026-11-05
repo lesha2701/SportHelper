@@ -35,9 +35,7 @@ struct ExerciseDetailView: View {
                         InfoRow(title: "Предупреждения", text: exercise.warnings)
                     }
                 }
-                if exercise.videoFileId != nil {
-                    Section { Label("К упражнению приложено видео (посмотреть его можно на сайте)", systemImage: "video").font(.footnote).foregroundStyle(.secondary) }
-                }
+                if let video = exercise.videoFileId { Section("Видео") { WatchVideoButton(fileId: video) } }
                 if !readOnly {
                     if !(exercise.coachComment ?? "").isEmpty { Section("Заметка тренера") { Text(exercise.coachComment ?? "") } }
                     ShareTeamsSection(sharedTeamIds: exercise.sharedTeamIds) { team, on in
@@ -122,6 +120,8 @@ struct ExerciseFormView: View {
     @State private var input = ExerciseInput()
     @State private var photoItem: PhotosPickerItem?
     @State private var photo: Data?
+    @State private var video: PickedVideo?
+    @State private var videoProblem: String?
     @State private var saving = false
     @State private var error: String?
     @State private var filled = false
@@ -168,7 +168,17 @@ struct ExerciseFormView: View {
                     }
                     .accessibilityIdentifier("exerciseForm.photo")
                 }
-                if let message = error ?? (input.name.isEmpty ? nil : input.problem) {
+                Section {
+                    VideoAttachmentRow(
+                        video: $video, hasUploaded: { if case .edit(let exercise) = mode { exercise.videoFileId != nil } else { false } }(),
+                        limitSeconds: VideoRules.maxExerciseSeconds, identifier: "exerciseForm.video", problem: $videoProblem
+                    )
+                } header: {
+                    Text("Видео")
+                } footer: {
+                    Text("Не длиннее \(VideoRules.maxExerciseSeconds) секунд, до \(VideoRules.maxBytes / 1024 / 1024) МБ.")
+                }
+                if let message = error ?? videoProblem ?? (input.name.isEmpty ? nil : input.problem) {
                     Section { Text(message).foregroundStyle(.red).accessibilityIdentifier("exerciseForm.error") }
                 }
             }
@@ -226,6 +236,16 @@ struct ExerciseFormView: View {
                 onDone(saved)
                 error = "Упражнение сохранено, но фото не загрузилось: \(failure.message) Выберите фото ещё раз или закройте форму."
                 self.photo = nil
+                return
+            }
+        }
+        if case .success(let saved) = result, let picked = video {
+            switch await auth.library.attachVideo(picked.data, to: saved.id) {
+            case .success(let withVideo): result = .success(withVideo)
+            case .failure(let failure):
+                onDone(saved)
+                error = "Упражнение сохранено, но видео не загрузилось: \(failure.message) Выберите видео ещё раз или закройте форму."
+                video = nil
                 return
             }
         }

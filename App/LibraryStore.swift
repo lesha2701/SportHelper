@@ -26,6 +26,18 @@ final class LibraryStore {
         await run { try await self.service.attachPhoto(photo, filename: "photo.jpg", mimeType: "image/jpeg", to: id) }
     }
 
+    func attachVideo(_ video: Data, to id: UUID) async -> Result<Exercise, APIError> {
+        await run {
+            do {
+                return try await self.service.attachVideo(video, filename: "video.mp4", to: id)
+            } catch let error as APIError {
+                // see TasksStore.submit: the video's own words go under a code of their own
+                guard let text = VideoRules.russian(code: error.code) else { throw error }
+                throw APIError(status: error.status, code: "video_\(error.code ?? "refused")", message: text, field: error.field, retryAfter: error.retryAfter)
+            }
+        }
+    }
+
     // plans
     func plans() async -> Result<[Plan], APIError> { await run { try await self.service.plans() } }
     func plan(_ id: UUID) async -> Result<Plan, APIError> { await run { try await self.service.plan(id) } }

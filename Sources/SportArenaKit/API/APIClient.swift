@@ -121,10 +121,12 @@ public final class APIClient: Sendable {
         _ path: String,
         file: UploadFile,
         fields: [String: String] = [:],
-        as type: Response.Type = Response.self
+        as type: Response.Type = Response.self,
+        timeout: TimeInterval? = nil
     ) async throws -> Response {
         let boundary = "Boundary-\(UUID().uuidString)"
         var request = try await makeRequest(.post, path, query: [], body: nil)
+        if let timeout { request.timeoutInterval = timeout }
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.httpBody = Self.multipartBody(boundary: boundary, file: file, fields: fields)
         let data = try await execute(request, path: path)

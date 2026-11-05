@@ -37,6 +37,13 @@ public final class LibraryService: Sendable {
         try await client.upload("/api/exercises/\(id(exercise))/photo", file: UploadFile(filename: filename, mimeType: mimeType, data: photo))
     }
 
+    /// The video of an exercise (at most a minute long and 100 MB: the server checks both).
+    public func attachVideo(_ video: Data, filename: String, to exercise: UUID) async throws -> Exercise {
+        try await client.upload(
+            "/api/exercises/\(id(exercise))/video", file: UploadFile(filename: filename, mimeType: VideoRules.mimeType, data: video), timeout: 180
+        )
+    }
+
     // MARK: plans
 
     /// The plans, without their exercises (open one to get them).

@@ -19,6 +19,8 @@ struct TaskSubmitView: View {
     @State private var wellbeing = 0
     @State private var photoItem: PhotosPickerItem?
     @State private var photo: Data?
+    @State private var video: PickedVideo?
+    @State private var videoProblem: String?
     @State private var sending = false
     @State private var error: String?
     @State private var filled = false
@@ -46,10 +48,11 @@ struct TaskSubmitView: View {
         guard let submission else { return [] }
         var items = submission.missing(for: task, assignment: assignment).map(\.title)
         if hasPhoto { items.removeAll { $0 == TaskRequirement.photo.title } }
+        if hasVideo { items.removeAll { $0 == TaskRequirement.video.title } }
         return items
     }
 
-    private var videoBlocks: Bool { task.requireVideo && assignment?.videoFileId == nil }
+    private var hasVideo: Bool { video != nil || assignment?.videoFileId != nil }
 
     var body: some View {
         NavigationStack {
@@ -92,13 +95,8 @@ struct TaskSubmitView: View {
                     }
                 }
                 if task.requirePhoto { photoSection }
-                if videoBlocks {
-                    Section {
-                        Label("Задание просит видео. Приложить его можно на сайте, потом задание можно будет сдать здесь.", systemImage: "video.slash")
-                            .font(.footnote).foregroundStyle(.orange).accessibilityIdentifier("submit.videoBlocked")
-                    }
-                }
-                if let message = error ?? (garbage ? "Вместо числа введено что-то другое." : nil) {
+                if task.requireVideo { videoSection }
+                if let message = error ?? videoProblem ?? (garbage ? "Вместо числа введено что-то другое." : nil) {
                     Section { Text(message).foregroundStyle(.red).accessibilityIdentifier("submit.error") }
                 } else if !missing.isEmpty {
                     Section { Text("Ещё нужно: \(missing.joined(separator: ", ").lowercased())").font(.footnote).foregroundStyle(.secondary) }
@@ -110,7 +108,7 @@ struct TaskSubmitView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Отмена") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Отправить") { Task { await send() } }
-                        .disabled(submission == nil || !missing.isEmpty || videoBlocks || sending)
+                        .disabled(submission == nil || !missing.isEmpty || sending)
                         .accessibilityIdentifier("submit.send")
                 }
             }
@@ -119,6 +117,18 @@ struct TaskSubmitView: View {
                 guard let item else { return }
                 Task { await pick(item) }
             }
+        }
+    }
+
+    private var videoSection: some View {
+        Section {
+            VideoAttachmentRow(
+                video: $video, hasUploaded: assignment?.videoFileId != nil, limitSeconds: nil, identifier: "submit.video", problem: $videoProblem
+            )
+        } header: {
+            Text("Видео")
+        } footer: {
+            Text("Видео сожмётся до 720p, не больше \(VideoRules.maxBytes / 1024 / 1024) МБ.")
         }
     }
 
@@ -162,7 +172,7 @@ struct TaskSubmitView: View {
         guard let submission else { return }
         sending = true
         defer { sending = false }
-        switch await auth.tasks.submit(task.id, submission, photo: task.requirePhoto ? photo : nil) {
+        switch await auth.tasks.submit(task.id, submission, photo: task.requirePhoto ? photo : nil, video: task.requireVideo ? video?.data : nil) {
         case .success:
             onDone()
             dismiss()

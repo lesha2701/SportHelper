@@ -41,6 +41,15 @@ public final class TasksService: Sendable {
         try await client.upload(path(id, "/submit/photo"), file: UploadFile(filename: filename, mimeType: mimeType, data: photo))
     }
 
+    /// Attaches the video the task asks for (do it before `submit`, which checks that it is there). A video takes a while to be stored.
+    public func attachVideo(_ video: Data, filename: String, to id: UUID) async throws -> TaskAssignment {
+        try await client.upload(
+            path(id, "/submit/video"), file: UploadFile(filename: filename, mimeType: VideoRules.mimeType, data: video), timeout: Self.videoTimeout
+        )
+    }
+
+    static let videoTimeout: TimeInterval = 180
+
     /// The coach accepts a submission or sends it back with a comment.
     public func review(_ id: UUID, player: UUID, decision: TaskDecision, comment: String) async throws -> TaskAssignment {
         let text = comment.trimmingCharacters(in: .whitespacesAndNewlines)

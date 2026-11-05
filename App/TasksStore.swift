@@ -19,9 +19,19 @@ final class TasksStore {
     func start(_ id: UUID) async -> Result<TaskAssignment, APIError> { await run { try await self.service.start(id) } }
 
     /// Hands the task in. A photo the task asks for goes first (the server checks that it is there).
-    func submit(_ id: UUID, _ submission: TaskSubmission, photo: Data?) async -> Result<TaskAssignment, APIError> {
+    func submit(_ id: UUID, _ submission: TaskSubmission, photo: Data?, video: Data? = nil) async -> Result<TaskAssignment, APIError> {
         await run {
             if let photo { _ = try await self.service.attachPhoto(photo, filename: "photo.jpg", mimeType: "image/jpeg", to: id) }
+            if let video {
+                do {
+                    _ = try await self.service.attachVideo(video, filename: "video.mp4", to: id)
+                } catch let error as APIError {
+                    // The refusals of a picture and of a video share their codes, and `russian` says them for a picture: the video's own
+                    // words go under a code of their own so they are not said again.
+                    guard let text = VideoRules.russian(code: error.code) else { throw error }
+                    throw APIError(status: error.status, code: "video_\(error.code ?? "refused")", message: text, field: error.field, retryAfter: error.retryAfter)
+                }
+            }
             return try await self.service.submit(id, submission)
         }
     }
