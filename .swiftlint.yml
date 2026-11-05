@@ -3,7 +3,7 @@ line_length:
   error: 220
 identifier_name:
   min_length: 2
-  excluded: [id, e, n]
+  excluded: [id, e, n, c, a, b]
 disabled_rules:
   - trailing_comma
   - large_tuple

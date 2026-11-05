@@ -53,4 +53,18 @@ final class PersonalTrainingUITests: PersonalTrainingUITestCase {
         XCTAssertTrue(error.waitForExistence(timeout: 60), "neither a suggestion nor an explanation")
         XCTAssertFalse(error.label.contains("YANDEX"), "a server setting is shown to the person: \(error.label)")
     }
+
+    func testTheDatePickerSpeaksRussian() throws {
+        try openForm()
+        let date = app.datePickers["trainingForm.date"].firstMatch
+        scrollUntilVisible(date)
+        // the compact picker shows the date itself: a Russian month, never an English one
+        date.buttons.firstMatch.tap()
+        let shown = app.descendants(matching: .any).allElementsBoundByIndex.prefix(150).map { "\($0.label)|\(($0.value as? String) ?? "")" }.joined(separator: " ; ")
+        let months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря",
+                      "янв", "февр", "мар", "апр", "июн", "июл", "авг", "сент", "окт", "нояб", "дек"]
+        XCTAssertTrue(months.contains { shown.lowercased().contains($0) }, "the date is not in Russian: \(shown)")
+        XCTAssertFalse(["January", "February", "March", "April", "May ", "June", "July", "August", "September", "October", "November", "December"]
+            .contains { shown.contains($0) }, "an English month on the calendar: \(shown)")
+    }
 }

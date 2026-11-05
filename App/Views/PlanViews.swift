@@ -218,7 +218,11 @@ struct PlanItemFormView: View {
     @State private var saving = false
     @State private var error: String?
 
-    private var plan: Plan { switch mode { case .add(let plan, _), .edit(let plan, _): plan } }
+    private var plan: Plan {
+        switch mode {
+        case .add(let plan, _), .edit(let plan, _): plan
+        }
+    }
     private var isAdd: Bool { if case .add = mode { true } else { false } }
 
     var body: some View {

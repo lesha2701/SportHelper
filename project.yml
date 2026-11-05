@@ -1,6 +1,7 @@
 name: SportArena
 options:
   bundleIdPrefix: ru.sportarenaglobal
+  developmentLanguage: ru
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true

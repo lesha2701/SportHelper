@@ -146,7 +146,7 @@ struct MatchesServiceTests {
         _ = try await service.update(matchId, try #require(input()), status: .completed)
         let request = try #require(seen.all.first)
         #expect(request.httpMethod == "PUT" && request.url?.path == "/api/matches/\(matchId.uuidString.lowercased())")
-        #expect(String(decoding: try #require(request.bodyData), as: UTF8.self).contains("\"status\":\"completed\""))
+        #expect((String(data: try #require(request.bodyData), encoding: .utf8) ?? "").contains("\"status\":\"completed\""))
     }
 
     @Test func theSquadReplacesWhatWasThereAndTheScoreHasItsOwnPath() async throws {

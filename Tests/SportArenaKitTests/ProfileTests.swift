@@ -154,6 +154,8 @@ struct ProfileServiceTests {
         #expect(contentType.hasPrefix("multipart/form-data; boundary=Boundary-"))
         let boundary = String(contentType.dropFirst("multipart/form-data; boundary=".count))
         let body = try #require(request.bodyData)
+        // the body holds JPEG bytes, which are not valid UTF-8: the lossy decoding is what is wanted here
+        // swiftlint:disable:next optional_data_string_conversion
         let text = String(decoding: body, as: UTF8.self)
         #expect(text.hasPrefix("--\(boundary)\r\n") && text.hasSuffix("\r\n--\(boundary)--\r\n"))
         #expect(text.contains(#"name="file"; filename="me_.jpg""#))  // a quote in a file name cannot break out of the header

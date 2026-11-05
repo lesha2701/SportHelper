@@ -129,7 +129,7 @@ struct TrainingsServiceTests {
         _ = try await service.update(training, try #require(input()), status: .completed)
         let request = try #require(seen.all.first)
         #expect(request.httpMethod == "PUT" && request.url?.path == "/api/trainings/\(training.uuidString.lowercased())")
-        #expect(String(decoding: try #require(request.bodyData), as: UTF8.self).contains("\"status\":\"completed\""))
+        #expect((String(data: try #require(request.bodyData), encoding: .utf8) ?? "").contains("\"status\":\"completed\""))
     }
 
     @Test func deletingAndCancellingASeriesUseTheirOwnPaths() async throws {

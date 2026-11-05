@@ -117,7 +117,7 @@ struct ChatServiceTests {
         let request = try #require(seen.all.first)
         #expect(request.url?.path.hasSuffix("/messages/media") == true)
         #expect(request.value(forHTTPHeaderField: "Content-Type")?.hasPrefix("multipart/form-data") == true)
-        let text = String(decoding: try #require(request.bodyData), as: UTF8.self)
+        let text = (String(data: try #require(request.bodyData), encoding: .utf8) ?? "")
         #expect(text.contains("name=\"client_key\"") && text.contains("name=\"body\"") && text.contains("Смотри"))
     }
 
@@ -126,7 +126,7 @@ struct ChatServiceTests {
         let (service, _) = make { request in seen.add(request); return (204, [:], Data()) }
         try await service.markRead(upTo: 77, in: chat)
         let body = try #require(seen.all.first?.bodyData)
-        #expect(String(decoding: body, as: UTF8.self).contains("\"up_to_id\":77"))
+        #expect((String(data: body, encoding: .utf8) ?? "").contains("\"up_to_id\":77"))
     }
 
     @Test func aClosedChatSaysWhy() async throws {

@@ -271,7 +271,7 @@ struct TasksServiceTests {
         let request = try #require(seen.all.first)
         #expect(request.url?.path == "/api/tasks/\(taskId.uuidString.lowercased())/submit/photo")
         #expect(request.value(forHTTPHeaderField: "Content-Type")?.hasPrefix("multipart/form-data") == true)
-        #expect(String(decoding: try #require(request.bodyData), as: UTF8.self).contains("name=\"file\"; filename=\"photo.jpg\""))
+        #expect((String(data: try #require(request.bodyData), encoding: .utf8) ?? "").contains("name=\"file\"; filename=\"photo.jpg\""))
     }
 
     @Test func aVideoIsUploadedAsMp4MultipartToTheSubmitVideoPathWithALongTimeout() async throws {
@@ -281,7 +281,7 @@ struct TasksServiceTests {
         let request = try #require(seen.all.first)
         #expect(request.url?.path == "/api/tasks/\(taskId.uuidString.lowercased())/submit/video" && request.httpMethod == "POST")
         #expect(request.timeoutInterval >= 120, "a video takes a while to be stored")
-        let body = String(decoding: try #require(request.bodyData), as: UTF8.self)
+        let body = (String(data: try #require(request.bodyData), encoding: .utf8) ?? "")
         #expect(body.contains("name=\"file\"; filename=\"video.mp4\"") && body.contains("Content-Type: video/mp4"))
     }
 

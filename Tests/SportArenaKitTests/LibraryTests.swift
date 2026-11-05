@@ -301,7 +301,7 @@ struct LibraryServiceTests {
         _ = try await service.attachVideo(Data([1, 2, 3]), filename: "video.mp4", to: exerciseId)
         let request = try #require(seen.all.first)
         #expect(request.url?.path == "/api/exercises/\(exerciseId.uuidString.lowercased())/video" && request.timeoutInterval >= 120)
-        #expect(String(decoding: try #require(request.bodyData), as: UTF8.self).contains("Content-Type: video/mp4"))
+        #expect((String(data: try #require(request.bodyData), encoding: .utf8) ?? "").contains("Content-Type: video/mp4"))
     }
 
     @Test func thePlanCallsUseTheirOwnPaths() async throws {
