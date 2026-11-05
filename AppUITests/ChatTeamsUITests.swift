@@ -3,7 +3,7 @@ import XCTest
 /// Chats and teams, against the local server. The data comes from the local seed script (`seed_ios_chat.py`): a team the test accounts
 /// belong to, an invitation token for a second athlete (SAG_INVITE), the new team's name (SAG_TEAM_NAME) and a paid upcoming session.
 final class ChatTeamsUITests: SignedInUITestCase {
-    private var teamsTab: XCUIElement { app.tabBars.buttons["Команды"] }
+    private var teamsTab: XCUIElement { app.mainTabBar.buttons["Команды"] }
     private func element(_ id: String) -> XCUIElement { app.descendants(matching: .any)[id].firstMatch }
     private func env(_ key: String) -> String? { ProcessInfo.processInfo.environment[key] }
 
@@ -59,7 +59,9 @@ final class ChatTeamsUITests: SignedInUITestCase {
         try openTeam()
         XCTAssertTrue(element("team.member").waitForExistence(timeout: 15), "no member listed")
         XCTAssertTrue(text(containing: "Состав").exists)
-        XCTAssertTrue(text(containing: "Ваша роль").exists)
+        // the role is a pill under the team's name (in capitals, so compared without case)
+        let roles = ["Главный тренер", "Помощник тренера", "Капитан", "Игрок"]
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label IN[c] %@", roles)).firstMatch.exists, "the person's role is not shown")
     }
 
     // MARK: personal training chat

@@ -11,7 +11,7 @@ final class RosterUITests: SignedInUITestCase {
 
     private func openTeam() throws {
         try launchSignedIn()
-        app.tabBars.buttons["Команды"].tap()
+        app.mainTabBar.buttons["Команды"].tap()
         if let name = ProcessInfo.processInfo.environment["SAG_TEAM_NAME"] {
             let row = app.staticTexts[name]
             XCTAssertTrue(row.waitForExistence(timeout: 15), "the team \(name) is not in the list")

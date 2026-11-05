@@ -24,8 +24,8 @@ final class StatsUITests: SignedInUITestCase {
 
     private func openTeam() throws {
         try launchSignedIn()
-        guard app.navigationBars["Тренерская панель"].waitForExistence(timeout: 10) else { throw XCTSkip("This needs a coach account.") }
-        app.tabBars.buttons["Команды"].tap()
+        guard app.staticTexts["Тренерская панель"].waitForExistence(timeout: 10) else { throw XCTSkip("This needs a coach account.") }
+        app.mainTabBar.buttons["Команды"].tap()
         XCTAssertTrue(app.navigationBars["Команды"].waitForExistence(timeout: 10))
         if let name = env["SAG_TEAM_NAME"] {
             let row = app.staticTexts[name]

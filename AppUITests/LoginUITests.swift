@@ -33,7 +33,7 @@ final class LoginUITests: SignedInUITestCase {
 
         app.launch()
 
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10), "the app should open signed in")
+        XCTAssertTrue(app.mainTabBar.waitForExistence(timeout: 10), "the app should open signed in")
         XCTAssertFalse(app.textFields["login.email"].exists)
     }
 }

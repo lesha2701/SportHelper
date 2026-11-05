@@ -70,7 +70,7 @@ struct TrainingFormView: View {
                         ForEach(TrainingReminder.options, id: \.self) { Text(TrainingReminder.title($0)).tag($0) }
                     }
                 }
-                Section("Описание") {
+                Section(sag: "Описание") {
                     TextField("Что будет на тренировке (необязательно)", text: $details, axis: .vertical).lineLimit(3...8)
                 }
                 if !isPersonal { planSection }
@@ -80,6 +80,7 @@ struct TrainingFormView: View {
                     Section { Text(message).foregroundStyle(.red).accessibilityIdentifier("trainingForm.error") }
                 }
             }
+            .sagScreen()
             .navigationTitle(isSchedule ? "Новая тренировка" : "Изменить тренировку")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

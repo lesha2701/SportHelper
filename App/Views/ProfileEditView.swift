@@ -49,7 +49,7 @@ struct ProfileEditView: View {
                 if let errorMessage {
                     Section { Label(errorMessage, systemImage: "exclamationmark.triangle").foregroundStyle(.red).accessibilityIdentifier("edit.error") }
                 }
-                Section("Основное") {
+                Section(sag: "Основное") {
                     TextField("Имя", text: $fullName).accessibilityIdentifier("edit.fullName")
                     Picker("Вид спорта", selection: $sport) {
                         if sport.isEmpty { Text("Выберите").tag("") }
@@ -58,6 +58,7 @@ struct ProfileEditView: View {
                 }
                 if user.isCoach { coachFields } else { playerFields }
             }
+            .sagScreen()
             .navigationTitle("Профиль")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -82,7 +83,7 @@ struct ProfileEditView: View {
 
     private var playerFields: some View {
         Group {
-            Section("Спортсмен") {
+            Section(sag: "Спортсмен") {
                 Picker("Уровень", selection: $level) {
                     Text("Не указан").tag("")
                     ForEach(SkillLevel.allCases) { Text($0.title).tag($0.rawValue) }
@@ -92,11 +93,11 @@ struct ProfileEditView: View {
                 number("Рост, см", text: $height, id: "edit.height")
                 number("Вес, кг", text: $weight, id: "edit.weight", decimal: true)
             }
-            Section("Цель") {
+            Section(sag: "Цель") {
                 TextField("Чего вы хотите добиться", text: $goals, axis: .vertical)
                     .lineLimit(2...6).accessibilityIdentifier("edit.goals")
             }
-            Section("Ограничения по нагрузке") {
+            Section(sag: "Ограничения по нагрузке") {
                 TextField("Травмы, противопоказания", text: $restrictions, axis: .vertical).lineLimit(2...6)
             }
         }
@@ -104,11 +105,11 @@ struct ProfileEditView: View {
 
     private var coachFields: some View {
         Group {
-            Section("Тренер") {
+            Section(sag: "Тренер") {
                 number("Опыт, лет", text: $experience, id: "edit.experience")
                 TextField("Специализация", text: $specialization)
             }
-            Section("О себе") {
+            Section(sag: "О себе") {
                 TextField("Расскажите о себе", text: $about, axis: .vertical).lineLimit(3...8).accessibilityIdentifier("edit.about")
             }
         }

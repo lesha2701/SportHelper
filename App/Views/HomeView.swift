@@ -30,13 +30,15 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    AppTopBar()
+                    heading
                     if user.isCoach { coachContent } else { playerContent }
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle(user.isCoach ? "Тренерская панель" : "Твой прогресс")
+            .background(Theme.bg.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
             .refreshable { await reload() }
             .task(id: scenePhase == .active) { if scenePhase == .active { await reload() } }
             .task(id: selectedTeam?.id) {
@@ -55,6 +57,24 @@ struct HomeView: View {
         }
     }
 
+    /// The panel under the top bar: «Главная» and the name of the screen, with the stripes of the site behind it.
+    private var heading: some View {
+        ZStack(alignment: .leading) {
+            Ornament(bold: false)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Главная").font(Theme.body(12, weight: .bold, relativeTo: .caption)).tracking(0.6).textCase(.uppercase).foregroundStyle(Theme.panelMuted)
+                Text(user.isCoach ? "Тренерская панель" : "Твой прогресс")
+                    .font(Theme.display(28, weight: .heavy, relativeTo: .title)).foregroundStyle(Theme.panelText)
+                    .accessibilityAddTraits(.isHeader)
+            }
+            .padding(.horizontal, 18).padding(.vertical, 20)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.panel)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous).strokeBorder(Theme.panelBorder, lineWidth: 1))
+    }
+
     private func reload() async {
         if case .loading = auth.teams.mine { await auth.teams.reloadMine() } else { await auth.teams.reloadMine() }
         async let events: Void = home.loadEvents()
@@ -71,10 +91,9 @@ struct HomeView: View {
     @ViewBuilder private var playerContent: some View {
         nextEventCard
         Button { quick = .personal } label: {
-            Label("Запланировать личную тренировку", systemImage: "plus.circle").frame(maxWidth: .infinity)
+            Label("Личная тренировка", systemImage: "plus")
         }
-        .buttonStyle(.bordered)
-        .tint(Theme.primary)
+        .buttonStyle(.sag)
         .accessibilityIdentifier("home.addPersonal")
         switch home.playerStats {
         case .loaded(let stats):
@@ -101,7 +120,8 @@ struct HomeView: View {
 
     private var tasksCard: some View {
         let todo = HomeLogic.tasksToDo(home.tasks.value ?? [])
-        return DashboardCard("Нужно сделать", trailing: AnyView(NavigationLink("Все задания") { MyTasksView() }.font(.subheadline).accessibilityIdentifier("home.allTasks"))) {
+        let allTasks = NavigationLink("Все задания") { MyTasksView() }.font(.subheadline).accessibilityIdentifier("home.allTasks")
+        return DashboardCard("Нужно сделать", trailing: AnyView(allTasks)) {
             if todo.isEmpty {
                 Text(home.tasks.value == nil ? "Загрузка…" : "Заданий на сейчас нет.").foregroundStyle(.secondary)
             }
@@ -137,7 +157,7 @@ struct HomeView: View {
             } description: {
                 Text("Создайте команду, чтобы видеть здесь тренировки, нагрузку и задания.")
             } actions: {
-                Button("Создать команду") { auth.router.tab = .teams }.buttonStyle(.borderedProminent).accessibilityIdentifier("home.createTeam")
+                Button("Создать команду") { auth.router.tab = .teams }.buttonStyle(.sag).accessibilityIdentifier("home.createTeam")
             }
         } else {
             if staffTeams.count > 1 { teamSwitcher }
@@ -161,8 +181,7 @@ struct HomeView: View {
             HStack {
                 ForEach(staffTeams) { team in
                     Button(team.name) { home.select(team.id) }
-                        .buttonStyle(.bordered)
-                        .tint(team.id == selectedTeam?.id ? Theme.primary : .secondary)
+                        .buttonStyle(TeamChipStyle(selected: team.id == selectedTeam?.id))
                         .accessibilityIdentifier("home.team")
                         .accessibilityValue(team.id == selectedTeam?.id ? "Выбрана" : "")
                 }
@@ -242,14 +261,15 @@ struct HomeView: View {
     private func quickButton(_ title: String, _ symbol: String, id: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 6) {
-                Image(systemName: symbol).font(.title3)
-                Text(title).font(.footnote.weight(.semibold))
+                Image(systemName: symbol).font(.title3).foregroundStyle(Theme.primary)
+                Text(title).font(Theme.display(13, relativeTo: .footnote)).tracking(0.5).textCase(.uppercase).foregroundStyle(Theme.text)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .padding(.vertical, 14)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous).strokeBorder(Theme.borderStrong, lineWidth: 1))
         }
-        .buttonStyle(.bordered)
-        .tint(Theme.primary)
+        .buttonStyle(.plain)
         .accessibilityIdentifier(id)
     }
 
@@ -317,9 +337,9 @@ struct HomeView: View {
 
     private func outcomeColor(_ outcome: MatchOutcome) -> Color {
         switch outcome {
-        case .win: .green
-        case .loss: .red
-        case .draw: .secondary
+        case .win: Theme.success
+        case .loss: Theme.danger
+        case .draw: Theme.textSecondary
         }
     }
 
@@ -339,30 +359,54 @@ struct HomeView: View {
     private func problem(_ message: String) -> some View {
         Label(message, systemImage: "exclamationmark.triangle").font(.footnote).foregroundStyle(.red)
             .frame(maxWidth: .infinity, alignment: .leading).padding(12)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+            .background(Theme.dangerTint, in: RoundedRectangle(cornerRadius: 12))
     }
 }
 
-/// The next event, big.
+/// A team in the switcher of the coach's home: a chip, red when it is the one on screen.
+private struct TeamChipStyle: ButtonStyle {
+    let selected: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(Theme.display(14, relativeTo: .subheadline)).tracking(0.4).textCase(.uppercase)
+            .foregroundStyle(selected ? Color.white : Theme.text)
+            .padding(.horizontal, 14).padding(.vertical, 9)
+            .background(selected ? Theme.primary : Theme.surface, in: RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous).strokeBorder(selected ? Color.clear : Theme.borderStrong, lineWidth: 1))
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+    }
+}
+
+/// The next event, big: the panel of the site with a red wave behind the text, the date as a red badge, the name in capitals.
 private struct HeroEventCard: View {
     let event: CalendarEvent
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 10) {
                 Text([LocalDateFormat.shortDay(event.date), event.time?.display].compactMap { $0 }.joined(separator: " · "))
-                    .font(.footnote.weight(.bold)).padding(.horizontal, 10).padding(.vertical, 4).background(.white.opacity(0.22), in: Capsule())
-                if let team = event.teamName { Text(team).font(.footnote).opacity(0.9) }
+                    .font(Theme.display(12, relativeTo: .caption)).tracking(1).textCase(.uppercase)
+                    .foregroundStyle(.white).padding(.horizontal, 10).padding(.vertical, 5).background(Theme.primary, in: Capsule())
+                if let team = event.teamName { Text(team).font(Theme.body(13)).foregroundStyle(Theme.panelMuted) }
                 Spacer()
-                Image(systemName: symbol).font(.title2)
             }
-            Text(event.title).font(.title2.bold()).multilineTextAlignment(.leading)
-            Text("Ближайшее событие").font(.footnote).opacity(0.85)
+            HStack(alignment: .bottom) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(event.title).font(Theme.display(30, weight: .heavy, relativeTo: .title)).textCase(.uppercase)
+                        .foregroundStyle(Theme.panelText).multilineTextAlignment(.leading)
+                    Text("Ближайшее событие").font(Theme.body(13.5)).foregroundStyle(Theme.panelMuted)
+                }
+                Spacer()
+                Image(systemName: symbol).font(.title).foregroundStyle(Theme.panelText)
+            }
         }
-        .foregroundStyle(.white)
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.primary.gradient, in: RoundedRectangle(cornerRadius: 20))
+        .padding(22)
+        .frame(maxWidth: .infinity, minHeight: 190, alignment: .topLeading)
+        .background { Ornament(bold: true).opacity(0.14).allowsHitTesting(false) }
+        .background(Theme.panel)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(Theme.panelBorder, lineWidth: 1))
         .accessibilityElement(children: .combine)
     }
 
@@ -380,14 +424,16 @@ private struct HeroEmptyCard: View {
     let text: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Нет ближайших событий").font(.title3.bold())
-            Text(text).font(.footnote).opacity(0.85)
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Нет ближайших событий").font(Theme.display(26, weight: .heavy, relativeTo: .title2)).textCase(.uppercase).foregroundStyle(Theme.panelText)
+            Text(text).font(Theme.body(13.5)).foregroundStyle(Theme.panelMuted)
         }
-        .foregroundStyle(.white)
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.primary.gradient, in: RoundedRectangle(cornerRadius: 20))
+        .padding(22)
+        .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
+        .background { Ornament(bold: true).opacity(0.14).allowsHitTesting(false) }
+        .background(Theme.panel)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(Theme.panelBorder, lineWidth: 1))
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("home.noEvents")
     }

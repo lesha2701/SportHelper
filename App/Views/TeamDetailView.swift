@@ -12,6 +12,10 @@ struct TeamDetailView: View {
     @State private var asking: (action: RosterAction, member: TeamMember)?
     /// The member whose list of actions is open (the swipe shows one «Ещё» button: four long titles do not fit the screen).
     @State private var choosing: TeamMember?
+    /// The section of the hub that is open.
+    @State private var hub: HubDestination?
+
+    private enum HubDestination: Hashable { case chat, trainings, tasks, matches, library, stats }
 
     init(model: TeamDetailModel) { _model = State(initialValue: model) }
 
@@ -33,8 +37,20 @@ struct TeamDetailView: View {
             if team.canManage { inviteSection }
             leaveSection
         }
+        .sagScreen()
         .navigationTitle(team.name)
         .navigationBarTitleDisplayMode(.inline)
+        .sagScreen()
+        .navigationDestination(item: $hub) { destination in
+            switch destination {
+            case .chat: ChatView(store: auth.chatStore(for: .team(team.id)))
+            case .trainings: TeamTrainingsView(team: team)
+            case .tasks: TeamTasksView(team: team)
+            case .matches: TeamMatchesView(team: team)
+            case .library: TeamLibraryView(team: team)
+            case .stats: TeamStatsView(team: team)
+            }
+        }
         .toolbar {
             if team.canManage {
                 ToolbarItem(placement: .topBarTrailing) { Button("Изменить") { editing = true }.accessibilityIdentifier("team.edit") }
@@ -75,71 +91,75 @@ struct TeamDetailView: View {
 
     private var headerSection: some View {
         Section {
-            if team.isWithoutCoach {
-                Label("В команде нет главного тренера", systemImage: "exclamationmark.circle").foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 14) {
+                    TeamAvatar(name: team.name, size: 60)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(team.name).font(Theme.display(26, weight: .heavy, relativeTo: .title2)).foregroundStyle(Theme.panelText)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let role = team.myRole {
+                            Text(role.title)
+                                .font(Theme.display(12, relativeTo: .caption)).tracking(1).textCase(.uppercase)
+                                .padding(.horizontal, 10).padding(.vertical, 4).background(Theme.primary, in: Capsule()).foregroundStyle(.white)
+                        }
+                    }
+                }
+                if team.isWithoutCoach {
+                    Label("В команде нет главного тренера", systemImage: "exclamationmark.circle").font(Theme.body(13)).foregroundStyle(Theme.warning)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    detail("Вид спорта", team.sport)
+                    if let age = team.ageCategory, !age.isEmpty { detail("Возраст", age) }
+                    if let level = team.level { detail("Уровень", level.title) }
+                }
+                if let text = team.description, !text.isEmpty { Text(text).font(Theme.body(14)).foregroundStyle(Theme.panelText) }
             }
-            LabeledContent("Вид спорта", value: team.sport)
-            if let age = team.ageCategory, !age.isEmpty { LabeledContent("Возраст", value: age) }
-            if let level = team.level { LabeledContent("Уровень", value: level.title) }
-            if let role = team.myRole { LabeledContent("Ваша роль", value: role.title) }
-            if let text = team.description, !text.isEmpty { Text(text).font(.subheadline) }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .background { Ornament(bold: false) }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Theme.panel)
+            .accessibilityElement(children: .contain)
         }
     }
 
+    private func detail(_ title: String, _ value: String) -> some View {
+        HStack {
+            Text(title).foregroundStyle(Theme.panelMuted)
+            Spacer()
+            Text(value).foregroundStyle(Theme.panelText)
+        }
+        .font(Theme.body(14))
+        .accessibilityElement(children: .combine)
+    }
+
+    /// The sections of the team as big tiles (the site's `hubGrid`), not as a long list of links.
     private var chatSection: some View {
         Section {
-            NavigationLink {
-                ChatView(store: auth.chatStore(for: .team(team.id)))
-            } label: {
-                HStack {
-                    Label("Чат команды", systemImage: "bubble.left.and.bubble.right")
-                    Spacer()
-                    let unread = auth.chatUnread.unread.forTeam(team.id)
-                    if unread > 0 {
-                        Text("\(unread)").font(.caption.bold()).foregroundStyle(.white)
-                            .padding(.horizontal, 7).padding(.vertical, 2).background(Theme.primary, in: Capsule())
-                    }
-                }
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                hubButton("Чат команды", "bubble.left.and.bubble.right", .chat, id: "team.chat", badge: auth.chatUnread.unread.forTeam(team.id))
+                hubButton("Тренировки", "figure.run", .trainings, id: "team.trainings")
+                hubButton("Задания", "checklist", .tasks, id: "team.tasks")
+                hubButton("Матчи", "sportscourt", .matches, id: "team.matches")
+                hubButton("Упражнения и планы", "book", .library, id: "team.library")
+                if team.canManage { hubButton("Статистика", "chart.bar", .stats, id: "team.stats") }
             }
-            .accessibilityIdentifier("team.chat")
-            NavigationLink {
-                TeamTrainingsView(team: team)
-            } label: {
-                Label("Тренировки команды", systemImage: "figure.run")
-            }
-            .accessibilityIdentifier("team.trainings")
-            NavigationLink {
-                TeamTasksView(team: team)
-            } label: {
-                Label("Задания", systemImage: "checklist")
-            }
-            .accessibilityIdentifier("team.tasks")
-            NavigationLink {
-                TeamMatchesView(team: team)
-            } label: {
-                Label("Матчи", systemImage: "sportscourt")
-            }
-            .accessibilityIdentifier("team.matches")
-            NavigationLink {
-                TeamLibraryView(team: team)
-            } label: {
-                Label("Упражнения и планы", systemImage: "book")
-            }
-            .accessibilityIdentifier("team.library")
-            if team.canManage {
-                NavigationLink {
-                    TeamStatsView(team: team)
-                } label: {
-                    Label("Статистика", systemImage: "chart.bar")
-                }
-                .accessibilityIdentifier("team.stats")
-            }
+            .padding(.vertical, 4)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
         }
+    }
+
+    private func hubButton(_ title: String, _ symbol: String, _ destination: HubDestination, id: String, badge: Int = 0) -> some View {
+        Button { hub = destination } label: { HubTile(title: title, symbol: symbol, badge: badge) }
+            .buttonStyle(.borderless)
+            .accessibilityIdentifier(id)
     }
 
     @ViewBuilder private var applicationsSection: some View {
         if !model.applications.isEmpty {
-            Section("Заявки на вступление (\(model.applications.count))") {
+            Section(sag: "Заявки на вступление (\(model.applications.count))") {
                 ForEach(model.applications) { request in
                     VStack(alignment: .leading, spacing: 8) {
                         Text(request.fullName).font(.headline)
@@ -163,14 +183,14 @@ struct TeamDetailView: View {
     @ViewBuilder private var membersSection: some View {
         switch model.members {
         case .loading:
-            Section("Состав") { ProgressView() }
+            Section(sag: "Состав") { ProgressView() }
         case .failed(let message):
-            Section("Состав") {
+            Section(sag: "Состав") {
                 Text(message).foregroundStyle(.red)
                 Button("Повторить") { Task { await model.load() } }
             }
         case .loaded(let members):
-            Section("Состав (\(members.count))") {
+            Section(sag: "Состав (\(members.count))") {
                 ForEach(members.sorted(by: Self.staffFirst)) { member in
                     let actions = rosterActions(for: member)
                     Group {
@@ -233,7 +253,7 @@ extension TeamDetailView {
     }
 
     private var inviteSection: some View {
-        Section("Приглашение") {
+        Section(sag: "Приглашение") {
             if let invite = model.invite, let url = URL(string: invite.link) {
                 Text(invite.link).font(.footnote).textSelection(.enabled).accessibilityIdentifier("team.inviteLink")
                 Text("Действует до \(invite.expiresAt.formatted(.dateTime.day().month(.wide).hour().minute().locale(Locale(identifier: "ru_RU"))))")
@@ -280,5 +300,37 @@ extension TeamDetailView {
             }
         }
         return (rank(a.role), a.fullName) < (rank(b.role), b.fullName)
+    }
+}
+
+/// One tile of the team's hub: an icon in a red square, the name of the section, an unread badge.
+private struct HubTile: View {
+    let title: String
+    let symbol: String
+    var badge = 0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: symbol)
+                    .font(.system(size: 18, weight: .medium)).foregroundStyle(Theme.primary)
+                    .frame(width: 38, height: 38)
+                    .background(Theme.primaryTint, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                Spacer()
+                if badge > 0 {
+                    Text("\(badge)").font(.caption.bold()).foregroundStyle(.white)
+                        .padding(.horizontal, 7).padding(.vertical, 2).background(Theme.primary, in: Capsule())
+                        .accessibilityLabel("Непрочитанных: \(badge)")
+                }
+            }
+            Text(title)
+                .font(Theme.display(17, relativeTo: .headline)).tracking(0.3).textCase(.uppercase).foregroundStyle(Theme.text)
+                .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 104, maxHeight: 104, alignment: .topLeading)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous).strokeBorder(Theme.border, lineWidth: 1))
+        .contentShape(Rectangle())
     }
 }

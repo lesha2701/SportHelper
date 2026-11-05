@@ -3,6 +3,11 @@ import XCTest
 /// Shared steps for the UI tests. They sign in against a REAL server (the one the Debug build points at, `http://localhost:8010`),
 /// so they need that server running with a test account. The credentials come from the environment, never from the repository:
 ///   TEST_RUNNER_SAG_EMAIL=... TEST_RUNNER_SAG_PASSWORD=... xcodebuild test ...
+extension XCUIApplication {
+    /// The app's own bottom bar (the system's tab bar is hidden: the site's bar is flat).
+    var mainTabBar: XCUIElement { otherElements["mainTabBar"].firstMatch }
+}
+
 class SignedInUITestCase: XCTestCase {
     var app: XCUIApplication!
 
@@ -20,13 +25,13 @@ class SignedInUITestCase: XCTestCase {
         return (email, password)
     }
 
-    var profileTab: XCUIElement { app.tabBars.buttons["Профиль"] }
+    var profileTab: XCUIElement { app.mainTabBar.buttons["Профиль"] }
 
     /// Launches the app on the sign-in screen. The session is kept between launches (that is the point of the app), so a previous
     /// run may have left the person signed in: sign out first.
     func launchSignedOut() {
         app.launch()
-        if app.tabBars.firstMatch.waitForExistence(timeout: 4) {
+        if app.mainTabBar.waitForExistence(timeout: 4) {
             profileTab.tap()
             scrollUntilVisible(app.buttons["main.logout"])
             app.buttons["main.logout"].tap()
@@ -63,7 +68,7 @@ class SignedInUITestCase: XCTestCase {
         let (email, password) = try credentials()
         launchSignedOut()
         signIn(email: email, password: password)
-        let opened = app.tabBars.firstMatch.waitForExistence(timeout: 10)
+        let opened = app.mainTabBar.waitForExistence(timeout: 10)
         let shown = app.staticTexts["login.error"].exists ? app.staticTexts["login.error"].label : "(no error shown)"
         XCTAssertTrue(opened, "the app did not open after signing in; the form says: \(shown)")
     }

@@ -45,6 +45,7 @@ struct BookingFlowView: View {
             Group {
                 if let sent { successView(sent) } else { form }
             }
+            .sagScreen()
             .navigationTitle("Запись на тренировку")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -85,7 +86,7 @@ struct BookingFlowView: View {
     }
 
     private func daySection(_ days: [DaySlots]) -> some View {
-        Section("Дата") {
+        Section(sag: "Дата") {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(days) { entry in
@@ -113,7 +114,7 @@ struct BookingFlowView: View {
 
     @ViewBuilder private func timeSection(_ days: [DaySlots]) -> some View {
         if let day = selectedDay, let entry = days.first(where: { $0.day == day }) {
-            Section("Время · \(LocalDateFormat.dayAndMonth(day))") {
+            Section(sag: "Время · \(LocalDateFormat.dayAndMonth(day))") {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: 8)], spacing: 8) {
                     ForEach(entry.slots) { slot in
                         Button { selectedSlot = slot } label: { Text(slot.time.display).frame(maxWidth: .infinity) }
@@ -132,14 +133,14 @@ struct BookingFlowView: View {
 
     @ViewBuilder private var detailsSections: some View {
         if profile.formats.count > 1 {
-            Section("Формат") {
+            Section(sag: "Формат") {
                 Picker("Формат", selection: $format) {
                     ForEach(profile.formats) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
             }
         }
-        Section("Пожелания тренеру") {
+        Section(sag: "Пожелания тренеру") {
             TextField("Необязательно", text: $notes, axis: .vertical).lineLimit(2...5).accessibilityIdentifier("booking.notes")
             if notes.count > BookingRequest.maxNotesLength {
                 Text("Не длиннее \(BookingRequest.maxNotesLength) символов.").font(.footnote).foregroundStyle(.red)

@@ -56,7 +56,7 @@ final class VideoUITests: SignedInUITestCase {
     /// A coach shows an exercise on video: picked in the form, uploaded after the exercise is saved, played from the exercise, and gone with it.
     func testACoachAttachesAVideoToAnExerciseAndPlaysIt() throws {
         try launchSignedIn()
-        let tab = app.tabBars.buttons["Библиотека"]
+        let tab = app.mainTabBar.buttons["Библиотека"]
         guard tab.waitForExistence(timeout: 8) else { throw XCTSkip("The library is for a coach.") }
         tab.tap()
         XCTAssertTrue(app.navigationBars["Библиотека"].waitForExistence(timeout: 10))

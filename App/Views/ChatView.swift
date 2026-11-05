@@ -43,6 +43,7 @@ struct ChatView: View {
                 conversation(info)
             }
         }
+        .sagScreen()
         .navigationTitle(store.conversationInfo?.title ?? "Чат")
         .navigationBarTitleDisplayMode(.inline)
         // Polling runs only while the app is on screen: nothing is fetched in the background.

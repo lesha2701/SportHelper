@@ -8,6 +8,18 @@ struct MainTabView: View {
     @Environment(\.scenePhase) private var scenePhase
     let user: AuthUser
 
+    private var bar: [SagTabBar.Item] {
+        var items = [
+            SagTabBar.Item(tab: .home, title: "Главная", symbol: "house"),
+            SagTabBar.Item(tab: .teams, title: "Команды", symbol: "trophy", badge: auth.chatUnread.teamTotal),
+        ]
+        if user.isCoach { items.append(SagTabBar.Item(tab: .library, title: "Библиотека", symbol: "book")) }
+        items.append(SagTabBar.Item(tab: .calendar, title: "Календарь", symbol: "calendar"))
+        if !user.isCoach { items.append(SagTabBar.Item(tab: .coaches, title: "Тренеры", symbol: "person.2")) }
+        items.append(SagTabBar.Item(tab: .profile, title: "Профиль", symbol: "person.crop.circle", badge: auth.chatUnread.bookingTotal))
+        return items
+    }
+
     var body: some View {
         @Bindable var router = auth.router
         return TabView(selection: $router.tab) {
@@ -35,6 +47,10 @@ struct MainTabView: View {
                 .tabItem { Label("Профиль", systemImage: "person.crop.circle") }
                 .badge(auth.chatUnread.bookingTotal)
                 .tag(AppTab.profile)
+        }
+        .toolbar(.hidden, for: .tabBar)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            SagTabBar(items: bar, selection: $router.tab)
         }
         // Unread counts are refreshed while the app is on screen.
         .task(id: scenePhase == .active) {

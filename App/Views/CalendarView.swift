@@ -20,7 +20,7 @@ struct CalendarView: View {
 
                 content
             }
-            .navigationTitle("Календарь")
+            .sagMainBar("Календарь")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -96,12 +96,12 @@ struct CalendarView: View {
                         ForEach(day.events) { row($0, showDay: true) }
                     }
                 } header: {
-                    Label("Нужно отметить: проведена или нет", systemImage: "exclamationmark.circle").foregroundStyle(.orange)
+                    Label("Нужно отметить: проведена или нет", systemImage: "exclamationmark.circle").foregroundStyle(Theme.warning)
                 }
             }
             daySections(grouped.upcoming)
             if !grouped.past.isEmpty {
-                Section("Прошедшие") {
+                Section(sag: "Прошедшие") {
                     ForEach(grouped.past) { day in
                         ForEach(day.events) { row($0, showDay: true) }
                     }
@@ -137,7 +137,7 @@ struct CalendarView: View {
 
     @ViewBuilder private func daySections(_ days: [CalendarDay]) -> some View {
         ForEach(days) { day in
-            Section(LocalDateFormat.heading(day.date, today: store.today)) {
+            Section(sag: LocalDateFormat.heading(day.date, today: store.today)) {
                 ForEach(day.events) { row($0, showDay: false) }
             }
         }
@@ -160,20 +160,34 @@ struct EventRow: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: symbol)
                 .font(.title3)
-                .foregroundStyle(event.isCancelled ? Color.secondary : Theme.primary)
+                .foregroundStyle(event.isCancelled ? Theme.textTertiary : stripe)
                 .frame(width: 28)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 Text(event.title)
-                    .font(.body.weight(.semibold))
+                    .font(Theme.body(16, weight: .semibold, relativeTo: .body))
                     .strikethrough(event.isCancelled)
-                    .foregroundStyle(event.isCancelled ? .secondary : .primary)
-                Text(whenText).font(.subheadline).foregroundStyle(.secondary)
-                if let team = event.teamName { Text(team).font(.footnote).foregroundStyle(.secondary) }
-                if let badge { Text(badge.text).font(.caption.weight(.semibold)).foregroundStyle(badge.color) }
+                    .foregroundStyle(event.isCancelled ? Theme.textTertiary : Theme.text)
+                Text(whenText).font(Theme.body(14, relativeTo: .subheadline)).foregroundStyle(Theme.textSecondary)
+                if let team = event.teamName { Text(team).font(Theme.body(13, relativeTo: .footnote)).foregroundStyle(Theme.textSecondary) }
+                if let badge { Text(badge.text).font(Theme.body(12, weight: .semibold, relativeTo: .caption)).foregroundStyle(badge.color) }
             }
         }
         .padding(.vertical, 2)
+        .padding(.leading, 8)
+        // the site's coloured line of an event: a training is red, a match coral, a task deadline amber
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 2).fill(event.isCancelled ? Theme.borderStrong : stripe).frame(width: 3)
+        }
+    }
+
+    private var stripe: Color {
+        switch event.kind {
+        case .training: Theme.primary
+        case .match: Theme.coral
+        case .taskDeadline: Theme.warning
+        case .other: Theme.textTertiary
+        }
     }
 
     private var symbol: String {
@@ -192,9 +206,9 @@ struct EventRow: View {
     }
 
     private var badge: (text: String, color: Color)? {
-        if event.isCompleted { return ("Проведена", .green) }
-        if event.isCancelled { return ("Отменена", .secondary) }
-        if event.isOverdue(today: today) { return ("Не отмечена", .orange) }
+        if event.isCompleted { return ("Проведена", Theme.success) }
+        if event.isCancelled { return ("Отменена", Theme.textTertiary) }
+        if event.isOverdue(today: today) { return ("Не отмечена", Theme.warning) }
         return nil
     }
 }

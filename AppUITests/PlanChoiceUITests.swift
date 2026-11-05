@@ -39,7 +39,7 @@ final class PlanChoiceUITests: SignedInUITestCase {
 
     func testATrainingScheduledWithAPlanShowsItAndTheCoachCanTakeItOff() throws {
         try launchSignedIn()
-        app.tabBars.buttons["Команды"].tap()
+        app.mainTabBar.buttons["Команды"].tap()
         if let name = ProcessInfo.processInfo.environment["SAG_TEAM_NAME"] {
             let row = app.staticTexts[name]
             XCTAssertTrue(row.waitForExistence(timeout: 15))

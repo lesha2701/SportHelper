@@ -27,6 +27,7 @@ struct IncomingRequestsView: View {
                 list(requests)
             }
         }
+        .sagScreen()
         .navigationTitle("Входящие заявки")
         .task { await store.reloadPending() }
     }
@@ -112,6 +113,7 @@ struct CoachBookingsView: View {
                 list(bookings)
             }
         }
+        .sagScreen()
         .navigationTitle("Записи")
         .task {
             await store.reloadCoachBookings()
@@ -143,7 +145,7 @@ struct CoachBookingsView: View {
 
     @ViewBuilder private func section(_ title: String, _ items: [Booking]) -> some View {
         if !items.isEmpty {
-            Section(title) {
+            Section(sag: title) {
                 ForEach(items) {
                     BookingCardView(
                         booking: $0, viewer: .coach, paymentsOn: false, isChecking: false, payError: nil, onPay: {}, onCheck: {},

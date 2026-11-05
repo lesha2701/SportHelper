@@ -18,6 +18,7 @@ struct TeamStatsView: View {
             .background(Color(.systemGroupedBackground))
             .refreshable { await fetch() }
         }
+        .sagScreen()
         .navigationTitle("Статистика")
         .navigationBarTitleDisplayMode(.inline)
         .task { await fetch() }

@@ -7,7 +7,7 @@ class PersonalTrainingUITestCase: SignedInUITestCase {
 
     func openForm() throws {
         try launchSignedIn()
-        app.tabBars.buttons["Календарь"].tap()
+        app.mainTabBar.buttons["Календарь"].tap()
         let add = element("calendar.addPersonal")
         XCTAssertTrue(add.waitForExistence(timeout: 10), "no button to add a personal training")
         add.tap()
@@ -18,7 +18,8 @@ class PersonalTrainingUITestCase: SignedInUITestCase {
         scrollUntilVisible(field)
         field.tap()
         field.typeText(text)
-        if element("keyboard.done").exists { element("keyboard.done").tap() }
+        // the «Готово» of the keyboard's bar comes a moment after the keyboard itself
+        if app.keyboards.count > 0, element("keyboard.done").waitForExistence(timeout: 2) { element("keyboard.done").tap() }
     }
 
     func field(_ id: String, _ index: Int = 0) -> XCUIElement { app.textFields.matching(identifier: id).element(boundBy: index) }

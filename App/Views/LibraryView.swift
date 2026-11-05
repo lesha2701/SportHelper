@@ -27,7 +27,7 @@ struct LibraryView: View {
                 case .templates: TemplatesListView()
                 }
             }
-            .navigationTitle("Библиотека")
+            .sagMainBar("Библиотека")
             .navigationDestination(for: LibraryRoute.self) { route in
                 switch route {
                 case .exercise(let id): ExerciseDetailView(exerciseId: id, readOnly: false)
@@ -207,17 +207,18 @@ struct TemplateDetailView: View {
                 }
             }
             if !template.exercises.isEmpty {
-                Section("Упражнения") {
+                Section(sag: "Упражнения") {
                     ForEach(template.exercises.sorted { $0.orderIndex < $1.orderIndex }) { Text($0.exerciseName ?? "Упражнение") }
                 }
             }
             if !template.requirements.isEmpty {
-                Section("Что нужно сдать") { ForEach(template.requirements) { Label($0.title, systemImage: "checkmark.square") } }
+                Section(sag: "Что нужно сдать") { ForEach(template.requirements) { Label($0.title, systemImage: "checkmark.square") } }
             }
             Section {
                 Text("Чтобы дать задание по шаблону, откройте команду → «Задания» → «+» и выберите шаблон.").font(.footnote).foregroundStyle(.secondary)
             }
         }
+        .sagScreen()
         .navigationTitle("Шаблон")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

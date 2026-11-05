@@ -23,7 +23,7 @@ struct DeleteAccountView: View {
                     Section {
                         Text("Аккаунт и ваши данные будут удалены. Пока не закончился срок хранения, удаление можно отменить в профиле.")
                     }
-                    Section("Подтвердите паролем") {
+                    Section(sag: "Подтвердите паролем") {
                         SecureField("Пароль", text: $password).textContentType(.password).accessibilityIdentifier("delete.password")
                         if let errorMessage { Text(errorMessage).font(.footnote).foregroundStyle(.red).accessibilityIdentifier("delete.error") }
                     }
@@ -34,6 +34,7 @@ struct DeleteAccountView: View {
                     }
                 }
             }
+            .sagScreen()
             .navigationTitle("Удаление аккаунта")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

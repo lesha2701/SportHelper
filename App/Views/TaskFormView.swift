@@ -130,6 +130,7 @@ struct TaskFormView: View {
                     Section { Text(message).foregroundStyle(.red).accessibilityIdentifier("taskForm.error") }
                 }
             }
+            .sagScreen()
             .navigationTitle(heading)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -184,7 +185,7 @@ struct TaskFormView: View {
 
     @ViewBuilder private var librarySection: some View {
         if !plans.isEmpty || !exercises.isEmpty || planId != nil || !exerciseIds.isEmpty {
-            Section("Из библиотеки") {
+            Section(sag: "Из библиотеки") {
                 if !plans.isEmpty || planId != nil {
                     Picker("План тренировки", selection: $planId) {
                         Text("Без плана").tag(UUID?.none)
@@ -204,7 +205,7 @@ struct TaskFormView: View {
     }
 
     private var audienceSection: some View {
-        Section("Кому") {
+        Section(sag: "Кому") {
             Picker("Кому", selection: $audienceKind) {
                 Text("Вся команда").tag(AudienceKind.team)
                 Text("Игроки").tag(AudienceKind.players)
@@ -372,6 +373,7 @@ struct ExercisePickerView: View {
             }
             Section { Text("Не больше \(LibraryLimits.maxTemplateExercises) упражнений.").font(.footnote).foregroundStyle(.secondary) }
         }
+        .sagScreen()
         .navigationTitle("Упражнения")
         .navigationBarTitleDisplayMode(.inline)
     }

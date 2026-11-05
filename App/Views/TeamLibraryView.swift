@@ -43,6 +43,7 @@ struct TeamLibraryView: View {
                 }
             }
         }
+        .sagScreen()
         .navigationTitle("Упражнения и планы")
         .navigationBarTitleDisplayMode(.inline)
         .task { await fetch() }

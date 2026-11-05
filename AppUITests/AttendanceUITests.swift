@@ -8,7 +8,7 @@ final class AttendanceUITests: SignedInUITestCase {
 
     private func openTeam() throws {
         try launchSignedIn()
-        app.tabBars.buttons["Команды"].tap()
+        app.mainTabBar.buttons["Команды"].tap()
         XCTAssertTrue(app.navigationBars["Команды"].waitForExistence(timeout: 10))
         if let name = ProcessInfo.processInfo.environment["SAG_TEAM_NAME"] {
             let row = app.staticTexts[name]

@@ -2,7 +2,7 @@ import XCTest
 
 /// The calendar, for the coach test account the local scenario fills with trainings (held and upcoming).
 final class CalendarUITests: SignedInUITestCase {
-    private var calendarTab: XCUIElement { app.tabBars.buttons["Календарь"] }
+    private var calendarTab: XCUIElement { app.mainTabBar.buttons["Календарь"] }
 
     private func openCalendar() throws {
         try launchSignedIn()

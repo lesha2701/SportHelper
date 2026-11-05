@@ -13,7 +13,7 @@ struct TeamsView: View {
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("Команды")
+                .sagMainBar("Команды")
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
@@ -54,13 +54,20 @@ struct TeamsView: View {
                 Text(user.isCoach ? "Создайте команду или вступите в существующую по приглашению." : "Попросите у тренера ссылку-приглашение и вступите в команду.")
             } actions: {
                 if user.isCoach {
-                    Button("Создать команду") { creating = true }.buttonStyle(.borderedProminent).accessibilityIdentifier("teams.createEmpty")
+                    Button("Создать команду") { creating = true }.buttonStyle(.sag).accessibilityIdentifier("teams.createEmpty")
                 }
                 Button("Вступить по приглашению") { joining = true }.accessibilityIdentifier("teams.joinEmpty")
             }
         case .loaded(let teams):
-            List(teams) { team in
-                NavigationLink(value: team) { row(team) }.accessibilityIdentifier("teams.team")
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(teams) { team in
+                        NavigationLink(value: team) { row(team).sagCard(padding: 14) }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("teams.team")
+                    }
+                }
+                .padding(16)
             }
             .refreshable {
                 await store.reloadMine()
@@ -72,14 +79,10 @@ struct TeamsView: View {
 
     private func row(_ team: Team) -> some View {
         HStack(spacing: 12) {
-            ZStack {
-                Circle().fill(Theme.primary.opacity(0.15))
-                Text(String(team.name.prefix(1)).uppercased()).font(.headline).foregroundStyle(Theme.primary)
-            }
-            .frame(width: 44, height: 44)
+            TeamAvatar(name: team.name, size: 48)
             VStack(alignment: .leading, spacing: 2) {
-                Text(team.name).font(.headline)
-                Text(subtitle(team)).font(.subheadline).foregroundStyle(.secondary)
+                Text(team.name).font(Theme.body(16, weight: .semibold, relativeTo: .headline)).foregroundStyle(Theme.text)
+                Text(subtitle(team)).font(Theme.body(13, relativeTo: .subheadline)).foregroundStyle(Theme.textSecondary)
             }
             Spacer()
             let unread = auth.chatUnread.unread.forTeam(team.id)
@@ -88,6 +91,7 @@ struct TeamsView: View {
                     .padding(.horizontal, 7).padding(.vertical, 2).background(Theme.primary, in: Capsule())
                     .accessibilityLabel("Непрочитанных: \(unread)")
             }
+            Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Theme.textTertiary)
         }
     }
 

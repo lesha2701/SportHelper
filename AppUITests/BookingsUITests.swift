@@ -21,7 +21,7 @@ final class BookingsUITests: SignedInUITestCase {
         profileTab.tap()
         // A coach's own listing is not offered to the coach, so this needs an athlete account.
         guard app.buttons["profile.myBookings"].waitForExistence(timeout: 10) else { throw XCTSkip("This test needs an athlete account.") }
-        app.tabBars.buttons["Тренеры"].tap()
+        app.mainTabBar.buttons["Тренеры"].tap()
         let listing = app.buttons["coaches.listing"].firstMatch
         XCTAssertTrue(listing.waitForExistence(timeout: 15), "no coach listing in the catalogue")
         listing.tap()

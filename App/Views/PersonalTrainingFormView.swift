@@ -55,7 +55,7 @@ struct PersonalTrainingFormView: View {
                     }
                 }
                 exercisesSection
-                Section("Пометки") {
+                Section(sag: "Пометки") {
                     TextField("Что важно помнить (необязательно)", text: $workout.notes, axis: .vertical).lineLimit(2...6)
                         .accessibilityIdentifier("personal.notes")
                 }
@@ -64,6 +64,7 @@ struct PersonalTrainingFormView: View {
                     Section { Text(message).foregroundStyle(.red).accessibilityIdentifier("trainingForm.error") }
                 }
             }
+            .sagScreen()
             .navigationTitle("Моя тренировка")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -134,7 +135,7 @@ struct PersonalTrainingFormView: View {
     // MARK: exercises
 
     private var exercisesSection: some View {
-        Section("Упражнения") {
+        Section(sag: "Упражнения") {
             Picker("Тип тренировки", selection: $workout.style) {
                 ForEach(WorkoutStyle.allCases) { Text($0.title).tag($0) }
             }

@@ -37,6 +37,7 @@ struct PlayerStatsView: View {
             .background(Color(.systemGroupedBackground))
             .refreshable { await fetch() }
         }
+        .sagScreen()
         .navigationTitle(isOwn ? "Статистика" : (name ?? "Статистика"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await fetch() }
@@ -245,6 +246,7 @@ struct MetricFormView: View {
                     Section { Text(message).foregroundStyle(.red).accessibilityIdentifier("metricForm.error") }
                 }
             }
+            .sagScreen()
             .navigationTitle(metric == nil ? "Новый показатель" : "Изменить показатель")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

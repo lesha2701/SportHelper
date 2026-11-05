@@ -25,6 +25,7 @@ struct TeamMatchesView: View {
                 list(matches)
             }
         }
+        .sagScreen()
         .navigationTitle("Матчи")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -61,7 +62,7 @@ struct TeamMatchesView: View {
 
     @ViewBuilder private func section(_ title: String, _ items: [TeamMatch]) -> some View {
         if !items.isEmpty {
-            Section(title) {
+            Section(sag: title) {
                 ForEach(items) { match in
                     NavigationLink {
                         MatchDetailView(matchId: match.id, team: team)
@@ -143,6 +144,7 @@ struct MatchDetailView: View {
                 details(match)
             }
         }
+        .sagScreen()
         .navigationTitle("Матч")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -192,7 +194,7 @@ struct MatchDetailView: View {
 
     @ViewBuilder private func resultSection(_ match: TeamMatch) -> some View {
         if match.hasScore || team.canManage {
-            Section("Результат") {
+            Section(sag: "Результат") {
                 if let score = match.scoreText {
                     HStack {
                         Text(score).font(.largeTitle.bold().monospacedDigit()).accessibilityIdentifier("match.score")
@@ -213,7 +215,7 @@ struct MatchDetailView: View {
 
     @ViewBuilder private func squadSection(_ match: TeamMatch) -> some View {
         if !match.roster.isEmpty || team.canManage {
-            Section(match.roster.isEmpty ? "Состав" : "Состав (\(match.roster.count))") {
+            Section(sag: match.roster.isEmpty ? "Состав" : "Состав (\(match.roster.count))") {
                 if match.roster.isEmpty { Text("Состав ещё не назван.").foregroundStyle(.secondary) }
                 ForEach(match.roster) { player in Text(player.fullName).accessibilityIdentifier("match.player") }
                 if team.canManage {
@@ -297,6 +299,7 @@ struct MatchFormView: View {
                     Section { Text(message).foregroundStyle(.red).accessibilityIdentifier("matchForm.error") }
                 }
             }
+            .sagScreen()
             .navigationTitle(isAdd ? "Новый матч" : "Изменить матч")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -366,7 +369,7 @@ struct MatchResultView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Счёт") {
+                Section(sag: "Счёт") {
                     HStack {
                         TextField("Мы", text: $ours).keyboardType(.numberPad).multilineTextAlignment(.center)
                             .font(.title.bold()).accessibilityIdentifier("matchResult.ours")
@@ -376,7 +379,7 @@ struct MatchResultView: View {
                     }
                     Text("Слева — наши голы (очки), справа — соперника «\(match.opponentName)».").font(.footnote).foregroundStyle(.secondary)
                 }
-                Section("Комментарий") {
+                Section(sag: "Комментарий") {
                     TextField("Как прошёл матч (необязательно)", text: $comment, axis: .vertical).lineLimit(3...8)
                         .accessibilityIdentifier("matchResult.comment")
                 }
@@ -384,6 +387,7 @@ struct MatchResultView: View {
                     Section { Text(error).foregroundStyle(.red).accessibilityIdentifier("matchResult.error") }
                 }
             }
+            .sagScreen()
             .navigationTitle("Результат матча")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -468,6 +472,7 @@ struct MatchSquadView: View {
                     }
                 }
             }
+            .sagScreen()
             .navigationTitle("Состав на матч")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -16,15 +16,14 @@ struct DashboardCard<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text(title).font(.headline)
+                Text(title).font(Theme.display(18, relativeTo: .headline)).tracking(0.4).textCase(.uppercase).foregroundStyle(Theme.text)
+                    .accessibilityAddTraits(.isHeader)
                 Spacer()
                 trailing
             }
             content
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .sagCard(padding: 16, radius: 16)
     }
 }
 
@@ -37,16 +36,8 @@ struct StatTiles: View {
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
             ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.0).font(.title.bold()).minimumScaleFactor(0.7).lineLimit(1)
-                    Text(item.1).font(.footnote).lineLimit(2)
-                }
-                .foregroundStyle(index == 0 ? Color.white : Color.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(14)
-                .background(index == 0 ? AnyShapeStyle(Theme.primary) : AnyShapeStyle(Color(.secondarySystemGroupedBackground)), in: RoundedRectangle(cornerRadius: 16))
-                .accessibilityElement(children: .combine)
-                .accessibilityIdentifier("stats.tile")
+                StatTile(value: item.0, label: item.1, emphasized: index == 0)
+                    .accessibilityIdentifier("stats.tile")
             }
         }
     }
@@ -59,9 +50,9 @@ struct StatRow: View {
 
     var body: some View {
         HStack {
-            Text(title).foregroundStyle(.secondary)
+            Text(title).font(Theme.body(15)).foregroundStyle(Theme.textSecondary)
             Spacer()
-            Text(value).fontWeight(.semibold)
+            Text(value).font(Theme.body(15, weight: .semibold)).foregroundStyle(Theme.text)
         }
         .accessibilityElement(children: .combine)
     }
@@ -93,7 +84,7 @@ struct AnalysisCard: View {
                     Text(text == nil ? button : "Обновить").frame(maxWidth: .infinity)
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.sag)
             .disabled(loading)
             .accessibilityIdentifier(identifier)
         }

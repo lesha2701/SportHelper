@@ -9,6 +9,7 @@ struct ComingSoonView: View {
     var body: some View {
         NavigationStack {
             ContentUnavailableView(title, systemImage: symbol, description: Text(text))
+                .sagScreen()
                 .navigationTitle(title)
         }
     }

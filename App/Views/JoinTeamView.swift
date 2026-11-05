@@ -23,6 +23,7 @@ struct JoinTeamView: View {
                     if let error { Section { Text(error).foregroundStyle(.red).accessibilityIdentifier("join.error") } }
                 }
             }
+            .sagScreen()
             .navigationTitle("Вступить в команду")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button(outcome == nil ? "Отмена" : "Готово") { dismiss() } } }
@@ -51,7 +52,7 @@ struct JoinTeamView: View {
     }
 
     private func teamSection(_ team: Team) -> some View {
-        Section("Команда") {
+        Section(sag: "Команда") {
             Text(team.name).font(.headline).accessibilityIdentifier("join.teamName")
             LabeledContent("Вид спорта", value: team.sport)
             if let level = team.level { LabeledContent("Уровень", value: level.title) }

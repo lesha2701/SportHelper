@@ -30,6 +30,7 @@ struct ListingDetailView: View {
             case .loaded(let profile): details(profile)
             }
         }
+        .sagScreen()
         .navigationTitle("Объявление")
         .navigationBarTitleDisplayMode(.inline)
         .task { await fetch() }
@@ -53,10 +54,10 @@ struct ListingDetailView: View {
                 if let years = profile.experienceYears { LabeledContent("Опыт тренера", value: Russian.years(years)) }
                 if let rating = card.ratingText { LabeledContent("Рейтинг", value: "\(rating) (\(profile.reviewCount))") }
             }
-            if let text = profile.description, !text.isEmpty { Section("Об услуге") { Text(text) } }
-            if let text = profile.coachDescription, !text.isEmpty { Section("О тренере") { Text(text) } }
+            if let text = profile.description, !text.isEmpty { Section(sag: "Об услуге") { Text(text) } }
+            if let text = profile.coachDescription, !text.isEmpty { Section(sag: "О тренере") { Text(text) } }
             if !profile.recentReviews.isEmpty {
-                Section("Отзывы") {
+                Section(sag: "Отзывы") {
                     ForEach(profile.recentReviews) { review in
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {

@@ -10,7 +10,7 @@ final class LibraryUITests: SignedInUITestCase {
 
     private func openLibrary(_ section: String? = nil) throws {
         try launchSignedIn()
-        let tab = app.tabBars.buttons["Библиотека"]
+        let tab = app.mainTabBar.buttons["Библиотека"]
         guard tab.waitForExistence(timeout: 8) else { throw XCTSkip("The library is for a coach.") }
         tab.tap()
         XCTAssertTrue(app.navigationBars["Библиотека"].waitForExistence(timeout: 10))
@@ -126,7 +126,7 @@ final class LibraryUITests: SignedInUITestCase {
         element("taskForm.save").tap()
         XCTAssertTrue(reveal(name).exists, "the new template is not in the list")
 
-        app.tabBars.buttons["Команды"].tap()
+        app.mainTabBar.buttons["Команды"].tap()
         if let team = env["SAG_TEAM_NAME"] {
             XCTAssertTrue(app.staticTexts[team].waitForExistence(timeout: 15))
             app.staticTexts[team].tap()
@@ -146,7 +146,7 @@ final class LibraryUITests: SignedInUITestCase {
         XCTAssertEqual(title.value as? String, name, "the form should be filled in from the template")
         app.buttons["Отмена"].tap()
 
-        app.tabBars.buttons["Библиотека"].tap()
+        app.mainTabBar.buttons["Библиотека"].tap()
         reveal(name).tap()
         XCTAssertTrue(element("template.title").waitForExistence(timeout: 10))
         element("template.actions").tap()
@@ -158,8 +158,8 @@ final class LibraryUITests: SignedInUITestCase {
     func testAPlayerReadsWhatTheCoachOpenedToTheTeamAndHasNoLibraryTab() throws {
         guard let exercise = env["SAG_EXERCISE"], let plan = env["SAG_PLAN"] else { throw XCTSkip("Set TEST_RUNNER_SAG_EXERCISE and TEST_RUNNER_SAG_PLAN.") }
         try launchSignedIn()
-        if app.tabBars.buttons["Библиотека"].waitForExistence(timeout: 4) { throw XCTSkip("This needs a player, the account is a coach.") }
-        app.tabBars.buttons["Команды"].tap()
+        if app.mainTabBar.buttons["Библиотека"].waitForExistence(timeout: 4) { throw XCTSkip("This needs a player, the account is a coach.") }
+        app.mainTabBar.buttons["Команды"].tap()
         if let team = env["SAG_TEAM_NAME"] {
             XCTAssertTrue(app.staticTexts[team].waitForExistence(timeout: 15))
             app.staticTexts[team].tap()

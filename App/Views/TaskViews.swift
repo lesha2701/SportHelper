@@ -37,6 +37,7 @@ struct TeamTasksView: View {
                 list(tasks)
             }
         }
+        .sagScreen()
         .navigationTitle("Задания")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -140,6 +141,7 @@ struct TaskDetailView: View {
                 details(task)
             }
         }
+        .sagScreen()
         .navigationTitle("Задание")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -194,12 +196,12 @@ struct TaskDetailView: View {
                 }
             }
             if !task.exercises.isEmpty {
-                Section("Упражнения") {
+                Section(sag: "Упражнения") {
                     ForEach(task.exercises.sorted { $0.orderIndex < $1.orderIndex }) { Text($0.exerciseName ?? "Упражнение") }
                 }
             }
             if !task.requirements.isEmpty {
-                Section("Что нужно сдать") {
+                Section(sag: "Что нужно сдать") {
                     ForEach(task.requirements) { Label($0.title, systemImage: "checkmark.square") }
                 }
             }
@@ -210,7 +212,7 @@ struct TaskDetailView: View {
 
     @ViewBuilder private func playerSection(_ task: TeamTask) -> some View {
         if let mine = auth.user.flatMap({ task.assignment(of: $0.id) }) {
-            Section("Ваше выполнение") {
+            Section(sag: "Ваше выполнение") {
                 HStack {
                     Text("Статус")
                     Spacer()
@@ -235,7 +237,7 @@ struct TaskDetailView: View {
     }
 
     private func staffSection(_ task: TeamTask) -> some View {
-        Section("Выполнение (\(task.acceptedCount) из \(task.activeAssignments.count) принято)") {
+        Section(sag: "Выполнение (\(task.acceptedCount) из \(task.activeAssignments.count) принято)") {
             if task.assignments.isEmpty { Text("Задание никому не назначено.").foregroundStyle(.secondary) }
             ForEach(task.assignments) { assignment in
                 NavigationLink {
@@ -361,17 +363,17 @@ struct AssignmentReviewView: View {
                     Text(assignment.status.title).fontWeight(.semibold).foregroundStyle(assignment.status.color).accessibilityIdentifier("review.status")
                 }
             }
-            Section("Что сдано") {
+            Section(sag: "Что сдано") {
                 if assignment.submittedAt == nil && assignment.status != .submitted {
                     Text("Пока ничего не сдано.").foregroundStyle(.secondary)
                 }
                 SubmissionDetails(task: task, assignment: assignment)
             }
             if let previous = assignment.coachComment, !previous.isEmpty {
-                Section("Ваш комментарий") { Text(previous) }
+                Section(sag: "Ваш комментарий") { Text(previous) }
             }
             if canReview {
-                Section("Решение") {
+                Section(sag: "Решение") {
                     TextField("Комментарий игроку (необязательно)", text: $comment, axis: .vertical).lineLimit(2...6)
                         .accessibilityIdentifier("review.comment")
                     if comment.count > TaskLimits.maxReviewComment {
@@ -388,6 +390,7 @@ struct AssignmentReviewView: View {
                 }
             }
         }
+        .sagScreen()
         .navigationTitle("Выполнение")
         .navigationBarTitleDisplayMode(.inline)
     }

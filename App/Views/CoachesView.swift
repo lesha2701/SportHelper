@@ -15,7 +15,7 @@ struct CoachesView: View {
 
     private var screen: some View {
         content
-            .navigationTitle("Тренеры")
+            .sagMainBar("Тренеры")
             .searchable(text: $query, prompt: "Имя тренера или объявление")
             .toolbar { ToolbarItem(placement: .topBarTrailing) { filterMenu } }
             .task(id: store.filter) { await store.reload() }

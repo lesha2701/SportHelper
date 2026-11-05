@@ -29,15 +29,15 @@ struct ExerciseDetailView: View {
                     InfoRow(title: "Инвентарь", text: exercise.equipment)
                 }
                 if [exercise.technique, exercise.commonMistakes, exercise.warnings].contains(where: { !($0 ?? "").isEmpty }) {
-                    Section("Как делать") {
+                    Section(sag: "Как делать") {
                         InfoRow(title: "Техника", text: exercise.technique)
                         InfoRow(title: "Частые ошибки", text: exercise.commonMistakes)
                         InfoRow(title: "Предупреждения", text: exercise.warnings)
                     }
                 }
-                if let video = exercise.videoFileId { Section("Видео") { WatchVideoButton(fileId: video) } }
+                if let video = exercise.videoFileId { Section(sag: "Видео") { WatchVideoButton(fileId: video) } }
                 if !readOnly {
-                    if !(exercise.coachComment ?? "").isEmpty { Section("Заметка тренера") { Text(exercise.coachComment ?? "") } }
+                    if !(exercise.coachComment ?? "").isEmpty { Section(sag: "Заметка тренера") { Text(exercise.coachComment ?? "") } }
                     ShareTeamsSection(sharedTeamIds: exercise.sharedTeamIds) { team, on in
                         switch await auth.library.shareExercise(exercise.id, team: team, on: on) {
                         case .success(let updated):
@@ -50,6 +50,7 @@ struct ExerciseDetailView: View {
             }
             .refreshable { await fetch() }
         }
+        .sagScreen()
         .navigationTitle("Упражнение")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -142,24 +143,24 @@ struct ExerciseFormView: View {
                         ForEach(TeamLevel.allCases) { Text($0.title).tag(TeamLevel?.some($0)) }
                     }
                 }
-                Section("Нагрузка") {
+                Section(sag: "Нагрузка") {
                     OptionalIntField(title: "Подходов", value: $input.sets, identifier: "exerciseForm.sets")
                     OptionalIntField(title: "Повторов", value: $input.reps, identifier: "exerciseForm.reps")
                     OptionalIntField(title: "Длительность, секунд", value: $input.durationSeconds)
                     OptionalIntField(title: "Отдых, секунд", value: $input.restSeconds)
                 }
-                Section("О упражнении") {
+                Section(sag: "О упражнении") {
                     TextField("Цель", text: $input.goal, axis: .vertical).lineLimit(1...3)
                     TextField("Описание", text: $input.description, axis: .vertical).lineLimit(2...8)
                     TextField("Инвентарь", text: $input.equipment, axis: .vertical).lineLimit(1...3)
                 }
-                Section("Как делать") {
+                Section(sag: "Как делать") {
                     TextField("Техника", text: $input.technique, axis: .vertical).lineLimit(2...8)
                     TextField("Частые ошибки", text: $input.commonMistakes, axis: .vertical).lineLimit(2...8)
                     TextField("Предупреждения", text: $input.warnings, axis: .vertical).lineLimit(1...4)
                     TextField("Заметка для себя", text: $input.coachComment, axis: .vertical).lineLimit(1...4)
                 }
-                Section("Фото") {
+                Section(sag: "Фото") {
                     if let photo, let image = UIImage(data: photo) {
                         Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 180).clipShape(RoundedRectangle(cornerRadius: 10))
                     }
@@ -182,6 +183,7 @@ struct ExerciseFormView: View {
                     Section { Text(message).foregroundStyle(.red).accessibilityIdentifier("exerciseForm.error") }
                 }
             }
+            .sagScreen()
             .navigationTitle(isCreate ? "Новое упражнение" : "Изменить упражнение")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

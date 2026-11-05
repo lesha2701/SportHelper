@@ -37,7 +37,7 @@ struct TeamFormView: View {
                         ForEach(TeamLevel.allCases) { Text($0.title).tag(TeamLevel?.some($0)) }
                     }
                 }
-                Section("Описание") {
+                Section(sag: "Описание") {
                     TextField("О команде (необязательно)", text: $details, axis: .vertical).lineLimit(3...8)
                     if details.count > TeamInput.maxDescription {
                         Text("Не длиннее \(TeamInput.maxDescription) символов.").font(.footnote).foregroundStyle(.red)
@@ -45,6 +45,7 @@ struct TeamFormView: View {
                 }
                 if let error { Section { Text(error).foregroundStyle(.red).accessibilityIdentifier("teamForm.error") } }
             }
+            .sagScreen()
             .navigationTitle(isCreate ? "Новая команда" : "Команда")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

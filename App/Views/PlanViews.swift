@@ -39,6 +39,7 @@ struct PlanDetailView: View {
             }
             .refreshable { await fetch() }
         }
+        .sagScreen()
         .navigationTitle("План")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -72,7 +73,7 @@ struct PlanDetailView: View {
     @ViewBuilder private func sectionView(_ plan: Plan, _ section: PlanSection) -> some View {
         let items = plan.exercises(in: section)
         if !items.isEmpty || !readOnly {
-            Section(section.title) {
+            Section(sag: section.title) {
                 ForEach(items) { item in
                     let row = VStack(alignment: .leading, spacing: 2) {
                         Text(item.exerciseName ?? "Упражнение")
@@ -146,7 +147,7 @@ struct PlanFormView: View {
                     SportPicker(sport: $input.sport, identifier: "planForm.sport")
                     OptionalIntField(title: "Длительность, минут", value: $input.durationMinutes, identifier: "planForm.duration")
                 }
-                Section("О плане") {
+                Section(sag: "О плане") {
                     TextField("Описание", text: $input.description, axis: .vertical).lineLimit(2...8)
                     TextField("Инвентарь", text: $input.equipment, axis: .vertical).lineLimit(1...3)
                     TextField("Заметка для себя", text: $input.comment, axis: .vertical).lineLimit(1...4)
@@ -155,6 +156,7 @@ struct PlanFormView: View {
                     Section { Text(message).foregroundStyle(.red).accessibilityIdentifier("planForm.error") }
                 }
             }
+            .sagScreen()
             .navigationTitle(isCreate ? "Новый план" : "Изменить план")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -237,6 +239,7 @@ struct PlanItemFormView: View {
                     form(list)
                 }
             }
+            .sagScreen()
             .navigationTitle(isAdd ? "Упражнение в план" : "Упражнение в плане")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -261,7 +264,7 @@ struct PlanItemFormView: View {
                     ForEach(PlanSection.allCases) { Text($0.title).tag($0) }
                 }
             }
-            Section("Как делать в этом плане") {
+            Section(sag: "Как делать в этом плане") {
                 OptionalIntField(title: "Подходов", value: binding.sets)
                 OptionalIntField(title: "Повторов", value: binding.reps, identifier: "planItem.reps")
                 OptionalIntField(title: "Длительность, секунд", value: binding.durationSeconds)

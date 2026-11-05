@@ -31,6 +31,7 @@ struct TeamTrainingsView: View {
                 list(trainings)
             }
         }
+        .sagScreen()
         .navigationTitle("Тренировки")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -67,7 +68,7 @@ struct TeamTrainingsView: View {
 
     @ViewBuilder private func section(_ title: String, _ items: [Training]) -> some View {
         if !items.isEmpty {
-            Section(title) {
+            Section(sag: title) {
                 ForEach(items) { training in
                     NavigationLink {
                         TrainingDetailView(trainingId: training.id, title: training.trainingType?.title ?? "Тренировка", teamName: team.name)

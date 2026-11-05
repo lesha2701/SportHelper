@@ -243,6 +243,7 @@ private struct WorkoutSummaryView: View {
             .padding(16)
         }
         .background(Color(.systemGroupedBackground))
+        .sagScreen()
         .navigationTitle("Итоги")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {

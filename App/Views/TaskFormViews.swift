@@ -57,27 +57,27 @@ struct TaskSubmitView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Комментарий\(task.requireComment ? "" : " (необязательно)")") {
+                Section(sag: "Комментарий\(task.requireComment ? "" : " (необязательно)")") {
                     TextField("Как прошло", text: $comment, axis: .vertical).lineLimit(3...8).accessibilityIdentifier("submit.comment")
                 }
                 if task.requireSetsReps {
-                    Section("Подходы и повторы") {
+                    Section(sag: "Подходы и повторы") {
                         TextField("Подходов", text: $sets).keyboardType(.numberPad).accessibilityIdentifier("submit.sets")
                         TextField("Повторов в подходе", text: $reps).keyboardType(.numberPad).accessibilityIdentifier("submit.reps")
                     }
                 }
                 if task.requireDuration {
-                    Section("Длительность") {
+                    Section(sag: "Длительность") {
                         TextField("Минут", text: $duration).keyboardType(.numberPad).accessibilityIdentifier("submit.duration")
                     }
                 }
                 if task.requireMetricValue {
-                    Section(task.metricTitle ?? "Результат") {
+                    Section(sag: task.metricTitle ?? "Результат") {
                         TextField("Число", text: $metric).keyboardType(.decimalPad).accessibilityIdentifier("submit.metric")
                     }
                 }
                 if task.requireDifficulty {
-                    Section("Насколько было тяжело") {
+                    Section(sag: "Насколько было тяжело") {
                         Picker("Сложность", selection: $difficulty) {
                             Text("Не выбрано").tag(0)
                             ForEach(1...10, id: \.self) { Text("\($0) из 10").tag($0) }
@@ -86,7 +86,7 @@ struct TaskSubmitView: View {
                     }
                 }
                 if task.requireWellbeing {
-                    Section("Как вы себя чувствуете") {
+                    Section(sag: "Как вы себя чувствуете") {
                         Picker("Самочувствие", selection: $wellbeing) {
                             Text("Не выбрано").tag(0)
                             ForEach(1...5, id: \.self) { Text("\($0) из 5").tag($0) }
@@ -102,6 +102,7 @@ struct TaskSubmitView: View {
                     Section { Text("Ещё нужно: \(missing.joined(separator: ", ").lowercased())").font(.footnote).foregroundStyle(.secondary) }
                 }
             }
+            .sagScreen()
             .navigationTitle("Сдать задание")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -133,7 +134,7 @@ struct TaskSubmitView: View {
     }
 
     private var photoSection: some View {
-        Section("Фото") {
+        Section(sag: "Фото") {
             if let photo, let image = UIImage(data: photo) {
                 Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 200).clipShape(RoundedRectangle(cornerRadius: 10))
             } else if assignment?.photoFileId != nil {
@@ -204,6 +205,7 @@ struct MyTasksView: View {
                 list(tasks)
             }
         }
+        .sagScreen()
         .navigationTitle("Мои задания")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -231,7 +233,7 @@ struct MyTasksView: View {
 
     @ViewBuilder private func section(_ title: String, _ items: [MyTask]) -> some View {
         if !items.isEmpty {
-            Section(title) {
+            Section(sag: title) {
                 ForEach(items.sorted { ($0.task.deadline ?? .distantFuture) < ($1.task.deadline ?? .distantFuture) }) { item in
                     NavigationLink {
                         TaskDetailView(taskId: item.task.id, teamId: item.task.teamId)

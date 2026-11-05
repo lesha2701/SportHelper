@@ -27,6 +27,7 @@ struct MyBookingsView: View {
                 list(bookings)
             }
         }
+        .sagScreen()
         .navigationTitle("Мои брони")
         .task { await store.reloadMine() }
         .sheet(item: $page, onDismiss: afterPayment) { SafariView(url: $0.url).ignoresSafeArea() }
@@ -59,7 +60,7 @@ struct MyBookingsView: View {
 
     @ViewBuilder private func section(_ title: String, _ items: [Booking]) -> some View {
         if !items.isEmpty {
-            Section(title) {
+            Section(sag: title) {
                 ForEach(items) { booking in
                     BookingCardView(
                         booking: booking, viewer: .athlete, paymentsOn: auth.features.payments,

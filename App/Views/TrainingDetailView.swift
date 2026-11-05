@@ -62,6 +62,7 @@ struct TrainingDetailView: View {
                 details(training)
             }
         }
+        .sagScreen()
         .navigationTitle("Тренировка")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -213,7 +214,7 @@ struct TrainingDetailView: View {
             if let list = ownChecklist(training) {
                 exercises(list)
             } else if let description = training.description, !description.isEmpty {
-                Section("Описание") { Text(description) }
+                Section(sag: "Описание") { Text(description) }
             }
             if let workout { results(workout) }
             if canMarkAttendance(training), let teamId = training.teamId { AttendanceSection(trainingId: training.id, teamId: teamId) }
@@ -227,7 +228,7 @@ struct TrainingDetailView: View {
     }
 
     private func planSection(_ plan: Plan) -> some View {
-        Section("План тренировки") {
+        Section(sag: "План тренировки") {
             NavigationLink {
                 PlanDetailView(planId: plan.id, readOnly: plan.ownerId != auth.user?.id)
             } label: {
@@ -276,7 +277,7 @@ struct TrainingDetailView: View {
     }
 
     private func results(_ workout: TrainingWorkout) -> some View {
-        Section("Результаты тренировки") {
+        Section(sag: "Результаты тренировки") {
             Text(WorkoutFormat.summary(workout.totals, duration: workout.duration)).accessibilityIdentifier("training.workoutSummary")
             ForEach(Array(workout.exercises.enumerated()), id: \.offset) { _, exercise in
                 let done = WorkoutFormat.results(exercise)

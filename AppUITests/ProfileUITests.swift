@@ -5,10 +5,10 @@ final class ProfileUITests: SignedInUITestCase {
     func testTheSameFiveSectionsAsTheSiteAreThere() throws {
         try launchSignedIn()
         for title in ["Главная", "Команды", "Календарь", "Профиль"] {
-            XCTAssertTrue(app.tabBars.buttons[title].exists, "no «\(title)» tab")
+            XCTAssertTrue(app.mainTabBar.buttons[title].exists, "no «\(title)» tab")
         }
         // The phone's tab bar holds five: a coach has the Библиотека, a player the Тренеры (a coach finds them in the profile).
-        XCTAssertTrue(app.tabBars.buttons["Библиотека"].exists != app.tabBars.buttons["Тренеры"].exists, "exactly one of «Библиотека» and «Тренеры»")
+        XCTAssertTrue(app.mainTabBar.buttons["Библиотека"].exists != app.mainTabBar.buttons["Тренеры"].exists, "exactly one of «Библиотека» and «Тренеры»")
     }
 
     func testTheProfileShowsWhoIsSignedInAndTheirDetails() throws {
@@ -16,7 +16,7 @@ final class ProfileUITests: SignedInUITestCase {
         profileTab.tap()
 
         XCTAssertTrue(app.staticTexts["Анна Тренер"].waitForExistence(timeout: 10), "the name should be shown")
-        XCTAssertTrue(app.staticTexts["Тренер"].exists, "the role should be shown")
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label ==[c] %@", "Тренер")).firstMatch.exists, "the role should be shown")
         XCTAssertTrue(text(containing: "Большой теннис").exists, "the sport should be shown")
         XCTAssertTrue(text(containing: "7 лет").exists, "the experience should agree with the number in Russian")
         XCTAssertTrue(app.buttons["profile.edit"].exists)
