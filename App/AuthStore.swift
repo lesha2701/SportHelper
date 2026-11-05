@@ -18,6 +18,8 @@ final class AuthStore {
     private(set) var features = ServerFeatures()
     /// Shown under the sign-in form (the server's own Russian text).
     var errorMessage: String?
+    /// The server's code for that message: «email_not_verified» offers to send the letter again.
+    private(set) var errorCode: String?
     private(set) var isWorking = false
 
     let client: APIClient
@@ -34,6 +36,7 @@ final class AuthStore {
     let home: HomeStore
     let stats: StatsStore
     let chatUnread: ChatUnreadStore
+    let complaints: ComplaintsService
     let router = Router()
     private let service: AuthService
     private let persistence: SessionPersistence
@@ -54,6 +57,7 @@ final class AuthStore {
         self.home = HomeStore(client: client)
         self.stats = StatsStore(client: client)
         self.chatUnread = ChatUnreadStore(client: client)
+        self.complaints = ComplaintsService(client: client)
         self.service = AuthService(client: client)
         self.persistence = SessionPersistence(
             store: KeychainSecretStore(service: "ru.sportarenaglobal.app", account: "session-cookie"), baseURL: environment.baseURL
@@ -84,16 +88,27 @@ final class AuthStore {
     func login(email: String, password: String) async {
         isWorking = true
         errorMessage = nil
+        errorCode = nil
         defer { isWorking = false }
         do {
             state = .signedIn(try await service.login(email: email, password: password))
             persistence.save()
         } catch let error as APIError {
             errorMessage = error.message
+            errorCode = error.code
         } catch {
             errorMessage = APIError.unknown.message
         }
     }
+
+    /// Signs up: the server sends a confirmation letter; the person is not signed in until the address is confirmed.
+    func register(_ request: RegistrationRequest) async throws -> String {
+        try await service.register(request).email
+    }
+
+    func resendVerification(email: String) async throws -> String { try await service.resendVerification(email: email) }
+
+    func forgotPassword(email: String) async throws -> String { try await service.forgotPassword(email: email) }
 
     /// The signed-in person, when there is one.
     var user: AuthUser? {

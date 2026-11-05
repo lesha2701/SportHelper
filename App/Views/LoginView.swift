@@ -5,6 +5,9 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var showPassword = false
+    @State private var signingUp = false
+    @State private var forgotOpen = false
+    @State private var confirmingEmail = false
     @FocusState private var focus: Field?
     private enum Field { case email, password }
     /// UI tests type into the fields; iOS's password autofill UI would interrupt that, so it is off while testing.
@@ -22,6 +25,17 @@ struct LoginView: View {
         .background(Theme.bg.ignoresSafeArea())
         .scrollDismissesKeyboard(.interactively)
         .ignoresSafeArea(edges: .top)
+        .fullScreenCover(isPresented: $signingUp) {
+            RegisterView { address in
+                email = address
+                password = ""
+            }
+        }
+        .sheet(isPresented: $forgotOpen) { ForgotPasswordView(email: email) }
+        .sheet(isPresented: $confirmingEmail) {
+            CheckEmailView(email: email.trimmingCharacters(in: .whitespaces), onChangeEmail: nil) { confirmingEmail = false }
+                .presentationDetents([.large])
+        }
     }
 
     /// The slim graphite bar of the site's sign-in screen: the emblem, the name, the wave stripes.
@@ -121,6 +135,20 @@ struct LoginView: View {
             .padding(.top, 4)
             .accessibilityIdentifier("login.submit")
 
+            if auth.errorCode == "email_not_verified" {
+                Button("Отправить письмо с подтверждением ещё раз") { confirmingEmail = true }
+                    .font(Theme.body(14, weight: .semibold)).foregroundStyle(Theme.primary)
+                    .accessibilityIdentifier("login.confirmEmail")
+            }
+
+            HStack {
+                Button("Забыли пароль?") { forgotOpen = true }.accessibilityIdentifier("login.forgot")
+                Spacer()
+                Button("Создать аккаунт") { signingUp = true }.accessibilityIdentifier("login.register")
+            }
+            .font(Theme.body(15, weight: .semibold)).foregroundStyle(Theme.primary)
+            .padding(.top, 2)
+
             Text("Платформа для игроков и тренеров: расписание, записи на занятия, задания и статистика — в одном месте.")
                 .font(Theme.body(13)).foregroundStyle(Theme.textTertiary)
                 .padding(.top, 8)
@@ -136,17 +164,5 @@ struct LoginView: View {
         guard canSubmit else { return }
         focus = nil
         Task { await auth.login(email: email, password: password) }
-    }
-}
-
-private extension View {
-    /// A text field of the site: the inner surface, a hairline, 8 pt corners.
-    func fieldBox() -> some View {
-        self
-            .font(Theme.body(16))
-            .padding(.horizontal, 14)
-            .frame(minHeight: 48)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous).strokeBorder(Theme.borderStrong, lineWidth: 1))
     }
 }

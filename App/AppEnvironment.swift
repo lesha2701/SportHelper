@@ -5,6 +5,8 @@ import SportArenaKit
 /// build uses the server on this Mac and a Release build the real site. Nothing secret lives here.
 struct AppEnvironment {
     let baseURL: URL
+    /// The site itself: the legal documents are published there (a Debug build's server has no pages).
+    static let siteURL = URL(string: "https://sportarenaglobal.ru")!
 
     static var current: AppEnvironment {
         let text = Bundle.main.object(forInfoDictionaryKey: "API_BASE_URL") as? String ?? "https://sportarenaglobal.ru"

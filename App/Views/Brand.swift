@@ -335,3 +335,15 @@ private struct BarLogo: ToolbarContent {
         }
     }
 }
+
+extension View {
+    /// A text field of the site: the inner surface, a hairline, 8 pt corners.
+    func fieldBox() -> some View {
+        self
+            .font(Theme.body(16))
+            .padding(.horizontal, 14)
+            .frame(minHeight: 48)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous).strokeBorder(Theme.borderStrong, lineWidth: 1))
+    }
+}

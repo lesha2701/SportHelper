@@ -3,6 +3,7 @@ import SwiftUI
 
 /// One offer: who, what, how much, and the way to book it.
 struct ListingDetailView: View {
+    @Environment(AuthStore.self) private var auth
     let card: CoachListingCard
     let store: CoachesStore
 
@@ -14,6 +15,7 @@ struct ListingDetailView: View {
 
     @State private var load = Load.loading
     @State private var booking = false
+    @State private var reporting: ReportTarget?
 
     var body: some View {
         Group {
@@ -33,6 +35,22 @@ struct ListingDetailView: View {
         .sagScreen()
         .navigationTitle("Объявление")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // not on one's own listing: the server would refuse, and there is nothing to report
+            if case .loaded(let profile) = load, profile.coachUserId != auth.user?.id {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button("Пожаловаться на объявление", systemImage: "flag") { reporting = .listing(profile.id) }
+                            .accessibilityIdentifier("listing.report")
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .accessibilityLabel("Ещё")
+                    .accessibilityIdentifier("listing.more")
+                }
+            }
+        }
+        .reportSheet(item: $reporting)
         .task { await fetch() }
     }
 

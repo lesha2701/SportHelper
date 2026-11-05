@@ -18,6 +18,7 @@ struct ChatView: View {
     @State private var notice: String?
     @State private var viewing: ChatAttachment?
     @State private var reloads = 0
+    @State private var reporting: ReportTarget?
 
     init(store: ChatStore) { _store = State(initialValue: store) }
 
@@ -53,6 +54,7 @@ struct ChatView: View {
             if store.conversationInfo != nil { await store.poll() }
         }
         .fullScreenCover(item: $viewing) { AttachmentViewer(attachment: $0) }
+        .reportSheet(item: $reporting)
         .confirmationDialog("Удалить сообщение?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
             Button("Удалить", role: .destructive) {
                 guard let message = deleting else { return }
@@ -129,7 +131,8 @@ struct ChatView: View {
     private func bubble(_ message: ChatMessage, info: ChatConversation) -> some View {
         MessageBubble(
             message: message, mine: store.isMine(message), showName: info.kind == "team",
-            canDelete: store.canDelete(message), onDelete: { deleting = message }, onOpen: { viewing = $0 }
+            canDelete: store.canDelete(message), onDelete: { deleting = message }, onOpen: { viewing = $0 },
+            onReport: store.isMine(message) ? nil : { reporting = .user(message.senderId) }
         )
     }
 
@@ -239,6 +242,8 @@ private struct MessageBubble: View {
     let canDelete: Bool
     let onDelete: () -> Void
     let onOpen: (ChatAttachment) -> Void
+    /// «Пожаловаться» on the author of someone else's message; nil for one's own.
+    var onReport: (() -> Void)?
 
     var body: some View {
         HStack {
@@ -271,6 +276,7 @@ private struct MessageBubble: View {
             .contextMenu {
                 if let body = message.body, !body.isEmpty { Button("Копировать", systemImage: "doc.on.doc") { UIPasteboard.general.string = body } }
                 if canDelete { Button("Удалить", systemImage: "trash", role: .destructive, action: onDelete) }
+                if let onReport { Button("Пожаловаться на автора", systemImage: "flag", action: onReport).accessibilityIdentifier("chat.report") }
             }
         }
     }

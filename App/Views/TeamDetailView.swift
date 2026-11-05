@@ -12,6 +12,7 @@ struct TeamDetailView: View {
     @State private var asking: (action: RosterAction, member: TeamMember)?
     /// The member whose list of actions is open (the swipe shows one «Ещё» button: four long titles do not fit the screen).
     @State private var choosing: TeamMember?
+    @State private var reporting: ReportTarget?
     /// The section of the hub that is open.
     @State private var hub: HubDestination?
 
@@ -40,6 +41,7 @@ struct TeamDetailView: View {
         .sagScreen()
         .navigationTitle(team.name)
         .navigationBarTitleDisplayMode(.inline)
+        .reportSheet(item: $reporting)
         .navigationDestination(item: $hub) { destination in
             switch destination {
             case .chat: ChatView(store: auth.chatStore(for: .team(team.id)))
@@ -211,8 +213,18 @@ struct TeamDetailView: View {
                                 .tint(.gray)
                                 .accessibilityIdentifier("team.member.more")
                         }
+                        if member.userId != auth.user?.id {
+                            Button { reporting = .user(member.userId) } label: { Label("Пожаловаться", systemImage: "flag") }
+                                .tint(.orange)
+                                .accessibilityIdentifier("team.member.report")
+                        }
                     }
-                    .contextMenu { rosterButtons(actions, member) }
+                    .contextMenu {
+                        rosterButtons(actions, member)
+                        if member.userId != auth.user?.id {
+                            Button("Пожаловаться", systemImage: "flag") { reporting = .user(member.userId) }
+                        }
+                    }
                 }
             }
         }

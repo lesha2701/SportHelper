@@ -35,6 +35,23 @@ public final class AuthService: Sendable {
         try await client.send(.post, "/api/auth/register", body: request)
     }
 
+    private struct EmailBody: Encodable, Sendable { let email: String }
+
+    /// Sends the confirmation letter again. The server answers in the same words whether or not the address is known.
+    @discardableResult
+    public func resendVerification(email: String) async throws -> String {
+        let answer: MessageResponse = try await client.send(.post, "/api/auth/resend-verification", body: EmailBody(email: email.trimmingCharacters(in: .whitespaces)))
+        return answer.message
+    }
+
+    /// Asks for a letter with a link to choose a new password (the link opens the site). Like the one above, it does not tell
+    /// whether the address has an account.
+    @discardableResult
+    public func forgotPassword(email: String) async throws -> String {
+        let answer: MessageResponse = try await client.send(.post, "/api/auth/forgot-password", body: EmailBody(email: email.trimmingCharacters(in: .whitespaces)))
+        return answer.message
+    }
+
     public func features() async throws -> ServerFeatures {
         try await client.send(.get, "/api/features")
     }

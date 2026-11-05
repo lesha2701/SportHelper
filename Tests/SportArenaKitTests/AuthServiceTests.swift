@@ -85,3 +85,113 @@ struct AuthServiceTests {
         #expect(try await auth.features() == ServerFeatures(telegram: false, payments: true, trainerBalance: true, trainerWithdrawals: true))
     }
 }
+
+struct SignUpFormTests {
+    private func filled(role: UserRole = .player) -> SignUpForm {
+        var form = SignUpForm()
+        form.firstName = " Олег "
+        form.email = "oleg@example.com"
+        form.password = "a long passphrase"
+        form.passwordConfirm = "a long passphrase"
+        form.choose(role)
+        return form
+    }
+
+    @Test func anEmptyFormSaysWhatIsMissingInTheSitesWords() {
+        let errors = SignUpForm().fieldErrors()
+
+        #expect(errors[.firstName] == "Укажите имя.")
+        #expect(errors[.email] == "Введите email полностью, например name@example.com.")
+        #expect(errors[.password] == "Пароль слишком короткий: минимум 12 символов.")
+        #expect(errors[.role] == "Выберите, кто вы: игрок или тренер.")
+        #expect(errors[.passwordConfirm] == nil)  // two empty passwords agree; the short one is the problem
+    }
+
+    @Test func aPasswordThatDiffersIsReportedOnTheSecondField() {
+        var form = filled()
+        form.passwordConfirm = "another passphrase"
+        #expect(form.fieldErrors() == [.passwordConfirm: "Пароли не совпадают."])
+    }
+
+    @Test func anAddressNeedsAnAtAndADottedDomain() {
+        for good in ["a@b.co", " name@example.com ", "a.b+c@mail.example.ru"] { #expect(SignUpForm.looksLikeEmail(good), "\(good)") }
+        for bad in ["", "name", "name@", "@example.com", "name@example", "name@example.c", "na me@example.com", "a@b@c.com"] {
+            #expect(!SignUpForm.looksLikeEmail(bad), "\(bad)")
+        }
+    }
+
+    @Test func eachRoleHasItsOwnBoxesAndNoneIsTickedInAdvance() {
+        #expect(UserRole.player.consentBoxes.map(\.key) == ["terms", "personal_data"])
+        #expect(UserRole.coach.consentBoxes.map(\.key) == ["coach_offer", "personal_data", "data_dissemination"])
+        #expect(filled().missingConsents().count == 2)
+        #expect(filled().request() == nil, "no request until every box is ticked")
+    }
+
+    @Test func switchingTheRoleStartsTheBoxesOver() {
+        var form = filled(role: .player)
+        for box in form.role!.consentBoxes { form.set(box, accepted: true) }
+        #expect(form.missingConsents().isEmpty)
+
+        form.choose(.coach)
+        #expect(form.accepted.isEmpty, "a box ticked for the other role must never be sent")
+        form.choose(.coach)
+        #expect(form.accepted.isEmpty)
+    }
+
+    @Test func aCompleteFormBecomesARequestWithEveryDocumentAndItsEdition() throws {
+        var form = filled(role: .coach)
+        form.lastName = "  "
+        for box in UserRole.coach.consentBoxes { form.set(box, accepted: true) }
+
+        let request = try #require(form.request())
+
+        #expect(request.firstName == "Олег" && request.lastName == nil && request.role == .coach)
+        #expect(request.consents.map(\.key) == ["coach_offer", "personal_data", "data_dissemination"])
+        #expect(request.consents[0].documents == [.init(key: "coach-offer", version: "2026-10-20"), .init(key: "service-terms", version: "2026-10-20")])
+        #expect(request.consents[1].documents.map(\.key) == ["consent-coach", "privacy"])
+    }
+
+    @Test func aServerErrorFindsItsField() {
+        #expect(SignUpForm.field(forServer: "password_confirm") == .passwordConfirm)
+        #expect(SignUpForm.field(forServer: "first_name") == .firstName)
+        #expect(SignUpForm.field(forServer: nil) == nil)
+        #expect(SignUpForm.field(forServer: "consents") == nil)
+    }
+
+    @Test func everyDocumentHasAPathOnTheSite() {
+        #expect(LegalDocument.allCases.count == 7)
+        #expect(LegalDocument.coachOffer.path == "/coach-offer" && LegalDocument.privacy.path == "/privacy")
+    }
+}
+
+struct EmailLettersTests {
+    @Test func aConfirmationLetterCanBeSentAgainAndTheAddressIsTrimmed() async throws {
+        let seen = RequestLog()
+        let api = APIClient(baseURL: base, session: MockServer.session { request in seen.add(request); return json(#"{"message":"Письмо отправлено."}"#) })
+
+        let message = try await AuthService(client: api).resendVerification(email: " a@b.co ")
+
+        #expect(message == "Письмо отправлено.")
+        let request = try #require(seen.all.first)
+        #expect(request.url?.path == "/api/auth/resend-verification" && request.httpMethod == "POST")
+        #expect(request.bodyJSON?["email"] as? String == "a@b.co")
+    }
+
+    @Test func aForgottenPasswordAsksTheServerForALetter() async throws {
+        let seen = RequestLog()
+        let api = APIClient(baseURL: base, session: MockServer.session { request in seen.add(request); return json(#"{"message":"Если адрес зарегистрирован, письмо отправлено."}"#) })
+
+        let message = try await AuthService(client: api).forgotPassword(email: "a@b.co")
+
+        #expect(message.hasPrefix("Если адрес"))
+        #expect(seen.all.first?.url?.path == "/api/auth/forgot-password")
+    }
+
+    @Test func aRateLimitReachesTheCaller() async throws {
+        let api = APIClient(baseURL: base, session: MockServer.session { _ in
+            json(#"{"error":{"code":"rate_limited","message":"Слишком часто. Подождите.","retry_after":30}}"#, status: 429)
+        })
+
+        await #expect(throws: APIError.self) { try await AuthService(client: api).forgotPassword(email: "a@b.co") }
+    }
+}
