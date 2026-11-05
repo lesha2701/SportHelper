@@ -1,14 +1,16 @@
 import { router } from "expo-router";
+import { View } from "react-native";
 import { listMyTeams } from "@/api/teams";
-import { useLoad } from "@/lib/useLoad";
 import { useAuth } from "@/auth/AuthProvider";
+import { useLoad } from "@/lib/useLoad";
+import { count } from "@/shared/lib/plural";
 import { TEAM_ROLE_LABELS } from "@/shared/types/team";
+import { Avatar } from "@/ui/Avatar";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { Screen } from "@/ui/Screen";
 import { ErrorView, LoadingView } from "@/ui/StateViews";
 import { Text } from "@/ui/Text";
-import { count } from "@/shared/lib/plural";
 
 export default function TeamsScreen() {
   const { user } = useAuth();
@@ -29,13 +31,18 @@ export default function TeamsScreen() {
       ) : null}
       {teams.data?.map((team) => (
         <Card key={team.id} onPress={() => router.push({ pathname: "/team/[id]", params: { id: team.id } })}>
-          <Text variant="heading">{team.name}</Text>
-          <Text muted>
-            {[team.sport, team.myRole ? TEAM_ROLE_LABELS[team.myRole] : null, count(team.membersCount, "участник", "участника", "участников")]
-              .filter(Boolean)
-              .join(" · ")}
-          </Text>
-          {team.status === "without_coach" ? <Text variant="caption">Нет главного тренера</Text> : null}
+          <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+            <Avatar fileId={team.logoFileId} name={team.name} size={48} square />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text variant="heading">{team.name}</Text>
+              <Text muted>
+                {[team.sport, team.myRole ? TEAM_ROLE_LABELS[team.myRole] : null, count(team.membersCount, "участник", "участника", "участников")]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </Text>
+              {team.status === "without_coach" ? <Text variant="caption">Нет главного тренера</Text> : null}
+            </View>
+          </View>
         </Card>
       ))}
       {isCoach ? <Button title="Создать команду" onPress={() => router.push("/team/new")} /> : null}

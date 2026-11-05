@@ -38,7 +38,7 @@ export default function TeamScreen() {
       <Stack.Screen options={{ headerShown: true, title: t.name }} />
       <Screen header>
         <Choice layout="chips" options={SECTIONS} value={section} onChange={setSection} />
-        {section === "overview" ? <OverviewSection team={t} staff={staff} /> : null}
+        {section === "overview" ? <OverviewSection team={t} staff={staff} onChanged={team.reload} /> : null}
         {section === "members" ? <MembersSection team={t} staff={staff} /> : null}
         {section === "trainings" ? <TrainingsSection team={t} staff={staff} /> : null}
         {section === "matches" ? <MatchesSection team={t} staff={staff} /> : null}

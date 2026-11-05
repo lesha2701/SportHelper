@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, Vibration, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { saveTrainingWorkout } from "@/api/trainings";
@@ -23,6 +23,7 @@ import { Button } from "@/ui/Button";
 import { Notice } from "@/ui/Notice";
 import { Text } from "@/ui/Text";
 import { clearDraft, writeDraft, type Draft } from "./drafts";
+import { cancelRestEnd, scheduleRestEnd } from "./restNotification";
 
 const REST_OPTIONS = [
   { seconds: 0, label: "Без" },
@@ -147,6 +148,25 @@ export function WorkoutSession({
   const [phase, setPhase] = useState<Phase>("workout");
   const [finishedAt, setFinishedAt] = useState<number | null>(null);
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
+  const restNotice = useRef<string | null>(null);
+
+  // A system notification for the end of the rest follows the in-app timer: set when it starts, moved when it is
+  // extended, cancelled when it is skipped or ends while the app is open.
+  useEffect(() => {
+    let stale = false;
+    void cancelRestEnd(restNotice.current);
+    restNotice.current = null;
+    if (restEndsAt !== null) {
+      void scheduleRestEnd((restEndsAt - Date.now()) / 1000).then((id) => {
+        if (stale) void cancelRestEnd(id);
+        else restNotice.current = id;
+      });
+    }
+    return () => {
+      stale = true;
+    };
+  }, [restEndsAt]);
+  useEffect(() => () => void cancelRestEnd(restNotice.current), []);
   const [timing, setTiming] = useState<Timing | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [saving, setSaving] = useState(false);

@@ -1,7 +1,9 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { Share } from "react-native";
-import { acceptApplication, createInvite, leaveTeam, listApplications, rejectApplication } from "@/api/teams";
+import { pickSquareImage } from "@/lib/pickImage";
+import { Avatar } from "@/ui/Avatar";
+import { acceptApplication, createInvite, leaveTeam, listApplications, rejectApplication, uploadTeamLogo } from "@/api/teams";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
 import { SKILL_LEVEL_LABELS } from "@/shared/types/profile";
@@ -43,7 +45,7 @@ function Applications({ team }: { team: Team }) {
   );
 }
 
-export function OverviewSection({ team, staff }: { team: Team; staff: boolean }) {
+export function OverviewSection({ team, staff, onChanged }: { team: Team; staff: boolean; onChanged?: () => void }) {
   const toast = useToast();
   const [invite, setInvite] = useState<Invite | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +57,17 @@ export function OverviewSection({ team, staff }: { team: Team; staff: boolean })
       setInvite(await createInvite(team.id, "join"));
     } catch (e) {
       setError(toFormError(e).message);
+    }
+  }
+
+  async function changeLogo() {
+    const file = await pickSquareImage();
+    if (!file) return;
+    try {
+      await uploadTeamLogo(team.id, file);
+      onChanged?.();
+    } catch (e) {
+      toast.error(toFormError(e).message);
     }
   }
 
@@ -71,6 +84,8 @@ export function OverviewSection({ team, staff }: { team: Team; staff: boolean })
   return (
     <>
       <Card>
+        <Avatar fileId={team.logoFileId} name={team.name} size={72} square />
+        {team.myRole === "head_coach" ? <Button title={team.logoFileId ? "Изменить логотип" : "Добавить логотип"} variant="ghost" onPress={changeLogo} /> : null}
         <Text muted>{[team.sport, team.ageCategory, team.level ? SKILL_LEVEL_LABELS[team.level] : null].filter(Boolean).join(" · ")}</Text>
         {team.description ? <Text>{team.description}</Text> : null}
         {team.myRole ? <Text variant="caption">Ваша роль: {TEAM_ROLE_LABELS[team.myRole]}</Text> : null}

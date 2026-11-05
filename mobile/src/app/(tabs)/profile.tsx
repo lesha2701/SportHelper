@@ -1,6 +1,12 @@
 import { router } from "expo-router";
+import { useState } from "react";
 import { View } from "react-native";
+import { removeUserAvatar, uploadUserAvatar } from "@/api/users";
 import { useAuth } from "@/auth/AuthProvider";
+import { toFormError } from "@/lib/formError";
+import { pickSquareImage } from "@/lib/pickImage";
+import { Avatar } from "@/ui/Avatar";
+import { useToast } from "@/ui/Toast";
 import { useProfile } from "@/profile/ProfileProvider";
 import { years } from "@/shared/lib/plural";
 import { SKILL_LEVEL_LABELS } from "@/shared/types/profile";
@@ -22,8 +28,37 @@ function Row({ label, value }: { label: string; value: string | number | null | 
 }
 
 export default function ProfileScreen() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
   const { state } = useProfile();
+
+  async function changePhoto() {
+    const file = await pickSquareImage();
+    if (!file) return;
+    setBusy(true);
+    try {
+      await uploadUserAvatar(file);
+      await refreshUser();
+    } catch (e) {
+      toast.error(toFormError(e).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removePhoto() {
+    setBusy(true);
+    try {
+      await removeUserAvatar();
+      await refreshUser();
+    } catch (e) {
+      toast.error(toFormError(e).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (state.status !== "ready") return null;
   const { player, coach } = state.data;
 
@@ -31,8 +66,15 @@ export default function ProfileScreen() {
     <Screen>
       <Text variant="title">Профиль</Text>
       <Card>
-        <Text variant="heading">{[user?.firstName, user?.lastName].filter(Boolean).join(" ")}</Text>
-        <Text muted>{user?.email}</Text>
+        <View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
+          <Avatar fileId={user?.avatarFileId} name={[user?.firstName, user?.lastName].filter(Boolean).join(" ")} size={72} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text variant="heading">{[user?.firstName, user?.lastName].filter(Boolean).join(" ")}</Text>
+            <Text muted>{user?.email}</Text>
+          </View>
+        </View>
+        <Button title={user?.avatarFileId ? "Изменить фото" : "Добавить фото"} variant="secondary" onPress={changePhoto} loading={busy} />
+        {user?.avatarFileId ? <Button title="Удалить фото" variant="ghost" onPress={removePhoto} disabled={busy} /> : null}
       </Card>
 
       {player ? (
