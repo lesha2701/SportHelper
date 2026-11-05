@@ -38,6 +38,7 @@ final class AuthStore {
     let chatUnread: ChatUnreadStore
     let notifications: NotificationsStore
     let complaints: ComplaintsService
+    let publicProfiles: PublicProfilesService
     let router = Router()
     private let service: AuthService
     private let persistence: SessionPersistence
@@ -60,6 +61,7 @@ final class AuthStore {
         self.chatUnread = ChatUnreadStore(client: client)
         self.notifications = NotificationsStore(client: client)
         self.complaints = ComplaintsService(client: client)
+        self.publicProfiles = PublicProfilesService(client: client)
         self.service = AuthService(client: client)
         self.persistence = SessionPersistence(
             store: KeychainSecretStore(service: "ru.sportarenaglobal.app", account: "session-cookie"), baseURL: environment.baseURL

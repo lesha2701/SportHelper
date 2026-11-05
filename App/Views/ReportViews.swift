@@ -10,6 +10,8 @@ struct ReportTarget: Identifiable {
 
     static func user(_ id: UUID) -> ReportTarget { ReportTarget(kind: .user, id: id, title: "Пожаловаться на пользователя") }
     static func listing(_ id: UUID) -> ReportTarget { ReportTarget(kind: .listing, id: id, title: "Пожаловаться на объявление") }
+    /// A photo or video of a gallery, by its file.
+    static func media(_ fileId: UUID) -> ReportTarget { ReportTarget(kind: .media, id: fileId, title: "Пожаловаться на материал") }
 }
 
 extension View {

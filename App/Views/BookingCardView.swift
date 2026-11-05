@@ -21,6 +21,8 @@ struct BookingCardView: View {
     var onReview: (() -> Void)?
     var onComplete: (() -> Void)?
     var onReviewPlayer: (() -> Void)?
+    /// The coach opens the athlete's page.
+    var onOpenPlayer: (() -> Void)?
     var isCompleting = false
 
     enum Viewer { case athlete, coach }
@@ -39,6 +41,11 @@ struct BookingCardView: View {
             }
             if let notes = booking.athleteNotes, !notes.isEmpty, viewer == .coach {
                 Text("Пожелания: \(notes)").font(.footnote).foregroundStyle(.secondary)
+            }
+            if viewer == .coach, let onOpenPlayer {
+                Button("Профиль игрока", systemImage: "person.crop.circle", action: onOpenPlayer)
+                    .font(.subheadline).buttonStyle(.borderless)
+                    .accessibilityIdentifier("booking.playerProfile")
             }
             planRow
             payment

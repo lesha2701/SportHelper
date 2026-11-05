@@ -7,6 +7,7 @@ struct IncomingRequestsView: View {
     @State private var busy: Set<UUID> = []
     @State private var message: String?
     @State private var isError = false
+    @State private var viewing: PlayerRef?
 
     private var store: BookingsStore { auth.bookings }
 
@@ -30,6 +31,7 @@ struct IncomingRequestsView: View {
         .sagScreen()
         .navigationTitle("Входящие заявки")
         .task { await store.reloadPending() }
+        .playerProfileSheet(item: $viewing)
     }
 
     private func list(_ requests: [PendingBooking]) -> some View {
@@ -55,6 +57,9 @@ struct IncomingRequestsView: View {
     private func requestCard(_ request: PendingBooking) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(request.athleteFullName).font(.headline)
+            Button("Профиль игрока", systemImage: "person.crop.circle") { viewing = PlayerRef(id: request.athleteUserId) }
+                .font(.subheadline).buttonStyle(.borderless)
+                .accessibilityIdentifier("requests.playerProfile")
             if let average = request.athleteRatingAverage, (request.athleteReviewCount ?? 0) > 0 {
                 Label(String(format: "%.1f", average).replacingOccurrences(of: ".", with: ","), systemImage: "star.fill")
                     .font(.footnote).foregroundStyle(.orange)
@@ -96,6 +101,7 @@ struct CoachBookingsView: View {
     @State private var reviewingPlayer: Booking?
     @State private var completing: Set<UUID> = []
     @State private var actionError: String?
+    @State private var viewingPlayer: PlayerRef?
 
     private var store: BookingsStore { auth.bookings }
 
@@ -122,6 +128,7 @@ struct CoachBookingsView: View {
             await store.reloadCoachBookings()
             if case .success(let list) = await auth.library.plans() { plans = list }
         }
+        .playerProfileSheet(item: $viewingPlayer)
         .sheet(item: $reviewingPlayer) { booking in
             ReviewSheet(
                 title: "Отзыв: \(booking.athleteFullName)",
@@ -170,6 +177,7 @@ struct CoachBookingsView: View {
                         onChoosePlan: { [id = $0.id] plan in Task { planError = await store.setPlan(plan, of: id) } },
                         onComplete: { [booking = $0] in Task { await complete(booking) } },
                         onReviewPlayer: { [booking = $0] in reviewingPlayer = booking },
+                        onOpenPlayer: { [id = $0.athleteUserId] in viewingPlayer = PlayerRef(id: id) },
                         isCompleting: completing.contains($0.id)
                     )
                 }

@@ -62,7 +62,12 @@ struct ListingDetailView: View {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(profile.title).font(.title3.bold()).accessibilityIdentifier("listing.title")
-                    Text(profile.coachFullName).foregroundStyle(.secondary)
+                    NavigationLink {
+                        CoachProfileView(coachUserId: profile.coachUserId)
+                    } label: {
+                        Label(profile.coachFullName, systemImage: "person.crop.circle").foregroundStyle(Theme.primary)
+                    }
+                    .accessibilityIdentifier("listing.coachProfile")
                 }
                 if let price = profile.priceText { LabeledContent("Стоимость", value: price) }
                 LabeledContent("Вид спорта", value: profile.sport)
