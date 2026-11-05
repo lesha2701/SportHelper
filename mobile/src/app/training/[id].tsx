@@ -11,6 +11,8 @@ import { parseExerciseChecklist } from "@/shared/lib/trainingDescription";
 import { describeSets, formatClock, workoutTotals } from "@/shared/lib/workout";
 import { count } from "@/shared/lib/plural";
 import { TRAINING_STATUS_LABELS, type Training } from "@/shared/types/training";
+import { getTrainingEvaluation } from "@/api/ai";
+import { AiText } from "@/ui/AiText";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { ConfirmModal } from "@/ui/ConfirmModal";
@@ -151,6 +153,7 @@ export default function TrainingScreen() {
         ) : null}
 
         {mine ? <SavedWorkout trainingId={t.id} /> : null}
+        {mine && t.status === "completed" ? <AiText title="Оценка тренировки (ИИ)" heading="Оценка тренировки" load={() => getTrainingEvaluation(t.id)} /> : null}
         {staff ? <Attendance training={t} /> : null}
 
         {staff && t.status === "scheduled" ? <Button title="Отметить проведённой" variant="secondary" onPress={() => setConfirm("complete")} /> : null}

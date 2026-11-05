@@ -6,6 +6,7 @@ import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
 import { SKILL_LEVEL_LABELS } from "@/shared/types/profile";
 import { AuthImage } from "@/ui/AuthImage";
+import { AuthVideo } from "@/ui/AuthVideo";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { ConfirmModal } from "@/ui/ConfirmModal";
@@ -65,7 +66,7 @@ export default function ExerciseScreen() {
           <Row label="Частые ошибки" value={e.commonMistakes} />
           <Row label="Предостережения" value={e.warnings} />
         </Card>
-        {e.videoFileId ? <Text variant="caption" muted>К упражнению приложено видео (просмотр в приложении появится позже).</Text> : null}
+        {e.videoFileId ? <AuthVideo fileId={e.videoFileId} /> : null}
         <Button title="Удалить упражнение" variant="ghost" onPress={() => setDeleting(true)} />
         <ConfirmModal visible={deleting} title="Удалить упражнение?" confirmLabel="Удалить" destructive onCancel={() => setDeleting(false)} onConfirm={() => void remove()} />
       </Screen>

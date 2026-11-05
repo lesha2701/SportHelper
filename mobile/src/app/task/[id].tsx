@@ -11,6 +11,7 @@ import { formatRuDate } from "@/shared/lib/dates";
 import { TASK_STATUS_LABELS, type Task, type TaskAssignment, type TaskReviewDecision, type TaskSubmitInput } from "@/shared/types/task";
 import { Button } from "@/ui/Button";
 import { AuthImage } from "@/ui/AuthImage";
+import { AuthVideo } from "@/ui/AuthVideo";
 import { Card } from "@/ui/Card";
 import { Choice } from "@/ui/Choice";
 import { ConfirmModal } from "@/ui/ConfirmModal";
@@ -40,7 +41,7 @@ function AssignmentReport({ a }: { a: TaskAssignment }) {
       {a.difficulty ? <Text muted>Сложность: {a.difficulty}/5</Text> : null}
       {a.wellbeing ? <Text muted>Самочувствие: {a.wellbeing}/5</Text> : null}
       {a.photoFileId ? <AuthImage fileId={a.photoFileId} /> : null}
-      {a.videoFileId ? <Text variant="caption">К отчёту приложено видео (просмотр в приложении появится позже; оно доступно на сайте).</Text> : null}
+      {a.videoFileId ? <AuthVideo fileId={a.videoFileId} /> : null}
       {a.coachComment ? <Notice>Комментарий тренера: {a.coachComment}</Notice> : null}
     </>
   );

@@ -9,6 +9,7 @@ import { addDays, todayIso } from "@/shared/lib/dates";
 import { formatStart } from "@/shared/lib/bookingLabels";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
+import { ReportButton } from "@/ui/ReportButton";
 import { Choice } from "@/ui/Choice";
 import { Notice } from "@/ui/Notice";
 import { Screen } from "@/ui/Screen";
@@ -71,6 +72,7 @@ export default function ListingScreen() {
           {p.description ? <Text>{p.description}</Text> : null}
         </Card>
 
+        <ReportButton targetType="listing" targetId={p.id} ownerUserId={p.coachUserId} />
         <Text variant="heading">Запись</Text>
         {slots.length === 0 ? <Text muted>Свободных времён на ближайшие две недели нет.</Text> : null}
         {slots.length > 0 ? (

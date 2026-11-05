@@ -1,6 +1,8 @@
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
+import { createTaskDraft } from "@/api/ai";
 import { createTask } from "@/api/tasks";
+import { listMyTemplates } from "@/api/taskTemplates";
 import { listMembers } from "@/api/teams";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
@@ -25,6 +27,9 @@ const TARGETS: { value: TaskTargetType; title: string }[] = [
 export default function NewTaskScreen() {
   const { teamId } = useLocalSearchParams<{ teamId: string }>();
   const members = useLoad(() => listMembers(teamId), [teamId]);
+  const templates = useLoad(listMyTemplates);
+  const [goal, setGoal] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
@@ -37,6 +42,25 @@ export default function NewTaskScreen() {
 
   const players = (members.data ?? []).filter((m) => m.role !== "head_coach" && m.role !== "assistant_coach");
   const flip = (key: keyof typeof req) => (value: boolean) => setReq((current) => ({ ...current, [key]: value }));
+
+  function fillFrom(t: { title: string; description: string | null; requireComment: boolean; requirePhoto: boolean; requireVideo: boolean; requireSetsReps: boolean; requireDuration: boolean; requireDifficulty: boolean; requireWellbeing: boolean }) {
+    setTitle(t.title);
+    setDescription(t.description ?? "");
+    setReq({ comment: t.requireComment, photo: t.requirePhoto, video: t.requireVideo, setsReps: t.requireSetsReps, duration: t.requireDuration, difficulty: t.requireDifficulty, wellbeing: t.requireWellbeing });
+  }
+
+  async function draftWithAi() {
+    if (goal.trim().length < 3) return setErrors({ form: "Опишите цель задания в двух словах." });
+    setAiBusy(true);
+    setErrors({});
+    try {
+      fillFrom(await createTaskDraft(teamId, { goal: goal.trim() }));
+    } catch (e) {
+      setErrors({ form: toFormError(e).message });
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   async function submit() {
     const found: typeof errors = {};
@@ -87,6 +111,23 @@ export default function NewTaskScreen() {
       <Stack.Screen options={{ headerShown: true, title: "Новое задание" }} />
       <Screen>
         {errors.form ? <Notice kind="danger">{errors.form}</Notice> : null}
+        {templates.data && templates.data.length > 0 ? (
+          <Choice
+            label="Начать с шаблона"
+            layout="chips"
+            options={templates.data.map((t) => ({ value: t.id, title: t.title }))}
+            value={null}
+            onChange={(id) => {
+              const t = templates.data?.find((x) => x.id === id);
+              if (t) fillFrom(t);
+            }}
+          />
+        ) : null}
+        <Card>
+          <Text variant="heading">Составить с ИИ</Text>
+          <TextField label="Цель задания" value={goal} onChangeText={setGoal} placeholder="Например: отработать выход из-под прессинга" maxLength={300} />
+          <Button title="Составить черновик" variant="secondary" onPress={draftWithAi} loading={aiBusy} />
+        </Card>
         <TextField label="Название" required value={title} onChangeText={setTitle} maxLength={200} error={errors.title} />
         <TextField label="Описание" value={description} onChangeText={setDescription} multiline numberOfLines={4} maxLength={2000} />
         <DateField label="Срок (необязательно)" value={date} onChange={setDate} error={errors.date} shortcuts />

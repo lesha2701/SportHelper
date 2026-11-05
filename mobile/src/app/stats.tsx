@@ -2,6 +2,7 @@ import { Stack, router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { deleteMetric } from "@/api/metrics";
+import { getProgressAnalysis } from "@/api/ai";
 import { getPlayerStats } from "@/api/stats";
 import { useAuth } from "@/auth/AuthProvider";
 import { toFormError } from "@/lib/formError";
@@ -9,6 +10,7 @@ import { useLoad } from "@/lib/useLoad";
 import { formatRuDate } from "@/shared/lib/dates";
 import { MATCH_RESULT_LABELS } from "@/shared/types/match";
 import { formatRate } from "@/shared/types/stats";
+import { AiText } from "@/ui/AiText";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { ConfirmModal } from "@/ui/ConfirmModal";
@@ -56,6 +58,8 @@ export default function StatsScreen() {
           <StatTile value={`${s.tasksCompleted}/${s.tasksTotal}`} label="заданий выполнено" />
           <StatTile value={s.tasksOverdue} label="просрочено" />
         </StatGrid>
+
+        <AiText title="Анализ прогресса (ИИ)" heading="Анализ прогресса" load={getProgressAnalysis} />
 
         {s.personalRecords.length > 0 ? (
           <Card>

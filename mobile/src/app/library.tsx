@@ -2,6 +2,7 @@ import { Stack, router } from "expo-router";
 import { useState } from "react";
 import { listMyExercises } from "@/api/exercises";
 import { listMyPlans } from "@/api/plans";
+import { listMyTemplates } from "@/api/taskTemplates";
 import { useLoad } from "@/lib/useLoad";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
@@ -10,7 +11,7 @@ import { Screen } from "@/ui/Screen";
 import { ErrorView, LoadingView } from "@/ui/StateViews";
 import { Text } from "@/ui/Text";
 
-type Tab = "exercises" | "plans";
+type Tab = "exercises" | "plans" | "templates";
 
 function Exercises() {
   const list = useLoad(listMyExercises);
@@ -48,6 +49,24 @@ function Plans() {
   );
 }
 
+function Templates() {
+  const list = useLoad(listMyTemplates);
+  if (list.loading && !list.data) return <LoadingView />;
+  if (list.error && !list.data) return <ErrorView message={list.error} onRetry={list.reload} />;
+  return (
+    <>
+      <Button title="Новый шаблон" onPress={() => router.push("/library/template/new")} />
+      {list.data?.length === 0 ? <Text muted>Шаблонов пока нет. Из шаблона задание создаётся в один шаг.</Text> : null}
+      {list.data?.map((t) => (
+        <Card key={t.id} onPress={() => router.push({ pathname: "/library/template/[id]", params: { id: t.id } })}>
+          <Text variant="label">{t.title}</Text>
+          {t.description ? <Text muted numberOfLines={2}>{t.description}</Text> : null}
+        </Card>
+      ))}
+    </>
+  );
+}
+
 /** The coach's library: exercises and training plans built from them. */
 export default function LibraryScreen() {
   const [tab, setTab] = useState<Tab>("exercises");
@@ -60,11 +79,12 @@ export default function LibraryScreen() {
           options={[
             { value: "exercises", title: "Упражнения" },
             { value: "plans", title: "Планы" },
+            { value: "templates", title: "Шаблоны" },
           ]}
           value={tab}
           onChange={setTab}
         />
-        {tab === "exercises" ? <Exercises /> : <Plans />}
+        {tab === "exercises" ? <Exercises /> : tab === "plans" ? <Plans /> : <Templates />}
       </Screen>
     </>
   );

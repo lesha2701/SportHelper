@@ -3,6 +3,8 @@ import { getTeamStats } from "@/api/stats";
 import { useLoad } from "@/lib/useLoad";
 import { formatRate } from "@/shared/types/stats";
 import type { Team } from "@/shared/types/team";
+import { getAttendanceAnalysis, getReportAnalysis, getTeamSummary } from "@/api/ai";
+import { AiText } from "@/ui/AiText";
 import { Card } from "@/ui/Card";
 import { ErrorView, LoadingView } from "@/ui/StateViews";
 import { StatGrid, StatTile } from "@/ui/StatTile";
@@ -25,6 +27,9 @@ export function StatsSection({ team }: { team: Team }) {
         <StatTile value={`${s.matchesWon}-${s.matchesDrawn}-${s.matchesLost}`} label="матчи: победы-ничьи-поражения" />
         <StatTile value={s.avgWellbeing === null ? "—" : s.avgWellbeing.toFixed(1)} label="самочувствие (1–5)" />
       </StatGrid>
+      <AiText title="Сводка по команде (ИИ)" heading="Сводка по команде" load={() => getTeamSummary(team.id)} />
+      <AiText title="Анализ посещаемости (ИИ)" heading="Посещаемость" load={() => getAttendanceAnalysis(team.id)} />
+      <AiText title="Анализ отчётов (ИИ)" heading="Отчёты игроков" load={() => getReportAnalysis(team.id)} />
       {s.lowActivityPlayers.length > 0 ? (
         <Card>
           <Text variant="heading">Низкая активность</Text>

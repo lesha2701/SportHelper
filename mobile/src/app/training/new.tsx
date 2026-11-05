@@ -1,6 +1,7 @@
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
+import { createPersonalTrainingDraft } from "@/api/ai";
 import { createPersonalTraining, createTeamTraining } from "@/api/trainings";
 import { toFormError } from "@/lib/formError";
 import { parseRuDate, parseTime, todayIso, formatRuDate } from "@/shared/lib/dates";
@@ -68,6 +69,32 @@ export default function NewTrainingScreen() {
   const [errors, setErrors] = useState<{ date?: string; time?: string; duration?: string; until?: string; exercises?: string; form?: string }>({});
   const [busy, setBusy] = useState(false);
 
+  const [aiBusy, setAiBusy] = useState(false);
+
+  async function draftWithAi() {
+    setAiBusy(true);
+    setErrors({});
+    try {
+      const d = await createPersonalTrainingDraft({ style: "reps", goals: null, duration_minutes: parseInt(duration, 10) || null });
+      setRows(
+        d.exercises.map((e) => ({
+          ...newRow(),
+          exercise: e.exercise,
+          kind: e.type,
+          sets: e.sets ? String(e.sets) : "3",
+          reps: e.reps ? String(e.reps) : "10",
+          durationSeconds: e.durationSeconds ? String(e.durationSeconds) : "30",
+          distanceMeters: e.distanceMeters ? String(e.distanceMeters) : "1000",
+        })),
+      );
+      if (d.notes) setNotes(d.notes);
+    } catch (e) {
+      setErrors({ form: toFormError(e).message });
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
   async function submit() {
     const found: typeof errors = {};
     const iso = parseRuDate(date);
@@ -122,6 +149,7 @@ export default function NewTrainingScreen() {
         ) : (
           <View style={{ gap: 12 }}>
             <Text variant="heading">Упражнения</Text>
+            <Button title="Предложить с ИИ" variant="secondary" onPress={draftWithAi} loading={aiBusy} />
             {rows.map((row, index) => (
               <ExerciseRowEditor
                 key={index}

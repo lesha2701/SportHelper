@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { getCoachPublicProfile, listCoachPublicListings, listCoachPublicReviews } from "@/api/coaches";
 import { useLoad } from "@/lib/useLoad";
 import { Card } from "@/ui/Card";
+import { ReportButton } from "@/ui/ReportButton";
 import { Screen } from "@/ui/Screen";
 import { ErrorView, LoadingView } from "@/ui/StateViews";
 import { Text } from "@/ui/Text";
@@ -27,6 +28,7 @@ export default function CoachScreen() {
         <Text muted>{[p.sport, p.specialization, p.experienceYears != null ? `опыт ${p.experienceYears} л.` : null].filter(Boolean).join(" · ")}</Text>
         {p.averageRating !== null ? <Text>★ {p.averageRating.toFixed(1)} · отзывов: {p.reviewCount}</Text> : null}
         {p.description ? <Text>{p.description}</Text> : null}
+        <ReportButton targetType="user" targetId={p.userId} ownerUserId={p.userId} />
 
         <Text variant="heading">Предложения</Text>
         {listings.length === 0 ? <Text muted>Сейчас нет открытых предложений.</Text> : null}
