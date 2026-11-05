@@ -9,6 +9,9 @@ struct TeamDetailView: View {
     @State private var editing = false
     @State private var confirmingLeave = false
     @State private var leaveError: String?
+    @State private var asking: (action: RosterAction, member: TeamMember)?
+    /// The member whose list of actions is open (the swipe shows one «Ещё» button: four long titles do not fit the screen).
+    @State private var choosing: TeamMember?
 
     init(model: TeamDetailModel) { _model = State(initialValue: model) }
 
@@ -43,6 +46,22 @@ struct TeamDetailView: View {
         }
         .refreshable { await model.load() }
         .sheet(isPresented: $editing) { TeamFormView(mode: .edit(team)) { model.updated($0) } }
+        .confirmationDialog(
+            asking?.action.confirmation(for: asking?.member.fullName ?? "")?.title ?? "",
+            isPresented: Binding(get: { asking != nil }, set: { if !$0 { asking = nil } }), titleVisibility: .visible
+        ) {
+            if let asking {
+                Button(asking.action.title, role: .destructive) { Task { await model.perform(asking.action, on: asking.member) } }
+                    .accessibilityIdentifier("team.member.confirm")
+            }
+        } message: {
+            Text(asking?.action.confirmation(for: asking?.member.fullName ?? "")?.message ?? "")
+        }
+        .confirmationDialog(
+            choosing?.fullName ?? "", isPresented: Binding(get: { choosing != nil }, set: { if !$0 { choosing = nil } }), titleVisibility: .visible
+        ) {
+            if let member = choosing { rosterButtons(rosterActions(for: member), member) }
+        }
         .confirmationDialog("Выйти из команды?", isPresented: $confirmingLeave, titleVisibility: .visible) {
             Button("Выйти из команды", role: .destructive) { Task { await leave() } }
         } message: {
@@ -153,19 +172,47 @@ struct TeamDetailView: View {
         case .loaded(let members):
             Section("Состав (\(members.count))") {
                 ForEach(members.sorted(by: Self.staffFirst)) { member in
-                    if team.canManage, member.role.isPlayer {
-                        // The coaching staff opens a player's statistics from the line.
-                        NavigationLink {
-                            PlayerStatsView(userId: member.userId, name: member.fullName)
-                        } label: {
+                    let actions = rosterActions(for: member)
+                    Group {
+                        if team.canManage, member.role.isPlayer {
+                            // The coaching staff opens a player's statistics from the line.
+                            NavigationLink {
+                                PlayerStatsView(userId: member.userId, name: member.fullName)
+                            } label: {
+                                memberRow(member)
+                            }
+                        } else {
                             memberRow(member)
                         }
-                        .accessibilityIdentifier("team.member")
-                    } else {
-                        memberRow(member).accessibilityIdentifier("team.member")
                     }
+                    .accessibilityIdentifier("team.member")
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        if !actions.isEmpty {
+                            Button { choosing = member } label: { Label("Ещё", systemImage: "ellipsis.circle") }
+                                .tint(.gray)
+                                .accessibilityIdentifier("team.member.more")
+                        }
+                    }
+                    .contextMenu { rosterButtons(actions, member) }
                 }
             }
+        }
+    }
+}
+
+extension TeamDetailView {
+    private func rosterActions(for member: TeamMember) -> [RosterAction] {
+        RosterAction.available(actor: team.myRole, target: member.role, isSelf: member.userId == auth.user?.id)
+    }
+
+    @ViewBuilder private func rosterButtons(_ actions: [RosterAction], _ member: TeamMember) -> some View {
+        ForEach(actions, id: \.self) { action in
+            Button(action.title, role: action.isDestructive ? .destructive : nil) {
+                if action.confirmation(for: member.fullName) != nil { asking = (action, member) } else { Task { await model.perform(action, on: member) } }
+            }
+            .tint(action.isDestructive ? .red : Theme.primary)
+            .disabled(model.busy.contains(member.userId))
+            .accessibilityIdentifier("team.member.\(action)")
         }
     }
 

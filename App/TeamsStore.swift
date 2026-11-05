@@ -140,4 +140,36 @@ final class TeamDetailModel {
     }
 
     func updated(_ newTeam: Team) { team = newTeam }
+
+    /// A role change, removal or block of one person. The list is read again afterwards.
+    func perform(_ action: RosterAction, on member: TeamMember) async {
+        busy.insert(member.userId)
+        defer { busy.remove(member.userId) }
+        do {
+            switch action {
+            case .remove: try await service.remove(member.userId, from: team.id)
+            case .block: try await service.block(member.userId, in: team.id)
+            default:
+                guard let role = action.newRole else { return }
+                try await service.setRole(role, of: member.userId, in: team.id)
+            }
+            notice = (Self.done(action, member.fullName), false)
+            await load()
+        } catch let error as APIError {
+            notice = (RosterAction.russian(error).message, true)
+        } catch {
+            notice = (APIError.unknown.message, true)
+        }
+    }
+
+    private static func done(_ action: RosterAction, _ name: String) -> String {
+        switch action {
+        case .makeCaptain: "\(name) теперь капитан."
+        case .removeCaptain: "\(name) больше не капитан."
+        case .makeAssistant: "\(name) теперь помощник тренера."
+        case .removeAssistant: "\(name) больше не помощник тренера."
+        case .remove: "\(name) удалён из команды."
+        case .block: "\(name) заблокирован."
+        }
+    }
 }

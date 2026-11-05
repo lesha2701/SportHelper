@@ -17,6 +17,20 @@ public final class TeamsService: Sendable {
 
     // MARK: coaching staff
 
+    /// Gives a person a new role ("captain", "assistant_coach" or "player").
+    public func setRole(_ role: String, of user: UUID, in team: UUID) async throws {
+        try await client.sendIgnoringResponse(.patch, path(team, "/members/\(user.uuidString.lowercased())"), body: MemberRoleBody(role: role))
+    }
+
+    public func remove(_ user: UUID, from team: UUID) async throws {
+        try await client.sendIgnoringResponse(.delete, path(team, "/members/\(user.uuidString.lowercased())"))
+    }
+
+    /// Removes a person and keeps them from applying again (the head coach only; the server has no way back).
+    public func block(_ user: UUID, in team: UUID) async throws {
+        try await client.sendIgnoringResponse(.post, path(team, "/members/\(user.uuidString.lowercased())/block"))
+    }
+
     /// A fresh invitation for players (valid for a limited time).
     public func createInvite(for id: UUID) async throws -> TeamInvite {
         try await client.send(.post, path(id, "/invites"), body: InviteKind(kind: "join"))
