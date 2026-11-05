@@ -484,12 +484,9 @@ export function WorkoutSession({
           </View>
         ) : null}
         {isLast ? (
-          <Button title="Завершить тренировку" onPress={finish} />
+          <Button title="Завершить" onPress={finish} />
         ) : (
-          <>
-            <Button title="Следующее упражнение" variant={exerciseDone ? "primary" : "secondary"} onPress={() => goTo(activeIndex + 1)} />
-            <Button title="Завершить тренировку" variant="ghost" onPress={finish} />
-          </>
+          <Button title="Следующее упражнение" variant={exerciseDone ? "primary" : "secondary"} onPress={() => goTo(activeIndex + 1)} />
         )}
       </View>
     </>,

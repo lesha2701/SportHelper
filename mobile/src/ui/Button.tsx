@@ -41,7 +41,7 @@ export function Button({ title, onPress, variant = "primary", loading, disabled,
       {loading ? (
         <ActivityIndicator color={palette.fg} />
       ) : (
-        <Text variant="label" style={{ color: palette.fg, fontFamily: fonts.bodyBold, fontSize: 15 }}>
+        <Text variant="label" numberOfLines={1} style={{ color: palette.fg, fontFamily: fonts.bodyBold, fontSize: 15, textAlign: "center", alignSelf: "stretch" }}>
           {title}
         </Text>
       )}
