@@ -1305,6 +1305,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
                     "status": record["status"],
                     "team_id": record.get("team_id"),
                     "team_name": team["name"] if team else None,
+                    "description": record.get("description"),
                 }
             )
         return sorted(result, key=lambda r: (r["training_date"], r["start_time"]))
