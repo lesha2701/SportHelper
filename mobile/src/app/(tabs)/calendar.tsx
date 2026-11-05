@@ -26,7 +26,7 @@ export default function CalendarScreen() {
   const { colors } = useTheme();
   const [range, setRange] = useState<Range>("week");
   const [from, setFrom] = useState(startOfWeekIso(todayIso()));
-  const to = addDays(from, range === "week" ? 6 : 34);
+  const to = addDays(from, range === "week" ? 6 : 27);
   const events = useLoad(() => getCalendar(from, to), [from, to]);
 
   const shift = (direction: 1 | -1) => setFrom(addDays(from, direction * (range === "week" ? 7 : 28)));
@@ -47,7 +47,7 @@ export default function CalendarScreen() {
         layout="chips"
         options={[
           { value: "week", title: "Неделя" },
-          { value: "month", title: "5 недель" },
+          { value: "month", title: "Месяц" },
         ]}
         value={range}
         onChange={switchRange}

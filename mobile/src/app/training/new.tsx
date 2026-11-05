@@ -30,11 +30,11 @@ const KINDS: { value: ExerciseKind; title: string }[] = [
   { value: "distance", title: "Дистанция" },
 ];
 
-function ExerciseRowEditor({ row, onChange, onRemove }: { row: ExerciseRow; onChange: (row: ExerciseRow) => void; onRemove: () => void }) {
+function ExerciseRowEditor({ row, onChange, onRemove, error }: { row: ExerciseRow; onChange: (row: ExerciseRow) => void; onRemove: () => void; error?: string | null }) {
   const set = (patch: Partial<ExerciseRow>) => onChange({ ...row, ...patch });
   return (
     <Card>
-      <TextField label="Упражнение" value={row.exercise} onChangeText={(exercise) => set({ exercise })} maxLength={100} />
+      <TextField label="Упражнение" required value={row.exercise} onChangeText={(exercise) => set({ exercise })} maxLength={100} error={error} />
       <Choice layout="chips" options={KINDS} value={row.kind} onChange={(kind) => set({ kind })} />
       <TextField label="Подходов" value={row.sets} onChangeText={(sets) => set({ sets })} keyboardType="number-pad" maxLength={2} />
       {row.kind === "reps" ? <TextField label="Повторений" value={row.reps} onChangeText={(reps) => set({ reps })} keyboardType="number-pad" maxLength={3} /> : null}
@@ -65,7 +65,7 @@ export default function NewTrainingScreen() {
   const [notes, setNotes] = useState("");
   const [reminder, setReminder] = useState("60");
   const [until, setUntil] = useState("");
-  const [errors, setErrors] = useState<{ date?: string; time?: string; duration?: string; until?: string; form?: string }>({});
+  const [errors, setErrors] = useState<{ date?: string; time?: string; duration?: string; until?: string; exercises?: string; form?: string }>({});
   const [busy, setBusy] = useState(false);
 
   async function submit() {
@@ -77,6 +77,8 @@ export default function NewTrainingScreen() {
     if (!iso) found.date = "Введите дату как ДД.ММ.ГГГГ.";
     if (!start) found.time = "Введите время как ЧЧ:ММ.";
     if (!(minutes >= 5 && minutes <= 600)) found.duration = "От 5 до 600 минут.";
+    // A personal training is a list of exercises: without at least one named exercise there is nothing to do.
+    if (!isTeam && !rows.some((r) => r.exercise.trim())) found.exercises = "Укажите название хотя бы одного упражнения.";
     if (until.trim() && (!untilIso || (iso && untilIso <= iso))) found.until = "Дата окончания повтора должна быть после первой тренировки.";
     setErrors(found);
     if (Object.keys(found).length) return;
@@ -124,8 +126,12 @@ export default function NewTrainingScreen() {
               <ExerciseRowEditor
                 key={index}
                 row={row}
-                onChange={(next) => setRows((current) => current.map((r, i) => (i === index ? next : r)))}
+                onChange={(next) => {
+                  setRows((current) => current.map((r, i) => (i === index ? next : r)));
+                  if (errors.exercises) setErrors((current) => ({ ...current, exercises: undefined }));
+                }}
                 onRemove={() => setRows((current) => (current.length > 1 ? current.filter((_, i) => i !== index) : [newRow()]))}
+                error={errors.exercises && !row.exercise.trim() ? errors.exercises : null}
               />
             ))}
             <Button title="Добавить упражнение" variant="secondary" onPress={() => setRows((current) => [...current, newRow()])} />

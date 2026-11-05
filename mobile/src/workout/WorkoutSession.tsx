@@ -329,18 +329,22 @@ export function WorkoutSession({
   return frame(
     <>
       <View style={styles.top}>
-        <Pressable accessibilityLabel="Выйти, прогресс сохранится на этом устройстве" onPress={onExit} hitSlop={10}>
-          <Text variant="heading">‹</Text>
-        </Pressable>
+        <View style={styles.topSide}>
+          <Pressable accessibilityLabel="Выйти, прогресс сохранится на этом устройстве" onPress={onExit} hitSlop={10}>
+            <Text variant="heading">‹</Text>
+          </Pressable>
+        </View>
         <View style={{ alignItems: "center" }}>
           <Text variant="heading">{formatClock(elapsed)}</Text>
           <Text variant="caption" muted>
             подходов {totals.setsDone} из {totals.setsTotal}
           </Text>
         </View>
-        <Pressable accessibilityRole="button" onPress={finish} hitSlop={10}>
-          <Text variant="label" style={{ color: colors.primary }}>Завершить</Text>
-        </Pressable>
+        <View style={[styles.topSide, { alignItems: "flex-end" }]}>
+          <Pressable accessibilityRole="button" onPress={finish} hitSlop={10}>
+            <Text variant="label" style={{ color: colors.primary }}>Завершить</Text>
+          </Pressable>
+        </View>
       </View>
       <View style={[styles.progress, { backgroundColor: colors.surfaceAlt }]}>
         <View style={{ width: `${setsProgress}%`, height: 4, backgroundColor: colors.primary }} />
@@ -447,7 +451,7 @@ export function WorkoutSession({
         <View style={styles.row}>
           <Button title="+ Подход" variant="secondary" onPress={addSet} style={{ flex: 1 }} />
           {exercise.sets.length > 1 && !exercise.sets[exercise.sets.length - 1]!.done ? (
-            <Button title="Убрать последний" variant="ghost" onPress={removeLastSet} style={{ flex: 1 }} />
+            <Button title="− Подход" variant="secondary" onPress={removeLastSet} style={{ flex: 1 }} />
           ) : null}
         </View>
 
@@ -482,7 +486,10 @@ export function WorkoutSession({
         {isLast ? (
           <Button title="Завершить тренировку" onPress={finish} />
         ) : (
-          <Button title="Следующее упражнение" variant={exerciseDone ? "primary" : "secondary"} onPress={() => goTo(activeIndex + 1)} />
+          <>
+            <Button title="Следующее упражнение" variant={exerciseDone ? "primary" : "secondary"} onPress={() => goTo(activeIndex + 1)} />
+            <Button title="Завершить тренировку" variant="ghost" onPress={finish} />
+          </>
         )}
       </View>
     </>,
@@ -492,6 +499,7 @@ export function WorkoutSession({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 12 },
+  topSide: { width: 96, justifyContent: "center" },
   progress: { height: 4 },
   content: { padding: 20, gap: 14, width: "100%", maxWidth: 560, alignSelf: "center" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

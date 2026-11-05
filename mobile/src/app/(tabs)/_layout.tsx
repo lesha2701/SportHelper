@@ -28,7 +28,7 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-        tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 11 },
+        tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 10 },
         sceneStyle: { backgroundColor: colors.bg },
       }}
     >
