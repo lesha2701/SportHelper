@@ -90,6 +90,8 @@ struct IncomingRequestsView: View {
 /// The coach's own list of sessions: who is booked, and whether they have paid.
 struct CoachBookingsView: View {
     @Environment(AuthStore.self) private var auth
+    @State private var plans: [Plan] = []
+    @State private var planError: String?
 
     private var store: BookingsStore { auth.bookings }
 
@@ -111,7 +113,15 @@ struct CoachBookingsView: View {
             }
         }
         .navigationTitle("Записи")
-        .task { await store.reloadCoachBookings() }
+        .task {
+            await store.reloadCoachBookings()
+            if case .success(let list) = await auth.library.plans() { plans = list }
+        }
+        .alert("Не удалось выбрать план", isPresented: Binding(get: { planError != nil }, set: { if !$0 { planError = nil } })) {
+            Button("Понятно", role: .cancel) {}
+        } message: {
+            Text(planError ?? "")
+        }
     }
 
     private func list(_ bookings: [Booking]) -> some View {
@@ -138,7 +148,8 @@ struct CoachBookingsView: View {
                     BookingCardView(
                         booking: $0, viewer: .coach, paymentsOn: false, isChecking: false, payError: nil, onPay: {}, onCheck: {},
                         onChat: { [id = $0.id] in auth.router.profilePath.append(.bookingChat(id)) },
-                        chatUnread: auth.chatUnread.unread.forBooking($0.id)
+                        chatUnread: auth.chatUnread.unread.forBooking($0.id), plans: plans,
+                        onChoosePlan: { [id = $0.id] plan in Task { planError = await store.setPlan(plan, of: id) } }
                     )
                 }
             }

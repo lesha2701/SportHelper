@@ -27,6 +27,8 @@ struct TrainingDetailView: View {
     @State private var working = false
     /// What the person recorded in the guided workout, once it is saved.
     @State private var workout: TrainingWorkout?
+    /// The plan the coach attached to the training (anyone who sees the training may read it).
+    @State private var plan: Plan?
     @State private var doing: Session?
     /// Whether a workout of this training was left unfinished on this device (it is looked up when the workout screen closes).
     @State private var hasDraft = false
@@ -207,6 +209,7 @@ struct TrainingDetailView: View {
                 if let minutes = training.reminderMinutesBefore { LabeledContent("Напоминание", value: TrainingReminder.title(minutes)) }
                 if training.recurrenceGroupId != nil { LabeledContent("Повтор", value: "Каждую неделю") }
             }
+            if let plan { planSection(plan) }
             if let list = ownChecklist(training) {
                 exercises(list)
             } else if let description = training.description, !description.isEmpty {
@@ -221,6 +224,20 @@ struct TrainingDetailView: View {
     private func canMarkAttendance(_ training: Training) -> Bool {
         training.hasAttendance && training.status == "completed"
             && (canManage(training) || (training.type == "independent" && training.responsibleUserId == auth.user?.id))
+    }
+
+    private func planSection(_ plan: Plan) -> some View {
+        Section("План тренировки") {
+            NavigationLink {
+                PlanDetailView(planId: plan.id, readOnly: plan.ownerId != auth.user?.id)
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(plan.name)
+                    Text(plan.sport).font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            .accessibilityIdentifier("training.plan")
+        }
     }
 
     // MARK: the guided workout
@@ -294,6 +311,11 @@ struct TrainingDetailView: View {
             let training = try await auth.calendar.training(id: trainingId)
             load = .loaded(training)
             hasDraft = WorkoutRunner.hasDraft(for: trainingId)
+            if let planId = training.planId {
+                if case .success(let found) = await auth.library.plan(planId) { plan = found }
+            } else {
+                plan = nil
+            }
             if training.type == "personal", training.createdBy == auth.user?.id, case .success(let saved) = await auth.trainings.workout(of: trainingId) {
                 workout = saved
             }

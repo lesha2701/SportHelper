@@ -14,6 +14,9 @@ struct BookingCardView: View {
     /// Opens the chat of this session; nil where chats are not offered. `chatUnread` is the number of messages not read yet.
     var onChat: (() -> Void)?
     var chatUnread = 0
+    /// The coach's own plans and what to do when one is chosen (nil takes the plan off); nil where the plan cannot be chosen.
+    var plans: [Plan] = []
+    var onChoosePlan: ((UUID?) -> Void)?
 
     enum Viewer { case athlete, coach }
 
@@ -32,12 +35,31 @@ struct BookingCardView: View {
             if let notes = booking.athleteNotes, !notes.isEmpty, viewer == .coach {
                 Text("Пожелания: \(notes)").font(.footnote).foregroundStyle(.secondary)
             }
+            planRow
             payment
             if booking.hasChat, let onChat { chatButton(onChat) }
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("booking.card")
+    }
+
+    /// The plan of the session: the coach chooses it among their plans, the athlete reads its name.
+    @ViewBuilder private var planRow: some View {
+        if viewer == .coach, booking.canChoosePlan, let onChoosePlan {
+            Menu {
+                Button("Без плана") { onChoosePlan(nil) }
+                ForEach(plans) { plan in Button(plan.name) { onChoosePlan(plan.id) } }
+            } label: {
+                Label(booking.trainingPlanName.map { "План: \($0)" } ?? "Выбрать план тренировки", systemImage: "list.bullet.clipboard")
+            }
+            .buttonStyle(.borderless)  // in a list row a button with no style takes the tap of the whole row
+            .disabled(plans.isEmpty && booking.trainingPlanId == nil)
+            .accessibilityIdentifier("booking.plan")
+        } else if let name = booking.trainingPlanName, !name.isEmpty {
+            Label("План: \(name)", systemImage: "list.bullet.clipboard").font(.footnote).foregroundStyle(.secondary)
+                .accessibilityIdentifier("booking.planName")
+        }
     }
 
     private func chatButton(_ action: @escaping () -> Void) -> some View {

@@ -38,6 +38,11 @@ public final class BookingsService: Sendable {
         try await client.send(.post, path(id, "/decline"))
     }
 
+    /// The coach picks which of their own plans the confirmed session uses (nil takes the plan off).
+    public func setPlan(_ plan: UUID?, of id: UUID) async throws -> Booking {
+        try await client.send(.patch, path(id, "/plan"), body: BookingPlanBody(planId: plan))
+    }
+
     // MARK: payment
 
     /// Asks the server for a payment page. The amount is never sent: the server takes it from the booking.
@@ -79,5 +84,17 @@ public struct PaymentPolling: Sendable {
             tries += 1
         }
         return latest
+    }
+}
+
+/// The body of "choose the plan": a plan taken off goes as an explicit null.
+struct BookingPlanBody: Encodable, Sendable {
+    let planId: UUID?
+
+    private enum CodingKeys: String, CodingKey { case planId }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(planId, forKey: .planId)
     }
 }

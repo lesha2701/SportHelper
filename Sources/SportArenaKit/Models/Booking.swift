@@ -102,6 +102,7 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
     public let statusRaw: String
     public let isCompleted: Bool
     public let trainingId: UUID?
+    public let trainingPlanId: UUID?
     public let trainingPlanName: String?
     public let hasReview: Bool
     public let paymentStatusRaw: String?
@@ -109,7 +110,7 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id, coachUserId, coachFullName, listingId, listingTitle, athleteUserId, athleteFullName, athleteNotes, startsAt
-        case durationMinutes, format, pricePerSession, currency, isCompleted, trainingId, trainingPlanName, hasReview, paidAt
+        case durationMinutes, format, pricePerSession, currency, isCompleted, trainingId, trainingPlanId, trainingPlanName, hasReview, paidAt
         case statusRaw = "status"
         case paymentStatusRaw = "paymentStatus"
     }
@@ -120,6 +121,9 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
     public var bookingFormat: BookingFormat? { BookingFormat(rawValue: format) }
     public var day: LocalDate { startsAt.serverDay }
     public var time: LocalTime { startsAt.serverTime }
+
+    /// The coach picks the plan of a confirmed session that is not held yet (the server needs the session to exist).
+    public var canChoosePlan: Bool { status == .confirmed && !isCompleted && trainingId != nil }
 
     public var priceText: String? { pricePerSession.map { Money.format($0, currency: currency) } }
 

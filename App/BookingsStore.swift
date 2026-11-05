@@ -90,6 +90,20 @@ final class BookingsStore {
         }
     }
 
+    /// The coach picks the plan of a confirmed session (nil takes it off). Returns the server's text when it did not work.
+    func setPlan(_ plan: UUID?, of id: UUID) async -> String? {
+        do {
+            let updated = try await service.setPlan(plan, of: id)
+            replace(updated)
+            // The server may answer without the change (the session of the booking is gone): say so instead of showing nothing.
+            return updated.trainingPlanId == plan ? nil : "План не сохранился: тренировка этой записи недоступна."
+        } catch let error as APIError {
+            return error.message
+        } catch {
+            return APIError.unknown.message
+        }
+    }
+
     // MARK: payment
 
     /// The payment page to open, or the server's error text.

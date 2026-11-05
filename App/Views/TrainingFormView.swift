@@ -24,6 +24,8 @@ struct TrainingFormView: View {
     @State private var independent = false
     @State private var responsible: UUID?
     @State private var players: [TeamMember] = []
+    @State private var planId: UUID?
+    @State private var plans: [Plan] = []
     @State private var saving = false
     @State private var error: String?
     @State private var filled = false
@@ -39,8 +41,6 @@ struct TrainingFormView: View {
 
     /// A training of the person's own has no team and cannot be made «самостоятельной».
     private var isPersonal: Bool { if case .edit(let training) = mode { training.type == "personal" } else { false } }
-
-    private var planId: UUID? { if case .edit(let training) = mode { training.planId } else { nil } }
 
     private var input: TrainingInput? {
         TrainingInput(
@@ -73,6 +73,7 @@ struct TrainingFormView: View {
                 Section("Описание") {
                     TextField("Что будет на тренировке (необязательно)", text: $details, axis: .vertical).lineLimit(3...8)
                 }
+                if !isPersonal { planSection }
                 if isSchedule { repeatSection }
                 if !isPersonal { independentSection }
                 if let message = error ?? problem {
@@ -90,7 +91,10 @@ struct TrainingFormView: View {
                 }
             }
             .onAppear(perform: fill)
-            .task { await loadPlayers() }
+            .task {
+                await loadPlayers()
+                await loadPlans()
+            }
         }
     }
 
@@ -102,6 +106,22 @@ struct TrainingFormView: View {
                 if let count = input?.seriesCount, count > 1 {
                     Text("Будет назначено тренировок: \(count)").font(.footnote).foregroundStyle(.secondary)
                 }
+            }
+        }
+    }
+
+    /// The coach's own plans. A plan chosen by another coach stays as it is (the server checks who may attach what).
+    @ViewBuilder private var planSection: some View {
+        if !plans.isEmpty || planId != nil {
+            Section {
+                Picker("План тренировки", selection: $planId) {
+                    Text("Без плана").tag(UUID?.none)
+                    ForEach(plans) { Text($0.name).tag(UUID?.some($0.id)) }
+                    if let planId, !plans.contains(where: { $0.id == planId }) { Text("План другого тренера").tag(UUID?.some(planId)) }
+                }
+                .accessibilityIdentifier("trainingForm.plan")
+            } footer: {
+                Text("Игроки увидят план в карточке тренировки.")
             }
         }
     }
@@ -132,7 +152,13 @@ struct TrainingFormView: View {
             reminder = training.reminderMinutesBefore
             independent = training.type == "independent"
             responsible = training.responsibleUserId
+            planId = training.planId
         }
+    }
+
+    private func loadPlans() async {
+        guard !isPersonal, case .success(let list) = await auth.library.plans() else { return }
+        plans = list
     }
 
     /// The people who can be made responsible: the team's players (the coaching staff cannot).

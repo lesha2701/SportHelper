@@ -5,14 +5,17 @@ import Testing
 private let base = URL(string: "https://sportarenaglobal.ru")!
 
 private func bookingJSON(
-    status: String = "confirmed", payment: String? = "unpaid", price: String = "2500.00", completed: Bool = false, id: String = "11111111-2222-4333-8444-555555555555"
+    status: String = "confirmed", payment: String? = "unpaid", price: String = "2500.00", completed: Bool = false, id: String = "11111111-2222-4333-8444-555555555555",
+    trainingId: String? = nil, planId: String? = nil
 ) -> String {
+    let training = trainingId.map { "\"\($0)\"" } ?? "null"
+    let plan = planId.map { "\"\($0)\"" } ?? "null"
     let paymentField = payment.map { "\"payment_status\":\"\($0)\"," } ?? ""
     return """
     {"id":"\(id)","coach_user_id":"99999999-2222-4333-8444-555555555555","coach_full_name":"Анна Тренер","listing_id":"88888888-2222-4333-8444-555555555555",
      "listing_title":"Теннис","athlete_user_id":"77777777-2222-4333-8444-555555555555","athlete_full_name":"Игорь Петров","athlete_notes":null,
      "starts_at":"2026-11-05T10:00:00Z","duration_minutes":60,"format":"online","price_per_session":\(price),"currency":"RUB","status":"\(status)",
-     \(paymentField)"is_completed":\(completed),"training_id":null,"training_plan_id":null,"training_plan_name":null,"training_status":null,
+     \(paymentField)"is_completed":\(completed),"training_id":\(training),"training_plan_id":\(plan),"training_plan_name":null,"training_status":null,
      "has_review":false,"has_player_review":false,"paid_at":null}
     """
 }
@@ -301,4 +304,38 @@ struct PaymentPollingTests {
 private actor WaitLog {
     private(set) var all: [Duration] = []
     func add(_ duration: Duration) { all.append(duration) }
+}
+
+struct BookingPlanTests {
+    private let training = "22222222-2222-4333-8444-555555555555"
+
+    @Test func thePlanCanBeChosenForAConfirmedSessionThatIsNotHeldYet() throws {
+        #expect(try decode(bookingJSON(trainingId: training)).canChoosePlan)
+        #expect(try !decode(bookingJSON()).canChoosePlan, "the session does not exist before the booking is confirmed")
+        #expect(try !decode(bookingJSON(completed: true, trainingId: training)).canChoosePlan)
+        #expect(try !decode(bookingJSON(status: "pending", trainingId: training)).canChoosePlan)
+    }
+
+    @Test func theChosenPlanIsRead() throws {
+        let plan = "33333333-2222-4333-8444-555555555555"
+        #expect(try decode(bookingJSON(trainingId: training, planId: plan)).trainingPlanId == UUID(uuidString: plan))
+        #expect(try decode(bookingJSON(trainingId: training)).trainingPlanId == nil)
+    }
+
+    @Test func choosingAndTakingOffAPlanPatchesThePlanWithAnExplicitNull() async throws {
+        let seen = RequestLog()
+        let service = BookingsService(client: APIClient(baseURL: base, session: MockServer.session { request in
+            seen.add(request)
+            return json(bookingJSON(trainingId: training))
+        }))
+        let id = UUID(uuidString: "11111111-2222-4333-8444-555555555555")!
+        let plan = UUID(uuidString: "33333333-2222-4333-8444-555555555555")!
+        _ = try await service.setPlan(plan, of: id)
+        _ = try await service.setPlan(nil, of: id)
+        #expect(seen.all.map(\.httpMethod) == ["PATCH", "PATCH"])
+        #expect(seen.all[0].url?.path == "/api/bookings/11111111-2222-4333-8444-555555555555/plan")
+        #expect(seen.all[0].bodyJSON as? [String: String] == ["plan_id": "33333333-2222-4333-8444-555555555555"])
+        let detached = try #require(seen.all[1].bodyJSON as? [String: Any])
+        #expect(detached["plan_id"] is NSNull, "a plan taken off must be sent as null")
+    }
 }
