@@ -44,6 +44,7 @@ struct ProfileView: View {
                 case .coachCatalog: CoachesView(store: auth.coaches, embedded: true)
                 case .myStats: PlayerStatsView(userId: user.id)
                 case .notifications: NotificationsView()
+                case .myListings: MyListingsView()
                 }
             }
             .task {
@@ -154,6 +155,8 @@ struct ProfileView: View {
                 .accessibilityIdentifier("profile.requests")
                 NavigationLink(value: ProfileRoute.coachBookings) { Label("Записи", systemImage: "calendar") }
                     .accessibilityIdentifier("profile.coachBookings")
+                NavigationLink(value: ProfileRoute.myListings) { Label("Мои объявления", systemImage: "megaphone") }
+                    .accessibilityIdentifier("profile.myListings")
             } else {
                 NavigationLink(value: ProfileRoute.myBookings) { Label("Мои брони", systemImage: "calendar.badge.clock") }
                     .accessibilityIdentifier("profile.myBookings")
