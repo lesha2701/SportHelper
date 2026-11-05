@@ -10,7 +10,7 @@ struct TaskFormView: View {
         case editTemplate(TaskTemplate)
     }
 
-    private enum AudienceKind: Hashable { case team, players, position }
+    private enum AudienceKind: Hashable { case team, players, position, absentees }
 
     @Environment(AuthStore.self) private var auth
     @Environment(\.dismiss) private var dismiss
@@ -28,6 +28,9 @@ struct TaskFormView: View {
     @State private var audienceKind = AudienceKind.team
     @State private var chosenPlayers: Set<UUID> = []
     @State private var position = ""
+    @State private var missedTraining: UUID?
+    /// The held trainings of the team, the latest first (a task for those who missed one is given for one of them).
+    @State private var heldTrainings: [Training] = []
     @State private var players: [TeamMember] = []
     @State private var planId: UUID?
     @State private var exerciseIds: [UUID] = []
@@ -69,6 +72,7 @@ struct TaskFormView: View {
         case .team: .team
         case .players: .players(players.map(\.userId).filter(chosenPlayers.contains))
         case .position: .position(position)
+        case .absentees: .absentees(training: missedTraining)
         }
     }
 
@@ -207,6 +211,7 @@ struct TaskFormView: View {
                 Text("Вся команда").tag(AudienceKind.team)
                 Text("Игроки").tag(AudienceKind.players)
                 Text("Позиция").tag(AudienceKind.position)
+                Text("Не были").tag(AudienceKind.absentees)
             }
             .pickerStyle(.segmented)
             .accessibilityIdentifier("taskForm.audience")
@@ -237,7 +242,33 @@ struct TaskFormView: View {
                         ForEach(positions, id: \.self) { Text($0).tag($0) }
                     }
                 }
+            case .absentees:
+                absenteesPicker
             }
+        }
+    }
+
+    /// «5 ноября 2026 г., 18:00 · Корт»: the place tells apart the trainings of one day.
+    private static func heldTitle(_ training: Training) -> String {
+        let when = "\(LocalDateFormat.full(training.trainingDate)), \(training.startTime.display)"
+        guard let place = training.location, !place.isEmpty else { return when }
+        return "\(when) · \(place)"
+    }
+
+    @ViewBuilder private var absenteesPicker: some View {
+        if heldTrainings.isEmpty {
+            Text("Нет проведённых тренировок. Отметьте тренировку проведённой и укажите, кого на ней не было.")
+                .font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("taskForm.noTrainings")
+        } else {
+            Picker("Тренировка", selection: $missedTraining) {
+                Text("Выберите").tag(UUID?.none)
+                ForEach(heldTrainings) { training in
+                    Text(Self.heldTitle(training)).tag(UUID?.some(training.id))
+                }
+            }
+            .accessibilityIdentifier("taskForm.training")
+            Text("Задание получат те, кого на этой тренировке отметили не пришедшими. Отметить можно в карточке тренировки.")
+                .font(.footnote).foregroundStyle(.secondary)
         }
     }
 
@@ -282,6 +313,10 @@ struct TaskFormView: View {
         if case .success(let list) = await auth.library.plans() { plans = list }
         if case .success(let list) = await auth.library.exercises() { exercises = list }
         if isGive, case .success(let list) = await auth.library.templates() { templates = list }
+        if isGive, let teamId, case .success(let list) = await auth.trainings.teamTrainings(teamId) {
+            heldTrainings = Array(list.filter { $0.hasAttendance && $0.status == "completed" }
+                .sorted { ($0.trainingDate, $0.startTime) > ($1.trainingDate, $1.startTime) }.prefix(30))
+        }
     }
 
     private func save() async {
@@ -296,7 +331,8 @@ struct TaskFormView: View {
         case .editTemplate(let template): failure = await auth.library.updateTemplate(template.id, input).failure
         }
         if let failure {
-            error = failure.message
+            error = failure.code == "no_recipients" && audienceKind == .absentees
+                ? "На этой тренировке никто не отмечен как не пришедший: сначала отметьте, кого не было." : failure.message
         } else {
             onDone()
             dismiss()

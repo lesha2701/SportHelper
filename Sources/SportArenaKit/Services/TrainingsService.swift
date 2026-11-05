@@ -40,6 +40,16 @@ public final class TrainingsService: Sendable {
         try await client.send(.put, path(id, "/workout"), body: result)
     }
 
+    /// Who was at a training of a team. Any member of the team may read it; the first reading counts everyone as present.
+    public func attendance(of id: UUID) async throws -> [Attendance] {
+        try await client.send(.get, path(id, "/attendance"))
+    }
+
+    /// Marks one member present or absent (the coaching staff, or the responsible player of an independent training).
+    public func setAttendance(_ status: AttendanceStatus, of user: UUID, at training: UUID) async throws -> Attendance {
+        try await client.send(.patch, path(training, "/attendance/\(user.uuidString.lowercased())"), body: AttendanceBody(status: status.rawValue))
+    }
+
     public func update(_ id: UUID, _ input: TrainingInput, status: TrainingStatus) async throws -> Training {
         try await client.send(.put, path(id), body: TrainingUpdateBody(input: input, status: status.rawValue))
     }

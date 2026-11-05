@@ -213,7 +213,14 @@ struct TrainingDetailView: View {
                 Section("Описание") { Text(description) }
             }
             if let workout { results(workout) }
+            if canMarkAttendance(training), let teamId = training.teamId { AttendanceSection(trainingId: training.id, teamId: teamId) }
         }
+    }
+
+    /// Attendance is marked on a held training of a team by its coaching staff (or by the responsible player of an independent one).
+    private func canMarkAttendance(_ training: Training) -> Bool {
+        training.hasAttendance && training.status == "completed"
+            && (canManage(training) || (training.type == "independent" && training.responsibleUserId == auth.user?.id))
     }
 
     // MARK: the guided workout

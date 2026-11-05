@@ -283,11 +283,12 @@ public struct TaskRequirements: Equatable, Sendable {
     }
 }
 
-/// Who gets a new task. (A task for those who missed a training needs attendance, which the app does not have yet.)
+/// Who gets a new task. «Absentees» are the players marked absent at one of the team's trainings.
 public enum TaskAudience: Equatable, Sendable {
     case team
     case players([UUID])
     case position(String)
+    case absentees(training: UUID?)
 }
 
 /// What the person fills in to give a task or to change one.
@@ -356,6 +357,8 @@ public struct TaskInput: Equatable, Sendable {
             if ids.count > TaskLimits.maxPlayers { return "Не больше \(TaskLimits.maxPlayers) игроков." }
         case .position(let name):
             if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "Выберите позицию." }
+        case .absentees(let training):
+            if training == nil { return "Выберите тренировку, которую пропустили." }
         }
         return nil
     }
@@ -394,6 +397,7 @@ struct TaskCreateBody: Encodable, Sendable {
     let targetType: String
     let playerIds: [UUID]
     let position: String?
+    let trainingId: UUID?
 
     init(_ input: TaskInput) {
         title = input.title
@@ -417,14 +421,22 @@ struct TaskCreateBody: Encodable, Sendable {
             targetType = "team"
             playerIds = []
             position = nil
+            trainingId = nil
         case .players(let ids):
             targetType = "players"
             playerIds = ids
             position = nil
+            trainingId = nil
         case .position(let name):
             targetType = "position"
             playerIds = []
             position = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            trainingId = nil
+        case .absentees(let training):
+            targetType = "absentees"
+            playerIds = []
+            position = nil
+            trainingId = training
         }
     }
 }
