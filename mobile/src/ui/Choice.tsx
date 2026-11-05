@@ -18,9 +18,11 @@ interface Props<T extends string> {
   /** "cards": one option per row with a hint; "chips": a wrapping set of short options. */
   layout?: "cards" | "chips";
   disabled?: boolean;
+  /** For several choices at once: the selected values (then `value` is ignored). */
+  selected?: T[];
 }
 
-export function Choice<T extends string>({ label, options, value, onChange, error, layout = "cards", disabled }: Props<T>) {
+export function Choice<T extends string>({ label, options, value, onChange, error, layout = "cards", disabled, selected }: Props<T>) {
   const { colors } = useTheme();
   return (
     <View style={styles.wrap} accessibilityRole="radiogroup">
@@ -31,7 +33,7 @@ export function Choice<T extends string>({ label, options, value, onChange, erro
       ) : null}
       <View style={layout === "chips" ? styles.chips : styles.cards}>
         {options.map((option) => {
-          const active = option.value === value;
+          const active = selected ? selected.includes(option.value) : option.value === value;
           return (
             <Pressable
               key={option.value}

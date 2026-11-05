@@ -43,6 +43,22 @@ function Routes() {
           <Stack.Screen name="task/[id]" />
           <Stack.Screen name="match/new" />
           <Stack.Screen name="match/[id]" />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="stats" />
+          <Stack.Screen name="metric-new" />
+          <Stack.Screen name="search" />
+          <Stack.Screen name="catalog" />
+          <Stack.Screen name="listing/[id]" />
+          <Stack.Screen name="coach/[id]" />
+          <Stack.Screen name="bookings" />
+          <Stack.Screen name="finance" />
+          <Stack.Screen name="library" />
+          <Stack.Screen name="listing/new" />
+          <Stack.Screen name="my-listings" />
+          <Stack.Screen name="library/exercise/new" />
+          <Stack.Screen name="library/exercise/[id]" />
+          <Stack.Screen name="library/plan/new" />
+          <Stack.Screen name="library/plan/[id]" />
         </Stack.Protected>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="login" />

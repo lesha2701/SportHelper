@@ -1,7 +1,9 @@
 import { router } from "expo-router";
 import { useAuth } from "@/auth/AuthProvider";
+import { useFeatures } from "@/lib/useFeatures";
 import { useProfile } from "@/profile/ProfileProvider";
 import { SKILL_LEVEL_LABELS, type ProfileMe } from "@/shared/types/profile";
+import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { Screen } from "@/ui/Screen";
 import { Text } from "@/ui/Text";
@@ -19,6 +21,7 @@ function currentMode(profile: ProfileMe, preferred: Mode | null): Mode {
 export default function HomeScreen() {
   const { user } = useAuth();
   const { state } = useProfile();
+  const features = useFeatures();
   if (state.status !== "ready") return null;
 
   const profile = state.data;
@@ -52,12 +55,15 @@ export default function HomeScreen() {
       ) : null}
 
       <Card>
-        <Text variant="heading">Скоро в приложении</Text>
-        <Text muted>
-          {mode === "coach"
-            ? "Команды, календарь тренировок, задания и матчи появятся в следующих обновлениях."
-            : "Календарь, тренировки, задания и статистика появятся в следующих обновлениях."}
-        </Text>
+        <Text variant="heading">Разделы</Text>
+        <Button title="Уведомления" variant="secondary" onPress={() => router.push("/notifications")} />
+        <Button title="Поиск" variant="secondary" onPress={() => router.push("/search")} />
+        {mode === "player" ? <Button title="Моя статистика" variant="secondary" onPress={() => router.push("/stats")} /> : null}
+        <Button title={mode === "coach" ? "Записи ко мне" : "Мои записи"} variant="secondary" onPress={() => router.push("/bookings")} />
+        {mode === "player" ? <Button title="Каталог тренеров" variant="secondary" onPress={() => router.push("/catalog")} /> : null}
+        {mode === "coach" ? <Button title="Библиотека" variant="secondary" onPress={() => router.push("/library")} /> : null}
+        {mode === "coach" ? <Button title="Мои предложения" variant="secondary" onPress={() => router.push("/my-listings")} /> : null}
+        {mode === "coach" && features.trainerBalance ? <Button title="Финансы" variant="secondary" onPress={() => router.push("/finance")} /> : null}
       </Card>
     </Screen>
   );
