@@ -66,39 +66,42 @@ enum Theme {
 
     // MARK: type
 
-    /// The display face (the site's Oswald): headings, tabs, buttons, big numbers. It is used when its font file is in the app; until
-    /// then the system's condensed heavy face stands in for it, which has the same sports-poster look.
+    /// The site's fonts, bundled as variable fonts (`App/Resources/Fonts`, SIL Open Font License). Without them (a build that lacks the files)
+    /// the system's faces stand in, so the app never shows a missing font.
+    private static let hasOswald = UIFont.familyNames.contains("Oswald")
+    private static let hasMontserrat = UIFont.familyNames.contains("Montserrat")
+
+    /// The display face (the site's Oswald): headings, tabs, buttons, big numbers.
     static func display(_ size: CGFloat, weight: Font.Weight = .bold, relativeTo style: Font.TextStyle = .title) -> Font {
-        if let name = displayFontName(for: weight) { return .custom(name, size: size, relativeTo: style) }
+        if hasOswald { return .custom("Oswald", size: size, relativeTo: style).weight(displayWeight(weight)) }
         return .system(size: size, weight: weight == .regular ? .semibold : .heavy).width(.condensed)
     }
 
-    /// The text face (the site's Montserrat) when its font file is in the app, the system face otherwise.
+    /// The text face (the site's Montserrat).
     static func body(_ size: CGFloat, weight: Font.Weight = .regular, relativeTo style: Font.TextStyle = .body) -> Font {
-        if let name = bodyFontName(for: weight) { return .custom(name, size: size, relativeTo: style) }
+        if hasMontserrat { return .custom("Montserrat", size: size, relativeTo: style).weight(weight) }
         return .system(size: size, weight: weight)
     }
 
-    private static func displayFontName(for weight: Font.Weight) -> String? {
-        let name = weight == .regular || weight == .medium ? "Oswald-Medium" : (weight == .semibold ? "Oswald-SemiBold" : "Oswald-Bold")
-        return UIFont(name: name, size: 12) == nil ? nil : name
-    }
-
-    private static func bodyFontName(for weight: Font.Weight) -> String? {
-        let name: String
+    /// Oswald is drawn from medium to bold here: regular and medium read as medium, semibold stays, everything heavier is bold.
+    private static func displayWeight(_ weight: Font.Weight) -> Font.Weight {
         switch weight {
-        case .bold, .heavy, .black: name = "Montserrat-Bold"
-        case .semibold: name = "Montserrat-SemiBold"
-        case .medium: name = "Montserrat-Medium"
-        default: name = "Montserrat-Regular"
+        case .regular, .medium, .ultraLight, .thin, .light: .medium
+        case .semibold: .semibold
+        default: .bold
         }
-        return UIFont(name: name, size: 12) == nil ? nil : name
     }
 
     /// The same display face for UIKit (the navigation and tab bars).
     static func displayUIFont(_ size: CGFloat, weight: UIFont.Weight = .bold) -> UIFont {
-        let name = weight == .regular || weight == .medium ? "Oswald-Medium" : (weight == .semibold ? "Oswald-SemiBold" : "Oswald-Bold")
-        if let font = UIFont(name: name, size: size) { return font }
+        if hasOswald {
+            let uiWeight: UIFont.Weight = weight <= .medium ? .medium : (weight == .semibold ? .semibold : .bold)
+            let descriptor = UIFontDescriptor(fontAttributes: [
+                .family: "Oswald",
+                .traits: [UIFontDescriptor.TraitKey.weight: uiWeight],
+            ])
+            return UIFont(descriptor: descriptor, size: size)
+        }
         let base = UIFont.systemFont(ofSize: size, weight: .heavy)
         // the condensed width of the system face
         let descriptor = base.fontDescriptor.addingAttributes([

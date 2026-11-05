@@ -40,7 +40,6 @@ struct TeamDetailView: View {
         .sagScreen()
         .navigationTitle(team.name)
         .navigationBarTitleDisplayMode(.inline)
-        .sagScreen()
         .navigationDestination(item: $hub) { destination in
             switch destination {
             case .chat: ChatView(store: auth.chatStore(for: .team(team.id)))
@@ -328,7 +327,7 @@ private struct HubTile: View {
                 .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 104, maxHeight: 104, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 126, alignment: .topLeading)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous).strokeBorder(Theme.border, lineWidth: 1))
         .contentShape(Rectangle())

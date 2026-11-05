@@ -55,14 +55,19 @@ final class RosterUITests: SignedInUITestCase {
             XCTAssertTrue(member(withRole: "Игрок").waitForExistence(timeout: 10))
         }
         let player = member(withRole: "Игрок")
+        scrollUntilVisible(player)
         guard player.waitForExistence(timeout: 5) else { throw XCTSkip("the team has no plain player") }
         revealActions(of: player)
         XCTAssertTrue(action("Назначить капитаном").waitForExistence(timeout: 5), "no «make captain» on a player")
         XCTAssertTrue(action("Назначить помощником").isHittable && action("Удалить из команды").isHittable && action("Заблокировать").isHittable,
                       "the head coach should see every action")
         action("Назначить капитаном").tap()
-        XCTAssertTrue(element("team.notice").waitForExistence(timeout: 10))
+        // the notice is above the list of people, which the swipe of the row has scrolled away from
+        var swipes = 0
+        while !element("team.notice").waitForExistence(timeout: 3), swipes < 6 { app.swipeDown(); swipes += 1 }
+        XCTAssertTrue(element("team.notice").exists, "no notice about the new captain")
         XCTAssertTrue(element("team.notice").label.contains("теперь капитан"), element("team.notice").label)
+        scrollUntilVisible(member(withRole: "Капитан"))
         XCTAssertTrue(member(withRole: "Капитан").waitForExistence(timeout: 10), "the role did not change in the list")
 
         revealActions(of: member(withRole: "Капитан"))
@@ -76,6 +81,7 @@ final class RosterUITests: SignedInUITestCase {
         try openTeam()
         guard element("team.edit").waitForExistence(timeout: 5) else { throw XCTSkip("needs the account of a coach of the team") }
         let player = member(withRole: "Игрок")
+        scrollUntilVisible(player)
         guard player.waitForExistence(timeout: 5) else { throw XCTSkip("the team has no plain player") }
         revealActions(of: player)
         action("Удалить из команды").tap()

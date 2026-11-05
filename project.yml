@@ -40,6 +40,8 @@ targets:
       properties:
         CFBundleDisplayName: SportArena
         UILaunchScreen: {}
+        # Oswald (headings) and Montserrat (text) of the site: variable fonts, SIL Open Font License (App/Resources/Fonts)
+        UIAppFonts: [Oswald.ttf, Montserrat.ttf]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         API_BASE_URL: "$(API_BASE_URL)"
         # Plain http is allowed only for a server on this Mac (the simulator reaches it as localhost); the release build talks https.
