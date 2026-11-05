@@ -56,5 +56,8 @@ struct MainTabView: View {
         .task(id: scenePhase == .active) {
             if scenePhase == .active { await auth.chatUnread.keepFresh() }
         }
+        .task(id: scenePhase == .active) {
+            if scenePhase == .active { await auth.notifications.keepFresh() }
+        }
     }
 }

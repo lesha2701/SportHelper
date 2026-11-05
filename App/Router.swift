@@ -14,6 +14,7 @@ enum ProfileRoute: Hashable {
     case myTasks
     case coachCatalog
     case myStats
+    case notifications
 }
 
 /// Lets any screen send the person elsewhere (after booking: to "Мои брони") without knowing how the app is laid out.

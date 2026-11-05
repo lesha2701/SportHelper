@@ -36,6 +36,7 @@ final class AuthStore {
     let home: HomeStore
     let stats: StatsStore
     let chatUnread: ChatUnreadStore
+    let notifications: NotificationsStore
     let complaints: ComplaintsService
     let router = Router()
     private let service: AuthService
@@ -57,6 +58,7 @@ final class AuthStore {
         self.home = HomeStore(client: client)
         self.stats = StatsStore(client: client)
         self.chatUnread = ChatUnreadStore(client: client)
+        self.notifications = NotificationsStore(client: client)
         self.complaints = ComplaintsService(client: client)
         self.service = AuthService(client: client)
         self.persistence = SessionPersistence(
@@ -156,6 +158,7 @@ final class AuthStore {
         bookings.reset()
         teams.reset()
         chatUnread.reset()
+        notifications.reset()
         home.reset()
         router.reset()
     }
