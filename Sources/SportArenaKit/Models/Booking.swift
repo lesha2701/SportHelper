@@ -105,17 +105,37 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
     public let trainingPlanId: UUID?
     public let trainingPlanName: String?
     public let hasReview: Bool
+    /// «scheduled», «completed», «cancelled»: the state of the training behind the booking.
+    public let trainingStatus: String?
+    private let hasPlayerReviewRaw: Bool?
     public let paymentStatusRaw: String?
     public let paidAt: Date?
 
     private enum CodingKeys: String, CodingKey {
         case id, coachUserId, coachFullName, listingId, listingTitle, athleteUserId, athleteFullName, athleteNotes, startsAt
-        case durationMinutes, format, pricePerSession, currency, isCompleted, trainingId, trainingPlanId, trainingPlanName, hasReview, paidAt
+        case durationMinutes, format, pricePerSession, currency, isCompleted, trainingId, trainingPlanId, trainingPlanName, hasReview, paidAt, trainingStatus
+        case hasPlayerReviewRaw = "hasPlayerReview"
         case statusRaw = "status"
         case paymentStatusRaw = "paymentStatus"
     }
 
     public var status: BookingStatus { BookingStatus(raw: statusRaw) }
+    /// The coach has already reviewed the athlete (an older server that does not say it counts as no).
+    public var hasPlayerReview: Bool { hasPlayerReviewRaw ?? false }
+
+    /// The athlete may review the coach once the session counts as held and no review was left.
+    public var athleteCanReview: Bool { status == .confirmed && isCompleted && !hasReview }
+
+    /// «Тренировка проведена»: the coach marks a session that has begun. (After that reviews open and the athlete is asked for one.)
+    public func coachCanMarkConducted(now: Date = Date()) -> Bool {
+        status == .confirmed && trainingStatus == "scheduled" && startsAt <= now
+    }
+
+    /// The coach's review of the athlete. While «проведена» is still to be pressed, that button is the way in.
+    public func coachCanReviewPlayer(now: Date = Date()) -> Bool {
+        status == .confirmed && isCompleted && !hasPlayerReview && !coachCanMarkConducted(now: now)
+    }
+
     /// A booking from an older server that does not say it is treated as having no payment information.
     public var paymentStatus: PaymentStatus { paymentStatusRaw.map(PaymentStatus.init(raw:)) ?? .notRequired }
     public var bookingFormat: BookingFormat? { BookingFormat(rawValue: format) }

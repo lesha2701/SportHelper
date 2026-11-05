@@ -93,6 +93,9 @@ struct CoachBookingsView: View {
     @Environment(AuthStore.self) private var auth
     @State private var plans: [Plan] = []
     @State private var planError: String?
+    @State private var reviewingPlayer: Booking?
+    @State private var completing: Set<UUID> = []
+    @State private var actionError: String?
 
     private var store: BookingsStore { auth.bookings }
 
@@ -118,6 +121,19 @@ struct CoachBookingsView: View {
         .task {
             await store.reloadCoachBookings()
             if case .success(let list) = await auth.library.plans() { plans = list }
+        }
+        .sheet(item: $reviewingPlayer) { booking in
+            ReviewSheet(
+                title: "Отзыв: \(booking.athleteFullName)",
+                hint: "Отзыв увидят другие тренеры, когда этот игрок запишется к ним. Пишите по делу и по фактам.", skipLabel: "Позже"
+            ) { draft in
+                await store.review(booking.id, draft: draft, ofPlayer: true)
+            }
+        }
+        .alert("Не получилось", isPresented: Binding(get: { actionError != nil }, set: { if !$0 { actionError = nil } })) {
+            Button("Понятно", role: .cancel) {}
+        } message: {
+            Text(actionError ?? "")
         }
         .alert("Не удалось выбрать план", isPresented: Binding(get: { planError != nil }, set: { if !$0 { planError = nil } })) {
             Button("Понятно", role: .cancel) {}
@@ -151,10 +167,23 @@ struct CoachBookingsView: View {
                         booking: $0, viewer: .coach, paymentsOn: false, isChecking: false, payError: nil, onPay: {}, onCheck: {},
                         onChat: { [id = $0.id] in auth.router.profilePath.append(.bookingChat(id)) },
                         chatUnread: auth.chatUnread.unread.forBooking($0.id), plans: plans,
-                        onChoosePlan: { [id = $0.id] plan in Task { planError = await store.setPlan(plan, of: id) } }
+                        onChoosePlan: { [id = $0.id] plan in Task { planError = await store.setPlan(plan, of: id) } },
+                        onComplete: { [booking = $0] in Task { await complete(booking) } },
+                        onReviewPlayer: { [booking = $0] in reviewingPlayer = booking },
+                        isCompleting: completing.contains($0.id)
                     )
                 }
             }
+        }
+    }
+
+    /// «Тренировка проведена», and right away the offer to review the player (the coach can also do it later).
+    private func complete(_ booking: Booking) async {
+        completing.insert(booking.id)
+        defer { completing.remove(booking.id) }
+        switch await store.markConducted(booking.id) {
+        case .success(let updated): if !updated.hasPlayerReview { reviewingPlayer = updated }
+        case .failure(let error): actionError = error.message
         }
     }
 }

@@ -81,6 +81,8 @@ public enum NotificationTarget: Equatable, Sendable {
     case task(UUID)
     case incomingBookings
     case myBookings
+    /// «Leave a review of the coach»: «Мои брони» with that booking's form ready.
+    case reviewBooking(UUID)
     case bookingChat(UUID)
     case teamChat(UUID)
     case newPersonalTraining
@@ -119,7 +121,8 @@ public struct NotificationItem: Decodable, Equatable, Identifiable, Sendable {
         case .newMatch: .match(entityId)
         case .taskDeadline, .newTask: .task(entityId)
         case .bookingRequested: .incomingBookings
-        case .bookingDecided, .reviewRequested, .paymentUpdate: .myBookings
+        case .bookingDecided, .paymentUpdate: .myBookings
+        case .reviewRequested: .reviewBooking(entityId)
         case .trainingNudge: .newPersonalTraining
         case .chatBooking: .bookingChat(entityId)
         case .chatTeam: .teamChat(entityId)

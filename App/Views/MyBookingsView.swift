@@ -7,6 +7,9 @@ struct MyBookingsView: View {
     @State private var page: PageToOpen?
     @State private var payErrors: [UUID: String] = [:]
     @State private var starting: Set<UUID> = []
+    @State private var reviewing: Booking?
+    /// A «leave a review» notification opens this screen with that booking's form ready.
+    var reviewBookingId: UUID?
 
     private var store: BookingsStore { auth.bookings }
 
@@ -29,7 +32,17 @@ struct MyBookingsView: View {
         }
         .sagScreen()
         .navigationTitle("Мои брони")
-        .task { await store.reloadMine() }
+        .task {
+            await store.reloadMine()
+            if let id = reviewBookingId, case .loaded(let list) = store.mine, let booking = list.first(where: { $0.id == id }), booking.athleteCanReview {
+                reviewing = booking
+            }
+        }
+        .sheet(item: $reviewing) { booking in
+            ReviewSheet(title: "Отзыв: \(booking.coachFullName)", hint: "Оцените занятие. Отзыв увидят другие игроки в объявлении тренера.") { draft in
+                await store.review(booking.id, draft: draft, ofPlayer: false)
+            }
+        }
         .sheet(item: $page, onDismiss: afterPayment) { SafariView(url: $0.url).ignoresSafeArea() }
     }
 
@@ -68,7 +81,8 @@ struct MyBookingsView: View {
                         payError: payErrors[booking.id], onPay: { Task { await pay(booking) } },
                         onCheck: { Task { await store.settlePayment(booking.id) } },
                         onChat: { auth.router.profilePath.append(.bookingChat(booking.id)) },
-                        chatUnread: auth.chatUnread.unread.forBooking(booking.id)
+                        chatUnread: auth.chatUnread.unread.forBooking(booking.id),
+                        onReview: { reviewing = booking }
                     )
                 }
             }

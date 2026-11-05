@@ -76,15 +76,12 @@ struct ListingDetailView: View {
             if let text = profile.coachDescription, !text.isEmpty { Section(sag: "О тренере") { Text(text) } }
             if !profile.recentReviews.isEmpty {
                 Section(sag: "Отзывы") {
-                    ForEach(profile.recentReviews) { review in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(review.athleteFirstName).font(.subheadline.weight(.semibold))
-                                Spacer()
-                                Label("\(review.rating)", systemImage: "star.fill").font(.footnote).foregroundStyle(.orange)
-                            }
-                            if let text = review.text, !text.isEmpty { Text(text).font(.subheadline) }
+                    ForEach(profile.recentReviews) { ReviewRow(review: $0) }
+                    if profile.reviewCount > profile.recentReviews.count {
+                        NavigationLink("Все отзывы (\(profile.reviewCount))") {
+                            CoachReviewsView(coachUserId: profile.coachUserId, coachName: profile.coachFullName)
                         }
+                        .accessibilityIdentifier("listing.allReviews")
                     }
                 }
             }

@@ -38,6 +38,8 @@ final class CoachesStore {
 
     func listing(id: UUID) async throws -> CoachListingProfile { try await service.listing(id: id) }
 
+    func reviews(ofCoach id: UUID) async throws -> [CoachReview] { try await service.reviews(ofCoach: id) }
+
     func slots(listingId: UUID, from: LocalDate, to: LocalDate) async throws -> [OpenSlot] {
         try await service.slots(listingId: listingId, from: from, to: to)
     }

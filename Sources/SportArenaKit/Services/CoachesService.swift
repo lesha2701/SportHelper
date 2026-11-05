@@ -14,6 +14,11 @@ public final class CoachesService: Sendable {
         try await client.send(.get, "/api/coach-listings/\(id.uuidString.lowercased())")
     }
 
+    /// The coach's reviews, newest first (up to 50).
+    public func reviews(ofCoach id: UUID) async throws -> [CoachReview] {
+        try await client.send(.get, "/api/coaches/\(id.uuidString.lowercased())/reviews")
+    }
+
     /// Free hours between two days (inclusive).
     public func slots(listingId: UUID, from: LocalDate, to: LocalDate) async throws -> [OpenSlot] {
         try await client.send(.get, "/api/coach-listings/\(listingId.uuidString.lowercased())/slots", query: [

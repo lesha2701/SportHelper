@@ -17,6 +17,11 @@ struct BookingCardView: View {
     /// The coach's own plans and what to do when one is chosen (nil takes the plan off); nil where the plan cannot be chosen.
     var plans: [Plan] = []
     var onChoosePlan: ((UUID?) -> Void)?
+    /// Reviews: the athlete's of the coach, the coach's «Тренировка проведена» and of the athlete. nil where they are not offered.
+    var onReview: (() -> Void)?
+    var onComplete: (() -> Void)?
+    var onReviewPlayer: (() -> Void)?
+    var isCompleting = false
 
     enum Viewer { case athlete, coach }
 
@@ -37,6 +42,9 @@ struct BookingCardView: View {
             }
             planRow
             payment
+            BookingSessionActions(
+                booking: booking, viewer: viewer, isWorking: isCompleting, onReview: onReview, onComplete: onComplete, onReviewPlayer: onReviewPlayer
+            )
             if booking.hasChat, let onChat { chatButton(onChat) }
         }
         .padding(.vertical, 4)

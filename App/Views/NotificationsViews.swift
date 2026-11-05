@@ -59,7 +59,7 @@ struct NotificationsView: View {
     @Environment(AuthStore.self) private var auth
 
     private enum Destination: Hashable {
-        case training(UUID, String), myBookings, incomingRequests, myTasks, chat(UUID, isTeam: Bool), settings
+        case training(UUID, String), myBookings, reviewBooking(UUID), incomingRequests, myTasks, chat(UUID, isTeam: Bool), settings
     }
 
     @State private var destination: Destination?
@@ -98,6 +98,7 @@ struct NotificationsView: View {
             switch screen {
             case .training(let id, let title): TrainingDetailView(trainingId: id, title: title, teamName: nil)
             case .myBookings: MyBookingsView()
+            case .reviewBooking(let id): MyBookingsView(reviewBookingId: id)
             case .incomingRequests: IncomingRequestsView()
             case .myTasks: MyTasksView()
             case .chat(let id, let isTeam): ChatView(store: auth.chatStore(for: isTeam ? .team(id) : .booking(id)))
@@ -155,6 +156,7 @@ struct NotificationsView: View {
         case .task: destination = .myTasks
         case .incomingBookings: destination = .incomingRequests
         case .myBookings: destination = .myBookings
+        case .reviewBooking(let id): destination = .reviewBooking(id)
         case .bookingChat(let id): destination = .chat(id, isTeam: false)
         case .teamChat(let id): destination = .chat(id, isTeam: true)
         case .newPersonalTraining: planning = true

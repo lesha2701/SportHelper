@@ -104,6 +104,38 @@ final class BookingsStore {
         }
     }
 
+    // MARK: reviews
+
+    /// The athlete's review of the coach (`ofPlayer` false) or the coach's review of the athlete. Returns the server's text when it did
+    /// not go through. Either way the lists are asked again: a second review is refused because one already exists, and the card must say so.
+    func review(_ id: UUID, draft: ReviewDraft, ofPlayer: Bool) async -> String? {
+        let outcome: String?
+        do {
+            if ofPlayer { try await service.reviewPlayer(id, draft: draft) } else { try await service.review(id, draft: draft) }
+            outcome = nil
+        } catch let failure as APIError {
+            outcome = failure.message
+        } catch {
+            outcome = APIError.unknown.message
+        }
+        if ofPlayer { await reloadCoachBookings() } else { await reloadMine() }
+        return outcome
+    }
+
+    /// «Тренировка проведена». The updated booking, or the server's text.
+    func markConducted(_ id: UUID) async -> Result<Booking, APIError> {
+        do {
+            let booking = try await service.complete(id)
+            replace(booking)
+            return .success(booking)
+        } catch let error as APIError {
+            await reloadCoachBookings()
+            return .failure(error)
+        } catch {
+            return .failure(.unknown)
+        }
+    }
+
     // MARK: payment
 
     /// The payment page to open, or the server's error text.

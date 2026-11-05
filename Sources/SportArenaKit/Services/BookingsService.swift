@@ -43,6 +43,23 @@ public final class BookingsService: Sendable {
         try await client.send(.patch, path(id, "/plan"), body: BookingPlanBody(planId: plan))
     }
 
+    // MARK: reviews
+
+    /// The athlete's review of the coach after a held session. The server refuses a second one («already_reviewed»).
+    public func review(_ id: UUID, draft: ReviewDraft) async throws {
+        try await client.sendIgnoringResponse(.post, path(id, "/reviews"), body: ReviewRequest(rating: draft.rating, text: draft.tidyText))
+    }
+
+    /// «Тренировка проведена»: the training becomes completed, the athlete is asked to review the coach. Repeating it is harmless.
+    public func complete(_ id: UUID) async throws -> Booking {
+        try await client.send(.post, path(id, "/complete"))
+    }
+
+    /// The coach's review of the athlete (other coaches see it when the athlete books with them).
+    public func reviewPlayer(_ id: UUID, draft: ReviewDraft) async throws {
+        try await client.sendIgnoringResponse(.post, path(id, "/player-review"), body: ReviewRequest(rating: draft.rating, text: draft.tidyText))
+    }
+
     // MARK: payment
 
     /// Asks the server for a payment page. The amount is never sent: the server takes it from the booking.
