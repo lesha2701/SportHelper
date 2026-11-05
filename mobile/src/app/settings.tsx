@@ -1,4 +1,4 @@
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Switch, View } from "react-native";
 import { logoutAll } from "@/api/auth";
@@ -74,6 +74,7 @@ export default function SettingsScreen() {
           <Choice layout="chips" options={THEMES} value={preference} onChange={setPreference} />
         </Card>
         <NotificationSettings />
+        <Button title="Аккаунт и безопасность" variant="secondary" onPress={() => router.push("/account")} />
         <Button title="Выйти" variant="secondary" onPress={() => setConfirm("out")} />
         <Button title="Выйти на всех устройствах" variant="ghost" onPress={() => setConfirm("all")} />
         <ConfirmModal

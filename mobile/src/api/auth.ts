@@ -87,3 +87,45 @@ export async function forgotPassword(email: string): Promise<string> {
 export async function resetPassword(token: string, password: string, passwordConfirm: string): Promise<void> {
   await apiRequest("/api/auth/reset-password", { method: "POST", body: { token, password, password_confirm: passwordConfirm } });
 }
+
+export async function changePassword(current: string, next: string, nextConfirm: string): Promise<string> {
+  const dto = await apiRequest<{ message: string }>("/api/auth/change-password", {
+    method: "POST",
+    body: { current_password: current, new_password: next, new_password_confirm: nextConfirm },
+  });
+  return dto.message;
+}
+
+export async function changeEmail(newEmail: string, password: string): Promise<string> {
+  const dto = await apiRequest<{ message: string }>("/api/auth/change-email", { method: "POST", body: { new_email: newEmail, password } });
+  return dto.message;
+}
+
+export interface Session {
+  id: string;
+  device: string;
+  ipAddress: string | null;
+  createdAt: string;
+  lastSeenAt: string;
+  current: boolean;
+}
+
+export async function listSessions(): Promise<Session[]> {
+  const dtos = await apiRequest<{ id: string; device: string; ip_address: string | null; created_at: string; last_seen_at: string; current: boolean }[]>(
+    "/api/auth/sessions",
+  );
+  return dtos.map((s) => ({ id: s.id, device: s.device, ipAddress: s.ip_address, createdAt: s.created_at, lastSeenAt: s.last_seen_at, current: s.current }));
+}
+
+export async function revokeSession(id: string): Promise<void> {
+  await apiRequest(`/api/auth/sessions/${id}`, { method: "DELETE", successMessage: "Сессия завершена" });
+}
+
+export async function requestAccountDeletion(password: string): Promise<string> {
+  const dto = await apiRequest<{ message: string }>("/api/auth/account/delete", { method: "POST", body: { password } });
+  return dto.message;
+}
+
+export async function cancelAccountDeletion(): Promise<void> {
+  await apiRequest("/api/auth/account/delete/cancel", { method: "POST", successMessage: "Удаление аккаунта отменено" });
+}

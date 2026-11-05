@@ -11,6 +11,8 @@ export interface User {
   avatarFileId: string | null;
   preferredRole: Role | null;
   isAdmin: boolean;
+  /** Set while an account deletion is scheduled (and can still be cancelled). */
+  deletionRequestedAt: string | null;
   completedOnboardingVersion: number;
   currentOnboardingVersion: number;
 }
@@ -27,6 +29,7 @@ export interface UserDto {
   avatar_file_id: string | null;
   preferred_role?: Role | null;
   is_admin?: boolean;
+  deletion_requested_at?: string | null;
   completed_onboarding_version?: number;
   current_onboarding_version?: number;
 }
@@ -43,6 +46,7 @@ export function mapUserDto(dto: UserDto): User {
     avatarFileId: dto.avatar_file_id,
     preferredRole: dto.preferred_role ?? null,
     isAdmin: dto.is_admin ?? false,
+    deletionRequestedAt: dto.deletion_requested_at ?? null,
     completedOnboardingVersion: dto.completed_onboarding_version ?? 0,
     currentOnboardingVersion: dto.current_onboarding_version ?? 0,
   };

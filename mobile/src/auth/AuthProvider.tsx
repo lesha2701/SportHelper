@@ -13,6 +13,8 @@ interface AuthState {
   /** Starts the session handed out by the server (e.g. after the address was confirmed). */
   applySession: (result: authApi.LoginResult) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Asks the server for the current user again (after something about the account changed). */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -76,7 +78,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await endSession();
   }, [endSession]);
 
-  const value = useMemo(() => ({ status, user, signIn, applySession, signOut }), [status, user, signIn, applySession, signOut]);
+  const refreshUser = useCallback(async () => {
+    try {
+      setUser(await authApi.fetchMe());
+    } catch {
+      /* a failing refresh leaves what is shown as it was */
+    }
+  }, []);
+
+  const value = useMemo(() => ({ status, user, signIn, applySession, signOut, refreshUser }), [status, user, signIn, applySession, signOut, refreshUser]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

@@ -216,6 +216,7 @@ export default function TaskScreen() {
         {task.description ? <Text>{task.description}</Text> : null}
         {staff ? <CoachPart task={task} onChanged={loaded.reload} /> : null}
         {!staff && mine ? <PlayerPart task={task} mine={mine} onChanged={loaded.reload} /> : null}
+        {staff ? <Button title="Изменить задание" variant="secondary" onPress={() => router.push({ pathname: "/task/new", params: { id: task.id } })} /> : null}
         {staff ? <Button title="Удалить задание" variant="ghost" onPress={() => setDeleting(true)} /> : null}
         <ConfirmModal visible={deleting} title="Удалить задание?" confirmLabel="Удалить" destructive onCancel={() => setDeleting(false)} onConfirm={() => void remove()} />
         <View />

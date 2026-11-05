@@ -74,6 +74,7 @@ export function OverviewSection({ team, staff }: { team: Team; staff: boolean })
         <Text muted>{[team.sport, team.ageCategory, team.level ? SKILL_LEVEL_LABELS[team.level] : null].filter(Boolean).join(" · ")}</Text>
         {team.description ? <Text>{team.description}</Text> : null}
         {team.myRole ? <Text variant="caption">Ваша роль: {TEAM_ROLE_LABELS[team.myRole]}</Text> : null}
+        {team.myRole === "head_coach" ? <Button title="Изменить данные команды" variant="secondary" onPress={() => router.push({ pathname: "/team/new", params: { id: team.id } })} /> : null}
       </Card>
 
       {staff ? (

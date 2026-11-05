@@ -136,6 +136,7 @@ export default function MatchScreen() {
           <>
             <Roster match={match} members={members} onSaved={loaded.reload} />
             <ResultForm match={match} onSaved={loaded.reload} />
+            <Button title="Изменить матч" variant="secondary" onPress={() => router.push({ pathname: "/match/new", params: { id: match.id } })} />
             <Button title="Удалить матч" variant="ghost" onPress={() => setDeleting(true)} />
           </>
         ) : (
