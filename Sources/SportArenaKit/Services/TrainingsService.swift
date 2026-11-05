@@ -30,6 +30,16 @@ public final class TrainingsService: Sendable {
         )
     }
 
+    /// What the person recorded in the guided workout of a personal training; nil while nothing was saved.
+    public func workout(of id: UUID) async throws -> TrainingWorkout? {
+        try await client.send(.get, path(id, "/workout"))
+    }
+
+    /// Saves (replaces) the results of a guided workout. Only the owner of a personal training can.
+    public func saveWorkout(of id: UUID, _ result: WorkoutBody) async throws -> TrainingWorkout {
+        try await client.send(.put, path(id, "/workout"), body: result)
+    }
+
     public func update(_ id: UUID, _ input: TrainingInput, status: TrainingStatus) async throws -> Training {
         try await client.send(.put, path(id), body: TrainingUpdateBody(input: input, status: status.rawValue))
     }

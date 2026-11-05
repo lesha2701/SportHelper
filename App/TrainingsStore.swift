@@ -26,6 +26,12 @@ final class TrainingsStore {
         await run { try await self.service.personalDraft(style: style, goals: goals, durationMinutes: durationMinutes) }
     }
 
+    func workout(of id: UUID) async -> Result<TrainingWorkout?, APIError> { await run { try await self.service.workout(of: id) } }
+
+    func saveWorkout(of id: UUID, _ result: WorkoutBody) async -> Result<TrainingWorkout, APIError> {
+        await run { try await self.service.saveWorkout(of: id, result) }
+    }
+
     func update(_ id: UUID, _ input: TrainingInput, status: TrainingStatus) async -> Result<Training, APIError> {
         changed(await run { try await self.service.update(id, input, status: status) })
     }

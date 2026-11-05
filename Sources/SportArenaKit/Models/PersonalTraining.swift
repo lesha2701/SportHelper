@@ -1,7 +1,7 @@
 import Foundation
 
 /// What one set of an exercise is measured in.
-public enum WorkoutKind: String, CaseIterable, Identifiable, Sendable {
+public enum WorkoutKind: String, CaseIterable, Identifiable, Sendable, Codable {
     case reps, time, distance
 
     public var id: String { rawValue }
@@ -14,17 +14,37 @@ public enum WorkoutKind: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Guesses from the name how an exercise is measured ("Бег" is a distance, "Планка" is time); anything unknown is repetitions.
-    /// The same rules as the site's training form, so both suggest the same.
-    public static func detect(_ name: String) -> WorkoutKind {
+    /// How an exercise is counted when nothing else says it, and what a fresh set of it starts from.
+    public struct Profile: Equatable, Sendable {
+        public let kind: WorkoutKind
+        public let defaultSets: Int
+        /// The start value of a set: repetitions, seconds or meters, depending on the kind.
+        public let defaultValue: Int
+    }
+
+    public var profile: Profile {
+        switch self {
+        case .reps: Profile(kind: .reps, defaultSets: 3, defaultValue: 10)
+        case .time: Profile(kind: .time, defaultSets: 3, defaultValue: 30)
+        case .distance: Profile(kind: .distance, defaultSets: 1, defaultValue: 1000)
+        }
+    }
+
+    /// Guesses from the name how an exercise is measured ("Бег" is a distance, "Планка" is time) and where a set of it starts; anything
+    /// unknown is repetitions. The same rules as the site, so both suggest the same.
+    public static func guess(_ name: String) -> Profile {
         let lower = name.lowercased()
         func matches(_ pattern: String) -> Bool { lower.range(of: pattern, options: .regularExpression) != nil }
-        if matches("скакалк") { return .time }
-        if matches("на месте|планк|растяжк|стойк|удержан|статик|(^|\\s)вис($|\\s)|йога|разминк|заминк|кардио|медитац|дыхани") { return .time }
-        if matches("(^|\\s)(бег|пробеж|кросс|спринт|ходьб|плаван|заплыв|велосипед|велотрен|лыж|гребл|марафон)") { return .distance }
-        if matches("прыж\\S* в длину|в длину|прыж\\S* в высоту|в высоту|метани|толкани") { return .distance }
-        return .reps
+        if matches("скакалк") { return Profile(kind: .time, defaultSets: 3, defaultValue: 60) }
+        if matches("на месте|планк|растяжк|стойк|удержан|статик|(^|\\s)вис($|\\s)|йога|разминк|заминк|кардио|медитац|дыхани") {
+            return WorkoutKind.time.profile
+        }
+        if matches("(^|\\s)(бег|пробеж|кросс|спринт|ходьб|плаван|заплыв|велосипед|велотрен|лыж|гребл|марафон)") { return WorkoutKind.distance.profile }
+        if matches("прыж\\S* в длину|в длину|прыж\\S* в высоту|в высоту|метани|толкани") { return Profile(kind: .distance, defaultSets: 3, defaultValue: 2) }
+        return WorkoutKind.reps.profile
     }
+
+    public static func detect(_ name: String) -> WorkoutKind { guess(name).kind }
 }
 
 /// «На повторения» lists exercises with their plan; «Круговая» lists exercises done one after another for several rounds.

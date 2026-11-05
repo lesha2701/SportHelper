@@ -25,6 +25,23 @@ struct TrainingDetailView: View {
     @State private var confirming: Confirmation?
     @State private var notice: (text: String, isError: Bool)?
     @State private var working = false
+    /// What the person recorded in the guided workout, once it is saved.
+    @State private var workout: TrainingWorkout?
+    @State private var doing: Session?
+    /// Whether a workout of this training was left unfinished on this device (it is looked up when the workout screen closes).
+    @State private var hasDraft = false
+
+    /// A workout being done: a list of exercises with sets to fill in, or a circuit on the clock.
+    private enum Session: Identifiable {
+        case sets(ExerciseChecklist)
+        case circuit(ExerciseChecklist)
+        var id: String {
+            switch self {
+            case .sets: "sets"
+            case .circuit: "circuit"
+            }
+        }
+    }
 
     var body: some View {
         Group {
@@ -53,6 +70,15 @@ struct TrainingDetailView: View {
             await fetch()
         }
         .sheet(item: $editing) { training in TrainingFormView(mode: .edit(training)) { Task { await fetch() } } }
+        .onChange(of: doing?.id) { hasDraft = WorkoutRunner.hasDraft(for: trainingId) }
+        .fullScreenCover(item: $doing) { session in
+            switch session {
+            case .sets(let list):
+                WorkoutView(trainingId: trainingId, planLines: list.items.map(\.text), notes: list.notes) { saved in Task { await workoutSaved(saved) } }
+            case .circuit(let list):
+                CircuitView(steps: list.circuitSteps)
+            }
+        }
         .confirmationDialog(
             confirming == .delete ? "Удалить тренировку?" : "Отменить всю серию?",
             isPresented: Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } }), titleVisibility: .visible
@@ -116,6 +142,15 @@ struct TrainingDetailView: View {
         }
     }
 
+    /// Doing the workout is the training: the plan is marked as held without another tap.
+    private func workoutSaved(_ saved: TrainingWorkout) async {
+        workout = saved
+        if case .loaded(let training) = load, training.status == "scheduled", let input = training.asInput {
+            _ = await auth.trainings.update(training.id, input, status: .completed)
+        }
+        await fetch()
+    }
+
     private func cancelSeries() async {
         await perform("Все тренировки серии отменены.") {
             if case .failure(let error) = await auth.trainings.cancelSeries(of: trainingId) { throw error }
@@ -172,9 +207,63 @@ struct TrainingDetailView: View {
                 if let minutes = training.reminderMinutesBefore { LabeledContent("Напоминание", value: TrainingReminder.title(minutes)) }
                 if training.recurrenceGroupId != nil { LabeledContent("Повтор", value: "Каждую неделю") }
             }
-            if let description = training.description, !description.isEmpty {
+            if let list = ownChecklist(training) {
+                exercises(list)
+            } else if let description = training.description, !description.isEmpty {
                 Section("Описание") { Text(description) }
             }
+            if let workout { results(workout) }
+        }
+    }
+
+    // MARK: the guided workout
+
+    /// The person's own personal training whose description is a list of exercises (as the training form writes it).
+    private func ownChecklist(_ training: Training) -> ExerciseChecklist? {
+        guard training.type == "personal", training.createdBy == auth.user?.id, let description = training.description else { return nil }
+        return ExerciseChecklist.parse(description)
+    }
+
+    private func exercises(_ list: ExerciseChecklist) -> some View {
+        Section {
+            ForEach(Array(list.items.enumerated()), id: \.offset) { index, item in
+                let label = WorkoutFormat.label(planLine: item.text) + (item.durationSeconds.map { " — \($0) сек" } ?? "")
+                Text("\(index + 1). \(label)").accessibilityIdentifier("training.exercise")
+            }
+            if let rounds = list.rounds {
+                Text("Кругов: \(rounds) · Отдых между подходами и кругами: \(list.restSeconds ?? 0) сек").font(.footnote).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("training.circuit")
+            }
+            if let notes = list.notes, !notes.isEmpty { Text("Пометки: \(notes)").font(.footnote).foregroundStyle(.secondary) }
+            Button {
+                doing = list.isCircuit ? .circuit(list) : .sets(list)
+            } label: {
+                Label(startTitle, systemImage: "figure.run")
+            }
+            .accessibilityIdentifier("training.startWorkout")
+        } header: {
+            Text("Упражнения")
+        }
+    }
+
+    private var startTitle: String {
+        if hasDraft { return "Продолжить тренировку" }
+        return workout == nil ? "Начать тренировку" : "Тренироваться снова"
+    }
+
+    private func results(_ workout: TrainingWorkout) -> some View {
+        Section("Результаты тренировки") {
+            Text(WorkoutFormat.summary(workout.totals, duration: workout.duration)).accessibilityIdentifier("training.workoutSummary")
+            ForEach(Array(workout.exercises.enumerated()), id: \.offset) { _, exercise in
+                let done = WorkoutFormat.results(exercise)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(exercise.name)
+                    Text(done.isEmpty ? "не выполнено" : done).font(.subheadline).foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("training.workoutExercise")
+            }
+            if let note = workout.note, !note.isEmpty { Text("Заметка: \(note)").font(.footnote) }
         }
     }
 
@@ -195,7 +284,12 @@ struct TrainingDetailView: View {
     private func fetch() async {
         if case .loaded = load {} else { load = .loading }
         do {
-            load = .loaded(try await auth.calendar.training(id: trainingId))
+            let training = try await auth.calendar.training(id: trainingId)
+            load = .loaded(training)
+            hasDraft = WorkoutRunner.hasDraft(for: trainingId)
+            if training.type == "personal", training.createdBy == auth.user?.id, case .success(let saved) = await auth.trainings.workout(of: trainingId) {
+                workout = saved
+            }
         } catch let error as APIError {
             load = .failed(error.message)
         } catch {
