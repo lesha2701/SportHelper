@@ -11,6 +11,7 @@ interface ProfileState {
   reload: () => void;
   savePlayer: (input: PlayerProfileInput) => Promise<void>;
   saveCoach: (input: CoachProfileInput) => Promise<void>;
+  switchMode: (mode: "player" | "coach") => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileState | null>(null);
@@ -49,7 +50,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     [load],
   );
 
-  const value = useMemo(() => ({ state, reload: () => void load(), savePlayer, saveCoach }), [state, load, savePlayer, saveCoach]);
+  const switchMode = useCallback(async (mode: "player" | "coach") => {
+    setState({ status: "ready", data: await profileApi.switchActiveMode(mode) });
+  }, []);
+
+  const value = useMemo(() => ({ state, reload: () => void load(), savePlayer, saveCoach, switchMode }), [state, load, savePlayer, saveCoach, switchMode]);
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;
 }
 

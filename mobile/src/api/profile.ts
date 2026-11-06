@@ -12,6 +12,11 @@ export async function fetchProfileMe(): Promise<ProfileMe> {
   return mapProfileMeDto(await apiRequest<ProfileMeDto>("/api/profile/me"));
 }
 
+/** Admins only (the server refuses others): switch the account between its player and coach profile. */
+export async function switchActiveMode(mode: "player" | "coach"): Promise<ProfileMe> {
+  return mapProfileMeDto(await apiRequest<ProfileMeDto>("/api/profile/active-mode", { method: "POST", body: { mode } }));
+}
+
 export async function savePlayerProfile(input: PlayerProfileInput): Promise<void> {
   await apiRequest("/api/profile/player", { method: "PUT", body: input });
 }

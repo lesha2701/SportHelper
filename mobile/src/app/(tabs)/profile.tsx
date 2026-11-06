@@ -55,7 +55,7 @@ function FactTile({ label, value }: { label: string; value: string }) {
  * profile, the places they go often, and the account actions. */
 export default function ProfileScreen() {
   const { user, refreshUser, signOut } = useAuth();
-  const { state } = useProfile();
+  const { state, switchMode } = useProfile();
   const { colors } = useTheme();
   const features = useFeatures();
   const unread = useUnread();
@@ -144,6 +144,38 @@ export default function ProfileScreen() {
       }}
       refreshing={extra.loading && !!extra.data}
     >
+      {user.isAdmin ? (
+        <View style={[styles.switch, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {(["player", "coach"] as const).map((m) => {
+            const active = m === mode;
+            const exists = m === "player" ? !!player : !!coach;
+            return (
+              <Pressable
+                key={m}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                disabled={active || busy}
+                onPress={async () => {
+                  // A role without a profile yet: fill it in first (as on the website).
+                  if (!exists) return router.push({ pathname: "/profile-edit", params: { mode: m } });
+                  try {
+                    await switchMode(m);
+                  } catch (e) {
+                    toast.error(toFormError(e).message);
+                  }
+                }}
+                style={[styles.switchTab, active ? { backgroundColor: colors.primary } : null]}
+              >
+                <Text variant="label" style={{ color: active ? colors.primaryText : colors.textSecondary }}>
+                  {m === "player" ? "Игрок" : "Тренер"}
+                  {exists ? "" : " +"}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
       <Card style={styles.hero}>
         <Pressable accessibilityRole="button" accessibilityLabel="Фото профиля" onPress={() => setPhotoMenu(true)} disabled={busy}>
           <View style={[styles.ring, { borderColor: colors.primary }]}>
@@ -256,6 +288,8 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  switch: { flexDirection: "row", borderWidth: 1, borderRadius: 14, padding: 4, gap: 2 },
+  switchTab: { flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 10 },
   hero: { alignItems: "center", gap: 6, paddingVertical: 22 },
   ring: { borderWidth: 3, borderRadius: 60, padding: 4 },
   editBadge: { position: "absolute", right: 2, bottom: 2, width: 32, height: 32, borderRadius: 16, borderWidth: 3, alignItems: "center", justifyContent: "center" },
