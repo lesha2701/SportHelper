@@ -106,6 +106,7 @@ struct HomeView: View {
         case .loading: ProgressView().frame(maxWidth: .infinity).padding()
         }
         tasksCard
+        weekCard
         upcomingCard
         if let stats = home.playerStats.value {
             matchesCard(stats.recentMatches().map { entry in
@@ -165,6 +166,7 @@ struct HomeView: View {
             teamNumbers
             attentionCard
             workloadCard
+            weekCard
             upcomingCard
             matchesCard(HomeLogic.recentMatches(home.teamMatches.value ?? []).map { match in
                 MatchLine(
@@ -286,6 +288,10 @@ struct HomeView: View {
         case .failed(let message): problem(message)
         case .loading: ProgressView().frame(maxWidth: .infinity).padding()
         }
+    }
+
+    @ViewBuilder private var weekCard: some View {
+        if let events = home.events.value { WeekCard(events: events, today: .today()) }
     }
 
     @ViewBuilder private var upcomingCard: some View {

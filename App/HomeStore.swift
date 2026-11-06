@@ -19,7 +19,7 @@ final class HomeStore {
     private let tasksService: TasksService
     private let matches: MatchesService
 
-    /// The home screen looks two weeks ahead.
+    /// The home screen looks two weeks ahead (and shows the whole current week).
     static let daysAhead = 13
 
     init(client: APIClient) {
@@ -31,7 +31,9 @@ final class HomeStore {
 
     func loadEvents() async {
         let today = LocalDate.today()
-        switch await apiResult({ [calendar] in try await calendar.events(from: today, to: today.adding(days: Self.daysAhead)) }) {
+        // from Monday: the week card shows the days of this week that have already passed
+        let last = HomeLogic.lastDayToLoad(today: today, daysAhead: Self.daysAhead)
+        switch await apiResult({ [calendar] in try await calendar.events(from: today.startOfWeek, to: last) }) {
         case .success(let list): events = .loaded(list)
         case .failure(let error): if events.value == nil { events = .failed(error.message) }
         }

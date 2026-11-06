@@ -92,6 +92,34 @@ struct HomeLogicTests {
         #expect(HomeLogic.nextEvent(in: [events[0], events[1], events[2]], today: today) == nil)
     }
 
+    @Test func theWeekIsMondayToSundayWithEachDaysEventsInOrder() {
+        // the helper's «today» is some day; the week around it starts on Monday
+        let monday = today.startOfWeek
+        let events = [
+            event("Вечером", monday.adding(days: 2), LocalTime(hour: 19, minute: 0)),
+            event("Утром", monday.adding(days: 2), LocalTime(hour: 7, minute: 0)),
+            event("Дедлайн", monday.adding(days: 2), nil, status: "pending", kind: "task_deadline"),
+            event("Отменена", monday.adding(days: 6), LocalTime(hour: 9, minute: 0), status: "cancelled"),
+            event("Прошлая неделя", monday.adding(days: -1), nil),
+            event("Следующая неделя", monday.adding(days: 7), nil),
+        ]
+        let week = HomeLogic.week(events, today: today)
+        #expect(week.count == 7 && week.map(\.date) == today.weekDays)
+        #expect(week[0].date.weekdayIndex == 0 && week[6].date.weekdayIndex == 6)
+        #expect(week[2].events.map(\.title) == ["Дедлайн", "Утром", "Вечером"], "an entry without a time comes first")
+        #expect(week.filter(\.isToday).map(\.date) == [today])
+        #expect(week.flatMap(\.events).count == 4, "other weeks are not part of this one")
+        #expect(week[0].countText == "Нет событий" && week[2].countText == "3 события")
+        #expect(week[6].activeCount == 0 && week[6].countText == "Нет событий", "a cancelled event is not counted")
+    }
+
+    @Test func theHomeLoadsTheWholeWeekAndTwoWeeksAhead() {
+        let sunday = today.startOfWeek.adding(days: 6)
+        #expect(HomeLogic.lastDayToLoad(today: today, daysAhead: 13) >= sunday)
+        #expect(HomeLogic.lastDayToLoad(today: today, daysAhead: 13) >= today.adding(days: 13))
+        #expect(HomeLogic.lastDayToLoad(today: today, daysAhead: 0) == sunday, "the week is shown to its end whatever is asked")
+    }
+
     @Test func todayCountsAsStillToCome() {
         #expect(HomeLogic.nextEvent(in: [event("Сегодня", today, nil)], today: today)?.title == "Сегодня")
     }

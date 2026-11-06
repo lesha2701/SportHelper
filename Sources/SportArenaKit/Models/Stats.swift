@@ -178,6 +178,22 @@ public enum HomeLogic {
         }
     }
 
+    /// The seven days (Monday to Sunday) of the week `today` is in, each with its events: the soonest first, an entry without a time first.
+    public static func week(_ events: [CalendarEvent], today: LocalDate) -> [WeekDay] {
+        let byDay = Dictionary(grouping: events, by: \.date)
+        return today.weekDays.map { date in
+            let day = (byDay[date] ?? []).sorted { lhs, rhs in
+                (lhs.time?.minutesSinceMidnight ?? -1, lhs.title) < (rhs.time?.minutesSinceMidnight ?? -1, rhs.title)
+            }
+            return WeekDay(date: date, events: day, isToday: date == today)
+        }
+    }
+
+    /// How many days ahead the home screen asks for: the rest of this week, and at least two weeks from today.
+    public static func lastDayToLoad(today: LocalDate, daysAhead: Int) -> LocalDate {
+        max(today.adding(days: daysAhead), today.startOfWeek.adding(days: 6))
+    }
+
     /// The matches a team has played, the newest first.
     public static func recentMatches(_ matches: [TeamMatch], limit: Int = 3) -> [TeamMatch] {
         Array(matches.filter(\.isPlayed).sorted { ($0.matchDate, $0.startTime) > ($1.matchDate, $1.startTime) }.prefix(limit))
@@ -186,5 +202,21 @@ public enum HomeLogic {
     /// The tasks the player still has to do, the nearest deadline first (no deadline last).
     public static func tasksToDo(_ tasks: [MyTask]) -> [MyTask] {
         tasks.filter { $0.assignment.status.canSubmit }.sorted { ($0.task.deadline ?? .distantFuture) < ($1.task.deadline ?? .distantFuture) }
+    }
+}
+
+/// One day of «Эта неделя».
+public struct WeekDay: Equatable, Identifiable, Sendable {
+    public let date: LocalDate
+    public let events: [CalendarEvent]
+    public let isToday: Bool
+    public var id: LocalDate { date }
+
+    /// Events that still matter on the day: a cancelled one is not counted.
+    public var activeCount: Int { events.filter { !$0.isCancelled }.count }
+
+    /// "Нет событий", "1 событие", "2 события", "5 событий".
+    public var countText: String {
+        activeCount == 0 ? "Нет событий" : Russian.plural(activeCount, one: "событие", few: "события", many: "событий")
     }
 }
