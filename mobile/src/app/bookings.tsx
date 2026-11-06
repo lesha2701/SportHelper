@@ -1,4 +1,5 @@
 import { Stack, router } from "expo-router";
+import { CoachSessionActions, PlanPicker, ReviewSheet } from "@/booking/SessionParts";
 import { useState } from "react";
 import { confirmBooking, declineBooking, listCoachBookings, listCoachPendingBookings, listMyBookings, reviewBooking } from "@/api/bookings";
 import { openPaymentPage, startBookingPayment, syncBookingPayment } from "@/api/payments";
@@ -10,44 +11,10 @@ import { BOOKING_STATUS_LABELS, PAYMENT_STATUS_LABELS, canPay, formatStart } fro
 import type { Booking, PendingBooking } from "@/shared/types/booking";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
-import { Choice } from "@/ui/Choice";
-import { Notice } from "@/ui/Notice";
 import { Screen } from "@/ui/Screen";
 import { ErrorView, LoadingView } from "@/ui/StateViews";
 import { Text } from "@/ui/Text";
-import { TextField } from "@/ui/TextField";
 import { useToast } from "@/ui/Toast";
-
-const STARS = [1, 2, 3, 4, 5].map((n) => ({ value: String(n), title: "★".repeat(n) }));
-
-function ReviewForm({ booking, onDone }: { booking: Booking; onDone: () => void }) {
-  const [rating, setRating] = useState<string | null>(null);
-  const [text, setText] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function send() {
-    if (!rating) return setError("Поставьте оценку.");
-    setBusy(true);
-    try {
-      await reviewBooking(booking.id, { rating: Number(rating), text: text.trim() || null });
-      onDone();
-    } catch (e) {
-      setError(toFormError(e).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <>
-      <Choice label="Оцените занятие" layout="chips" options={STARS} value={rating} onChange={setRating} />
-      <TextField label="Отзыв" value={text} onChangeText={setText} multiline numberOfLines={3} maxLength={1000} />
-      {error ? <Notice kind="danger">{error}</Notice> : null}
-      <Button title="Отправить отзыв" onPress={send} loading={busy} />
-    </>
-  );
-}
 
 function PlayerBooking({ b, onChanged }: { b: Booking; onChanged: () => void }) {
   const toast = useToast();
@@ -97,9 +64,18 @@ function PlayerBooking({ b, onChanged }: { b: Booking; onChanged: () => void }) 
         </>
       ) : null}
       {b.trainingId ? <Button title="Открыть тренировку" variant="secondary" onPress={() => router.push({ pathname: "/training/[id]", params: { id: b.trainingId! } })} /> : null}
-      {b.isCompleted && !b.hasReview ? (
-        reviewing ? <ReviewForm booking={b} onDone={onChanged} /> : <Button title="Оставить отзыв" variant="secondary" onPress={() => setReviewing(true)} />
-      ) : null}
+      {b.isCompleted && !b.hasReview ? <Button title="Оставить отзыв" variant="secondary" onPress={() => setReviewing(true)} /> : null}
+      <ReviewSheet
+        visible={reviewing}
+        title={`Отзыв о тренере ${b.coachFullName}`}
+        hint="Оцените занятие и, если хотите, напишите пару слов — это поможет другим игрокам."
+        submit={(input) => reviewBooking(b.id, input)}
+        onClose={() => setReviewing(false)}
+        onSubmitted={() => {
+          setReviewing(false);
+          onChanged();
+        }}
+      />
     </Card>
   );
 }
@@ -125,6 +101,7 @@ function PendingRequest({ b, onChanged }: { b: PendingBooking; onChanged: () => 
       </Text>
       {b.athleteRatingAverage !== null ? <Text variant="caption">Оценка спортсмена: ★ {b.athleteRatingAverage.toFixed(1)} ({b.athleteReviewCount})</Text> : null}
       {b.athleteNotes ? <Text>{b.athleteNotes}</Text> : null}
+      <Button title="Профиль игрока и отзывы" variant="secondary" onPress={() => router.push({ pathname: "/player/[id]", params: { id: b.athleteUserId } })} />
       <Button title="Подтвердить" onPress={() => void decide(true)} />
       <Button title="Отклонить" variant="secondary" onPress={() => void decide(false)} />
     </Card>
@@ -161,7 +138,10 @@ function CoachBooking({ b, onChanged }: { b: Booking; onChanged: () => void }) {
           <Button title="Отклонить" variant="secondary" onPress={() => void decide(false)} />
         </>
       ) : null}
+      <CoachSessionActions booking={b} onChange={onChanged} />
+      <PlanPicker booking={b} onChange={onChanged} />
       {b.trainingId ? <Button title="Открыть тренировку" variant="secondary" onPress={() => router.push({ pathname: "/training/[id]", params: { id: b.trainingId! } })} /> : null}
+      <Button title="Профиль игрока" variant="ghost" onPress={() => router.push({ pathname: "/player/[id]", params: { id: b.athleteUserId } })} />
     </Card>
   );
 }

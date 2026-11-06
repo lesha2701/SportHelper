@@ -5,6 +5,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { getTeam } from "@/api/teams";
 import { deleteTraining, getAttendance, getTraining, getTrainingWorkout, setAttendanceStatus, updateTraining } from "@/api/trainings";
 import { toFormError } from "@/lib/formError";
+import { AthleteSessionCard, CoachSessionCard, PlayerAiAnalysisCard } from "@/booking/SessionParts";
 import { useLoad } from "@/lib/useLoad";
 import { formatDayTitle, shortTime } from "@/shared/lib/dates";
 import { parseExerciseChecklist } from "@/shared/lib/trainingDescription";
@@ -103,6 +104,8 @@ export default function TrainingScreen() {
 
   const staff = team ? team.myRole === "head_coach" || team.myRole === "assistant_coach" : false;
   const mine = t.type === "personal" && t.createdBy === user?.id;
+  // A personal training that is not mine and still opens: I am the coach the athlete booked (read-only for me).
+  const bookedCoach = t.type === "personal" && !mine;
   const checklist = mine && t.description ? parseExerciseChecklist(t.description) : null;
 
   async function complete() {
@@ -161,6 +164,9 @@ export default function TrainingScreen() {
           </Card>
         ) : null}
 
+        {bookedCoach ? <CoachSessionCard trainingId={t.id} onChanged={training.reload} /> : null}
+        {bookedCoach ? <PlayerAiAnalysisCard trainingId={t.id} /> : null}
+        {mine ? <AthleteSessionCard trainingId={t.id} /> : null}
         {mine ? <SavedWorkout trainingId={t.id} /> : null}
         {mine && t.status === "completed" ? <AiText title="Оценка тренировки (ИИ)" heading="Оценка тренировки" load={() => getTrainingEvaluation(t.id)} /> : null}
         {staff ? <Attendance training={t} /> : null}

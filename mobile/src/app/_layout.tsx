@@ -58,6 +58,7 @@ function Routes() {
           <Stack.Screen name="my-tasks" />
           <Stack.Screen name="listing/[id]" />
           <Stack.Screen name="coach/[id]" />
+          <Stack.Screen name="player/[id]" />
           <Stack.Screen name="bookings" />
           <Stack.Screen name="finance" />
           <Stack.Screen name="library" />
