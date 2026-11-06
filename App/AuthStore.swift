@@ -43,6 +43,7 @@ final class AuthStore {
     let reports: ReportsService
     let account: AccountService
     let finance: FinanceService
+    let search: SearchService
     let router = Router()
     private let service: AuthService
     private let persistence: SessionPersistence
@@ -70,6 +71,7 @@ final class AuthStore {
         self.reports = ReportsService(client: client)
         self.account = AccountService(client: client)
         self.finance = FinanceService(client: client)
+        self.search = SearchService(client: client)
         self.service = AuthService(client: client)
         self.persistence = SessionPersistence(
             store: KeychainSecretStore(service: "ru.sportarenaglobal.app", account: "session-cookie"), baseURL: environment.baseURL

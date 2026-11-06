@@ -30,7 +30,7 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    AppTopBar { NotificationBell() }
+                    AppTopBar { SearchButton(); NotificationBell() }
                     heading
                     if user.isCoach { coachContent } else { playerContent }
                 }
