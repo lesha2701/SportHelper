@@ -249,7 +249,6 @@ export default function HomeScreen() {
         <Text variant="heading">Ещё</Text>
         <ListRow icon="search-outline" title="Поиск" onPress={() => router.push("/search")} />
         <ListRow icon="bookmark-outline" title={mode === "coach" ? "Записи ко мне" : "Мои записи"} onPress={() => router.push("/bookings")} />
-        {mode === "coach" ? <ListRow icon="library-outline" title="Библиотека" subtitle="Упражнения, планы, шаблоны" onPress={() => router.push("/library")} /> : null}
         {mode === "coach" && features.trainerBalance ? <ListRow icon="wallet-outline" title="Финансы" onPress={() => router.push("/finance")} /> : null}
       </Card>
 

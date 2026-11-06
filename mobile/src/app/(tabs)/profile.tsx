@@ -247,7 +247,6 @@ export default function ProfileScreen() {
           <ListRow icon="mail-unread-outline" title="Входящие заявки" badge={extra.data?.pending} onPress={() => router.push("/bookings")} />
         ) : null}
         {mode === "coach" && features.trainerBalance ? <ListRow icon="wallet-outline" title="Финансы" onPress={() => router.push("/finance")} /> : null}
-        {mode === "coach" ? <ListRow icon="library-outline" title="Библиотека" subtitle="Упражнения, планы, шаблоны" onPress={() => router.push("/library")} /> : null}
         {mode === "player" ? <ListRow icon="stats-chart-outline" title="Моя статистика" onPress={() => router.push("/stats")} /> : null}
         <ListRow icon="calendar-outline" title={mode === "coach" ? "Записи" : "Мои брони"} onPress={() => router.push("/bookings")} />
         <ListRow icon="notifications-outline" title="Уведомления" badge={unread.count} onPress={() => router.push("/notifications")} />

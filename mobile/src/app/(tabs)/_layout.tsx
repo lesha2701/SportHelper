@@ -31,8 +31,8 @@ export default function TabsLayout() {
   if (state.status === "error") return <ErrorView message={state.message} onRetry={reload} />;
 
   // First run: nobody gets into the app before filling in the profile of the role chosen at sign-up.
-  const { player, coach } = state.data;
-  if (!player && !coach) {
+  const { player, coach: coach_ } = state.data;
+  if (!player && !coach_) {
     const mode = user?.preferredRole ?? "player";
     return <Redirect href={{ pathname: "/profile-edit", params: { mode, first: "1" } }} />;
   }
@@ -41,7 +41,7 @@ export default function TabsLayout() {
   if (user && user.completedOnboardingVersion < user.currentOnboardingVersion && !guideDone) {
     return (
       <WelcomeGuide
-        roles={{ player: !!player, coach: !!coach }}
+        roles={{ player: !!player, coach: !!coach_ }}
         onFinish={() => {
           setGuideDone(true);
           completeOnboarding()
@@ -52,6 +52,9 @@ export default function TabsLayout() {
     );
   }
 
+  // Coaches get the library in place of the coach catalogue: the place to make exercises, plans and templates quickly.
+  const isCoach = (state.data.activeMode ?? (player && !coach_ ? "player" : coach_ && !player ? "coach" : (user?.preferredRole ?? "player"))) === "coach";
+
   return (
     <Tabs
       screenOptions={{
@@ -59,14 +62,16 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-        tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 10 },
+        // A line height, or the descender of «Р» in «Профиль» is cut off.
+        tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 10, lineHeight: 14, paddingBottom: 2 },
         sceneStyle: { backgroundColor: colors.bg },
       }}
     >
       <Tabs.Screen name="home" options={{ title: "Главная", headerTitle: "SportArena", tabBarIcon: icon("home-outline") }} />
       <Tabs.Screen name="teams" options={{ title: "Команды", tabBarIcon: icon("people-outline") }} />
       <Tabs.Screen name="calendar" options={{ title: "Календарь", tabBarIcon: icon("calendar-outline") }} />
-      <Tabs.Screen name="coaches" options={{ title: "Тренеры", tabBarIcon: icon("barbell-outline") }} />
+      <Tabs.Screen name="coaches" options={{ title: "Тренеры", tabBarIcon: icon("barbell-outline"), href: isCoach ? null : undefined }} />
+      <Tabs.Screen name="library" options={{ title: "Библиотека", tabBarIcon: icon("library-outline"), href: isCoach ? undefined : null }} />
       <Tabs.Screen name="profile" options={{ title: "Профиль", tabBarIcon: icon("person-outline") }} />
     </Tabs>
   );

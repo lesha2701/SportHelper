@@ -1,5 +1,5 @@
-import { Stack, router } from "expo-router";
-import { useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { listMyExercises } from "@/api/exercises";
 import { listMyPlans } from "@/api/plans";
 import { listMyTemplates } from "@/api/taskTemplates";
@@ -15,6 +15,9 @@ type Tab = "exercises" | "plans" | "templates";
 
 function Exercises() {
   const list = useLoad(listMyExercises);
+  const reload = list.reload;
+  // The tab stays mounted: show what was just created or edited.
+  useFocusEffect(useCallback(() => reload(), [reload]));
   if (list.loading && !list.data) return <LoadingView />;
   if (list.error && !list.data) return <ErrorView message={list.error} onRetry={list.reload} />;
   return (
@@ -33,6 +36,9 @@ function Exercises() {
 
 function Plans() {
   const list = useLoad(listMyPlans);
+  const reload = list.reload;
+  // The tab stays mounted: show what was just created or edited.
+  useFocusEffect(useCallback(() => reload(), [reload]));
   if (list.loading && !list.data) return <LoadingView />;
   if (list.error && !list.data) return <ErrorView message={list.error} onRetry={list.reload} />;
   return (
@@ -51,6 +57,9 @@ function Plans() {
 
 function Templates() {
   const list = useLoad(listMyTemplates);
+  const reload = list.reload;
+  // The tab stays mounted: show what was just created or edited.
+  useFocusEffect(useCallback(() => reload(), [reload]));
   if (list.loading && !list.data) return <LoadingView />;
   if (list.error && !list.data) return <ErrorView message={list.error} onRetry={list.reload} />;
   return (
@@ -67,12 +76,11 @@ function Templates() {
   );
 }
 
-/** The coach's library: exercises and training plans built from them. */
+/** The coach's library (a main tab for coaches): exercises, plans built from them, and task templates. */
 export default function LibraryScreen() {
   const [tab, setTab] = useState<Tab>("exercises");
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: "Библиотека" }} />
       <Screen header>
         <Choice
           layout="chips"
