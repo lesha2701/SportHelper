@@ -29,3 +29,27 @@ export function formatStart(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 }
+
+/** Free times grouped by day (UTC, like the rest of the booking times), days in order, times in order. */
+export function groupSlotsByDay<T extends { startsAt: string }>(slots: T[]): { day: string; slots: T[] }[] {
+  const byDay = new Map<string, T[]>();
+  for (const slot of [...slots].sort((a, b) => a.startsAt.localeCompare(b.startsAt))) {
+    const day = slot.startsAt.slice(0, 10);
+    byDay.set(day, [...(byDay.get(day) ?? []), slot]);
+  }
+  return [...byDay.entries()].map(([day, list]) => ({ day, slots: list }));
+}
+
+const WEEKDAYS_SHORT = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+const MONTHS_SHORT = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+
+/** The two lines of a day chip: "пт" and "6 ноя". */
+export function dayChip(day: string): { weekday: string; date: string } {
+  const d = new Date(`${day}T00:00:00Z`);
+  return { weekday: WEEKDAYS_SHORT[d.getUTCDay()]!, date: `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]}` };
+}
+
+/** "10:00" of a booking time (UTC, as the website shows it). */
+export function timeOf(iso: string): string {
+  return new Date(iso).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+}
