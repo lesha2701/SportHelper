@@ -41,9 +41,17 @@ public final class APIClient: Sendable {
         self.onSessionExpired = onSessionExpired
     }
 
+    /// How the app introduces itself. The server names the places where a person is signed in after it (the list of devices), and
+    /// shows an unknown one as it is, so this reads well there: «SportArena iOS 1.0».
+    public static var userAgent: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        return "SportArena iOS \(version)"
+    }
+
     /// A session that keeps the server's cookies between launches.
     public static func makeSession() -> URLSession {
         let configuration = URLSessionConfiguration.default
+        configuration.httpAdditionalHeaders = ["User-Agent": userAgent]
         configuration.httpCookieStorage = HTTPCookieStorage.shared
         configuration.httpCookieAcceptPolicy = .always
         configuration.httpShouldSetCookies = true

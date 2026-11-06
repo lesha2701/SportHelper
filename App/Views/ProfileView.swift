@@ -45,6 +45,7 @@ struct ProfileView: View {
                 case .myStats: PlayerStatsView(userId: user.id)
                 case .notifications: NotificationsView()
                 case .myListings: MyListingsView()
+                case .accountSecurity: AccountSecurityView(user: user)
                 }
             }
             .task {
@@ -230,6 +231,8 @@ struct ProfileView: View {
 
     private var accountSection: some View {
         Section(sag: "Аккаунт") {
+            NavigationLink(value: ProfileRoute.accountSecurity) { Label("Безопасность аккаунта", systemImage: "lock.shield") }
+                .accessibilityIdentifier("profile.security")
             Button("Выйти из аккаунта", role: .destructive) { Task { await auth.logout() } }
                 .accessibilityIdentifier("main.logout")
             if user.deletionRequestedAt == nil {
