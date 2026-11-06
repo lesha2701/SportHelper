@@ -2,6 +2,8 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(AuthStore.self) private var auth
+    /// The person who closed the tour in this run: it stays closed even if saving that on the account failed.
+    @State private var tourClosedFor: UUID?
 
     var body: some View {
         content
@@ -27,6 +29,12 @@ struct RootView: View {
             LoginView()
         case .signedIn(let user):
             MainTabView(user: user)
+                .fullScreenCover(isPresented: Binding(get: { user.needsOnboarding && tourClosedFor != user.id }, set: { _ in })) {
+                    WelcomeGuideView(ownRole: user.isCoach ? "coach" : "player") {
+                        tourClosedFor = user.id
+                        Task { await auth.finishOnboarding() }
+                    }
+                }
         }
     }
 }

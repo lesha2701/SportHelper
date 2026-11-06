@@ -232,6 +232,7 @@ struct ProfileView: View {
 
     private var accountSection: some View {
         Section(sag: "Аккаунт") {
+            WelcomeTourButton(ownRole: user.isCoach ? "coach" : "player")
             NavigationLink(value: ProfileRoute.accountSecurity) { Label("Безопасность аккаунта", systemImage: "lock.shield") }
                 .accessibilityIdentifier("profile.security")
             NavigationLink(value: ProfileRoute.privacy) { Label("Конфиденциальность", systemImage: "hand.raised") }

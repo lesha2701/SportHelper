@@ -68,4 +68,10 @@ public final class AuthService: Sendable {
     public func cancelAccountDeletion() async throws {
         try await client.sendIgnoringResponse(.post, "/api/auth/account/delete/cancel")
     }
+
+    /// Tells the server the person has seen (or skipped) the welcome tour; the server notes its current version for them.
+    /// The caller reads the account again afterwards.
+    public func completeOnboarding() async throws {
+        try await client.sendIgnoringResponse(.post, "/api/users/me/onboarding/complete")
+    }
 }

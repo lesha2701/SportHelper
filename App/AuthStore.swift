@@ -139,6 +139,12 @@ final class AuthStore {
         return message
     }
 
+    /// The person saw (or skipped) the welcome tour. A failure never blocks them: the tour may come back at the next sign-in.
+    func finishOnboarding() async {
+        guard (try? await service.completeOnboarding()) != nil else { return }
+        await refreshUser()
+    }
+
     func cancelAccountDeletion() async throws {
         try await service.cancelAccountDeletion()
         await refreshUser()
