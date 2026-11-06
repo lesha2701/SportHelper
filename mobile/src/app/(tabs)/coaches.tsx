@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Switch, View } from "react-native";
 import { listListings } from "@/api/coachListings";
 import { useAuth } from "@/auth/AuthProvider";
 import { useLoad } from "@/lib/useLoad";
+import { useProfile } from "@/profile/ProfileProvider";
 import { activeCount, EMPTY_FILTERS, toQuery, type MarketFilterForm } from "@/shared/lib/marketFilters";
 import { count } from "@/shared/lib/plural";
 import type { CoachListingCard } from "@/shared/types/coachListing";
@@ -73,10 +74,20 @@ function ListingCard({ l }: { l: CoachListingCard }) {
 export default function CoachesScreen() {
   const { user } = useAuth();
   const { colors } = useTheme();
-  const [applied, setApplied] = useState<MarketFilterForm>(EMPTY_FILTERS);
+  const { state: profile } = useProfile();
+  const isCoach = user?.preferredRole === "coach";
+  // The catalogue opens on the sport the person gave at sign-up (the one of their current role).
+  const mySport = profile.status === "ready" ? ((isCoach ? profile.data.coach?.sport : profile.data.player?.sport) ?? profile.data.player?.sport ?? profile.data.coach?.sport ?? "") : "";
+  const [applied, setApplied] = useState<MarketFilterForm>({ ...EMPTY_FILTERS, sport: mySport });
   const [draft, setDraft] = useState<MarketFilterForm>(EMPTY_FILTERS);
   const [open, setOpen] = useState(false);
-  const isCoach = user?.preferredRole === "coach";
+  const sportSet = useRef(mySport !== "");
+  useEffect(() => {
+    if (sportSet.current || !mySport) return;
+    sportSet.current = true;
+    setApplied((a) => ({ ...a, sport: mySport }));
+  }, [mySport]);
+  const sports = mySport && !COMMON_SPORTS.includes(mySport) ? [...SPORTS, { value: mySport, title: mySport }] : SPORTS;
 
   const listings = useLoad(async () => {
     const all = await listListings(toQuery(applied));
@@ -91,7 +102,7 @@ export default function CoachesScreen() {
     <Screen header onRefresh={listings.reload} refreshing={listings.loading && !!listings.data}>
       {isCoach ? <Button title="Мои предложения" variant="secondary" onPress={() => router.push("/my-listings")} /> : null}
 
-      <SelectField label="Вид спорта" options={SPORTS} value={applied.sport} onChange={(sport) => setApplied((a) => ({ ...a, sport }))} />
+      <SelectField label="Вид спорта" options={sports} value={applied.sport} onChange={(sport) => setApplied((a) => ({ ...a, sport }))} />
       <Pressable
         accessibilityRole="button"
         onPress={() => {

@@ -7,10 +7,10 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { fonts } from "@/theme/tokens";
 import { Text } from "./Text";
 
-/** The header of the main sections: the section's name on the left, the notifications bell (with the unread count)
- * on the right, as in every app the person already knows. */
+/** The header of the main sections: the section's name on the left; on the right the light/dark switch (one tap, as on
+ * the website) and the notifications bell with the unread count. */
 export function TabHeader({ title }: { title: string }) {
-  const { colors } = useTheme();
+  const { colors, dark, setPreference } = useTheme();
   const insets = useSafeAreaInsets();
   const { count } = useUnread();
   return (
@@ -18,6 +18,15 @@ export function TabHeader({ title }: { title: string }) {
       <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
         {title}
       </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={dark ? "Включить светлую тему" : "Включить тёмную тему"}
+        hitSlop={10}
+        onPress={() => setPreference(dark ? "light" : "dark")}
+        style={({ pressed }) => [styles.bell, { backgroundColor: pressed ? colors.surfaceAlt : colors.surface, borderColor: colors.border, marginRight: 10 }]}
+      >
+        <Ionicons name={dark ? "sunny-outline" : "moon-outline"} size={21} color={colors.text} />
+      </Pressable>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={count > 0 ? `Уведомления, непрочитанных: ${count}` : "Уведомления"}
