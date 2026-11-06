@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, View } from "react-native";
 import { eventIcon } from "@/home/HomeParts";
-import { WEEK_FIRST_HOUR, WEEK_LAST_HOUR, isOverdue, weekRowOffset } from "@/shared/lib/calendarView";
+import { isOverdue } from "@/shared/lib/calendarView";
 import { addDays, formatDayTitle, parseIso, shortTime, todayIso } from "@/shared/lib/dates";
 import type { CalendarEvent, CalendarEventType } from "@/shared/types/calendar";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -88,150 +88,39 @@ export function DayCard({ date, events, onOpen }: { date: string; events: Calend
 }
 
 const WEEKDAYS = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
-const ROW = 52;
-const GUTTER = 40;
 
-/** The website's week: days across, hours 08–20 down, events as coloured blocks; scrolls fits the phone's width. */
-export function WeekGrid({ monday, events, onOpen }: { monday: string; events: CalendarEvent[]; onOpen: (e: CalendarEvent) => void }) {
+/** The week on a phone: seven day chips with a coloured dot per kind of event; tap a day to open it. */
+export function WeekDays({ monday, events, onSelect }: { monday: string; events: CalendarEvent[]; onSelect: (day: string) => void }) {
   const { colors } = useTheme();
   const today = todayIso();
-  const days = WEEKDAYS.map((_, i) => addDays(monday, i));
-  const hours = Array.from({ length: WEEK_LAST_HOUR - WEEK_FIRST_HOUR + 1 }, (_, i) => `${String(WEEK_FIRST_HOUR + i).padStart(2, "0")}:00`);
-  const of = (day: string) => events.filter((e) => e.date === day);
-  const anyUntimed = days.some((d) => of(d).some((e) => !e.time));
-
   return (
-    <Card style={{ padding: 0, overflow: "hidden" }}>
-      <View>
-        <View style={[styles.weekHead, { borderBottomColor: colors.border }]}>
-          <View style={{ width: GUTTER }} />
-          {days.map((d, i) => (
-            <View key={d} style={styles.headCell}>
-              <Text variant="caption" muted>
-                {WEEKDAYS[i]}
-              </Text>
-              <View style={[styles.headNum, d === today ? { backgroundColor: colors.primary } : null]}>
-                <Text
-                  variant="label"
-                  style={{
-                    color: d === today ? colors.primaryText : colors.text,
-                  }}
-                >
-                  {parseIso(d).getDate()}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {anyUntimed ? (
-          <View style={[styles.weekHead, { borderBottomColor: colors.border }]}>
-            <View style={{ width: GUTTER }} />
-            {days.map((d) => (
-              <View key={d} style={[styles.untimedCell]}>
-                {of(d)
-                  .filter((e) => !e.time)
-                  .map((e) => {
-                    const tint = eventColors(e.type, colors);
-                    return (
-                      <Pressable
-                        key={`${e.type}-${e.id}`}
-                        accessibilityRole="button"
-                        accessibilityLabel={e.title}
-                        onPress={() => onOpen(e)}
-                        style={[
-                          styles.chip,
-                          {
-                            backgroundColor: tint.bg,
-                            borderLeftColor: tint.fg,
-                          },
-                        ]}
-                      >
-                        <Text variant="caption" numberOfLines={1}>
-                          {e.title}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-              </View>
-            ))}
-          </View>
-        ) : null}
-
-        <View
-          style={{
-            flexDirection: "row",
-            height: (hours.length - 1) * ROW + 12,
-          }}
-        >
-          <View style={{ width: GUTTER }}>
-            {hours.map((h, i) => (
-              <Text key={h} variant="caption" muted style={[styles.hour, { top: i * ROW }]}>
-                {h}
-              </Text>
-            ))}
-          </View>
-          {days.map((d) => (
-            <View
-              key={d}
-              style={[
-                styles.dayCol,
-                {
-                  borderLeftColor: colors.border,
-                  backgroundColor: d === today ? colors.surfaceAlt : "transparent",
-                },
-              ]}
-            >
-              {hours.slice(1).map((h, i) => (
-                <View key={h} style={[styles.hourLine, { top: (i + 1) * ROW + 6, backgroundColor: colors.border }]} />
+    <Card style={styles.weekCard}>
+      {WEEKDAYS.map((w, i) => {
+        const day = addDays(monday, i);
+        const kinds = [...new Set(events.filter((e) => e.date === day).map((e) => e.type))];
+        const isToday = day === today;
+        return (
+          <Pressable
+            key={day}
+            accessibilityRole="button"
+            accessibilityLabel={`${formatDayTitle(day)}${kinds.length ? ", есть события" : ""}`}
+            onPress={() => onSelect(day)}
+            style={({ pressed }) => [styles.weekDay, { backgroundColor: isToday ? colors.primary : pressed ? colors.surfaceAlt : "transparent" }]}
+          >
+            <Text variant="caption" style={{ color: isToday ? colors.primaryText : colors.textSecondary }}>
+              {w}
+            </Text>
+            <Text variant="label" style={{ fontSize: 16, color: isToday ? colors.primaryText : colors.text }}>
+              {parseIso(day).getDate()}
+            </Text>
+            <View style={styles.dots}>
+              {kinds.map((k) => (
+                <View key={k} style={[styles.dot, { backgroundColor: isToday ? colors.primaryText : eventColors(k, colors).fg }]} />
               ))}
-              {of(d)
-                .filter((e) => e.time)
-                .map((e) => {
-                  const tint = eventColors(e.type, colors);
-                  return (
-                    <Pressable
-                      key={`${e.type}-${e.id}`}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${shortTime(e.time)} ${e.title}`}
-                      onPress={() => onOpen(e)}
-                      style={[
-                        styles.block,
-                        {
-                          top: weekRowOffset(e.time!) * ROW + 6,
-                          height: ROW - 4,
-                          backgroundColor: tint.bg,
-                          borderLeftColor: tint.fg,
-                        },
-                      ]}
-                    >
-                      <Text style={[styles.blockTime, { color: tint.fg }]}>{shortTime(e.time)}</Text>
-                      <Text style={[styles.blockTitle, { color: colors.text }]} numberOfLines={2}>
-                        {e.title}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
             </View>
-          ))}
-        </View>
-      </View>
-    </Card>
-  );
-}
-
-/** «Обозначения»: what each colour means. */
-export function Legend() {
-  const { colors } = useTheme();
-  return (
-    <Card style={{ gap: 8 }}>
-      <Text variant="heading">Обозначения</Text>
-      {(Object.keys(EVENT_TYPE_LABELS) as CalendarEventType[]).map((type) => (
-        <View key={type} style={styles.legendRow}>
-          <View style={[styles.swatch, { backgroundColor: eventColors(type, colors).fg }]} />
-          <Text>{EVENT_TYPE_LABELS[type]}</Text>
-        </View>
-      ))}
+          </Pressable>
+        );
+      })}
     </Card>
   );
 }
@@ -259,42 +148,8 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginBottom: 2,
   },
-  weekHead: { flexDirection: "row", borderBottomWidth: 1, paddingVertical: 8 },
-  headCell: { flex: 1, alignItems: "center", gap: 2 },
-  headNum: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  untimedCell: { flex: 1, minWidth: 0, paddingHorizontal: 2, gap: 3 },
-  chip: {
-    borderLeftWidth: 3,
-    borderRadius: 6,
-    paddingHorizontal: 4,
-    paddingVertical: 3,
-  },
-  hour: { position: "absolute", left: 4, fontSize: 10 },
-  dayCol: { flex: 1, minWidth: 0, borderLeftWidth: 1 },
-  hourLine: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: StyleSheet.hairlineWidth,
-  },
-  block: {
-    position: "absolute",
-    left: 2,
-    right: 2,
-    borderLeftWidth: 3,
-    borderRadius: 8,
-    paddingHorizontal: 3,
-    paddingVertical: 3,
-    overflow: "hidden",
-  },
-  blockTime: { fontFamily: fonts.display, fontSize: 11, lineHeight: 13 },
-  blockTitle: { fontFamily: fonts.bodyBold, fontSize: 9, lineHeight: 11 },
-  legendRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  swatch: { width: 14, height: 14, borderRadius: 4 },
+  weekCard: { flexDirection: "row", gap: 2, paddingHorizontal: 6, paddingVertical: 8 },
+  weekDay: { flex: 1, minWidth: 0, paddingVertical: 6, borderRadius: radius.md, alignItems: "center", gap: 2 },
+  dots: { flexDirection: "row", gap: 3, height: 6 },
+  dot: { width: 6, height: 6, borderRadius: 3 },
 });

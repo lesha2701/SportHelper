@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { View } from "react-native";
 import { getTeamStats } from "@/api/stats";
 import { useLoad } from "@/lib/useLoad";
@@ -6,11 +7,13 @@ import type { Team } from "@/shared/types/team";
 import { getAttendanceAnalysis, getReportAnalysis, getTeamSummary } from "@/api/ai";
 import { AiText } from "@/ui/AiText";
 import { Card } from "@/ui/Card";
+import { ListRow } from "@/ui/ListRow";
 import { ErrorView, LoadingView } from "@/ui/StateViews";
 import { StatGrid, StatTile } from "@/ui/StatTile";
 import { Text } from "@/ui/Text";
 
-export function StatsSection({ team }: { team: Team }) {
+/** The team's numbers; coaches also get the AI reviews and who is missing trainings. */
+export function StatsSection({ team, staff }: { team: Team; staff: boolean }) {
   const stats = useLoad(() => getTeamStats(team.id), [team.id]);
   if (stats.loading && !stats.data) return <LoadingView />;
   if (stats.error || !stats.data) return <ErrorView message={stats.error ?? "Нет данных"} onRetry={stats.reload} />;
@@ -27,9 +30,15 @@ export function StatsSection({ team }: { team: Team }) {
         <StatTile value={`${s.matchesWon}-${s.matchesDrawn}-${s.matchesLost}`} label="матчи: победы-ничьи-поражения" />
         <StatTile value={s.avgWellbeing === null ? "—" : s.avgWellbeing.toFixed(1)} label="самочувствие (1–5)" />
       </StatGrid>
-      <AiText title="Сводка по команде (ИИ)" heading="Сводка по команде" load={() => getTeamSummary(team.id)} />
-      <AiText title="Анализ посещаемости (ИИ)" heading="Посещаемость" load={() => getAttendanceAnalysis(team.id)} />
-      <AiText title="Анализ отчётов (ИИ)" heading="Отчёты игроков" load={() => getReportAnalysis(team.id)} />
+      {staff ? (
+        <>
+          <AiText title="Сводка по команде (ИИ)" heading="Сводка по команде" load={() => getTeamSummary(team.id)} />
+          <AiText title="Анализ посещаемости (ИИ)" heading="Посещаемость" load={() => getAttendanceAnalysis(team.id)} />
+          <AiText title="Анализ отчётов (ИИ)" heading="Отчёты игроков" load={() => getReportAnalysis(team.id)} />
+        </>
+      ) : (
+        <ListRow icon="person-outline" title="Моя статистика" subtitle="Посещаемость, задания, рекорды" onPress={() => router.push("/stats")} />
+      )}
       {s.lowActivityPlayers.length > 0 ? (
         <Card>
           <Text variant="heading">Низкая активность</Text>

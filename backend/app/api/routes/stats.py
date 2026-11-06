@@ -41,8 +41,10 @@ async def get_team_stats(
     conn: asyncpg.Connection = Depends(get_db),
 ) -> TeamStatsOut:
     member = await teams_repo.get_member(conn, team_id, user["id"])
-    if member is None or member["role"] not in _COACH_STAFF:
-        raise ForbiddenError("only the head coach or an assistant coach can view team statistics")
+    if member is None:
+        raise ForbiddenError("only members of the team can view its statistics")
+    # Players see the team's totals; who misses trainings is for the coaches only.
+    is_staff = member["role"] in _COACH_STAFF
 
     members_count = await teams_repo.count_members(conn, team_id)
     training_summary = await trainings_repo.count_team_trainings_summary(conn, team_id)
@@ -96,8 +98,8 @@ async def get_team_stats(
         matches_won=match_summary["wins"],
         matches_lost=match_summary["losses"],
         matches_drawn=match_summary["draws"],
-        low_activity_players=low_activity,
-        frequent_absence_players=frequent_absences,
+        low_activity_players=low_activity if is_staff else [],
+        frequent_absence_players=frequent_absences if is_staff else [],
     )
 
 

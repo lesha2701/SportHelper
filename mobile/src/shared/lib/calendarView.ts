@@ -31,12 +31,3 @@ export function groupByDay(events: CalendarEvent[]): [string, CalendarEvent[]][]
 export function listRange(today: string): { from: string; to: string } {
   return { from: addDays(today, -14), to: addDays(today, 60) };
 }
-
-export const WEEK_FIRST_HOUR = 8;
-export const WEEK_LAST_HOUR = 20;
-
-/** Where a timed event starts in the week grid, in rows from 08:00 (clamped to the grid). */
-export function weekRowOffset(time: string): number {
-  const [h = 0, m = 0] = time.split(":").map(Number);
-  return Math.min(Math.max(h + m / 60 - WEEK_FIRST_HOUR, 0), WEEK_LAST_HOUR - WEEK_FIRST_HOUR - 1);
-}

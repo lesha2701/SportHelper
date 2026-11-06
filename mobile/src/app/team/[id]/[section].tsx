@@ -38,7 +38,7 @@ export default function TeamSectionScreen() {
         {section === "trainings" ? <TrainingsSection team={t} staff={staff} /> : null}
         {section === "matches" ? <MatchesSection team={t} staff={staff} /> : null}
         {section === "tasks" ? <TasksSection team={t} staff={staff} /> : null}
-        {section === "stats" ? <StatsSection team={t} /> : null}
+        {section === "stats" ? <StatsSection team={t} staff={staff} /> : null}
         {section === "invites" && staff ? <InvitesSection team={t} /> : null}
       </Screen>
     </>

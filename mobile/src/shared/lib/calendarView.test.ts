@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import type { CalendarEvent } from "@/shared/types/calendar";
-import { groupByDay, isOverdue, listRange, upcomingFirst, weekRowOffset } from "./calendarView";
+import { groupByDay, isOverdue, listRange, upcomingFirst } from "./calendarView";
 
 const ev = (id: string, date: string, time: string | null = null, extra: Partial<CalendarEvent> = {}): CalendarEvent => ({
   id,
@@ -40,12 +40,5 @@ describe("calendar view", () => {
       from: "2026-10-23",
       to: "2027-01-05",
     });
-  });
-
-  it("places events in the 08–20 grid", () => {
-    expect(weekRowOffset("08:00:00")).toBe(0);
-    expect(weekRowOffset("10:30")).toBe(2.5);
-    expect(weekRowOffset("06:00")).toBe(0);
-    expect(weekRowOffset("22:00")).toBe(11);
   });
 });
