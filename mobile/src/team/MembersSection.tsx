@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import { blockMember, listMembers, removeMember, updateMember } from "@/api/teams";
 import { toFormError } from "@/lib/formError";
@@ -48,6 +49,15 @@ export function MembersSection({ team, staff }: { team: Team; staff: boolean }) 
         <Card key={m.userId}>
           <Text variant="label">{[m.firstName, m.lastName].filter(Boolean).join(" ")}</Text>
           <Text muted>{[TEAM_ROLE_LABELS[m.role], m.position].filter(Boolean).join(" · ")}</Text>
+          {staff && m.role !== "head_coach" && m.role !== "assistant_coach" ? (
+            <Button
+              title="Профиль и статистика"
+              variant="secondary"
+              onPress={() =>
+                router.push({ pathname: "/team/[id]/member/[userId]", params: { id: team.id, userId: m.userId, name: [m.firstName, m.lastName].filter(Boolean).join(" ") } })
+              }
+            />
+          ) : null}
           {head && m.role !== "head_coach" ? (
             <Choice
               label="Роль в команде"

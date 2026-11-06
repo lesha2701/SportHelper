@@ -9,6 +9,7 @@ import { count } from "@/shared/lib/plural";
 import { SKILL_LEVEL_LABELS } from "@/shared/types/profile";
 import { TEAM_ROLE_LABELS } from "@/shared/types/team";
 import { TeamTile } from "@/team/TeamTile";
+import { TransferOwnership } from "@/team/TransferOwnership";
 import { useTheme } from "@/theme/ThemeProvider";
 import { fonts, radius } from "@/theme/tokens";
 import { Avatar } from "@/ui/Avatar";
@@ -43,6 +44,7 @@ export default function TeamScreen() {
     return { t, staff, requests };
   }, [id]);
   const [leaving, setLeaving] = useState(false);
+  const [transferring, setTransferring] = useState(false);
 
   if (team.loading && !team.data) return <LoadingView />;
   if (team.error || !team.data) return <ErrorView message={team.error ?? "Команда не найдена"} onRetry={team.reload} />;
@@ -113,7 +115,17 @@ export default function TeamScreen() {
           {staff ? <TeamTile icon="person-add-outline" title="Приглашения" subtitle="Ссылка и заявки" badge={requests} onPress={() => open("invites")} /> : null}
         </View>
 
+        {head ? <Button title="Передать роль главного тренера" variant="secondary" onPress={() => setTransferring(true)} /> : null}
         <Button title="Выйти из команды" variant="ghost" onPress={() => setLeaving(true)} />
+        <TransferOwnership
+          team={t}
+          visible={transferring}
+          onClose={() => setTransferring(false)}
+          onDone={() => {
+            setTransferring(false);
+            team.reload();
+          }}
+        />
         <ConfirmModal
           visible={leaving}
           title="Выйти из команды?"

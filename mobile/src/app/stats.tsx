@@ -1,4 +1,4 @@
-import { Stack, router } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { deleteMetric } from "@/api/metrics";
@@ -25,11 +25,15 @@ function matchResult(ours: number | null, theirs: number | null): string {
   return ours > theirs ? MATCH_RESULT_LABELS.win : ours < theirs ? MATCH_RESULT_LABELS.loss : MATCH_RESULT_LABELS.draw;
 }
 
-/** The signed-in player's own statistics: attendance, tasks, matches, personal records and measurements. */
+/** A player's statistics: attendance, tasks, matches, personal records and measurements. Mine by default; a coach
+ * opens a team member's with ?userId= (and may add measurements, removing only the ones they recorded). */
 export default function StatsScreen() {
   const { user } = useAuth();
   const toast = useToast();
-  const stats = useLoad(() => getPlayerStats(user!.id), [user?.id]);
+  const params = useLocalSearchParams<{ userId?: string; name?: string }>();
+  const userId = params.userId ?? user!.id;
+  const own = userId === user?.id;
+  const stats = useLoad(() => getPlayerStats(userId), [userId]);
   const [removing, setRemoving] = useState<string | null>(null);
 
   if (stats.loading && !stats.data) return <LoadingView />;
@@ -48,7 +52,7 @@ export default function StatsScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: "Моя статистика" }} />
+      <Stack.Screen options={{ headerShown: true, title: own ? "Моя статистика" : params.name ? `Статистика: ${params.name}` : "Статистика игрока" }} />
       <Screen header>
         <StatGrid>
           <StatTile value={formatRate(s.attendanceRate)} label="посещаемость" />
@@ -78,7 +82,7 @@ export default function StatsScreen() {
 
         <Card>
           <Text variant="heading">Показатели</Text>
-          {s.metrics.length === 0 ? <Text muted>Здесь будут ваши замеры: вес, время на дистанции, жим и другое.</Text> : null}
+          {s.metrics.length === 0 ? <Text muted>{own ? "Здесь будут ваши замеры: вес, время на дистанции, жим и другое." : "Замеров пока нет. Добавьте первый: вес, время на дистанции, жим и другое."}</Text> : null}
           {s.metrics.map((m) => (
             <View key={m.id} style={{ gap: 2 }}>
               <Text variant="label">
@@ -89,10 +93,10 @@ export default function StatsScreen() {
                 {formatRuDate(m.recordedDate)}
                 {m.comment ? ` · ${m.comment}` : ""}
               </Text>
-              <Button title="Удалить" variant="ghost" onPress={() => setRemoving(m.id)} />
+              {m.recordedBy === user?.id ? <Button title="Удалить" variant="ghost" onPress={() => setRemoving(m.id)} /> : null}
             </View>
           ))}
-          <Button title="Добавить показатель" variant="secondary" onPress={() => router.push({ pathname: "/metric-new", params: { userId: user!.id } })} />
+          <Button title="Добавить показатель" variant="secondary" onPress={() => router.push({ pathname: "/metric-new", params: { userId } })} />
         </Card>
 
         {s.matchesHistory.length > 0 ? (

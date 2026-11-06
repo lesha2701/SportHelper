@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Share, View } from "react-native";
-import { acceptApplication, createInvite, listApplications, rejectApplication } from "@/api/teams";
+import { acceptApplication, createInvite, listApplications, listInvites, rejectApplication } from "@/api/teams";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
 import type { Invite, Team } from "@/shared/types/team";
@@ -15,6 +15,7 @@ import { useToast } from "@/ui/Toast";
 export function InvitesSection({ team }: { team: Team }) {
   const toast = useToast();
   const apps = useLoad(() => listApplications(team.id), [team.id]);
+  const links = useLoad(async () => (await listInvites(team.id)).filter((i) => i.kind === "join" && new Date(i.expiresAt).getTime() > Date.now()), [team.id]);
   const [invite, setInvite] = useState<Invite | null>(null);
   const [error, setError] = useState<string | null>(null);
   const pending = (apps.data ?? []).filter((a) => a.status === "pending");
@@ -23,6 +24,7 @@ export function InvitesSection({ team }: { team: Team }) {
     setError(null);
     try {
       setInvite(await createInvite(team.id, "join"));
+      links.reload();
     } catch (e) {
       setError(toFormError(e).message);
     }
@@ -54,6 +56,25 @@ export function InvitesSection({ team }: { team: Team }) {
         ) : null}
         <Button title={invite ? "Создать новую ссылку" : "Создать ссылку"} variant="secondary" onPress={makeInvite} />
       </Card>
+
+      {(links.data ?? []).filter((l) => l.id !== invite?.id).length > 0 ? (
+        <Card>
+          <Text variant="heading">Действующие ссылки</Text>
+          {(links.data ?? [])
+            .filter((l) => l.id !== invite?.id)
+            .map((l) => (
+              <View key={l.id} style={{ gap: 4 }}>
+                <Text selectable variant="caption">
+                  {l.link}
+                </Text>
+                <Text variant="caption" muted>
+                  Действует до {new Date(l.expiresAt).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                </Text>
+                <Button title="Поделиться" variant="ghost" onPress={() => void Share.share({ message: l.link })} />
+              </View>
+            ))}
+        </Card>
+      ) : null}
 
       <Text variant="heading">Заявки на вступление</Text>
       {pending.length === 0 ? <Text muted>Новых заявок нет.</Text> : null}
