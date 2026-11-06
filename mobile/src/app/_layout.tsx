@@ -5,6 +5,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "@/auth/AuthProvider";
+import { UnreadProvider } from "@/notifications/UnreadProvider";
 import { ProfileProvider } from "@/profile/ProfileProvider";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { fonts } from "@/theme/tokens";
@@ -51,7 +52,7 @@ function Routes() {
           <Stack.Screen name="stats" />
           <Stack.Screen name="metric-new" />
           <Stack.Screen name="search" />
-          <Stack.Screen name="catalog" />
+          <Stack.Screen name="my-tasks" />
           <Stack.Screen name="listing/[id]" />
           <Stack.Screen name="coach/[id]" />
           <Stack.Screen name="bookings" />
@@ -92,7 +93,9 @@ export default function RootLayout() {
       <ThemeProvider>
         <ToastProvider>
           <AuthProvider>
-            <ProfileProvider>{fontsLoaded || fontError ? <Routes /> : <LoadingView />}</ProfileProvider>
+            <ProfileProvider>
+              <UnreadProvider>{fontsLoaded || fontError ? <Routes /> : <LoadingView />}</UnreadProvider>
+            </ProfileProvider>
           </AuthProvider>
         </ToastProvider>
       </ThemeProvider>

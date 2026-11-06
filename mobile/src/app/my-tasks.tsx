@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { Stack, router } from "expo-router";
 import { listMyTasks, listTeamTasks } from "@/api/tasks";
 import { listMyTeams } from "@/api/teams";
 import { useAuth } from "@/auth/AuthProvider";
@@ -19,8 +19,7 @@ function PlayerTasks() {
   const items = [...(tasks.data ?? [])].sort((a, b) => order.indexOf(a.assignment.status) - order.indexOf(b.assignment.status));
 
   return (
-    <Screen onRefresh={tasks.reload} refreshing={tasks.loading}>
-      <Text variant="title">Задания</Text>
+    <Screen header onRefresh={tasks.reload} refreshing={tasks.loading}>
       {items.length === 0 ? <Text muted>Заданий пока нет. Когда тренер назначит задание, оно появится здесь.</Text> : null}
       {items.map(({ task, assignment }) => (
         <Card key={task.id} onPress={() => router.push({ pathname: "/task/[id]", params: { id: task.id } })}>
@@ -52,8 +51,7 @@ function CoachTasks() {
   const items = [...(tasks.data ?? [])].sort((a, b) => waiting(b.task) - waiting(a.task));
 
   return (
-    <Screen onRefresh={tasks.reload} refreshing={tasks.loading}>
-      <Text variant="title">Задания</Text>
+    <Screen header onRefresh={tasks.reload} refreshing={tasks.loading}>
       {items.length === 0 ? <Text muted>Заданий пока нет. Создайте задание в разделе «Задания» вашей команды.</Text> : null}
       {items.map(({ task, teamName }) => {
         const n = waiting(task);
@@ -74,5 +72,11 @@ function CoachTasks() {
 
 export default function TasksScreen() {
   const { user } = useAuth();
-  return user?.preferredRole === "coach" ? <CoachTasks /> : <PlayerTasks />;
+  const coach = user?.preferredRole === "coach";
+  return (
+    <>
+      <Stack.Screen options={{ headerShown: true, title: coach ? "Задания команд" : "Мои задания" }} />
+      {coach ? <CoachTasks /> : <PlayerTasks />}
+    </>
+  );
 }

@@ -2,6 +2,7 @@ import { Stack, router } from "expo-router";
 import { listNotifications, markAllNotificationsRead, markNotificationRead } from "@/api/notifications";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
+import { useUnread } from "@/notifications/UnreadProvider";
 import { routeForNotification } from "@/shared/lib/notificationRoute";
 import type { NotificationItem } from "@/shared/types/notification";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -20,7 +21,12 @@ function when(iso: string): string {
 export default function NotificationsScreen() {
   const { colors } = useTheme();
   const toast = useToast();
-  const list = useLoad(listNotifications);
+  const unreadBadge = useUnread();
+  const list = useLoad(async () => {
+    const items = await listNotifications();
+    unreadBadge.refresh();
+    return items;
+  });
 
   if (list.loading && !list.data) return <LoadingView />;
   if (list.error && !list.data) return <ErrorView message={list.error} onRetry={list.reload} />;
@@ -29,7 +35,10 @@ export default function NotificationsScreen() {
 
   async function open(n: NotificationItem) {
     try {
-      if (!n.readAt) await markNotificationRead(n.id);
+      if (!n.readAt) {
+        await markNotificationRead(n.id);
+        unreadBadge.refresh();
+      }
     } catch (e) {
       toast.error(toFormError(e).message);
     }
@@ -41,6 +50,7 @@ export default function NotificationsScreen() {
   async function readAll() {
     try {
       await markAllNotificationsRead();
+      unreadBadge.refresh();
       list.reload();
     } catch (e) {
       toast.error(toFormError(e).message);

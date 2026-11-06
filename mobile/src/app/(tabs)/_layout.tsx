@@ -5,7 +5,16 @@ import { useProfile } from "@/profile/ProfileProvider";
 import { useTheme } from "@/theme/ThemeProvider";
 import { fonts } from "@/theme/tokens";
 import { ErrorView, LoadingView } from "@/ui/StateViews";
+import { TabHeader } from "@/ui/TabHeader";
 
+type IconName = React.ComponentProps<typeof Ionicons>["name"];
+
+const icon = (name: IconName) =>
+  function TabIcon({ color, size }: { color: unknown; size: number }) {
+    return <Ionicons name={name} color={color as string} size={size} />;
+  };
+
+/** The main sections, in the website's order: home, teams, calendar, coaches, profile. Tasks live inside teams. */
 export default function TabsLayout() {
   const { colors } = useTheme();
   const { user } = useAuth();
@@ -24,7 +33,7 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
+        header: ({ options }) => <TabHeader title={options.headerTitle && typeof options.headerTitle === "string" ? options.headerTitle : (options.title ?? "")} />,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
@@ -32,26 +41,11 @@ export default function TabsLayout() {
         sceneStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Tabs.Screen
-        name="home"
-        options={{ title: "Главная", tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" color={color as string} size={size} /> }}
-      />
-      <Tabs.Screen
-        name="calendar"
-        options={{ title: "Календарь", tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" color={color as string} size={size} /> }}
-      />
-      <Tabs.Screen
-        name="teams"
-        options={{ title: "Команды", tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" color={color as string} size={size} /> }}
-      />
-      <Tabs.Screen
-        name="tasks"
-        options={{ title: "Задания", tabBarIcon: ({ color, size }) => <Ionicons name="clipboard-outline" color={color as string} size={size} /> }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{ title: "Профиль", tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" color={color as string} size={size} /> }}
-      />
+      <Tabs.Screen name="home" options={{ title: "Главная", headerTitle: "SportArena", tabBarIcon: icon("home-outline") }} />
+      <Tabs.Screen name="teams" options={{ title: "Команды", tabBarIcon: icon("people-outline") }} />
+      <Tabs.Screen name="calendar" options={{ title: "Календарь", tabBarIcon: icon("calendar-outline") }} />
+      <Tabs.Screen name="coaches" options={{ title: "Тренеры", tabBarIcon: icon("barbell-outline") }} />
+      <Tabs.Screen name="profile" options={{ title: "Профиль", tabBarIcon: icon("person-outline") }} />
     </Tabs>
   );
 }

@@ -63,8 +63,7 @@ export default function ProfileScreen() {
   const { player, coach } = state.data;
 
   return (
-    <Screen>
-      <Text variant="title">Профиль</Text>
+    <Screen header>
       <Card>
         <View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
           <Avatar fileId={user?.avatarFileId} name={[user?.firstName, user?.lastName].filter(Boolean).join(" ")} size={72} />

@@ -1,4 +1,4 @@
-import { Stack, router } from "expo-router";
+import { router } from "expo-router";
 import { useState } from "react";
 import { listListings } from "@/api/coachListings";
 import { useLoad } from "@/lib/useLoad";
@@ -18,7 +18,6 @@ export default function CatalogScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: "Каталог тренеров" }} />
       <Screen header>
         <Choice layout="chips" options={SPORTS} value={sport} onChange={setSport} />
         {listings.loading && !listings.data ? <LoadingView /> : null}

@@ -61,7 +61,7 @@ export default function HomeScreen() {
   const s = summary.data;
 
   return (
-    <Screen onRefresh={summary.reload} refreshing={summary.loading && !!summary.data}>
+    <Screen header onRefresh={summary.reload} refreshing={summary.loading && !!summary.data}>
       <Text variant="title">Привет, {user?.firstName}!</Text>
 
       {s && (s.unread > 0 || s.pending > 0 || s.openTasks > 0) ? (
@@ -69,7 +69,7 @@ export default function HomeScreen() {
           <Text variant="heading">Требует внимания</Text>
           {s.unread > 0 ? <ListRow icon="notifications-outline" title="Новые уведомления" badge={s.unread} onPress={() => router.push("/notifications")} /> : null}
           {s.pending > 0 ? <ListRow icon="person-add-outline" title="Заявки на запись" subtitle="Ждут вашего ответа" badge={s.pending} onPress={() => router.push("/bookings")} /> : null}
-          {s.openTasks > 0 ? <ListRow icon="clipboard-outline" title="Задания к выполнению" badge={s.openTasks} onPress={() => router.push("/tasks")} /> : null}
+          {s.openTasks > 0 ? <ListRow icon="clipboard-outline" title="Задания к выполнению" badge={s.openTasks} onPress={() => router.push("/my-tasks")} /> : null}
         </Card>
       ) : null}
 
@@ -96,7 +96,7 @@ export default function HomeScreen() {
         {s && s.unread === 0 ? <ListRow icon="notifications-outline" title="Уведомления" onPress={() => router.push("/notifications")} /> : null}
         <ListRow icon="search-outline" title="Поиск" onPress={() => router.push("/search")} />
         {mode === "player" ? <ListRow icon="stats-chart-outline" title="Моя статистика" onPress={() => router.push("/stats")} /> : null}
-        {mode === "player" ? <ListRow icon="compass-outline" title="Найти тренера" subtitle="Каталог предложений" onPress={() => router.push("/catalog")} /> : null}
+        {mode === "player" ? <ListRow icon="compass-outline" title="Найти тренера" subtitle="Каталог предложений" onPress={() => router.push("/coaches")} /> : null}
         <ListRow icon="bookmark-outline" title={mode === "coach" ? "Записи ко мне" : "Мои записи"} onPress={() => router.push("/bookings")} />
         {mode === "coach" ? <ListRow icon="library-outline" title="Библиотека" subtitle="Упражнения, планы, шаблоны" onPress={() => router.push("/library")} /> : null}
         {mode === "coach" ? <ListRow icon="pricetag-outline" title="Мои предложения" subtitle="Что вы продаёте клиентам" onPress={() => router.push("/my-listings")} /> : null}

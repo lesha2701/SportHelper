@@ -8,6 +8,7 @@ import { TEAM_ROLE_LABELS } from "@/shared/types/team";
 import { Avatar } from "@/ui/Avatar";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
+import { ListRow } from "@/ui/ListRow";
 import { Screen } from "@/ui/Screen";
 import { ErrorView, LoadingView } from "@/ui/StateViews";
 import { Text } from "@/ui/Text";
@@ -21,8 +22,13 @@ export default function TeamsScreen() {
   if (teams.error && !teams.data) return <ErrorView message={teams.error} onRetry={teams.reload} />;
 
   return (
-    <Screen onRefresh={teams.reload} refreshing={teams.loading && !!teams.data}>
-      <Text variant="title">Команды</Text>
+    <Screen header onRefresh={teams.reload} refreshing={teams.loading && !!teams.data}>
+      <ListRow
+        icon="clipboard-outline"
+        title={isCoach ? "Задания команд" : "Мои задания"}
+        subtitle={isCoach ? "Отчёты игроков и проверка" : "Что задал тренер и что уже сделано"}
+        onPress={() => router.push("/my-tasks")}
+      />
       {teams.data?.length === 0 ? (
         <Card>
           <Text variant="heading">Пока нет команд</Text>
