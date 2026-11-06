@@ -3,17 +3,17 @@ import { useState } from "react";
 import { View } from "react-native";
 import { useAuth } from "@/auth/AuthProvider";
 import { getTeam } from "@/api/teams";
-import { deleteTraining, getAttendance, getTraining, getTrainingWorkout, setAttendanceStatus, updateTraining } from "@/api/trainings";
+import { cancelTrainingSeries, deleteTraining, getAttendance, getTraining, getTrainingWorkout, setAttendanceStatus, updateTraining } from "@/api/trainings";
 import { toFormError } from "@/lib/formError";
 import { AthleteSessionCard, CoachSessionCard, PlayerAiAnalysisCard } from "@/booking/SessionParts";
 import { useLoad } from "@/lib/useLoad";
-import { formatDayTitle, shortTime } from "@/shared/lib/dates";
+import { formatDayTitle, shortTime, todayIso } from "@/shared/lib/dates";
 import { parseExerciseChecklist } from "@/shared/lib/trainingDescription";
 import { describeSets, formatClock, workoutTotals } from "@/shared/lib/workout";
 import { count } from "@/shared/lib/plural";
-import { TRAINING_STATUS_LABELS, type Training } from "@/shared/types/training";
-import { getTrainingEvaluation } from "@/api/ai";
-import { AiText } from "@/ui/AiText";
+import { TRAINING_STATUS_LABELS, type Training, type TrainingStatus } from "@/shared/types/training";
+import { FeedbackCard } from "@/training/FeedbackCard";
+import { BottomSheet } from "@/ui/BottomSheet";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { Choice } from "@/ui/Choice";
@@ -96,7 +96,8 @@ export default function TrainingScreen() {
     const team = t.teamId ? await getTeam(t.teamId) : null;
     return { t, team };
   }, [id]);
-  const [confirm, setConfirm] = useState<"delete" | "complete" | null>(null);
+  const [confirm, setConfirm] = useState<"delete" | "complete" | "cancel" | null>(null);
+  const [seriesChoice, setSeriesChoice] = useState(false);
 
   if (training.loading && !training.data) return <LoadingView />;
   if (training.error || !training.data) return <ErrorView message={training.error ?? "Тренировка не найдена"} onRetry={training.reload} />;
@@ -108,8 +109,9 @@ export default function TrainingScreen() {
   const bookedCoach = t.type === "personal" && !mine;
   const checklist = mine && t.description ? parseExerciseChecklist(t.description) : null;
 
-  async function complete() {
+  async function setStatus(status: TrainingStatus) {
     setConfirm(null);
+    setSeriesChoice(false);
     try {
       await updateTraining(t.id, {
         training_date: t.trainingDate,
@@ -119,10 +121,20 @@ export default function TrainingScreen() {
         description: t.description,
         plan_id: t.planId,
         reminder_minutes_before: t.reminderMinutesBefore,
-        status: "completed",
+        status,
         is_independent: t.type === "independent",
         responsible_user_id: t.responsibleUserId,
       });
+      training.reload();
+    } catch (e) {
+      toast.error(toFormError(e).message);
+    }
+  }
+
+  async function cancelSeries() {
+    setSeriesChoice(false);
+    try {
+      await cancelTrainingSeries(t.id);
       training.reload();
     } catch (e) {
       toast.error(toFormError(e).message);
@@ -168,21 +180,34 @@ export default function TrainingScreen() {
         {bookedCoach ? <PlayerAiAnalysisCard trainingId={t.id} /> : null}
         {mine ? <AthleteSessionCard trainingId={t.id} /> : null}
         {mine ? <SavedWorkout trainingId={t.id} /> : null}
-        {mine && t.status === "completed" ? <AiText title="Оценка тренировки (ИИ)" heading="Оценка тренировки" load={() => getTrainingEvaluation(t.id)} /> : null}
+        {t.status === "completed" && !bookedCoach ? <FeedbackCard trainingId={t.id} teamCoach={staff && t.type !== "personal"} /> : null}
         {staff ? <Attendance training={t} /> : null}
+        {t.type === "independent" && (t.status === "completed" || t.trainingDate < todayIso()) ? (
+          <Button title="Отчёт о тренировке" variant="secondary" onPress={() => router.push({ pathname: "/training/[id]/report", params: { id: t.id } })} />
+        ) : null}
 
         {(staff || mine) && t.status !== "cancelled" ? <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/training/new", params: { id: t.id } })} /> : null}
         {staff && t.status === "scheduled" ? <Button title="Отметить проведённой" variant="secondary" onPress={() => setConfirm("complete")} /> : null}
+        {(staff || mine) && t.status === "scheduled" ? (
+          <Button title="Отменить тренировку" variant="secondary" onPress={() => (t.recurrenceGroupId ? setSeriesChoice(true) : setConfirm("cancel"))} />
+        ) : null}
+        {(staff || mine) && t.status !== "scheduled" ? <Button title="Вернуть в расписание" variant="secondary" onPress={() => void setStatus("scheduled")} /> : null}
         {staff || mine ? <Button title="Удалить тренировку" variant="ghost" onPress={() => setConfirm("delete")} /> : null}
 
         <ConfirmModal
           visible={confirm !== null}
-          title={confirm === "delete" ? "Удалить тренировку?" : "Отметить проведённой?"}
-          confirmLabel={confirm === "delete" ? "Удалить" : "Отметить"}
-          destructive={confirm === "delete"}
+          title={confirm === "delete" ? "Удалить тренировку?" : confirm === "cancel" ? "Отменить тренировку?" : "Отметить проведённой?"}
+          message={confirm === "cancel" ? "Участники получат уведомление об отмене." : undefined}
+          confirmLabel={confirm === "delete" ? "Удалить" : confirm === "cancel" ? "Отменить" : "Отметить"}
+          destructive={confirm === "delete" || confirm === "cancel"}
           onCancel={() => setConfirm(null)}
-          onConfirm={() => void (confirm === "delete" ? remove() : complete())}
+          onConfirm={() => void (confirm === "delete" ? remove() : setStatus(confirm === "cancel" ? "cancelled" : "completed"))}
         />
+        <BottomSheet visible={seriesChoice} title="Отменить тренировку?" onClose={() => setSeriesChoice(false)}>
+          <Text muted>Это повторяющаяся тренировка. Отменить только эту или все будущие тренировки серии?</Text>
+          <Button title="Только эту" onPress={() => void setStatus("cancelled")} />
+          <Button title="Всю серию" variant="secondary" onPress={() => void cancelSeries()} />
+        </BottomSheet>
       </Screen>
     </>
   );
