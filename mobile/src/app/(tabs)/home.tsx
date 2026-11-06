@@ -1,22 +1,30 @@
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
+import { useState } from "react";
+import { View } from "react-native";
 import { listCoachPendingBookings } from "@/api/bookings";
 import { getCalendar } from "@/api/calendar";
-import { listNotifications } from "@/api/notifications";
-import { listMyTasks } from "@/api/tasks";
+import { getPlayerStats } from "@/api/stats";
+import { listMyTasks, listTeamTasks } from "@/api/tasks";
+import { listMyTeams } from "@/api/teams";
 import { useAuth } from "@/auth/AuthProvider";
+import { eventIcon, homeStyles, BigStat, NextEventHero, QuickAction, WeekStrip } from "@/home/HomeParts";
 import { useFeatures } from "@/lib/useFeatures";
 import { useLoad } from "@/lib/useLoad";
+import { useUnread } from "@/notifications/UnreadProvider";
 import { useProfile } from "@/profile/ProfileProvider";
-import { addDays, formatDayTitle, shortTime, todayIso } from "@/shared/lib/dates";
-import { years } from "@/shared/lib/plural";
+import { addDays, formatDayTitle, shortTime, startOfWeekIso, todayIso } from "@/shared/lib/dates";
 import type { CalendarEvent } from "@/shared/types/calendar";
-import { SKILL_LEVEL_LABELS, type ProfileMe } from "@/shared/types/profile";
+import type { ProfileMe } from "@/shared/types/profile";
+import { formatRate } from "@/shared/types/stats";
+import type { Team } from "@/shared/types/team";
+import { BottomSheet } from "@/ui/BottomSheet";
 import { Card } from "@/ui/Card";
 import { ListRow } from "@/ui/ListRow";
 import { Screen } from "@/ui/Screen";
 import { Text } from "@/ui/Text";
 
 type Mode = "player" | "coach";
+type CreateKind = "training" | "task" | "match";
 
 function currentMode(profile: ProfileMe, preferred: Mode | null): Mode {
   if (profile.activeMode) return profile.activeMode;
@@ -31,98 +39,173 @@ function openEvent(event: CalendarEvent) {
   else router.push({ pathname: "/task/[id]", params: { id: event.id } });
 }
 
-/** What needs the person's attention, the next few events and the sections: the page to open the app on. */
+const pending = (e: CalendarEvent) => e.status !== "completed" && e.status !== "cancelled";
+
+/** The first thing after opening the app: the next event, a few numbers, this week day by day, quick actions and
+ * what needs attention. */
 export default function HomeScreen() {
   const { user } = useAuth();
   const { state } = useProfile();
   const features = useFeatures();
+  const unread = useUnread();
   const mode = state.status === "ready" ? currentMode(state.data, user?.preferredRole ?? null) : "player";
+  const today = todayIso();
+  const monday = startOfWeekIso(today);
+  const [selectedDay, setSelectedDay] = useState(today);
+  const [creating, setCreating] = useState<CreateKind | null>(null);
 
-  const summary = useLoad(async () => {
-    const today = todayIso();
-    const [events, notifications, pending, tasks] = await Promise.all([
-      getCalendar(today, addDays(today, 7)).catch(() => [] as CalendarEvent[]),
-      listNotifications().catch(() => []),
-      mode === "coach" ? listCoachPendingBookings().catch(() => []) : Promise.resolve([]),
-      mode === "player" ? listMyTasks().catch(() => []) : Promise.resolve([]),
-    ]);
-    const upcoming = events
-      .filter((e) => e.status !== "completed" && e.status !== "cancelled")
-      .sort((a, b) => (a.date + (a.time ?? "")).localeCompare(b.date + (b.time ?? "")))
-      .slice(0, 4);
-    const unread = notifications.filter((n) => !n.readAt).length;
-    const openTasks = tasks.filter((t) => ["assigned", "viewed", "in_progress", "needs_revision"].includes(t.assignment.status)).length;
-    return { upcoming, unread, pending: pending.length, openTasks };
-  }, [mode]);
+  const data = useLoad(async () => {
+    const events = await getCalendar(monday, addDays(today, 30)).catch(() => [] as CalendarEvent[]);
+    const now = new Date();
+    const nowTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const next =
+      [...events]
+        .filter((e) => pending(e) && (e.date > today || (e.date === today && (e.time ?? "99:99").slice(0, 5) >= nowTime)))
+        .sort((a, b) => (a.date + (a.time ?? "")).localeCompare(b.date + (b.time ?? "")))[0] ?? null;
+
+    if (mode === "player") {
+      const [stats, tasks] = await Promise.all([getPlayerStats(user!.id).catch(() => null), listMyTasks().catch(() => [])]);
+      const openTasks = tasks.filter((t) => ["assigned", "viewed", "in_progress", "needs_revision"].includes(t.assignment.status)).length;
+      return { events, next, stats, openTasks, teams: [] as Team[], requests: 0, toReview: 0 };
+    }
+    const [teams, requests] = await Promise.all([listMyTeams().catch(() => [] as Team[]), listCoachPendingBookings().catch(() => [])]);
+    const staffTeams = teams.filter((t) => t.myRole === "head_coach" || t.myRole === "assistant_coach");
+    const tasks = (await Promise.all(staffTeams.map((t) => listTeamTasks(t.id).catch(() => [])))).flat();
+    const toReview = tasks.reduce((n, t) => n + t.assignments.filter((a) => a.status === "submitted").length, 0);
+    return { events, next, stats: null, openTasks: 0, teams: staffTeams, requests: requests.length, toReview };
+  }, [mode, user?.id]);
 
   if (state.status !== "ready") return null;
-  const player = state.data.player;
-  const coach = state.data.coach;
-  const s = summary.data;
+  const d = data.data;
+  const weekEvents = (d?.events ?? []).filter((e) => e.date >= monday && e.date <= addDays(monday, 6));
+  const busyDays = new Set(weekEvents.map((e) => e.date));
+  const dayEvents = weekEvents.filter((e) => e.date === selectedDay).sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""));
+
+  /** Training / task / match: a coach picks the team first when there is more than one. */
+  function create(kind: CreateKind) {
+    if (mode === "player") {
+      router.push("/training/new");
+      return;
+    }
+    const teams = d?.teams ?? [];
+    if (teams.length === 1) go(kind, teams[0]!.id);
+    else if (teams.length === 0) router.push("/teams");
+    else setCreating(kind);
+  }
+  function go(kind: CreateKind, teamId: string) {
+    setCreating(null);
+    const path: Href =
+      kind === "training"
+        ? { pathname: "/training/new", params: { teamId } }
+        : kind === "task"
+          ? { pathname: "/task/new", params: { teamId } }
+          : { pathname: "/match/new", params: { teamId } };
+    router.push(path);
+  }
+
+  const attention = [
+    unread.count > 0 ? { icon: "notifications-outline" as const, title: "Новые уведомления", badge: unread.count, to: "/notifications" as Href } : null,
+    d && d.requests > 0 ? { icon: "person-add-outline" as const, title: "Заявки на запись", badge: d.requests, to: "/bookings" as Href } : null,
+    d && d.toReview > 0 ? { icon: "checkmark-done-outline" as const, title: "Отчёты ждут проверки", badge: d.toReview, to: "/my-tasks" as Href } : null,
+    d && d.openTasks > 0 ? { icon: "clipboard-outline" as const, title: "Задания к выполнению", badge: d.openTasks, to: "/my-tasks" as Href } : null,
+  ].filter((x): x is NonNullable<typeof x> => x !== null);
 
   return (
-    <Screen header onRefresh={summary.reload} refreshing={summary.loading && !!summary.data}>
-      <Text variant="title">Привет, {user?.firstName}!</Text>
+    <Screen
+      header
+      onRefresh={() => {
+        data.reload();
+        unread.refresh();
+      }}
+      refreshing={data.loading && !!d}
+    >
+      <View style={{ gap: 2 }}>
+        <Text variant="caption" muted>
+          {mode === "coach" ? "Кабинет тренера" : "Кабинет игрока"}
+        </Text>
+        <Text variant="title">Привет, {user?.firstName}!</Text>
+      </View>
 
-      {s && (s.unread > 0 || s.pending > 0 || s.openTasks > 0) ? (
+      <NextEventHero
+        event={d?.next ?? null}
+        onPress={() => (d?.next ? openEvent(d.next) : router.push("/calendar"))}
+        emptyText={mode === "coach" ? "Создайте тренировку или матч для команды." : "Создайте личную тренировку или найдите тренера."}
+      />
+
+      {mode === "player" && d?.stats ? (
+        <View style={homeStyles.grid2}>
+          <BigStat value={formatRate(d.stats.attendanceRate)} label="Посещаемость" />
+          <BigStat value={d.stats.activityStreak} label="Серия посещений" />
+          <BigStat value={d.stats.tasksCompleted} label="Заданий выполнено" />
+          <BigStat value={d.stats.tasksOverdue} label="Просрочено" />
+        </View>
+      ) : null}
+      {mode === "coach" && d ? (
+        <View style={homeStyles.grid2}>
+          <BigStat value={d.teams.length} label="Команд" />
+          <BigStat value={weekEvents.filter(pending).length} label="Событий на неделе" />
+          <BigStat value={d.toReview} label="Отчётов на проверку" />
+          <BigStat value={d.requests} label="Заявок на запись" />
+        </View>
+      ) : null}
+
+      <View style={homeStyles.quickRow}>
+        <QuickAction icon="barbell-outline" label="Тренировка" onPress={() => create("training")} />
+        {mode === "coach" ? (
+          <>
+            <QuickAction icon="clipboard-outline" label="Задание" onPress={() => create("task")} />
+            <QuickAction icon="football-outline" label="Матч" onPress={() => create("match")} />
+          </>
+        ) : (
+          <>
+            <QuickAction icon="clipboard-outline" label="Задания" onPress={() => router.push("/my-tasks")} />
+            <QuickAction icon="stats-chart-outline" label="Статистика" onPress={() => router.push("/stats")} />
+          </>
+        )}
+      </View>
+
+      {attention.length > 0 ? (
         <Card>
           <Text variant="heading">Требует внимания</Text>
-          {s.unread > 0 ? <ListRow icon="notifications-outline" title="Новые уведомления" badge={s.unread} onPress={() => router.push("/notifications")} /> : null}
-          {s.pending > 0 ? <ListRow icon="person-add-outline" title="Заявки на запись" subtitle="Ждут вашего ответа" badge={s.pending} onPress={() => router.push("/bookings")} /> : null}
-          {s.openTasks > 0 ? <ListRow icon="clipboard-outline" title="Задания к выполнению" badge={s.openTasks} onPress={() => router.push("/my-tasks")} /> : null}
+          {attention.map((a) => (
+            <ListRow key={a.title} icon={a.icon} title={a.title} badge={a.badge} onPress={() => router.push(a.to)} />
+          ))}
         </Card>
       ) : null}
 
       <Card>
-        <Text variant="heading">Ближайшие 7 дней</Text>
-        {summary.loading && !s ? <Text muted>Загружаем…</Text> : null}
-        {s && s.upcoming.length === 0 ? (
-          <Text muted>{mode === "coach" ? "Событий пока нет. Создайте тренировку в команде." : "Событий пока нет. Загляните в календарь или создайте личную тренировку."}</Text>
-        ) : null}
-        {s?.upcoming.map((e) => (
+        <Text variant="heading">Эта неделя</Text>
+        <WeekStrip monday={monday} selected={selectedDay} busyDays={busyDays} onSelect={setSelectedDay} />
+        <Text variant="label" muted>
+          {selectedDay === today ? "Сегодня, " : ""}
+          {formatDayTitle(selectedDay)}
+        </Text>
+        {dayEvents.length === 0 ? <Text muted>В этот день ничего нет.</Text> : null}
+        {dayEvents.map((e) => (
           <ListRow
             key={`${e.type}-${e.id}`}
-            icon={e.type === "match" ? "football-outline" : e.type === "task_deadline" ? "clipboard-outline" : "barbell-outline"}
+            icon={eventIcon(e.type)}
             title={e.title}
-            subtitle={[formatDayTitle(e.date), shortTime(e.time), e.teamName].filter(Boolean).join(" · ")}
+            subtitle={[shortTime(e.time), e.teamName, e.status === "completed" ? "проведено" : null].filter(Boolean).join(" · ")}
             onPress={() => openEvent(e)}
           />
         ))}
-        <ListRow icon="calendar-outline" title="Весь календарь" onPress={() => router.push("/calendar")} />
+        <ListRow icon="calendar-outline" title="Открыть календарь" onPress={() => router.push("/calendar")} />
       </Card>
 
       <Card>
-        <Text variant="heading">Разделы</Text>
-        {s && s.unread === 0 ? <ListRow icon="notifications-outline" title="Уведомления" onPress={() => router.push("/notifications")} /> : null}
+        <Text variant="heading">Ещё</Text>
         <ListRow icon="search-outline" title="Поиск" onPress={() => router.push("/search")} />
-        {mode === "player" ? <ListRow icon="stats-chart-outline" title="Моя статистика" onPress={() => router.push("/stats")} /> : null}
-        {mode === "player" ? <ListRow icon="compass-outline" title="Найти тренера" subtitle="Каталог предложений" onPress={() => router.push("/coaches")} /> : null}
         <ListRow icon="bookmark-outline" title={mode === "coach" ? "Записи ко мне" : "Мои записи"} onPress={() => router.push("/bookings")} />
         {mode === "coach" ? <ListRow icon="library-outline" title="Библиотека" subtitle="Упражнения, планы, шаблоны" onPress={() => router.push("/library")} /> : null}
-        {mode === "coach" ? <ListRow icon="pricetag-outline" title="Мои предложения" subtitle="Что вы продаёте клиентам" onPress={() => router.push("/my-listings")} /> : null}
         {mode === "coach" && features.trainerBalance ? <ListRow icon="wallet-outline" title="Финансы" onPress={() => router.push("/finance")} /> : null}
       </Card>
 
-      {mode === "player" && player ? (
-        <Card onPress={() => router.push("/profile")}>
-          <Text variant="caption" muted>
-            Мой профиль
-          </Text>
-          <Text variant="heading">{player.sport}</Text>
-          <Text muted>{[player.position, player.level ? SKILL_LEVEL_LABELS[player.level] : null].filter(Boolean).join(" · ") || "Уровень не указан"}</Text>
-        </Card>
-      ) : null}
-      {mode === "coach" && coach ? (
-        <Card onPress={() => router.push("/profile")}>
-          <Text variant="caption" muted>
-            Мой профиль
-          </Text>
-          <Text variant="heading">{coach.sport}</Text>
-          <Text muted>
-            {[coach.specialization, coach.experienceYears != null ? `${years(coach.experienceYears)} опыта` : null].filter(Boolean).join(" · ") || "Специализация не указана"}
-          </Text>
-        </Card>
-      ) : null}
+      <BottomSheet visible={creating !== null} title="Для какой команды?" onClose={() => setCreating(null)}>
+        {(d?.teams ?? []).map((t) => (
+          <ListRow key={t.id} icon="people-outline" title={t.name} subtitle={t.sport} onPress={() => creating && go(creating, t.id)} />
+        ))}
+      </BottomSheet>
     </Screen>
   );
 }
