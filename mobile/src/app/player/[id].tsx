@@ -3,6 +3,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import { getPlayerPublicProfile, getPlayerReviews } from "@/api/players";
 import { useLoad } from "@/lib/useLoad";
+import { AchievementsGallery } from "@/profile/AchievementsGallery";
 import { pluralize } from "@/shared/lib/plural";
 import { SKILL_LEVEL_LABELS } from "@/shared/types/profile";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -83,6 +84,8 @@ export default function PlayerProfileScreen() {
             <Text>{p.loadRestrictions}</Text>
           </Card>
         ) : null}
+
+        <AchievementsGallery userId={p.userId} editable={false} />
 
         <Card>
           <Text variant="heading">Отзывы тренеров</Text>

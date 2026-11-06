@@ -11,6 +11,7 @@ import { pickSquareImage } from "@/lib/pickImage";
 import { useFeatures } from "@/lib/useFeatures";
 import { useLoad } from "@/lib/useLoad";
 import { useUnread } from "@/notifications/UnreadProvider";
+import { AchievementsGallery } from "@/profile/AchievementsGallery";
 import { useProfile } from "@/profile/ProfileProvider";
 import { DOCUMENT_LIST } from "@/shared/legal/documents";
 import { pluralize, years } from "@/shared/lib/plural";
@@ -237,6 +238,8 @@ export default function ProfileScreen() {
             ))}
         </View>
       </Card>
+
+      <AchievementsGallery userId={user.id} editable />
 
       <View style={{ gap: 8 }}>
         {mode === "coach" ? <ListRow icon="pricetag-outline" title="Мои объявления" onPress={() => router.push("/my-listings")} /> : null}

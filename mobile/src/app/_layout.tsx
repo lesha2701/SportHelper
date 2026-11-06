@@ -62,6 +62,7 @@ function Routes() {
           <Stack.Screen name="player/[id]" />
           <Stack.Screen name="bookings" />
           <Stack.Screen name="finance" />
+          <Stack.Screen name="finance/withdraw" />
           <Stack.Screen name="library" />
           <Stack.Screen name="listing/new" />
           <Stack.Screen name="library/template/new" />
