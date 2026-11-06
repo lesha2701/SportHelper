@@ -1,8 +1,9 @@
-import { Stack, router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
 import { listMyExercises } from "@/api/exercises";
-import { addPlanExercise, deletePlan, getPlan, removePlanExercise } from "@/api/plans";
+import { addPlanExercise, deletePlan, duplicatePlan, getPlan, removePlanExercise, sharePlan, unsharePlan } from "@/api/plans";
+import { ShareWithTeams } from "@/library/ShareWithTeams";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
 import { PLAN_SECTIONS, PLAN_SECTION_LABELS, type PlanSection } from "@/shared/types/plan";
@@ -26,6 +27,8 @@ export default function PlanScreen() {
   const [section, setSection] = useState<PlanSection>("main");
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const reload = plan.reload;
+  useFocusEffect(useCallback(() => reload(), [reload]));
 
   if (plan.loading && !plan.data) return <LoadingView />;
   if (plan.error || !plan.data) return <ErrorView message={plan.error ?? "План не найден"} onRetry={plan.reload} />;
@@ -80,6 +83,7 @@ export default function PlanScreen() {
         <Text variant="title">{p.name}</Text>
         <Text muted>{[p.sport, p.durationMinutes ? `${p.durationMinutes} мин` : null, p.equipment].filter(Boolean).join(" · ")}</Text>
         {p.description ? <Text>{p.description}</Text> : null}
+        {p.comment ? <Text muted>Комментарий: {p.comment}</Text> : null}
 
         {PLAN_SECTIONS.map((s) => {
           const items = p.exercises.filter((e) => e.section === s).sort((a, b) => a.orderIndex - b.orderIndex);
@@ -112,6 +116,20 @@ export default function PlanScreen() {
         ) : (
           <Button title="Добавить упражнение" variant="secondary" onPress={() => setAdding(true)} />
         )}
+        <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/library/plan/new", params: { id: p.id } })} />
+        <Button
+          title="Сделать копию"
+          variant="secondary"
+          onPress={async () => {
+            try {
+              const copy = await duplicatePlan(p.id);
+              router.push({ pathname: "/library/plan/[id]", params: { id: copy.id } });
+            } catch (e) {
+              toast.error(toFormError(e).message);
+            }
+          }}
+        />
+        <ShareWithTeams key={p.sharedTeamIds.join()} sharedTeamIds={p.sharedTeamIds} share={(t) => sharePlan(p.id, t)} unshare={(t) => unsharePlan(p.id, t)} what="этот план" />
         <Button title="Удалить план" variant="ghost" onPress={() => setDeleting(true)} />
         <ConfirmModal visible={deleting} title="Удалить план?" confirmLabel="Удалить" destructive onCancel={() => setDeleting(false)} onConfirm={() => void removePlan()} />
       </Screen>

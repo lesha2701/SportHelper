@@ -1,5 +1,5 @@
-import { Stack, router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
 import { deleteTemplate, getTemplate } from "@/api/taskTemplates";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
@@ -16,6 +16,8 @@ export default function TemplateScreen() {
   const toast = useToast();
   const template = useLoad(() => getTemplate(id), [id]);
   const [deleting, setDeleting] = useState(false);
+  const reload = template.reload;
+  useFocusEffect(useCallback(() => reload(), [reload]));
 
   if (template.loading && !template.data) return <LoadingView />;
   if (template.error || !template.data) return <ErrorView message={template.error ?? "Шаблон не найден"} onRetry={template.reload} />;
@@ -26,6 +28,7 @@ export default function TemplateScreen() {
     t.requireVideo && "видео",
     t.requireSetsReps && "подходы и повторения",
     t.requireDuration && "длительность",
+    t.requireMetricValue && "значение показателя",
     t.requireDifficulty && "сложность",
     t.requireWellbeing && "самочувствие",
   ].filter(Boolean);
@@ -46,10 +49,33 @@ export default function TemplateScreen() {
       <Screen header>
         <Text variant="title">{t.title}</Text>
         {t.description ? <Text>{t.description}</Text> : null}
+        {t.exercises.length > 0 ? (
+          <Card>
+            <Text variant="heading">Упражнения</Text>
+            {[...t.exercises]
+              .sort((a, b) => a.orderIndex - b.orderIndex)
+              .map((e, i) => (
+                <Text key={e.id}>
+                  {i + 1}. {e.exerciseName ?? "Упражнение"}
+                </Text>
+              ))}
+          </Card>
+        ) : null}
+        {t.metricName ? (
+          <Card>
+            <Text variant="heading">Показатель</Text>
+            <Text>
+              {t.metricName}
+              {t.metricUnit ? `, ${t.metricUnit}` : ""}
+              {t.metricTarget !== null ? ` · цель ${t.metricTarget}` : ""}
+            </Text>
+          </Card>
+        ) : null}
         <Card>
           <Text variant="heading">К отчёту приложить</Text>
           <Text muted>{wanted.length ? wanted.join(", ") : "ничего"}</Text>
         </Card>
+        <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/library/template/new", params: { id: t.id } })} />
         <Button title="Удалить шаблон" variant="ghost" onPress={() => setDeleting(true)} />
         <ConfirmModal visible={deleting} title="Удалить шаблон?" confirmLabel="Удалить" destructive onCancel={() => setDeleting(false)} onConfirm={() => void remove()} />
       </Screen>

@@ -1,7 +1,8 @@
-import { Stack, router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
-import { deleteExercise, getExercise } from "@/api/exercises";
+import { deleteExercise, getExercise, shareExercise, unshareExercise } from "@/api/exercises";
+import { ShareWithTeams } from "@/library/ShareWithTeams";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
 import { SKILL_LEVEL_LABELS } from "@/shared/types/profile";
@@ -32,6 +33,9 @@ export default function ExerciseScreen() {
   const toast = useToast();
   const exercise = useLoad(() => getExercise(id), [id]);
   const [deleting, setDeleting] = useState(false);
+  const reload = exercise.reload;
+  // Back from editing: show the saved version.
+  useFocusEffect(useCallback(() => reload(), [reload]));
 
   if (exercise.loading && !exercise.data) return <LoadingView />;
   if (exercise.error || !exercise.data) return <ErrorView message={exercise.error ?? "Упражнение не найдено"} onRetry={exercise.reload} />;
@@ -56,6 +60,7 @@ export default function ExerciseScreen() {
         <Card>
           <Row label="Вид спорта" value={e.sport} />
           <Row label="Описание" value={e.description} />
+          <Row label="Цель" value={e.goal} />
           <Row label="Подходов" value={e.sets} />
           <Row label="Повторений" value={e.reps} />
           <Row label="Длительность, с" value={e.durationSeconds} />
@@ -65,8 +70,11 @@ export default function ExerciseScreen() {
           <Row label="Техника" value={e.technique} />
           <Row label="Частые ошибки" value={e.commonMistakes} />
           <Row label="Предостережения" value={e.warnings} />
+          <Row label="Комментарий тренера" value={e.coachComment} />
         </Card>
         {e.videoFileId ? <AuthVideo fileId={e.videoFileId} /> : null}
+        <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/library/exercise/new", params: { id: e.id } })} />
+        <ShareWithTeams key={e.sharedTeamIds.join()} sharedTeamIds={e.sharedTeamIds} share={(t) => shareExercise(e.id, t)} unshare={(t) => unshareExercise(e.id, t)} what="это упражнение" />
         <Button title="Удалить упражнение" variant="ghost" onPress={() => setDeleting(true)} />
         <ConfirmModal visible={deleting} title="Удалить упражнение?" confirmLabel="Удалить" destructive onCancel={() => setDeleting(false)} onConfirm={() => void remove()} />
       </Screen>
