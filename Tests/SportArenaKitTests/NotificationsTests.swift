@@ -43,7 +43,8 @@ struct NotificationsTests {
         #expect(target(.reviewRequested) == .reviewBooking(id))
         #expect(target(.chatBooking) == .bookingChat(id) && target(.chatTeam) == .teamChat(id))
         #expect(target(.trainingNudge) == .newPersonalTraining)
-        #expect([.earningUpdate, .withdrawalUpdate, .financeAdmin].allSatisfy { target($0) == NotificationTarget.none })
+        #expect([.earningUpdate, .withdrawalUpdate].allSatisfy { target($0) == NotificationTarget.finance })
+        #expect(target(.financeAdmin) == NotificationTarget.none)
     }
 
     @Test func markingOneReadAsksTheServerForThatOne() async throws {

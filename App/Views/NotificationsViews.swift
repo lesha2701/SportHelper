@@ -59,7 +59,7 @@ struct NotificationsView: View {
     @Environment(AuthStore.self) private var auth
 
     private enum Destination: Hashable {
-        case training(UUID, String), myBookings, reviewBooking(UUID), incomingRequests, myTasks, chat(UUID, isTeam: Bool), settings
+        case training(UUID, String), finance, myBookings, reviewBooking(UUID), incomingRequests, myTasks, chat(UUID, isTeam: Bool), settings
     }
 
     @State private var destination: Destination?
@@ -97,6 +97,7 @@ struct NotificationsView: View {
         .navigationDestination(item: $destination) { screen in
             switch screen {
             case .training(let id, let title): TrainingDetailView(trainingId: id, title: title, teamName: nil)
+            case .finance: FinanceView()
             case .myBookings: MyBookingsView()
             case .reviewBooking(let id): MyBookingsView(reviewBookingId: id)
             case .incomingRequests: IncomingRequestsView()
@@ -150,19 +151,29 @@ struct NotificationsView: View {
 
     private func open(_ item: NotificationItem) async {
         async let read: Void = store.markRead(item)
-        switch item.target {
-        case .training(let id): destination = .training(id, item.title)
-        case .match: auth.router.tab = .teams  // the match belongs to a team the notification does not name: the teams are the way to it
-        case .task: destination = .myTasks
-        case .incomingBookings: destination = .incomingRequests
-        case .myBookings: destination = .myBookings
-        case .reviewBooking(let id): destination = .reviewBooking(id)
-        case .bookingChat(let id): destination = .chat(id, isTeam: false)
-        case .teamChat(let id): destination = .chat(id, isTeam: true)
-        case .newPersonalTraining: planning = true
-        case .none: break
+        if let screen = screen(for: item) {
+            destination = screen
+        } else if case .match = item.target {
+            auth.router.tab = .teams  // the match belongs to a team the notification does not name: the teams are the way to it
+        } else if case .newPersonalTraining = item.target {
+            planning = true
         }
         await read
+    }
+
+    /// The screen a notification leads to inside the notifications; nil for the ones that go elsewhere or only inform.
+    private func screen(for item: NotificationItem) -> Destination? {
+        switch item.target {
+        case .training(let id): .training(id, item.title)
+        case .task: .myTasks
+        case .incomingBookings: .incomingRequests
+        case .myBookings: .myBookings
+        case .reviewBooking(let id): .reviewBooking(id)
+        case .bookingChat(let id): .chat(id, isTeam: false)
+        case .teamChat(let id): .chat(id, isTeam: true)
+        case .finance: auth.features.trainerBalance ? .finance : nil
+        case .match, .newPersonalTraining, .none: nil
+        }
     }
 }
 

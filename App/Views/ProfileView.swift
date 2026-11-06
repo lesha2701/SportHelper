@@ -47,6 +47,7 @@ struct ProfileView: View {
                 case .myListings: MyListingsView()
                 case .accountSecurity: AccountSecurityView(user: user)
                 case .privacy: PrivacySettingsView()
+                case .finance: FinanceView()
                 }
             }
             .task {
@@ -159,6 +160,7 @@ struct ProfileView: View {
                     .accessibilityIdentifier("profile.coachBookings")
                 NavigationLink(value: ProfileRoute.myListings) { Label("Мои объявления", systemImage: "megaphone") }
                     .accessibilityIdentifier("profile.myListings")
+                if auth.features.trainerBalance { FinanceLink() }
             } else {
                 NavigationLink(value: ProfileRoute.myBookings) { Label("Мои брони", systemImage: "calendar.badge.clock") }
                     .accessibilityIdentifier("profile.myBookings")

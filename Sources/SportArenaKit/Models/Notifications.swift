@@ -74,7 +74,7 @@ public enum NotificationCategory: String, Codable, CaseIterable, Identifiable, S
 }
 
 /// Where a tap on a notification leads, as the site's `notificationToOverlay` decides it. The app turns each into a screen it has;
-/// `none` is a notification that only informs (money, which the app does not show yet).
+/// `none` is a notification that only informs.
 public enum NotificationTarget: Equatable, Sendable {
     case training(UUID)
     case match(UUID)
@@ -86,6 +86,8 @@ public enum NotificationTarget: Equatable, Sendable {
     case bookingChat(UUID)
     case teamChat(UUID)
     case newPersonalTraining
+    /// An earning or a withdrawal changed: the coach's «Финансы».
+    case finance
     case none
 }
 
@@ -126,7 +128,8 @@ public struct NotificationItem: Decodable, Equatable, Identifiable, Sendable {
         case .trainingNudge: .newPersonalTraining
         case .chatBooking: .bookingChat(entityId)
         case .chatTeam: .teamChat(entityId)
-        case .earningUpdate, .withdrawalUpdate, .financeAdmin, .other: .none
+        case .earningUpdate, .withdrawalUpdate: .finance
+        case .financeAdmin, .other: .none
         }
     }
 

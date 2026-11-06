@@ -16,4 +16,15 @@ public enum Money {
         formatter.maximumFractionDigits = whole ? 0 : 2
         return formatter.string(from: rounded as NSDecimalNumber) ?? "\(amount) \(currency)"
     }
+
+    /// "1 500,50 ₽": an amount in whole kopecks, always with kopecks (a balance is read to the last kopeck).
+    public static func kopecks(_ amount: Int, currency: String = "RUB") -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.locale = Locale(identifier: "ru_RU")
+        formatter.currencyCode = currency
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        return formatter.string(from: (Decimal(amount) / 100) as NSDecimalNumber) ?? "\(amount / 100),\(String(format: "%02d", amount % 100)) ₽"
+    }
 }
