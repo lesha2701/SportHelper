@@ -14,7 +14,7 @@ import { Screen } from "@/ui/Screen";
 import { EmptyView, ErrorView, LoadingView } from "@/ui/StateViews";
 import { Text } from "@/ui/Text";
 
-type Mode = "list" | "day" | "week";
+type Mode = "week" | "day";
 
 function open(event: CalendarEvent) {
   if (event.type === "training") router.push({ pathname: "/training/[id]", params: { id: event.id } });
@@ -26,9 +26,8 @@ const MONTHS = ["янв", "фев", "мар", "апр", "мая", "июн", "и�
 const short = (iso: string) => `${parseIso(iso).getDate()} ${MONTHS[parseIso(iso).getMonth()]}`;
 
 const TABS: { value: Mode; title: string }[] = [
-  { value: "list", title: "Список" },
-  { value: "day", title: "День" },
   { value: "week", title: "Неделя" },
+  { value: "day", title: "День" },
 ];
 
 function Pager({ label, onPrev, onNext }: { label: string; onPrev: () => void; onNext: () => void }) {
@@ -55,14 +54,15 @@ function Pager({ label, onPrev, onNext }: { label: string; onPrev: () => void; o
   );
 }
 
-/** The calendar: a list (upcoming first, past ones flagged when nobody closed them), one day, or a week. */
+/** The calendar: the week (a strip of days over every event, upcoming first, past ones flagged when nobody closed them) or one day. */
 export default function CalendarScreen() {
   const { colors } = useTheme();
   const today = todayIso();
-  const [mode, setMode] = useState<Mode>("list");
+  const [mode, setMode] = useState<Mode>("week");
   const [anchor, setAnchor] = useState(today);
   const monday = startOfWeekIso(anchor);
-  const range = mode === "list" ? listRange(today) : mode === "day" ? { from: anchor, to: anchor } : { from: monday, to: addDays(monday, 6) };
+  // The week tab lists everything around the shown week: two weeks back and two months ahead.
+  const range = mode === "day" ? { from: anchor, to: anchor } : listRange(monday);
   const events = useLoad(() => getCalendar(range.from, range.to), [range.from, range.to]);
 
   const switchMode = (next: Mode) => {
@@ -75,13 +75,13 @@ export default function CalendarScreen() {
   else if (events.error && !events.data) body = <ErrorView message={events.error} onRetry={events.reload} />;
   else {
     const all = events.data ?? [];
-    const sorted = mode === "list" ? upcomingFirst(all, today) : chronological(all);
+    const sorted = mode === "week" ? upcomingFirst(all, today) : chronological(all);
     body = (
       <>
         {mode === "week" ? (
           <WeekDays
             monday={monday}
-            events={all}
+            events={all.filter((e) => e.date >= monday && e.date <= addDays(monday, 6))}
             onSelect={(day) => {
               setMode("day");
               setAnchor(day);
@@ -91,7 +91,7 @@ export default function CalendarScreen() {
         {sorted.length === 0 ? (
           <>
             <EmptyView
-              title={mode === "day" ? "В этот день ничего нет" : mode === "week" ? "На этой неделе ничего нет" : "Пока ничего нет"}
+              title={mode === "day" ? "В этот день ничего нет" : "Пока ничего нет"}
               hint="Здесь появятся тренировки, матчи и дедлайны заданий."
             />
             <Button title="Запланировать тренировку" onPress={() => router.push("/training/new")} />
@@ -99,7 +99,7 @@ export default function CalendarScreen() {
         ) : (
           groupByDay(sorted).map(([date, list], i, groups) => (
             <View key={date} style={{ gap: 10 }}>
-              {mode === "list" && date < today && (i === 0 || groups[i - 1]![0] >= today) ? (
+              {mode === "week" && date < today && (i === 0 || groups[i - 1]![0] >= today) ? (
                 <Text variant="label" muted style={{ textTransform: "uppercase" }}>
                   Прошедшие
                 </Text>
