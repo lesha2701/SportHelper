@@ -10,3 +10,8 @@ export async function uploadUserAvatar(file: UploadFile): Promise<User> {
 export async function removeUserAvatar(): Promise<User> {
   return mapUserDto(await apiRequest<UserDto>("/api/users/me/avatar", { method: "DELETE", successMessage: "Фото удалено" }));
 }
+
+/** Records on the account that the welcome guide was finished or skipped, so it is not shown again (as on the website). */
+export async function completeOnboarding(): Promise<User> {
+  return mapUserDto(await apiRequest<UserDto>("/api/users/me/onboarding/complete", { method: "POST" }));
+}

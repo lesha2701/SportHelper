@@ -73,6 +73,11 @@ export default function SettingsScreen() {
           <Text variant="heading">Тема</Text>
           <Choice layout="chips" options={THEMES} value={preference} onChange={setPreference} />
         </Card>
+        <Card>
+          <Text variant="heading">Знакомство с приложением</Text>
+          <Text muted>Короткий обзор возможностей SportArenaGlobal — можно пересмотреть в любой момент.</Text>
+          <Button title="Как работает SportArenaGlobal" variant="secondary" onPress={() => router.push("/guide")} />
+        </Card>
         <NotificationSettings />
         <Button title="Аккаунт и безопасность" variant="secondary" onPress={() => router.push("/account")} />
         <Button title="Выйти" variant="secondary" onPress={() => setConfirm("out")} />

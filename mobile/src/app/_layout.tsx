@@ -37,6 +37,7 @@ function Routes() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="profile-edit" />
           <Stack.Screen name="settings" />
+          <Stack.Screen name="guide" />
           <Stack.Screen name="account" />
           <Stack.Screen name="delete-account" />
           <Stack.Screen name="join" />
