@@ -110,3 +110,27 @@ struct UserAgentTests {
         #expect(APIClient.makeSession().configuration.httpAdditionalHeaders?["User-Agent"] as? String == agent)
     }
 }
+
+struct PrivacyServiceTests {
+    private func make(_ handler: @escaping MockServer.Handler) -> AccountService {
+        AccountService(client: APIClient(baseURL: host, session: MockServer.session(handler)))
+    }
+
+    @Test func theChoiceIsReadFromTheServer() async throws {
+        let seen = RequestLog()
+        let service = make { request in seen.add(request); return json(#"{"allow_ai_analysis_by_personal_coach":true}"#) }
+        let settings = try await service.privacy()
+        #expect(settings.allowAiAnalysisByPersonalCoach)
+        #expect(seen.all.first?.httpMethod == "GET" && seen.all.first?.url?.path == "/api/users/me/privacy")
+    }
+
+    @Test func theChoiceIsPutAndTheAnswerIsWhatTheServerKept() async throws {
+        let seen = RequestLog()
+        let service = make { request in seen.add(request); return json(#"{"allow_ai_analysis_by_personal_coach":false}"#) }
+        let settings = try await service.setAiAnalysisAllowed(false)
+        let request = try #require(seen.all.first)
+        #expect(request.httpMethod == "PUT" && request.url?.path == "/api/users/me/privacy")
+        #expect(request.bodyJSON as? [String: Bool] == ["allow_ai_analysis_by_personal_coach": false])
+        #expect(!settings.allowAiAnalysisByPersonalCoach)
+    }
+}

@@ -46,6 +46,7 @@ struct ProfileView: View {
                 case .notifications: NotificationsView()
                 case .myListings: MyListingsView()
                 case .accountSecurity: AccountSecurityView(user: user)
+                case .privacy: PrivacySettingsView()
                 }
             }
             .task {
@@ -233,6 +234,8 @@ struct ProfileView: View {
         Section(sag: "Аккаунт") {
             NavigationLink(value: ProfileRoute.accountSecurity) { Label("Безопасность аккаунта", systemImage: "lock.shield") }
                 .accessibilityIdentifier("profile.security")
+            NavigationLink(value: ProfileRoute.privacy) { Label("Конфиденциальность", systemImage: "hand.raised") }
+                .accessibilityIdentifier("profile.privacy")
             Button("Выйти из аккаунта", role: .destructive) { Task { await auth.logout() } }
                 .accessibilityIdentifier("main.logout")
             if user.deletionRequestedAt == nil {

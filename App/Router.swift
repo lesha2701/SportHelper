@@ -17,6 +17,7 @@ enum ProfileRoute: Hashable {
     case notifications
     case myListings
     case accountSecurity
+    case privacy
 }
 
 /// Lets any screen send the person elsewhere (after booking: to "Мои брони") without knowing how the app is laid out.

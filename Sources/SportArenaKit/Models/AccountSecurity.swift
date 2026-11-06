@@ -104,3 +104,14 @@ struct EmailChangeBody: Encodable, Sendable {
     let newEmail: String
     let password: String
 }
+
+/// The person's own privacy choices (`PrivacySettingsOut`). There is one: whether a personal coach may use their data for an AI analysis.
+public struct PrivacySettings: Decodable, Equatable, Sendable {
+    public let allowAiAnalysisByPersonalCoach: Bool
+
+    public init(allowAiAnalysisByPersonalCoach: Bool) { self.allowAiAnalysisByPersonalCoach = allowAiAnalysisByPersonalCoach }
+}
+
+struct PrivacySettingsBody: Encodable, Sendable {
+    let allowAiAnalysisByPersonalCoach: Bool
+}

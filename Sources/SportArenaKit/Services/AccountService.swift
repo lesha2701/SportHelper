@@ -37,4 +37,16 @@ public final class AccountService: Sendable {
     public func endAllSessions() async throws {
         try await client.sendIgnoringResponse(.post, "/api/auth/logout-all")
     }
+
+    // MARK: privacy
+
+    public func privacy() async throws -> PrivacySettings {
+        try await client.send(.get, "/api/users/me/privacy")
+    }
+
+    /// Allows or forbids a personal coach to use the person's data for an AI analysis. Forbidding it also deletes the analyses
+    /// that were already made (the server does it).
+    public func setAiAnalysisAllowed(_ allowed: Bool) async throws -> PrivacySettings {
+        try await client.send(.put, "/api/users/me/privacy", body: PrivacySettingsBody(allowAiAnalysisByPersonalCoach: allowed))
+    }
 }
