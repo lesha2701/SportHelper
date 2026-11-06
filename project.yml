@@ -32,9 +32,12 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
       configs:
         Debug:
-          API_BASE_URL: "http://localhost:8010"
+          API_BASE_URL: "$(SAG_DEV_API_URL)"
         Release:
           API_BASE_URL: "https://sportarenaglobal.ru"
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
     info:
       path: App/Resources/Info.plist
       properties:
@@ -44,9 +47,11 @@ targets:
         UIAppFonts: [Oswald.ttf, Montserrat.ttf]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         API_BASE_URL: "$(API_BASE_URL)"
-        # Plain http is allowed only for a server on this Mac (the simulator reaches it as localhost); the release build talks https.
+        # Plain http is allowed only for a server on this Mac (the simulator reaches it as localhost, a phone by the Mac's name on the
+        # local network); the release build talks https.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        NSLocalNetworkUsageDescription: Приложение подключается к тестовому серверу на вашем компьютере в этой же сети.
   SportArenaTests:
     type: bundle.unit-test
     platform: iOS

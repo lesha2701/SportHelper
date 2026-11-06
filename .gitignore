@@ -15,6 +15,7 @@ xcuserdata/
 *.mobileprovision
 *.cer
 Secrets.xcconfig
+Config/Local.xcconfig
 GoogleService-Info.plist
 
 # Xcode project is generated from project.yml (xcodegen generate)

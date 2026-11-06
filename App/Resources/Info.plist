@@ -27,6 +27,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Приложение подключается к тестовому серверу на вашем компьютере в этой же сети.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Oswald.ttf</string>
