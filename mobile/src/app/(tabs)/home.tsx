@@ -3,7 +3,8 @@ import { useState } from "react";
 import { View } from "react-native";
 import { listCoachPendingBookings } from "@/api/bookings";
 import { getCalendar } from "@/api/calendar";
-import { getPlayerStats } from "@/api/stats";
+import { getProgressAnalysis } from "@/api/ai";
+import { getPlayerStats, getTeamStats } from "@/api/stats";
 import { listMyTasks, listTeamTasks } from "@/api/tasks";
 import { listMyTeams } from "@/api/teams";
 import { useAuth } from "@/auth/AuthProvider";
@@ -17,6 +18,7 @@ import type { CalendarEvent } from "@/shared/types/calendar";
 import type { ProfileMe } from "@/shared/types/profile";
 import { formatRate } from "@/shared/types/stats";
 import type { Team } from "@/shared/types/team";
+import { AiText } from "@/ui/AiText";
 import { BottomSheet } from "@/ui/BottomSheet";
 import { Card } from "@/ui/Card";
 import { ListRow } from "@/ui/ListRow";
@@ -66,13 +68,15 @@ export default function HomeScreen() {
     if (mode === "player") {
       const [stats, tasks] = await Promise.all([getPlayerStats(user!.id).catch(() => null), listMyTasks().catch(() => [])]);
       const openTasks = tasks.filter((t) => ["assigned", "viewed", "in_progress", "needs_revision"].includes(t.assignment.status)).length;
-      return { events, next, stats, openTasks, teams: [] as Team[], requests: 0, toReview: 0 };
+      return { events, next, stats, openTasks, teams: [] as Team[], requests: 0, toReview: 0, teamStats: null };
     }
     const [teams, requests] = await Promise.all([listMyTeams().catch(() => [] as Team[]), listCoachPendingBookings().catch(() => [])]);
     const staffTeams = teams.filter((t) => t.myRole === "head_coach" || t.myRole === "assistant_coach");
     const tasks = (await Promise.all(staffTeams.map((t) => listTeamTasks(t.id).catch(() => [])))).flat();
     const toReview = tasks.reduce((n, t) => n + t.assignments.filter((a) => a.status === "submitted").length, 0);
-    return { events, next, stats: null, openTasks: 0, teams: staffTeams, requests: requests.length, toReview };
+    // The website's coach panel: load, who needs attention and recent results of the (first) team.
+    const teamStats = staffTeams[0] ? await getTeamStats(staffTeams[0].id).catch(() => null) : null;
+    return { events, next, stats: null, openTasks: 0, teams: staffTeams, requests: requests.length, toReview, teamStats };
   }, [mode, user?.id]);
 
   if (state.status !== "ready") return null;
@@ -121,7 +125,7 @@ export default function HomeScreen() {
     >
       <View style={{ gap: 2 }}>
         <Text variant="caption" muted>
-          {mode === "coach" ? "Кабинет тренера" : "Кабинет игрока"}
+          {mode === "coach" ? "Тренерская панель" : "Твой прогресс"}
         </Text>
         <Text variant="title">Привет, {user?.firstName}!</Text>
       </View>
@@ -171,6 +175,54 @@ export default function HomeScreen() {
             <ListRow key={a.title} icon={a.icon} title={a.title} badge={a.badge} onPress={() => router.push(a.to)} />
           ))}
         </Card>
+      ) : null}
+
+      {mode === "coach" && d?.teamStats ? (
+        <>
+          <Card>
+            <Text variant="heading">Нагрузка команды{d.teams.length > 1 ? ` · ${d.teams[0]!.name}` : ""}</Text>
+            <View style={homeStyles.grid2}>
+              <BigStat value={formatRate(d.teamStats.attendanceRate)} label="Посещаемость" />
+              <BigStat value={d.teamStats.trainingsCompleted} label="Тренировок проведено" />
+              <BigStat value={`${d.teamStats.tasksCompleted}/${d.teamStats.tasksTotal}`} label="Заданий выполнено" />
+              <BigStat value={d.teamStats.avgWellbeing ?? "—"} label="Самочувствие" />
+            </View>
+            <Text variant="caption" muted>
+              Матчи: {d.teamStats.matchesWon}-{d.teamStats.matchesDrawn}-{d.teamStats.matchesLost} (победы-ничьи-поражения)
+            </Text>
+          </Card>
+          <Card>
+            <Text variant="heading">Требуют внимания</Text>
+            {[...d.teamStats.frequentAbsencePlayers, ...d.teamStats.lowActivityPlayers]
+              .filter((p, i, all) => all.findIndex((x) => x.userId === p.userId) === i)
+              .slice(0, 4)
+              .map((p) => (
+                <ListRow
+                  key={p.userId}
+                  icon="alert-circle-outline"
+                  title={[p.firstName, p.lastName].filter(Boolean).join(" ")}
+                  subtitle={`Пропусков: ${p.absentCount} · посещаемость ${formatRate(p.attendanceRate)}`}
+                  onPress={() => router.push({ pathname: "/team/[id]/member/[userId]", params: { id: d.teams[0]!.id, userId: p.userId } })}
+                />
+              ))}
+            {d.teamStats.frequentAbsencePlayers.length + d.teamStats.lowActivityPlayers.length === 0 ? <Text muted>Все в порядке.</Text> : null}
+          </Card>
+        </>
+      ) : null}
+
+      {mode === "player" && d?.stats ? (
+        <>
+          <AiText title="Рекомендации ИИ" heading="Рекомендации ИИ" load={getProgressAnalysis} />
+          <Card>
+            <Text variant="heading">Последние матчи</Text>
+            {d.stats.matchesHistory.length === 0 ? <Text muted>Пока нет сыгранных матчей.</Text> : null}
+            {d.stats.matchesHistory.slice(0, 3).map((m, i) => (
+              <Text key={i}>
+                {m.opponentName} · {m.ourScore ?? "–"}:{m.opponentScore ?? "–"} · {formatDayTitle(m.matchDate)}
+              </Text>
+            ))}
+          </Card>
+        </>
       ) : null}
 
       <Card>
