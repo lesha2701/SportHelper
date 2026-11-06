@@ -218,6 +218,23 @@ struct TrainingDetailView: View {
             }
             if let workout { results(workout) }
             if canMarkAttendance(training), let teamId = training.teamId { AttendanceSection(trainingId: training.id, teamId: teamId) }
+            if hasReport(training) { reportLink(training) }
+        }
+    }
+
+    /// An independent training that has happened has a report: the responsible player writes it, the team reads it, the staff answers it.
+    private func hasReport(_ training: Training) -> Bool {
+        training.type == "independent" && training.hasHappened(today: LocalDate.today())
+    }
+
+    private func reportLink(_ training: Training) -> some View {
+        Section {
+            NavigationLink {
+                TrainingReportView(training: training, canReview: canManage(training))
+            } label: {
+                Label("Отчёт", systemImage: "doc.text")
+            }
+            .accessibilityIdentifier("training.report")
         }
     }
 
