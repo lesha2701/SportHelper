@@ -1,11 +1,12 @@
 import { Stack, router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Switch, View } from "react-native";
+import { View } from "react-native";
 import { logoutAll } from "@/api/auth";
 import { getNotificationPreferences, setNotificationPreference } from "@/api/profile";
 import { getAiAnalysisConsent, setAiAnalysisConsent } from "@/api/privacy";
 import { useLoad } from "@/lib/useLoad";
 import { SwitchRow } from "@/ui/SwitchRow";
+import { Toggle } from "@/ui/Toggle";
 import { useAuth } from "@/auth/AuthProvider";
 import { toFormError } from "@/lib/formError";
 import { NOTIFICATION_CATEGORY_LABELS, type NotificationPreference } from "@/shared/types/notification";
@@ -89,7 +90,7 @@ function NotificationSettings() {
       {prefs?.map((pref) => (
         <View key={pref.category} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <Text style={{ flex: 1 }}>{NOTIFICATION_CATEGORY_LABELS[pref.category]}</Text>
-          <Switch value={pref.enabled} disabled={busy === pref.category} onValueChange={() => void toggle(pref)} />
+          <Toggle value={pref.enabled} disabled={busy === pref.category} onValueChange={() => void toggle(pref)} />
         </View>
       ))}
     </Card>

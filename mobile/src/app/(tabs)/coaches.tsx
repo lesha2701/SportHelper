@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Switch, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { listListings } from "@/api/coachListings";
 import { useAuth } from "@/auth/AuthProvider";
 import { useLoad } from "@/lib/useLoad";
@@ -23,6 +23,7 @@ import { SelectField } from "@/ui/SelectField";
 import { ErrorView, LoadingView } from "@/ui/StateViews";
 import { Text } from "@/ui/Text";
 import { TextField } from "@/ui/TextField";
+import { Toggle } from "@/ui/Toggle";
 
 const SPORTS = [{ value: "", title: "Все виды спорта" }, ...COMMON_SPORTS.map((s) => ({ value: s, title: s }))];
 const RATINGS = [
@@ -178,7 +179,7 @@ export default function CoachesScreen() {
         />
         <View style={styles.inline}>
           <Text style={{ flex: 1 }}>Только онлайн-занятия</Text>
-          <Switch accessibilityLabel="Только онлайн-занятия" value={draft.onlineOnly} onValueChange={(onlineOnly) => set({ onlineOnly })} />
+          <Toggle accessibilityLabel="Только онлайн-занятия" value={draft.onlineOnly} onValueChange={(onlineOnly) => set({ onlineOnly })} />
         </View>
       </BottomSheet>
     </Screen>

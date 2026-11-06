@@ -23,6 +23,7 @@ import { TextField } from "@/ui/TextField";
 import { useToast } from "@/ui/Toast";
 
 const SCALE = [1, 2, 3, 4, 5].map((n) => ({ value: String(n), title: String(n) }));
+const SCALE_10 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({ value: String(n), title: String(n) }));
 const int = (text: string) => (text.trim() ? parseInt(text, 10) || null : null);
 
 interface Picked {
@@ -38,7 +39,7 @@ function AssignmentReport({ a }: { a: TaskAssignment }) {
       {a.comment ? <Text>{a.comment}</Text> : null}
       {a.sets || a.reps ? <Text muted>Подходов: {a.sets ?? "—"}, повторений: {a.reps ?? "—"}</Text> : null}
       {a.durationMinutes ? <Text muted>Длительность: {a.durationMinutes} мин</Text> : null}
-      {a.difficulty ? <Text muted>Сложность: {a.difficulty}/5</Text> : null}
+      {a.difficulty ? <Text muted>Сложность: {a.difficulty}/10</Text> : null}
       {a.wellbeing ? <Text muted>Самочувствие: {a.wellbeing}/5</Text> : null}
       {a.photoFileId ? <AuthImage fileId={a.photoFileId} /> : null}
       {a.videoFileId ? <AuthVideo fileId={a.videoFileId} /> : null}
@@ -125,7 +126,7 @@ function PlayerPart({ task, mine, onChanged }: { task: Task; mine: TaskAssignmen
             </>
           ) : null}
           {task.requireDuration ? <TextField label="Длительность, мин" value={form.minutes} onChangeText={(minutes) => set({ minutes })} keyboardType="number-pad" maxLength={4} /> : null}
-          {task.requireDifficulty ? <Choice label="Сложность (1 — легко, 5 — очень тяжело)" layout="chips" options={SCALE} value={form.difficulty || null} onChange={(difficulty) => set({ difficulty })} /> : null}
+          {task.requireDifficulty ? <Choice label="Сложность (1 — легко, 10 — на пределе)" layout="chips" options={SCALE_10} value={form.difficulty || null} onChange={(difficulty) => set({ difficulty })} /> : null}
           {task.requireWellbeing ? <Choice label="Самочувствие (1 — плохо, 5 — отлично)" layout="chips" options={SCALE} value={form.wellbeing || null} onChange={(wellbeing) => set({ wellbeing })} /> : null}
           {task.requirePhoto || task.requireVideo ? (
             <>

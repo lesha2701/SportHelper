@@ -202,7 +202,7 @@ export default function NewTaskScreen() {
           <SwitchRow label="Видео" value={req.video} onChange={flip("video")} />
           <SwitchRow label="Подходы и повторения" value={req.setsReps} onChange={flip("setsReps")} />
           <SwitchRow label="Длительность" value={req.duration} onChange={flip("duration")} />
-          <SwitchRow label="Сложность (1–5)" value={req.difficulty} onChange={flip("difficulty")} />
+          <SwitchRow label="Сложность (1–10)" value={req.difficulty} onChange={flip("difficulty")} />
           <SwitchRow label="Самочувствие (1–5)" value={req.wellbeing} onChange={flip("wellbeing")} />
         </Card>
         <Button title={editing ? "Сохранить" : "Создать задание"} onPress={submit} loading={busy} />
