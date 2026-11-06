@@ -38,6 +38,7 @@ function Routes() {
           <Stack.Screen name="profile-edit" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="account" />
+          <Stack.Screen name="delete-account" />
           <Stack.Screen name="join" />
           <Stack.Screen name="team/new" />
           <Stack.Screen name="team/[id]" />

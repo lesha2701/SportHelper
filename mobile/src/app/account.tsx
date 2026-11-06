@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
-import { cancelAccountDeletion, changeEmail, changePassword, listSessions, requestAccountDeletion, revokeSession } from "@/api/auth";
+import { changeEmail, changePassword, listSessions, revokeSession } from "@/api/auth";
 import { useAuth } from "@/auth/AuthProvider";
 import { looksLikeEmail, PASSWORD_MIN_LENGTH, toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
@@ -149,82 +149,7 @@ function SessionsSection() {
   );
 }
 
-function DeleteSection() {
-  const { user, refreshUser } = useAuth();
-  const toast = useToast();
-  const [password, setPassword] = useState("");
-  const [confirming, setConfirming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const scheduled = user?.deletionRequestedAt;
-
-  async function request() {
-    setConfirming(false);
-    setBusy(true);
-    setError(null);
-    try {
-      toast.success(await requestAccountDeletion(password));
-      setPassword("");
-      await refreshUser();
-    } catch (e) {
-      setError(toFormError(e).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function cancel() {
-    setBusy(true);
-    try {
-      await cancelAccountDeletion();
-      await refreshUser();
-    } catch (e) {
-      setError(toFormError(e).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Card>
-      <Text variant="heading">Удаление аккаунта</Text>
-      {scheduled ? (
-        <>
-          <Notice>Удаление запланировано. До срока его можно отменить, и аккаунт останется как был.</Notice>
-          {error ? <Notice kind="danger">{error}</Notice> : null}
-          <Button title="Отменить удаление" onPress={cancel} loading={busy} />
-        </>
-      ) : (
-        <>
-          <Text muted>Аккаунт и данные будут удалены после льготного срока; до его конца удаление можно отменить. Для подтверждения нужен пароль.</Text>
-          {error ? <Notice kind="danger">{error}</Notice> : null}
-          <TextField
-            label="Пароль"
-            value={password}
-            onChangeText={(v) => {
-              setPassword(v);
-              setError(null);
-            }}
-            secureTextEntry
-            autoCapitalize="none"
-          />
-          <Button title="Удалить аккаунт" variant="danger" onPress={() => (password ? setConfirming(true) : setError("Введите пароль для подтверждения."))} loading={busy} />
-        </>
-      )}
-      <ConfirmModal
-        visible={confirming}
-        title="Удалить аккаунт?"
-        message="Вы выйдете из приложения. Удаление можно отменить, пока не истёк льготный срок."
-        confirmLabel="Удалить"
-        destructive
-        onCancel={() => setConfirming(false)}
-        onConfirm={() => void request()}
-      />
-    </Card>
-  );
-}
-
-/** Account security: password, email, where the account is signed in, and deletion. */
+/** Account security: password, email and where the account is signed in (deletion has its own screen). */
 export default function AccountScreen() {
   return (
     <>
@@ -233,7 +158,6 @@ export default function AccountScreen() {
         <PasswordSection />
         <EmailSection />
         <SessionsSection />
-        <DeleteSection />
       </Screen>
     </>
   );
