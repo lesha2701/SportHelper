@@ -1,4 +1,4 @@
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { changeEmail, changePassword, listSessions, revokeSession } from "@/api/auth";
@@ -93,6 +93,7 @@ function EmailSection() {
       <Text muted>Сейчас: {user?.email}. Мы отправим письмо со ссылкой на новый адрес; пока вы её не откроете, вход остаётся по старому.</Text>
       {errors.form ? <Notice kind="danger">{errors.form}</Notice> : null}
       {done ? <Notice kind="success">{done}</Notice> : null}
+      {done ? <Button title="У меня есть ссылка из письма" variant="ghost" onPress={() => router.push("/confirm-email")} /> : null}
       <TextField label="Новый email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" error={errors.email} />
       <TextField label="Пароль" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" error={errors.password} />
       <Button title="Отправить письмо" variant="secondary" onPress={submit} loading={busy} />

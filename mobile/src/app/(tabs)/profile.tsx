@@ -253,6 +253,7 @@ export default function ProfileScreen() {
         <ListRow icon="notifications-outline" title="Уведомления" badge={unread.count} onPress={() => router.push("/notifications")} />
         <ListRow icon="shield-checkmark-outline" title="Аккаунт и безопасность" subtitle="Пароль, почта, устройства" onPress={() => router.push("/account")} />
         <ListRow icon="settings-outline" title="Настройки" subtitle="Тема, уведомления" onPress={() => router.push("/settings")} />
+        <ListRow icon="help-circle-outline" title="Помощь" subtitle="Как всё устроено" onPress={() => router.push("/help")} />
         <ListRow icon="document-text-outline" title="Документы" onPress={() => setDocs(true)} />
       </View>
 

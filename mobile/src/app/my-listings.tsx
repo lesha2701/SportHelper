@@ -1,6 +1,5 @@
 import { Stack, router, useFocusEffect } from "expo-router";
-import { useCallback , useState } from "react";
-
+import { useCallback, useState } from "react";
 import { deleteListing, listMyListings } from "@/api/coachListings";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";

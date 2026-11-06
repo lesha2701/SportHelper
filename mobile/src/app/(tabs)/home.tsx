@@ -192,7 +192,7 @@ export default function HomeScreen() {
             </Text>
           </Card>
           <Card>
-            <Text variant="heading">Требуют внимания</Text>
+            <Text variant="heading">Игроки: нужно внимание</Text>
             {[...d.teamStats.frequentAbsencePlayers, ...d.teamStats.lowActivityPlayers]
               .filter((p, i, all) => all.findIndex((x) => x.userId === p.userId) === i)
               .slice(0, 4)

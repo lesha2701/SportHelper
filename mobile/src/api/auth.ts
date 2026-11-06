@@ -129,3 +129,8 @@ export async function requestAccountDeletion(password: string): Promise<string> 
 export async function cancelAccountDeletion(): Promise<void> {
   await apiRequest("/api/auth/account/delete/cancel", { method: "POST", successMessage: "Удаление аккаунта отменено" });
 }
+
+/** Confirms the new address from the link the email-change letter sent to it (the token is the proof). */
+export async function confirmEmailChange(token: string): Promise<{ email: string | null }> {
+  return apiRequest<{ verified: boolean; email: string | null }>("/api/auth/confirm-email-change", { method: "POST", body: { token } });
+}

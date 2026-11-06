@@ -9,6 +9,7 @@ import { UnreadProvider } from "@/notifications/UnreadProvider";
 import { ProfileProvider } from "@/profile/ProfileProvider";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { fonts } from "@/theme/tokens";
+import { useActivityPing } from "@/lib/useActivityPing";
 import { LoadingView } from "@/ui/StateViews";
 import { ToastProvider } from "@/ui/Toast";
 
@@ -16,6 +17,7 @@ function Routes() {
   const { status } = useAuth();
   const { colors, dark } = useTheme();
   const signedIn = status === "signedIn";
+  useActivityPing(signedIn);
   // Until the saved sign-in is checked, no route can be matched: mounting the navigator now would drop a deep link
   // (a notification, an invitation) onto the start page. Wait, then open exactly what was asked for.
   if (status === "loading") return <LoadingView />;
@@ -33,11 +35,13 @@ function Routes() {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="legal/[key]" />
+        <Stack.Screen name="confirm-email" />
         <Stack.Protected guard={signedIn}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="profile-edit" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="guide" />
+          <Stack.Screen name="help" />
           <Stack.Screen name="account" />
           <Stack.Screen name="delete-account" />
           <Stack.Screen name="join" />
