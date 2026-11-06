@@ -1,20 +1,34 @@
-import * as Clipboard from "expo-clipboard";
 import { useState } from "react";
 import { Button } from "./Button";
 
+type ClipboardModule = typeof import("expo-clipboard");
+
+/** Loaded on demand and guarded: a runtime without the native part must not crash the app at start. */
+function clipboard(): ClipboardModule | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require("expo-clipboard") as ClipboardModule;
+  } catch {
+    return null;
+  }
+}
+
 /** "Вставить из буфера": the link or code the person just copied from the email, in one tap. */
 export function PasteButton({ onPaste, title = "Вставить из буфера" }: { onPaste: (text: string) => void; title?: string }) {
-  const [empty, setEmpty] = useState(false);
+  const [problem, setProblem] = useState<"empty" | "unavailable" | null>(null);
 
   async function paste() {
+    const module = clipboard();
+    if (!module) return setProblem("unavailable");
     try {
-      const text = (await Clipboard.getStringAsync()).trim();
-      setEmpty(text === "");
+      const text = (await module.getStringAsync()).trim();
+      setProblem(text === "" ? "empty" : null);
       if (text) onPaste(text);
     } catch {
-      setEmpty(true);
+      setProblem("unavailable");
     }
   }
 
-  return <Button title={empty ? "Буфер пуст: сначала скопируйте ссылку" : title} variant="secondary" onPress={paste} />;
+  const label = problem === "empty" ? "Буфер пуст: сначала скопируйте ссылку" : problem === "unavailable" ? "Вставка недоступна: вставьте вручную" : title;
+  return <Button title={label} variant="secondary" onPress={paste} />;
 }
