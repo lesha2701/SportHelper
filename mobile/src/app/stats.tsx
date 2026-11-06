@@ -1,5 +1,5 @@
-import { Stack, router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
 import { deleteMetric } from "@/api/metrics";
 import { getProgressAnalysis } from "@/api/ai";
@@ -34,6 +34,9 @@ export default function StatsScreen() {
   const userId = params.userId ?? user!.id;
   const own = userId === user?.id;
   const stats = useLoad(() => getPlayerStats(userId), [userId]);
+  const reload = stats.reload;
+  // Back from adding or editing a measurement.
+  useFocusEffect(useCallback(() => reload(), [reload]));
   const [removing, setRemoving] = useState<string | null>(null);
 
   if (stats.loading && !stats.data) return <LoadingView />;
@@ -93,7 +96,12 @@ export default function StatsScreen() {
                 {formatRuDate(m.recordedDate)}
                 {m.comment ? ` · ${m.comment}` : ""}
               </Text>
-              {m.recordedBy === user?.id ? <Button title="Удалить" variant="ghost" onPress={() => setRemoving(m.id)} /> : null}
+              {m.recordedBy === user?.id ? (
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/metric-new", params: { userId, metricId: m.id } })} style={{ flex: 1 }} />
+                  <Button title="Удалить" variant="ghost" onPress={() => setRemoving(m.id)} style={{ flex: 1 }} />
+                </View>
+              ) : null}
             </View>
           ))}
           <Button title="Добавить показатель" variant="secondary" onPress={() => router.push({ pathname: "/metric-new", params: { userId } })} />

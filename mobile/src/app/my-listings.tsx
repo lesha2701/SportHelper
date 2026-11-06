@@ -1,5 +1,6 @@
-import { Stack, router } from "expo-router";
-import { useState } from "react";
+import { Stack, router, useFocusEffect } from "expo-router";
+import { useCallback , useState } from "react";
+
 import { deleteListing, listMyListings } from "@/api/coachListings";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
@@ -15,6 +16,8 @@ import { useToast } from "@/ui/Toast";
 export default function MyListingsScreen() {
   const toast = useToast();
   const list = useLoad(listMyListings);
+  const reload = list.reload;
+  useFocusEffect(useCallback(() => reload(), [reload]));
   const [removing, setRemoving] = useState<string | null>(null);
 
   if (list.loading && !list.data) return <LoadingView />;
@@ -42,6 +45,7 @@ export default function MyListingsScreen() {
             <Text muted>
               {[l.pricePerSession !== null ? `${l.pricePerSession} ${l.currency}` : "Цена не указана", l.isListed ? "в каталоге" : "скрыто", l.location].filter(Boolean).join(" · ")}
             </Text>
+            <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/listing/new", params: { id: l.id } })} />
             <Button title="Удалить" variant="ghost" onPress={() => setRemoving(l.id)} />
           </Card>
         ))}

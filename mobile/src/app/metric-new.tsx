@@ -1,6 +1,6 @@
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { createMetric } from "@/api/metrics";
+import { useEffect, useState } from "react";
+import { createMetric, listMetrics, updateMetric } from "@/api/metrics";
 import { toFormError } from "@/lib/formError";
 import { formatRuDate, parseRuDate, todayIso } from "@/shared/lib/dates";
 import { Button } from "@/ui/Button";
@@ -10,8 +10,9 @@ import { Screen } from "@/ui/Screen";
 import { SwitchRow } from "@/ui/SwitchRow";
 import { TextField } from "@/ui/TextField";
 
+/** A measurement of a player, new or edited (?metricId=, only the one who recorded it). */
 export default function NewMetricScreen() {
-  const { userId } = useLocalSearchParams<{ userId: string }>();
+  const { userId, metricId } = useLocalSearchParams<{ userId: string; metricId?: string }>();
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("");
   const [value, setValue] = useState("");
@@ -20,6 +21,22 @@ export default function NewMetricScreen() {
   const [comment, setComment] = useState("");
   const [errors, setErrors] = useState<{ name?: string; value?: string; date?: string; form?: string }>({});
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!metricId) return;
+    listMetrics(userId)
+      .then((all) => {
+        const m = all.find((x) => x.id === metricId);
+        if (!m) return;
+        setName(m.name);
+        setUnit(m.unit ?? "");
+        setValue(String(m.value));
+        setDate(formatRuDate(m.recordedDate));
+        setHigher(m.higherIsBetter);
+        setComment(m.comment ?? "");
+      })
+      .catch((e: unknown) => setErrors({ form: toFormError(e).message }));
+  }, [userId, metricId]);
 
   async function submit() {
     const found: typeof errors = {};
@@ -32,7 +49,7 @@ export default function NewMetricScreen() {
     if (Object.keys(found).length) return;
     setBusy(true);
     try {
-      await createMetric(userId, {
+      const input = {
         name: name.trim(),
         unit: unit.trim() || null,
         value: number,
@@ -40,7 +57,9 @@ export default function NewMetricScreen() {
         higher_is_better: higher,
         source: null,
         comment: comment.trim() || null,
-      });
+      };
+      if (metricId) await updateMetric(metricId, input);
+      else await createMetric(userId, input);
       router.back();
     } catch (e) {
       setErrors({ form: toFormError(e).message });
@@ -51,7 +70,7 @@ export default function NewMetricScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: "Новый показатель" }} />
+      <Stack.Screen options={{ headerShown: true, title: metricId ? "Изменить показатель" : "Новый показатель" }} />
       <Screen header>
         {errors.form ? <Notice kind="danger">{errors.form}</Notice> : null}
         <TextField label="Название" required value={name} onChangeText={setName} maxLength={100} error={errors.name} />
