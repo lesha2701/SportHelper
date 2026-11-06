@@ -8,6 +8,7 @@ struct TeamDetailView: View {
     @State private var model: TeamDetailModel
     @State private var editing = false
     @State private var confirmingLeave = false
+    @State private var transferring = false
     @State private var leaveError: String?
     @State private var asking: (action: RosterAction, member: TeamMember)?
     /// The member whose list of actions is open (the swipe shows one «Ещё» button: four long titles do not fit the screen).
@@ -63,6 +64,15 @@ struct TeamDetailView: View {
         }
         .refreshable { await model.load() }
         .sheet(isPresented: $editing) { TeamFormView(mode: .edit(team)) { model.updated($0) } }
+        .sheet(isPresented: $transferring) {
+            TransferOwnershipView(
+                teamName: team.name, candidates: OwnershipTransfer.candidates(in: model.members.value ?? [])
+            ) { member in
+                let failure = await model.transferOwnership(to: member)
+                if failure == nil { await auth.teams.reloadMine() }
+                return failure
+            }
+        }
         .confirmationDialog(
             asking?.action.confirmation(for: asking?.member.fullName ?? "")?.title ?? "",
             isPresented: Binding(get: { asking != nil }, set: { if !$0 { asking = nil } }), titleVisibility: .visible
@@ -286,6 +296,9 @@ extension TeamDetailView {
     private var leaveSection: some View {
         Section {
             if let leaveError { Text(leaveError).font(.footnote).foregroundStyle(.red) }
+            if team.myRole == .headCoach {
+                Button("Передать роль главного тренера", systemImage: "person.badge.key") { transferring = true }.accessibilityIdentifier("team.transfer")
+            }
             Button("Выйти из команды", role: .destructive) { confirmingLeave = true }.accessibilityIdentifier("team.leave")
         }
     }

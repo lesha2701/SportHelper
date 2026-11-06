@@ -84,6 +84,8 @@ final class TeamDetailModel {
         case loading
         case loaded(Value)
         case failed(String)
+
+        var value: Value? { if case .loaded(let value) = self { value } else { nil } }
     }
 
     private(set) var team: Team
@@ -140,6 +142,20 @@ final class TeamDetailModel {
     }
 
     func updated(_ newTeam: Team) { team = newTeam }
+
+    /// Hands the head coach's role to another member; the person stays as an assistant coach. Nil when it went through, else the error text.
+    func transferOwnership(to member: TeamMember) async -> String? {
+        do {
+            try await service.transferOwnership(of: team.id, to: member, teamName: team.name)
+            notice = ("\(member.fullName) теперь главный тренер. Вы остались помощником тренера.", false)
+            await load()
+            return nil
+        } catch let error as APIError {
+            return OwnershipTransfer.russian(error).message
+        } catch {
+            return APIError.unknown.message
+        }
+    }
 
     /// A role change, removal or block of one person. The list is read again afterwards.
     func perform(_ action: RosterAction, on member: TeamMember) async {

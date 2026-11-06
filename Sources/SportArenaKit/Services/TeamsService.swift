@@ -26,6 +26,12 @@ public final class TeamsService: Sendable {
         try await client.sendIgnoringResponse(.delete, path(team, "/members/\(user.uuidString.lowercased())"))
     }
 
+    /// The head coach hands the role to another member and stays in the team as an assistant coach.
+    public func transferOwnership(of team: UUID, to member: TeamMember, teamName: String) async throws {
+        let body = OwnershipTransferBody(toUserId: member.userId, confirmationPhrase: OwnershipTransfer.phrase(teamName: teamName, to: member))
+        try await client.sendIgnoringResponse(.post, path(team, "/transfer-ownership"), body: body)
+    }
+
     /// Removes a person and keeps them from applying again (the head coach only; the server has no way back).
     public func block(_ user: UUID, in team: UUID) async throws {
         try await client.sendIgnoringResponse(.post, path(team, "/members/\(user.uuidString.lowercased())/block"))
