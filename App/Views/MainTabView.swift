@@ -20,44 +20,53 @@ struct MainTabView: View {
         return items
     }
 
+    /// The tabs this person has, in the order of the bar.
+    private var tabs: [AppTab] { bar.map(\.tab) }
+
+    /// The tabs that were opened so far stay alive (their screens keep their place and what they loaded); the others are made only when
+    /// the person first goes there.
+    @State private var opened: Set<AppTab> = []
+
     var body: some View {
         @Bindable var router = auth.router
-        return TabView(selection: $router.tab) {
-            HomeView(user: user)
-                .tabItem { Label("Главная", systemImage: "house") }
-                .tag(AppTab.home)
-            TeamsView(user: user)
-                .tabItem { Label("Команды", systemImage: "trophy") }
-                .badge(auth.chatUnread.teamTotal)
-                .tag(AppTab.teams)
-            if user.isCoach {
-                LibraryView()
-                    .tabItem { Label("Библиотека", systemImage: "book") }
-                    .tag(AppTab.library)
+        let current = tabs.contains(router.tab) ? router.tab : .home
+        // Not the system's TabView: on an iPad, and on a Mac that runs the iPhone app, it adds a tab bar of its own that cannot be hidden,
+        // and the app would have two. The bar below is the only one.
+        // The bar is laid out under the screens, not added as a safe-area inset: a screen inside a navigation stack (a chat) did not get the
+        // inset, and its composer ended up behind the bar. The keyboard is ignored by the whole column and covers the bar; the screens above
+        // it make room for the keyboard themselves.
+        return VStack(spacing: 0) {
+            ZStack {
+                ForEach(tabs, id: \.self) { tab in
+                    if tab == current || opened.contains(tab) {
+                        content(of: tab)
+                            .opacity(tab == current ? 1 : 0)
+                            .allowsHitTesting(tab == current)
+                            .accessibilityHidden(tab != current)
+                    }
+                }
             }
-            CalendarView(store: auth.calendar)
-                .tabItem { Label("Календарь", systemImage: "calendar") }
-                .tag(AppTab.calendar)
-            if !user.isCoach {
-                CoachesView(store: auth.coaches)
-                    .tabItem { Label("Тренеры", systemImage: "person.2") }
-                    .tag(AppTab.coaches)
-            }
-            ProfileView(user: user, store: auth.profile)
-                .tabItem { Label("Профиль", systemImage: "person.crop.circle") }
-                .badge(auth.chatUnread.bookingTotal)
-                .tag(AppTab.profile)
-        }
-        .toolbar(.hidden, for: .tabBar)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
             SagTabBar(items: bar, selection: $router.tab)
         }
+        .ignoresSafeArea(.keyboard)
+        .onChange(of: current, initial: true) { _, tab in opened.insert(tab) }
         // Unread counts are refreshed while the app is on screen.
         .task(id: scenePhase == .active) {
             if scenePhase == .active { await auth.chatUnread.keepFresh() }
         }
         .task(id: scenePhase == .active) {
             if scenePhase == .active { await auth.notifications.keepFresh() }
+        }
+    }
+
+    @ViewBuilder private func content(of tab: AppTab) -> some View {
+        switch tab {
+        case .home: HomeView(user: user)
+        case .teams: TeamsView(user: user)
+        case .library: LibraryView()
+        case .calendar: CalendarView(store: auth.calendar)
+        case .coaches: CoachesView(store: auth.coaches)
+        case .profile: ProfileView(user: user, store: auth.profile)
         }
     }
 }

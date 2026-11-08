@@ -57,6 +57,8 @@ final class ChatTeamsUITests: SignedInUITestCase {
 
     func testTheTeamScreenShowsThePeopleAndTheRole() throws {
         try openTeam()
+        // the people are under the tiles: below the first screen, so the page is scrolled to them
+        scrollUntilVisible(element("team.member"))
         XCTAssertTrue(element("team.member").waitForExistence(timeout: 15), "no member listed")
         XCTAssertTrue(text(containing: "Состав").exists)
         // the role is a pill under the team's name (in capitals, so compared without case)
