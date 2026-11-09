@@ -239,6 +239,7 @@ struct ProfileView: View {
                 .accessibilityIdentifier("profile.security")
             NavigationLink(value: ProfileRoute.privacy) { Label("Конфиденциальность", systemImage: "hand.raised") }
                 .accessibilityIdentifier("profile.privacy")
+            HelpLink(ownRole: user.isCoach ? "coach" : "player")
             Button("Выйти из аккаунта", role: .destructive) { Task { await auth.logout() } }
                 .accessibilityIdentifier("main.logout")
             if user.deletionRequestedAt == nil {
