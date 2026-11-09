@@ -43,7 +43,7 @@ function TeamCard({ team }: { team: Team }) {
         <Avatar fileId={team.logoFileId} name={team.name} size={48} square />
         <View style={{ flex: 1, gap: 3 }}>
           <View style={styles.row}>
-            <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+            <Text style={[styles.name, { color: colors.text }]} numberOfLines={2}>
               {team.name}
             </Text>
             {team.status === "without_coach" ? <Badge text="Без тренера" warning /> : null}

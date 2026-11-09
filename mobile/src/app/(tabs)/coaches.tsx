@@ -42,7 +42,7 @@ function ListingCard({ l }: { l: CoachListingCard }) {
           <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
             {l.title}
           </Text>
-          <Text variant="caption" muted numberOfLines={1}>
+          <Text variant="caption" muted numberOfLines={2}>
             {[l.coachFullName, l.sport, l.experienceYears != null ? `${l.experienceYears} лет опыта` : null].filter(Boolean).join(" · ")}
           </Text>
         </View>
@@ -62,7 +62,7 @@ function ListingCard({ l }: { l: CoachListingCard }) {
       {l.location || l.offersOnline ? (
         <View style={styles.inline}>
           <Ionicons name={l.location ? "location-outline" : "videocam-outline"} size={14} color={colors.textSecondary} />
-          <Text variant="caption" muted numberOfLines={1} style={{ flex: 1 }}>
+          <Text variant="caption" muted numberOfLines={2} style={{ flex: 1 }}>
             {[l.location, l.offersOnline ? "онлайн" : null, l.offersOffline && !l.location ? "очно" : null].filter(Boolean).join(" · ")}
           </Text>
         </View>

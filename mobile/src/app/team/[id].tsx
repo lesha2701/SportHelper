@@ -104,7 +104,7 @@ export default function TeamScreen() {
           {head ? (
             <View style={styles.headRow}>
               <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/team/new", params: { id: t.id } })} style={{ flex: 1 }} />
-              <Button title={t.logoFileId ? "Логотип" : "Добавить логотип"} variant="secondary" onPress={changeLogo} style={{ flex: 1 }} />
+              <Button title="Логотип" variant="secondary" onPress={changeLogo} style={{ flex: 1 }} />
             </View>
           ) : null}
         </Card>

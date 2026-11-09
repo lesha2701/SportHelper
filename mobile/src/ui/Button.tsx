@@ -41,7 +41,7 @@ export function Button({ title, onPress, variant = "primary", loading, disabled,
       {loading ? (
         <ActivityIndicator color={palette.fg} />
       ) : (
-        <Text variant="label" numberOfLines={1} style={{ color: palette.fg, fontFamily: fonts.bodyBold, fontSize: 15, textAlign: "center", alignSelf: "stretch" }}>
+        <Text variant="label" numberOfLines={2} style={{ color: palette.fg, fontFamily: fonts.bodyBold, fontSize: 15, lineHeight: 20, textAlign: "center", alignSelf: "stretch" }}>
           {title}
         </Text>
       )}
@@ -50,5 +50,5 @@ export function Button({ title, onPress, variant = "primary", loading, disabled,
 }
 
 const styles = StyleSheet.create({
-  base: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 16 },
+  base: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 16, paddingVertical: 8 },
 });

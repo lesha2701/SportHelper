@@ -52,7 +52,7 @@ export function EventRow({ event, onPress }: { event: CalendarEvent; onPress: ()
           {event.title}
         </Text>
         {event.teamName ? (
-          <Text variant="caption" muted numberOfLines={1}>
+          <Text variant="caption" muted numberOfLines={2}>
             {event.teamName}
           </Text>
         ) : null}
