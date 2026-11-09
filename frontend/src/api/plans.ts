@@ -47,3 +47,9 @@ export async function unsharePlan(token: string, planId: string, teamId: string)
   const dto = await apiRequest<PlanDto>(`/api/plans/${planId}/share/${teamId}`, { method: "DELETE", successMessage: "Доступ команды к плану закрыт", token });
   return mapPlanDto(dto);
 }
+
+/** The plans the coach opened to this team (readable by any member). */
+export async function listTeamPlans(token: string, teamId: string): Promise<Plan[]> {
+  const dtos = await apiRequest<PlanDto[]>(`/api/teams/${teamId}/plans`, { token });
+  return dtos.map(mapPlanDto);
+}

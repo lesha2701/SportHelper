@@ -495,3 +495,50 @@ def test_head_coach_cannot_be_removed_and_only_head_coach_removes_assistant(logg
 
     remove_assistant_by_head_coach = client.delete(f"/api/teams/{team['id']}/members/{assistant_id}", headers=coach_headers)
     assert remove_assistant_by_head_coach.status_code == 204
+
+
+def _put_team(client: TestClient, token: str, team_id: str, **fields) -> dict:
+    body = {"name": "Ястребы", "description": None, "sport": "Футбол", "age_category": None, "level": None, **fields}
+    resp = client.put(f"/api/teams/{team_id}", headers={"Authorization": f"Bearer {token}"}, json=body)
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+def test_team_keeps_its_tournaments_and_home_venue(logged_in_client) -> None:
+    client, token = logged_in_client
+    _create_coach_profile(client, token)
+    team = _create_team(client, token)
+    assert team["tournaments"] == [] and team["home_venue"] is None
+
+    saved = _put_team(client, token, team["id"], tournaments=["  Кубок города ", "Лига", "Лига", ""], home_venue="  Стадион «Динамо» ")
+
+    assert saved["tournaments"] == ["Кубок города", "Лига"]
+    assert saved["home_venue"] == "Стадион «Динамо»"
+    fetched = client.get(f"/api/teams/{team['id']}", headers={"Authorization": f"Bearer {token}"}).json()
+    assert fetched["tournaments"] == ["Кубок города", "Лига"] and fetched["home_venue"] == "Стадион «Динамо»"
+    mine = client.get("/api/teams/mine", headers={"Authorization": f"Bearer {token}"}).json()
+    assert mine[0]["tournaments"] == ["Кубок города", "Лига"] and mine[0]["home_venue"] == "Стадион «Динамо»"
+
+
+def test_an_update_that_leaves_them_out_keeps_them_and_an_empty_value_clears_them(logged_in_client) -> None:
+    client, token = logged_in_client
+    _create_coach_profile(client, token)
+    team = _create_team(client, token)
+    _put_team(client, token, team["id"], tournaments=["Лига"], home_venue="Арена")
+
+    renamed = _put_team(client, token, team["id"], name="Орлы")  # an older client: no tournaments, no venue in the request
+    assert renamed["name"] == "Орлы" and renamed["tournaments"] == ["Лига"] and renamed["home_venue"] == "Арена"
+
+    cleared = _put_team(client, token, team["id"], tournaments=[], home_venue="")
+    assert cleared["tournaments"] == [] and cleared["home_venue"] is None
+
+
+def test_too_many_or_too_long_tournaments_are_refused(logged_in_client) -> None:
+    client, token = logged_in_client
+    _create_coach_profile(client, token)
+    team = _create_team(client, token)
+    headers = {"Authorization": f"Bearer {token}"}
+    base = {"name": "Ястребы", "description": None, "sport": "Футбол", "age_category": None, "level": None}
+
+    assert client.put(f"/api/teams/{team['id']}", headers=headers, json={**base, "tournaments": ["т" * 151]}).status_code == 422
+    assert client.put(f"/api/teams/{team['id']}", headers=headers, json={**base, "tournaments": [f"T{i}" for i in range(21)]}).status_code == 422

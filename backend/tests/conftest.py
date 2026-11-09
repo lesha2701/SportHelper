@@ -558,6 +558,8 @@ def client(monkeypatch: pytest.MonkeyPatch):
             "status": "active",
             "created_by": creator_id,
             "logo_file_id": None,
+            "tournaments": list(data.get("tournaments") or []),
+            "home_venue": data.get("home_venue"),
             "created_at": now,
             "updated_at": now,
         }
@@ -587,6 +589,10 @@ def client(monkeypatch: pytest.MonkeyPatch):
                 "updated_at": datetime.now(timezone.utc),
             }
         )
+        if "tournaments" in data:
+            team["tournaments"] = list(data["tournaments"] or [])
+        if "home_venue" in data:
+            team["home_venue"] = data["home_venue"]
         return dict(team)
 
     async def fake_list_my_teams(conn, user_id):

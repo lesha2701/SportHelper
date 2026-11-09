@@ -18,7 +18,7 @@ vi.mock("../../components/shared/AuthenticatedImage", () => ({ AuthenticatedImag
 
 const team = (myRole: TeamRole): Team => ({
   id: "team1", name: "Ястребы", description: null, sport: "Футбол", ageCategory: null, level: null, status: "active",
-  createdBy: "c1", logoFileId: null, myRole, membersCount: 2,
+  createdBy: "c1", logoFileId: null, tournaments: [], homeVenue: null, myRole, membersCount: 2,
 });
 const member = (userId: string, firstName: string, role: TeamRole): TeamMember => ({
   userId, firstName, lastName: null, username: null, photoUrl: null, role, position: null, joinedAt: "2026-01-01T00:00:00Z",

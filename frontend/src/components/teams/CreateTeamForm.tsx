@@ -20,6 +20,9 @@ export function CreateTeamForm({ token, initial, onCreated, onCancel }: CreateTe
   const [sport, setSport] = useState(initial?.sport ?? "");
   const [ageCategory, setAgeCategory] = useState(initial?.ageCategory ?? "");
   const [level, setLevel] = useState<SkillLevel | "">(initial?.level ?? "");
+  // One tournament per line; the match form offers them, and a home match takes the home venue as its place.
+  const [tournaments, setTournaments] = useState((initial?.tournaments ?? []).join("\n"));
+  const [homeVenue, setHomeVenue] = useState(initial?.homeVenue ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -34,6 +37,8 @@ export function CreateTeamForm({ token, initial, onCreated, onCancel }: CreateTe
         sport: sport.trim(),
         age_category: ageCategory.trim() || null,
         level: level || null,
+        tournaments: tournaments.split("\n").map((line) => line.trim()).filter(Boolean),
+        home_venue: homeVenue.trim() || null,
       };
       const team = isEdit && initial ? await updateTeam(token, initial.id, input) : await createTeam(token, input);
       onCreated(team);
@@ -105,6 +110,30 @@ export function CreateTeamForm({ token, initial, onCreated, onCancel }: CreateTe
             onChange={(e) => setDescription(e.target.value)}
             maxLength={1000}
           />
+        </label>
+
+        <label className={profileStyles.field}>
+          <span className={profileStyles.label}>Домашняя площадка</span>
+          <input
+            className={profileStyles.input}
+            value={homeVenue}
+            onChange={(e) => setHomeVenue(e.target.value)}
+            placeholder="Стадион «Динамо»"
+            maxLength={200}
+          />
+          <span className={profileStyles.requiredHint}>Подставится как место во всех домашних матчах команды.</span>
+        </label>
+
+        <label className={profileStyles.field}>
+          <span className={profileStyles.label}>Турниры команды</span>
+          <textarea
+            className={profileStyles.textarea}
+            value={tournaments}
+            onChange={(e) => setTournaments(e.target.value)}
+            placeholder={"Кубок города\nЛига выходного дня"}
+            rows={3}
+          />
+          <span className={profileStyles.requiredHint}>Каждый турнир с новой строки. В форме матча их можно выбрать из списка.</span>
         </label>
 
         {error && <p className={profileStyles.error}>{error}</p>}

@@ -24,6 +24,7 @@ import { StatTile } from "../shared/StatTile";
 import { TeamTrainingsTab } from "../trainings/TeamTrainingsTab";
 import { TeamTasksTab } from "../tasks/TeamTasksTab";
 import { TeamMatchesTab } from "../matches/TeamMatchesTab";
+import { TeamLibraryTab } from "./TeamLibraryTab";
 import { TeamStatsTab } from "../stats/TeamStatsTab";
 import { SKILL_LEVEL_LABELS } from "../../types/profile";
 import { TEAM_ROLE_LABELS, type Team, type TeamMember } from "../../types/team";
@@ -36,13 +37,14 @@ import chatStyles from "../chat/chat.module.css";
 import styles from "./teams.module.css";
 import { count } from "../../lib/plural";
 
-type Tab = "roster" | "chat" | "trainings" | "tasks" | "matches" | "stats" | "settings";
+type Tab = "roster" | "chat" | "trainings" | "tasks" | "library" | "matches" | "stats" | "settings";
 
 const TAB_LABELS: Record<Tab, string> = {
   roster: "Состав",
   chat: "Чат",
   trainings: "Тренировки",
   tasks: "Задания",
+  library: "Упражнения и планы",
   matches: "Матчи",
   stats: "Статистика",
   settings: "Настройки",
@@ -407,6 +409,8 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
       {tab === "trainings" && <TeamTrainingsTab token={token} teamId={teamId} canManage={isCoachStaff} />}
 
       {tab === "tasks" && <TeamTasksTab token={token} teamId={teamId} canManage={isCoachStaff} />}
+
+      {tab === "library" && <TeamLibraryTab token={token} teamId={teamId} teamName={team.name} canManage={isCoachStaff} />}
 
       {tab === "matches" && (
         <TeamMatchesTab token={token} teamId={teamId} canManage={isCoachStaff} onOpenStats={isCoachStaff ? () => setTab("stats") : undefined} />

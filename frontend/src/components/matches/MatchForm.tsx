@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { createMatch, updateMatch } from "../../api/matches";
+import { getTeam } from "../../api/teams";
 import { ApiError } from "../../api/client";
 import type { Match } from "../../types/match";
 import profileStyles from "../profile/profile.module.css";
@@ -25,6 +26,23 @@ export function MatchForm({ token, teamId, initial, onSaved, onCancel }: MatchFo
   const [tournament, setTournament] = useState(initial?.tournament ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // The team's settings: its tournaments are offered, and a home match of a new match takes the home venue as its place.
+  const [tournaments, setTournaments] = useState<string[]>([]);
+  const [homeVenue, setHomeVenue] = useState<string | null>(null);
+  const [locationTouched, setLocationTouched] = useState(isEdit);
+  useEffect(() => {
+    getTeam(token, teamId)
+      .then((team) => {
+        setTournaments(team.tournaments);
+        setHomeVenue(team.homeVenue);
+      })
+      .catch(() => undefined);
+  }, [token, teamId]);
+  useEffect(() => {
+    if (!locationTouched && isHome && homeVenue) setLocation(homeVenue);
+    if (!locationTouched && !isHome) setLocation("");
+  }, [homeVenue, isHome, locationTouched]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -86,7 +104,18 @@ export function MatchForm({ token, teamId, initial, onSaved, onCancel }: MatchFo
 
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Место</span>
-          <input className={profileStyles.input} value={location} onChange={(e) => setLocation(e.target.value)} maxLength={200} />
+          <input
+            className={profileStyles.input}
+            value={location}
+            onChange={(e) => {
+              setLocationTouched(true);
+              setLocation(e.target.value);
+            }}
+            maxLength={200}
+          />
+          {homeVenue && !isEdit && (
+            <span className={profileStyles.requiredHint}>Для домашнего матча подставляется домашняя площадка команды: {homeVenue}.</span>
+          )}
         </label>
 
         <label className={profileStyles.field} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -96,7 +125,23 @@ export function MatchForm({ token, teamId, initial, onSaved, onCancel }: MatchFo
 
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Турнир</span>
-          <input className={profileStyles.input} value={tournament} onChange={(e) => setTournament(e.target.value)} maxLength={150} />
+          <input
+            className={profileStyles.input}
+            list="team-tournaments"
+            value={tournament}
+            onChange={(e) => setTournament(e.target.value)}
+            maxLength={150}
+          />
+          <datalist id="team-tournaments">
+            {tournaments.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
+          <span className={profileStyles.requiredHint}>
+            {tournaments.length > 0
+              ? "Выберите из турниров команды или впишите свой."
+              : "Турниры команды можно задать в настройках команды — тогда их можно будет выбирать здесь."}
+          </span>
         </label>
 
         {error && <p className={profileStyles.error}>{error}</p>}
