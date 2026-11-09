@@ -58,7 +58,13 @@ public struct Team: Decodable, Equatable, Hashable, Identifiable, Sendable {
     public let logoFileId: UUID?
     public let myRoleRaw: String?
     public let membersCount: Int?
+    /// Absent from a server that does not know tournaments yet.
+    private let tournamentList: [String]?
+    /// The home venue: a home match takes it as its place.
+    public let homeVenue: String?
 
+    /// The tournaments the team plays in (the match form offers them).
+    public var tournaments: [String] { tournamentList ?? [] }
     public var level: TeamLevel? { levelRaw.flatMap(TeamLevel.init(rawValue:)) }
     public var myRole: TeamRole? { myRoleRaw.map(TeamRole.init(raw:)) }
     public var isWithoutCoach: Bool { status == "without_coach" }
@@ -66,14 +72,16 @@ public struct Team: Decodable, Equatable, Hashable, Identifiable, Sendable {
     public var canManage: Bool { myRole?.isStaff ?? false }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, description, sport, ageCategory, status, createdBy, logoFileId, membersCount
+        case id, name, description, sport, ageCategory, status, createdBy, logoFileId, membersCount, homeVenue
         case levelRaw = "level"
+        case tournamentList = "tournaments"
         case myRoleRaw = "myRole"
     }
 
     public init(
         id: UUID, name: String, description: String? = nil, sport: String, ageCategory: String? = nil, level: TeamLevel? = nil,
-        status: String = "active", createdBy: UUID, logoFileId: UUID? = nil, myRole: TeamRole? = nil, membersCount: Int? = nil
+        status: String = "active", createdBy: UUID, logoFileId: UUID? = nil, myRole: TeamRole? = nil, membersCount: Int? = nil,
+        tournaments: [String] = [], homeVenue: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -86,6 +94,8 @@ public struct Team: Decodable, Equatable, Hashable, Identifiable, Sendable {
         self.logoFileId = logoFileId
         self.myRoleRaw = myRole.map { Self.raw($0) }
         self.membersCount = membersCount
+        self.tournamentList = tournaments
+        self.homeVenue = homeVenue
     }
 
     private static func raw(_ role: TeamRole) -> String {
@@ -105,30 +115,54 @@ public struct TeamInput: Encodable, Equatable, Sendable {
     public static let maxSport = 50
     public static let maxDescription = 1000
     public static let maxAgeCategory = 50
+    public static let maxTournaments = 20
+    public static let maxTournamentName = 150
+    public static let maxHomeVenue = 200
 
     public let name: String
     public let sport: String
     public let description: String?
     public let ageCategory: String?
     public let level: TeamLevel?
+    public let tournaments: [String]
+    public let homeVenue: String?
 
     /// Trims the text; empty optional fields are sent as absent. Returns nil when the name or the sport is missing or too long.
-    public init?(name: String, sport: String, description: String = "", ageCategory: String = "", level: TeamLevel? = nil) {
+    public init?(
+        name: String, sport: String, description: String = "", ageCategory: String = "", level: TeamLevel? = nil,
+        tournaments: [String] = [], homeVenue: String = ""
+    ) {
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let sport = sport.trimmingCharacters(in: .whitespacesAndNewlines)
         let description = description.trimmingCharacters(in: .whitespacesAndNewlines)
         let age = ageCategory.trimmingCharacters(in: .whitespacesAndNewlines)
+        let venue = homeVenue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cups = Self.cleaned(tournaments)
         guard !name.isEmpty, name.count <= Self.maxName, !sport.isEmpty, sport.count <= Self.maxSport,
-              description.count <= Self.maxDescription, age.count <= Self.maxAgeCategory else { return nil }
+              description.count <= Self.maxDescription, age.count <= Self.maxAgeCategory,
+              venue.count <= Self.maxHomeVenue, cups.count <= Self.maxTournaments,
+              cups.allSatisfy({ $0.count <= Self.maxTournamentName }) else { return nil }
         self.name = name
         self.sport = sport
         self.description = description.isEmpty ? nil : description
         self.ageCategory = age.isEmpty ? nil : age
         self.level = level
+        self.tournaments = cups
+        self.homeVenue = venue.isEmpty ? nil : venue
+    }
+
+    /// Trimmed, without empty lines and repeats, in the order written.
+    public static func cleaned(_ names: [String]) -> [String] {
+        var seen: [String] = []
+        for name in names {
+            let clean = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !clean.isEmpty, !seen.contains(clean) { seen.append(clean) }
+        }
+        return seen
     }
 
     // The server wants explicit nulls for cleared fields, otherwise "remove the description" would silently keep it.
-    private enum CodingKeys: String, CodingKey { case name, sport, description, ageCategory, level }
+    private enum CodingKeys: String, CodingKey { case name, sport, description, ageCategory, level, tournaments, homeVenue }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -137,6 +171,8 @@ public struct TeamInput: Encodable, Equatable, Sendable {
         try container.encode(description, forKey: .description)
         try container.encode(ageCategory, forKey: .ageCategory)
         try container.encode(level, forKey: .level)
+        try container.encode(tournaments, forKey: .tournaments)
+        try container.encode(homeVenue, forKey: .homeVenue)
     }
 }
 

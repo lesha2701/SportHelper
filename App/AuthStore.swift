@@ -48,7 +48,11 @@ final class AuthStore {
     private let service: AuthService
     private let persistence: SessionPersistence
 
+    /// The site's admin panel (the same host as the server; administrators sign in there separately, with a second step).
+    let adminPanelURL: URL
+
     init(environment: AppEnvironment) {
+        adminPanelURL = environment.baseURL.appendingPathComponent("admin")
         let holder = ExpiryHolder()
         let client = APIClient(baseURL: environment.baseURL, onSessionExpired: { holder.fire() })
         self.client = client

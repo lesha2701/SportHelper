@@ -18,11 +18,25 @@ struct TeamFormView: View {
     @State private var age = ""
     @State private var level: TeamLevel?
     @State private var details = ""
+    @State private var homeVenue = ""
+    @State private var tournaments = ""
     @State private var saving = false
     @State private var error: String?
     @State private var loaded = false
 
-    private var input: TeamInput? { TeamInput(name: name, sport: sport, description: details, ageCategory: age, level: level) }
+    private var input: TeamInput? {
+        TeamInput(
+            name: name, sport: sport, description: details, ageCategory: age, level: level,
+            tournaments: tournaments.components(separatedBy: .newlines), homeVenue: homeVenue
+        )
+    }
+    private var limitProblem: String? {
+        let cups = TeamInput.cleaned(tournaments.components(separatedBy: .newlines))
+        if cups.count > TeamInput.maxTournaments { return "Турниров не больше \(TeamInput.maxTournaments)." }
+        if cups.contains(where: { $0.count > TeamInput.maxTournamentName }) { return "Название турнира не длиннее \(TeamInput.maxTournamentName) символов." }
+        if homeVenue.count > TeamInput.maxHomeVenue { return "Площадка не длиннее \(TeamInput.maxHomeVenue) символов." }
+        return nil
+    }
     private var isCreate: Bool { if case .create = mode { true } else { false } }
 
     var body: some View {
@@ -42,6 +56,15 @@ struct TeamFormView: View {
                     if details.count > TeamInput.maxDescription {
                         Text("Не длиннее \(TeamInput.maxDescription) символов.").font(.footnote).foregroundStyle(.red)
                     }
+                }
+                Section(sag: "Матчи") {
+                    FormField(title: "Домашняя площадка", hint: "Подставится как место во всех домашних матчах команды.") {
+                        TextField("Например, стадион «Динамо»", text: $homeVenue).accessibilityIdentifier("teamForm.homeVenue")
+                    }
+                    FormField(title: "Турниры команды", hint: "Каждый турнир с новой строки. В форме матча их можно выбрать из списка.") {
+                        TextField("Кубок города", text: $tournaments, axis: .vertical).lineLimit(2...6).accessibilityIdentifier("teamForm.tournaments")
+                    }
+                    if let message = limitProblem { Text(message).font(.footnote).foregroundStyle(.red) }
                 }
                 if let error { Section { Text(error).foregroundStyle(.red).accessibilityIdentifier("teamForm.error") } }
             }
@@ -69,6 +92,8 @@ struct TeamFormView: View {
             age = team.ageCategory ?? ""
             level = team.level
             details = team.description ?? ""
+            homeVenue = team.homeVenue ?? ""
+            tournaments = team.tournaments.joined(separator: "\n")
         }
     }
 

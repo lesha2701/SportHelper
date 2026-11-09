@@ -66,6 +66,7 @@ struct ProfileView: View {
             if user.deletionRequestedAt != nil { deletionBanner }
             if me.player == nil && me.coach == nil { emptyProfileSection } else { detailsSection(me) }
             if user.isCoach { CoachOffersSection() }
+            if user.isAdministrator { AdminSection(user: user, me: me, store: store) }
             trainingsSection
             appearanceSection
             accountSection

@@ -60,6 +60,14 @@ final class ProfileStore {
         } catch let error as APIError { return error.message } catch { return APIError.unknown.message }
     }
 
+    /// Changes the part an administrator works in. Returns the server's own error text, or nil when it went through.
+    func switchMode(to mode: String) async -> String? {
+        do {
+            load = .loaded(try await service.switchMode(to: mode))
+            return nil
+        } catch let error as APIError { return error.message } catch { return APIError.unknown.message }
+    }
+
     func setAvatar(photoData: Data) async -> String? {
         guard let jpeg = ImageEncoding.jpeg(from: photoData) else { return "Не удалось прочитать фото. Выберите другое." }
         do {

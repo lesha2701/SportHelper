@@ -22,7 +22,10 @@ public struct AuthUser: Decodable, Equatable, Sendable, Identifiable {
     public let csrfToken: String
 
     public var fullName: String { [firstName, lastName].compactMap { $0 }.joined(separator: " ") }
-    public var isCoach: Bool { (preferredRole ?? activeMode) == "coach" }
+    /// Whether the account is an administrator (the server says who they are).
+    public var isAdministrator: Bool { isAdmin == true }
+    /// A person's role is fixed at sign-up; an administrator alone may switch, so for them the part they work in now decides.
+    public var isCoach: Bool { (isAdministrator ? activeMode ?? preferredRole : preferredRole ?? activeMode) == "coach" }
     public var needsOnboarding: Bool {
         guard let done = completedOnboardingVersion, let current = currentOnboardingVersion else { return false }
         return done < current

@@ -103,6 +103,19 @@ struct ProfileServiceTests {
         #expect(me.player?.sport == "Большой теннис" && me.coach == nil)
     }
 
+    @Test func anAdministratorSwitchesTheirWorkingModeAndTheNewModeIsReturned() async throws {
+        let seen = RequestLog()
+        let (profiles, api) = service { request in seen.add(request); return json(#"{"active_mode":"player","player":\#(playerJSON),"coach":\#(coachJSON)}"#) }
+        await api.setCSRFToken("csrf-1")
+
+        let me = try await profiles.switchMode(to: "player")
+
+        let request = try #require(seen.all.first)
+        #expect(request.httpMethod == "POST" && request.url?.path == "/api/profile/active-mode")
+        #expect(request.bodyJSON?["mode"] as? String == "player" && request.value(forHTTPHeaderField: "X-CSRF-Token") == "csrf-1")
+        #expect(me.activeMode == "player" && me.player != nil && me.coach != nil)
+    }
+
     @Test func savingAPlayerProfileUsesPutWithTheTokenAndReturnsTheSavedOne() async throws {
         let seen = RequestLog()
         let (profiles, api) = service { request in seen.add(request); return json(playerJSON) }

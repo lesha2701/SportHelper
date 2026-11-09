@@ -150,6 +150,14 @@ private func teamJSON(role: String? = "head_coach", level: String? = "amateur", 
 struct TeamModelTests {
     private func team(_ text: String) throws -> Team { try APIClient.decoder.decode(Team.self, from: Data(text.utf8)) }
 
+    @Test func aTeamKeepsItsTournamentsAndHomeVenueAndAnOldServerMeansNone() throws {
+        let extra = "\"members_count\":12,\"tournaments\":[\"Лига\",\"Кубок\"],\"home_venue\":\"Арена\""
+        let with = try team(teamJSON().replacingOccurrences(of: "\"members_count\":12", with: extra))
+        #expect(with.tournaments == ["Лига", "Кубок"] && with.homeVenue == "Арена")
+        let without = try team(teamJSON())
+        #expect(without.tournaments.isEmpty && without.homeVenue == nil)
+    }
+
     @Test func aTeamIsReadWithTheRoleOfThePerson() throws {
         let parsed = try team(teamJSON())
         #expect(parsed.name == "Спартак" && parsed.level == .amateur && parsed.myRole == .headCoach && parsed.membersCount == 12)
@@ -183,6 +191,23 @@ struct TeamInputTests {
         #expect(data["name"] as? String == "Спартак" && data["sport"] as? String == "Футбол")
         // Explicit nulls: otherwise clearing a field in the form would silently keep the old text on the server.
         #expect(data["description"] is NSNull && data["age_category"] is NSNull && data["level"] is NSNull)
+    }
+
+    @Test func tournamentsAreCleanedAndTheVenueIsSentAlongWithThem() throws {
+        let input = try #require(TeamInput(name: "К", sport: "Ф", tournaments: [" Лига ", "", "Лига", "Кубок"], homeVenue: "  Арена "))
+        #expect(input.tournaments == ["Лига", "Кубок"] && input.homeVenue == "Арена")
+        let data = try #require(try JSONSerialization.jsonObject(with: APIClient.encoder.encode(input)) as? [String: Any])
+        #expect(data["tournaments"] as? [String] == ["Лига", "Кубок"] && data["home_venue"] as? String == "Арена")
+        let cleared = try #require(TeamInput(name: "К", sport: "Ф"))
+        let sent = try #require(try JSONSerialization.jsonObject(with: APIClient.encoder.encode(cleared)) as? [String: Any])
+        // «Remove them» is sent explicitly: the server keeps what a request leaves out.
+        #expect((sent["tournaments"] as? [String])?.isEmpty == true && sent["home_venue"] is NSNull)
+    }
+
+    @Test func tooManyOrTooLongTournamentsAndAHugeVenueAreRefused() {
+        #expect(TeamInput(name: "К", sport: "Ф", tournaments: (0..<21).map { "Т\($0)" }) == nil)
+        #expect(TeamInput(name: "К", sport: "Ф", tournaments: [String(repeating: "я", count: 151)]) == nil)
+        #expect(TeamInput(name: "К", sport: "Ф", homeVenue: String(repeating: "я", count: 201)) == nil)
     }
 
     @Test func aNameOrSportIsRequiredAndLimited() {

@@ -10,6 +10,11 @@ public final class ProfileService: Sendable {
         try await client.send(.get, "/api/profile/me")
     }
 
+    /// An administrator works as a player or as a coach and may change over (anyone else is told the role is fixed).
+    public func switchMode(to mode: String) async throws -> ProfileMe {
+        try await client.send(.post, "/api/profile/active-mode", body: ["mode": mode])
+    }
+
     public func savePlayer(_ input: PlayerProfileInput) async throws -> PlayerProfile {
         try await client.send(.put, "/api/profile/player", body: input)
     }

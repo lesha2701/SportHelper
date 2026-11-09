@@ -25,6 +25,18 @@ struct AuthServiceTests {
         #expect(await api.csrfToken() == "csrf-abc")
     }
 
+    @Test func anAdministratorWorksInTheModeTheyChoseOthersKeepTheirRegisteredRole() throws {
+        func user(admin: Bool, mode: String) throws -> AuthUser {
+            let text = userJSON.replacingOccurrences(of: "\"is_admin\":false", with: "\"is_admin\":\(admin)")
+                .replacingOccurrences(of: "\"active_mode\":\"coach\"", with: "\"active_mode\":\"\(mode)\"")
+            return try APIClient.decoder.decode(AuthUser.self, from: Data(text.utf8))
+        }
+        #expect(try user(admin: true, mode: "player").isCoach == false)  // registered as a coach, works as a player now
+        #expect(try user(admin: true, mode: "coach").isCoach)
+        #expect(try user(admin: false, mode: "player").isCoach)  // the role of an ordinary person is fixed
+        #expect(try user(admin: true, mode: "player").isAdministrator)
+    }
+
     @Test func aWrongPasswordIsTheServersRussianMessageAndKeepsNoToken() async throws {
         let (auth, api) = make { _ in json(#"{"error":{"code":"invalid_credentials","message":"Неверный email или пароль."}}"#, status: 401) }
 

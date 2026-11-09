@@ -258,12 +258,24 @@ struct MatchFormView: View {
     @State private var location = ""
     @State private var tournament = ""
     @State private var isHome = true
+    /// Once the person has typed a place, it is no longer replaced by the team's home venue.
+    @State private var placeTyped = false
     @State private var status = MatchStatus.scheduled
     @State private var saving = false
     @State private var error: String?
     @State private var filled = false
 
     private var isAdd: Bool { if case .add = mode { true } else { false } }
+
+    /// The team's settings: its tournaments and home venue.
+    private var team: Team? {
+        let id: UUID
+        switch mode {
+        case .add(let team): return team
+        case .edit(let match): id = match.teamId
+        }
+        return auth.teams.mine.loadedTeams.first { $0.id == id }
+    }
 
     private var input: MatchInput? {
         MatchInput(opponentName: opponent, date: LocalDate(date: date), time: LocalTime(from: time), location: location, tournament: tournament, isHome: isHome)
@@ -285,8 +297,23 @@ struct MatchFormView: View {
                         Text("В гостях").tag(false)
                     }
                     .pickerStyle(.segmented)
-                    TextField("Место (необязательно)", text: $location).accessibilityIdentifier("matchForm.location")
-                    TextField("Турнир (необязательно)", text: $tournament).accessibilityIdentifier("matchForm.tournament")
+                    .onChange(of: isHome) { _, _ in applyHomeVenue() }
+                    FormField(title: "Место", hint: placeHint) {
+                        TextField("Необязательно", text: $location).accessibilityIdentifier("matchForm.location")
+                            .onChange(of: location) { _, new in if !new.isEmpty, new != team?.homeVenue { placeTyped = true } }
+                    }
+                    FormField(title: "Турнир", hint: tournamentHint) {
+                        TextField("Необязательно", text: $tournament).accessibilityIdentifier("matchForm.tournament")
+                    }
+                    if let cups = team?.tournaments, !cups.isEmpty {
+                        Menu {
+                            ForEach(cups, id: \.self) { cup in Button(cup) { tournament = cup } }
+                            Button("Без турнира", role: .destructive) { tournament = "" }
+                        } label: {
+                            Label("Выбрать из турниров команды", systemImage: "list.bullet")
+                        }
+                        .accessibilityIdentifier("matchForm.pickTournament")
+                    }
                 }
                 if !isAdd {
                     Section {
@@ -314,9 +341,25 @@ struct MatchFormView: View {
         }
     }
 
+    private var placeHint: String {
+        if let venue = team?.homeVenue, isAdd { return "Для домашнего матча подставляется домашняя площадка команды: \(venue)." }
+        return "Где играем: адрес или название площадки."
+    }
+
+    private var tournamentHint: String {
+        team?.tournaments.isEmpty == false ? "Впишите или выберите из турниров команды ниже." : "Турниры команды можно задать в настройках команды."
+    }
+
+    /// A home match of a new match is played at the team's home venue, until the person types another place.
+    private func applyHomeVenue() {
+        guard isAdd, !placeTyped else { return }
+        location = isHome ? team?.homeVenue ?? "" : ""
+    }
+
     private func fill() {
         guard !filled else { return }
         filled = true
+        applyHomeVenue()
         if case .edit(let match) = mode {
             opponent = match.opponentName
             date = match.matchDate.startOfDay
