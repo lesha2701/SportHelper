@@ -21,6 +21,7 @@ import type { Team } from "@/shared/types/team";
 import { AiText } from "@/ui/AiText";
 import { BottomSheet } from "@/ui/BottomSheet";
 import { Card } from "@/ui/Card";
+import { Choice } from "@/ui/Choice";
 import { ListRow } from "@/ui/ListRow";
 import { Screen } from "@/ui/Screen";
 import { Text } from "@/ui/Text";
@@ -55,6 +56,7 @@ export default function HomeScreen() {
   const monday = startOfWeekIso(today);
   const [selectedDay, setSelectedDay] = useState(today);
   const [creating, setCreating] = useState<CreateKind | null>(null);
+  const [pickedTeam, setPickedTeam] = useState<string | null>(null);
 
   const data = useLoad(async () => {
     const events = await getCalendar(monday, addDays(today, 30)).catch(() => [] as CalendarEvent[]);
@@ -68,16 +70,21 @@ export default function HomeScreen() {
     if (mode === "player") {
       const [stats, tasks] = await Promise.all([getPlayerStats(user!.id).catch(() => null), listMyTasks().catch(() => [])]);
       const openTasks = tasks.filter((t) => ["assigned", "viewed", "in_progress", "needs_revision"].includes(t.assignment.status)).length;
-      return { events, next, stats, openTasks, teams: [] as Team[], requests: 0, toReview: 0, teamStats: null };
+      return { events, next, stats, openTasks, teams: [] as Team[], requests: 0, toReview: 0 };
     }
     const [teams, requests] = await Promise.all([listMyTeams().catch(() => [] as Team[]), listCoachPendingBookings().catch(() => [])]);
     const staffTeams = teams.filter((t) => t.myRole === "head_coach" || t.myRole === "assistant_coach");
     const tasks = (await Promise.all(staffTeams.map((t) => listTeamTasks(t.id).catch(() => [])))).flat();
     const toReview = tasks.reduce((n, t) => n + t.assignments.filter((a) => a.status === "submitted").length, 0);
     // The website's coach panel: load, who needs attention and recent results of the (first) team.
-    const teamStats = staffTeams[0] ? await getTeamStats(staffTeams[0].id).catch(() => null) : null;
-    return { events, next, stats: null, openTasks: 0, teams: staffTeams, requests: requests.length, toReview, teamStats };
+    return { events, next, stats: null, openTasks: 0, teams: staffTeams, requests: requests.length, toReview };
   }, [mode, user?.id]);
+
+  // The coach's panel works on one team at a time (the website's team chips); the first one until another is picked.
+  const coachTeams = data.data?.teams ?? [];
+  const selectedTeam = coachTeams.find((t) => t.id === pickedTeam) ?? coachTeams[0] ?? null;
+  const teamStatsLoad = useLoad(async () => (selectedTeam ? await getTeamStats(selectedTeam.id).catch(() => null) : null), [selectedTeam?.id]);
+  const teamStats = teamStatsLoad.data ?? null;
 
   if (state.status !== "ready") return null;
   const d = data.data;
@@ -92,7 +99,8 @@ export default function HomeScreen() {
       return;
     }
     const teams = d?.teams ?? [];
-    if (teams.length === 1) go(kind, teams[0]!.id);
+    if (selectedTeam) go(kind, selectedTeam.id);
+    else if (teams.length === 1) go(kind, teams[0]!.id);
     else if (teams.length === 0) router.push("/teams");
     else setCreating(kind);
   }
@@ -129,6 +137,10 @@ export default function HomeScreen() {
         </Text>
         <Text variant="title">Привет, {user?.firstName}!</Text>
       </View>
+
+      {mode === "coach" && coachTeams.length > 1 ? (
+        <Choice layout="chips" options={coachTeams.map((t) => ({ value: t.id, title: t.name }))} value={selectedTeam?.id ?? null} onChange={setPickedTeam} />
+      ) : null}
 
       <NextEventHero
         event={d?.next ?? null}
@@ -177,23 +189,23 @@ export default function HomeScreen() {
         </Card>
       ) : null}
 
-      {mode === "coach" && d?.teamStats ? (
+      {mode === "coach" && selectedTeam && teamStats ? (
         <>
           <Card>
-            <Text variant="heading">Нагрузка команды{d.teams.length > 1 ? ` · ${d.teams[0]!.name}` : ""}</Text>
+            <Text variant="heading">Нагрузка команды{coachTeams.length > 1 ? ` · ${selectedTeam.name}` : ""}</Text>
             <View style={homeStyles.grid2}>
-              <BigStat value={formatRate(d.teamStats.attendanceRate)} label="Посещаемость" />
-              <BigStat value={d.teamStats.trainingsCompleted} label="Тренировок проведено" />
-              <BigStat value={`${d.teamStats.tasksCompleted}/${d.teamStats.tasksTotal}`} label="Заданий выполнено" />
-              <BigStat value={d.teamStats.avgWellbeing ?? "—"} label="Самочувствие" />
+              <BigStat value={formatRate(teamStats.attendanceRate)} label="Посещаемость" />
+              <BigStat value={teamStats.trainingsCompleted} label="Тренировок проведено" />
+              <BigStat value={`${teamStats.tasksCompleted}/${teamStats.tasksTotal}`} label="Заданий выполнено" />
+              <BigStat value={teamStats.avgWellbeing ?? "—"} label="Самочувствие" />
             </View>
             <Text variant="caption" muted>
-              Матчи: {d.teamStats.matchesWon}-{d.teamStats.matchesDrawn}-{d.teamStats.matchesLost} (победы-ничьи-поражения)
+              Матчи: {teamStats.matchesWon}-{teamStats.matchesDrawn}-{teamStats.matchesLost} (победы-ничьи-поражения)
             </Text>
           </Card>
           <Card>
             <Text variant="heading">Игроки: нужно внимание</Text>
-            {[...d.teamStats.frequentAbsencePlayers, ...d.teamStats.lowActivityPlayers]
+            {[...teamStats.frequentAbsencePlayers, ...teamStats.lowActivityPlayers]
               .filter((p, i, all) => all.findIndex((x) => x.userId === p.userId) === i)
               .slice(0, 4)
               .map((p) => (
@@ -202,10 +214,10 @@ export default function HomeScreen() {
                   icon="alert-circle-outline"
                   title={[p.firstName, p.lastName].filter(Boolean).join(" ")}
                   subtitle={`Пропусков: ${p.absentCount} · посещаемость ${formatRate(p.attendanceRate)}`}
-                  onPress={() => router.push({ pathname: "/team/[id]/member/[userId]", params: { id: d.teams[0]!.id, userId: p.userId } })}
+                  onPress={() => router.push({ pathname: "/team/[id]/member/[userId]", params: { id: selectedTeam.id, userId: p.userId } })}
                 />
               ))}
-            {d.teamStats.frequentAbsencePlayers.length + d.teamStats.lowActivityPlayers.length === 0 ? <Text muted>Все в порядке.</Text> : null}
+            {teamStats.frequentAbsencePlayers.length + teamStats.lowActivityPlayers.length === 0 ? <Text muted>Все в порядке.</Text> : null}
           </Card>
         </>
       ) : null}
