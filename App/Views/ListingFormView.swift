@@ -32,11 +32,19 @@ struct ListingFormView: View {
             Form {
                 aboutSection
                 Section(sag: "Условия") {
-                    TextField("Цена за тренировку, ₽", text: $draft.price).keyboardType(.decimalPad).accessibilityIdentifier("listingForm.price")
-                    TextField("Длительность, мин", text: $draft.duration).keyboardType(.numberPad).accessibilityIdentifier("listingForm.duration")
-                    Toggle("Онлайн", isOn: $draft.offersOnline).accessibilityIdentifier("listingForm.online")
-                    Toggle("Очно", isOn: $draft.offersOffline).accessibilityIdentifier("listingForm.offline")
-                    TextField("Город (для очных тренировок)", text: $draft.location).accessibilityIdentifier("listingForm.location")
+                    FormField(title: "Цена за тренировку, ₽", hint: "Сколько стоит одно занятие: эту сумму игрок платит при записи.") {
+                        TextField("Например, 2500", text: $draft.price).keyboardType(.decimalPad).accessibilityIdentifier("listingForm.price")
+                    }
+                    FormField(title: "Длительность, мин", hint: "Сколько длится одно занятие. По ней расписание режется на время для записи.") {
+                        TextField("Например, 60", text: $draft.duration).keyboardType(.numberPad).accessibilityIdentifier("listingForm.duration")
+                    }
+                    HintedToggle(title: "Онлайн", hint: "Занятие по видеосвязи: игроку не нужно приезжать.", isOn: $draft.offersOnline)
+                        .accessibilityIdentifier("listingForm.online")
+                    HintedToggle(title: "Очно", hint: "Занятие лично: укажите город, где вы тренируете.", isOn: $draft.offersOffline)
+                        .accessibilityIdentifier("listingForm.offline")
+                    FormField(title: "Город", hint: "Нужен для очных тренировок: по нему игроки ищут тренера рядом.") {
+                        TextField("Например, Москва", text: $draft.location).accessibilityIdentifier("listingForm.location")
+                    }
                 }
                 mediaSections
                 scheduleSection
@@ -79,9 +87,15 @@ struct ListingFormView: View {
 
     private var aboutSection: some View {
         Section {
-            TextField("Название", text: $draft.title).accessibilityIdentifier("listingForm.title")
-            TextField("Описание", text: $draft.description, axis: .vertical).lineLimit(2...8).accessibilityIdentifier("listingForm.description")
-            Toggle("Показывать в каталоге", isOn: $draft.isListed).accessibilityIdentifier("listingForm.listed")
+            FormField(title: "Название", hint: "Так объявление называется в каталоге, например «Индивидуальная тренировка по теннису».") {
+                TextField("Название объявления", text: $draft.title).accessibilityIdentifier("listingForm.title")
+            }
+            FormField(title: "Описание", hint: "Чему вы научите, для кого занятие и что взять с собой.") {
+                TextField("Расскажите о занятии", text: $draft.description, axis: .vertical).lineLimit(2...8)
+                    .accessibilityIdentifier("listingForm.description")
+            }
+            HintedToggle(title: "Показывать в каталоге", hint: "Выключено: объявление видите только вы, записаться на него нельзя.", isOn: $draft.isListed)
+                .accessibilityIdentifier("listingForm.listed")
         } footer: {
             Text("Игроки смогут найти объявление и записаться. Чтобы опубликовать, нужны формат, цена, длительность и расписание.")
         }
@@ -144,14 +158,25 @@ struct ListingFormView: View {
 
     @ViewBuilder private func windowRow(_ index: Int) -> some View {
         if draft.windows.indices.contains(index) {
-            HStack(spacing: 8) {
-                Picker("День", selection: weekday(index)) {
-                    ForEach(0..<7, id: \.self) { Text(AvailabilityWindow.weekdayTitles[$0]).tag($0) }
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Picker("День недели", selection: weekday(index)) {
+                        ForEach(0..<7, id: \.self) { Text(AvailabilityWindow.weekdayTitles[$0]).tag($0) }
+                    }
+                    Spacer()
+                    // a button for it, not only the swipe: not everyone guesses the swipe
+                    Button { draft.windows.remove(at: index) } label: { Image(systemName: "trash").foregroundStyle(Theme.danger) }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Удалить это окно")
+                        .accessibilityIdentifier("listingForm.removeWindow")
                 }
-                .labelsHidden()
-                DatePicker("С", selection: time(index, \.start), displayedComponents: .hourAndMinute).labelsHidden()
-                Text("—")
-                DatePicker("До", selection: time(index, \.end), displayedComponents: .hourAndMinute).labelsHidden()
+                HStack(spacing: 8) {
+                    Text("С").foregroundStyle(.secondary)
+                    DatePicker("С", selection: time(index, \.start), displayedComponents: .hourAndMinute).labelsHidden()
+                    Text("до").foregroundStyle(.secondary)
+                    DatePicker("До", selection: time(index, \.end), displayedComponents: .hourAndMinute).labelsHidden()
+                    Spacer()
+                }
             }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("listingForm.window")

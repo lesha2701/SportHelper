@@ -130,6 +130,20 @@ public enum TaskRequirement: String, CaseIterable, Identifiable, Sendable {
         case .wellbeing: "Самочувствие (1–5)"
         }
     }
+
+    /// What the player is asked to hand in (shown to the coach under the question mark of the task form).
+    public var hint: String {
+        switch self {
+        case .comment: "Игрок напишет, как прошло выполнение, что получилось и что нет."
+        case .photo: "Игрок приложит фото: например, результат или положение тела в упражнении."
+        case .video: "Игрок приложит видео выполнения, чтобы вы разобрали технику."
+        case .setsReps: "Игрок впишет подходы и повторы по каждому упражнению."
+        case .duration: "Игрок укажет, сколько времени заняло выполнение."
+        case .metricValue: "Игрок впишет число по показателю задания (например, вес или время). Показатель задаётся выше."
+        case .difficulty: "Игрок оценит по шкале от 1 до 10, насколько было тяжело."
+        case .wellbeing: "Игрок оценит по шкале от 1 до 5, как себя чувствовал после."
+        }
+    }
 }
 
 /// A task a coach gave to a team.

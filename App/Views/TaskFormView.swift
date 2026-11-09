@@ -15,6 +15,8 @@ struct TaskFormView: View {
     @Environment(AuthStore.self) private var auth
     @Environment(\.dismiss) private var dismiss
     let mode: Mode
+    /// A task given from a template of the library: the form starts filled from it.
+    var template: TaskTemplate?
     let onDone: () -> Void
 
     @State private var title = ""
@@ -40,6 +42,7 @@ struct TaskFormView: View {
     @State private var saving = false
     @State private var error: String?
     @State private var filled = false
+    @State private var explaining = false
 
     private var isGive: Bool { if case .give = mode { true } else { false } }
     private var isTemplate: Bool {
@@ -98,7 +101,7 @@ struct TaskFormView: View {
 
     private var heading: String {
         switch mode {
-        case .give: "Новое задание"
+        case .give: "Назначить задание"
         case .edit: "Изменить задание"
         case .newTemplate: "Новый шаблон"
         case .editTemplate: "Изменить шаблон"
@@ -110,9 +113,12 @@ struct TaskFormView: View {
             Form {
                 if isGive && !templates.isEmpty { templateSection }
                 Section {
-                    TextField("Название", text: $title).accessibilityIdentifier("taskForm.title")
-                    TextField("Что нужно сделать (необязательно)", text: $details, axis: .vertical).lineLimit(3...8)
-                        .accessibilityIdentifier("taskForm.details")
+                    FormField(title: "Название", hint: "Коротко, чтобы игрок сразу понял суть: например, «Отжимания 3×15».") {
+                        TextField("Название задания", text: $title).accessibilityIdentifier("taskForm.title")
+                    }
+                    FormField(title: "Что нужно сделать", hint: "Необязательно. Подробности: как выполнять, на что обратить внимание.") {
+                        TextField("Описание", text: $details, axis: .vertical).lineLimit(3...8).accessibilityIdentifier("taskForm.details")
+                    }
                 }
                 if !isTemplate {
                     Section {
@@ -136,7 +142,7 @@ struct TaskFormView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Отмена") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isNew ? (isGive ? "Дать" : "Сохранить") : "Сохранить") { Task { await save() } }
+                    Button(isNew ? (isGive ? "Назначить" : "Сохранить") : "Сохранить") { Task { await save() } }
                         .disabled(input == nil || saving)
                         .accessibilityIdentifier("taskForm.save")
                 }
@@ -179,13 +185,39 @@ struct TaskFormView: View {
                     .accessibilityIdentifier("taskForm.need.\(requirement.rawValue)")
             }
         } header: {
-            Text("Что игрок должен сдать")
+            HStack(spacing: 6) {
+                Text("Что игрок должен сдать")
+                Button { explaining = true } label: { Image(systemName: "questionmark.circle") }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("Что означает каждый пункт")
+                    .accessibilityIdentifier("taskForm.needHelp")
+                    .popover(isPresented: $explaining) { requirementsHelp.presentationCompactAdaptation(.popover) }
+            }
+        } footer: {
+            Text("Отметьте, что игрок приложит, когда будет сдавать задание. Нажмите на вопрос, чтобы увидеть, что значит каждый пункт.")
         }
+    }
+
+    private var requirementsHelp: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Что игрок сдаёт").font(.headline)
+                ForEach(TaskRequirement.allCases) { requirement in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(requirement.title).font(.subheadline.weight(.semibold))
+                        Text(requirement.hint).font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding()
+        }
+        .frame(minWidth: 280, idealWidth: 320, maxHeight: 420)
+        .accessibilityIdentifier("taskForm.needHelpText")
     }
 
     @ViewBuilder private var librarySection: some View {
         if !plans.isEmpty || !exercises.isEmpty || planId != nil || !exerciseIds.isEmpty {
-            Section(sag: "Из библиотеки") {
+            Section {
                 if !plans.isEmpty || planId != nil {
                     Picker("План тренировки", selection: $planId) {
                         Text("Без плана").tag(UUID?.none)
@@ -200,6 +232,10 @@ struct TaskFormView: View {
                     LabeledContent("Упражнения", value: exerciseIds.isEmpty ? "Не выбраны" : "\(exerciseIds.count)")
                 }
                 .accessibilityIdentifier("taskForm.exercises")
+            } header: {
+                SagSectionHeader(title: "План и упражнения")
+            } footer: {
+                Text("Необязательно: прикрепите план тренировки или упражнения из вашей библиотеки, чтобы игрок увидел их в задании.")
             }
         }
     }
@@ -285,6 +321,8 @@ struct TaskFormView: View {
             }
         case .editTemplate(let template):
             if let value = template.asTaskInput { apply(value) }
+        case .give:
+            if let template { apply(template) }
         default: break
         }
     }
@@ -341,40 +379,4 @@ struct TaskFormView: View {
 
 extension Result {
     var failure: Failure? { if case .failure(let error) = self { error } else { nil } }
-}
-
-/// Choosing the exercises of a task from the coach's library.
-struct ExercisePickerView: View {
-    let exercises: [Exercise]
-    @Binding var selection: [UUID]
-
-    var body: some View {
-        List {
-            if exercises.isEmpty { Text("В вашей библиотеке пока нет упражнений.").foregroundStyle(.secondary) }
-            ForEach(exercises) { exercise in
-                Button {
-                    if let index = selection.firstIndex(of: exercise.id) {
-                        selection.remove(at: index)
-                    } else if selection.count < LibraryLimits.maxTemplateExercises {
-                        selection.append(exercise.id)
-                    }
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(exercise.name).foregroundStyle(.primary)
-                            Text(exercise.sport).font(.footnote).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        if selection.contains(exercise.id) { Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.primary) }
-                    }
-                }
-                .accessibilityIdentifier("picker.exercise")
-                .accessibilityValue(selection.contains(exercise.id) ? "Выбрано" : "Не выбрано")
-            }
-            Section { Text("Не больше \(LibraryLimits.maxTemplateExercises) упражнений.").font(.footnote).foregroundStyle(.secondary) }
-        }
-        .sagScreen()
-        .navigationTitle("Упражнения")
-        .navigationBarTitleDisplayMode(.inline)
-    }
 }

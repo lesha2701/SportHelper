@@ -43,8 +43,8 @@ struct BookingCardView: View {
                 Text("Пожелания: \(notes)").font(.footnote).foregroundStyle(.secondary)
             }
             if viewer == .coach, let onOpenPlayer {
-                Button("Профиль игрока", systemImage: "person.crop.circle", action: onOpenPlayer)
-                    .font(.subheadline).buttonStyle(.borderless)
+                Button(action: onOpenPlayer) { Label("Профиль игрока", systemImage: "person.crop.circle").frame(maxWidth: .infinity) }
+                    .buttonStyle(.bordered)
                     .accessibilityIdentifier("booking.playerProfile")
             }
             planRow
@@ -79,15 +79,15 @@ struct BookingCardView: View {
 
     private func chatButton(_ action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack {
-                Label("Чат тренировки", systemImage: "bubble.left.and.bubble.right")
-                Spacer()
-                if chatUnread > 0 {
-                    Text("\(chatUnread)").font(.caption.bold()).foregroundStyle(.white)
-                        .padding(.horizontal, 7).padding(.vertical, 2).background(Theme.primary, in: Capsule())
+            // the label is in the middle of the button, like every other one; the unread count sits at the right edge
+            Label("Чат тренировки", systemImage: "bubble.left.and.bubble.right")
+                .frame(maxWidth: .infinity)
+                .overlay(alignment: .trailing) {
+                    if chatUnread > 0 {
+                        Text("\(chatUnread)").font(.caption.bold()).foregroundStyle(.white)
+                            .padding(.horizontal, 7).padding(.vertical, 2).background(Theme.primary, in: Capsule())
+                    }
                 }
-            }
-            .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
         .accessibilityIdentifier("booking.chat")

@@ -57,8 +57,10 @@ struct IncomingRequestsView: View {
     private func requestCard(_ request: PendingBooking) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(request.athleteFullName).font(.headline)
-            Button("Профиль игрока", systemImage: "person.crop.circle") { viewing = PlayerRef(id: request.athleteUserId) }
-                .font(.subheadline).buttonStyle(.borderless)
+            Button { viewing = PlayerRef(id: request.athleteUserId) } label: {
+                Label("Профиль игрока", systemImage: "person.crop.circle").frame(maxWidth: .infinity)
+            }
+                .buttonStyle(.bordered)
                 .accessibilityIdentifier("requests.playerProfile")
             if let average = request.athleteRatingAverage, (request.athleteReviewCount ?? 0) > 0 {
                 Label(String(format: "%.1f", average).replacingOccurrences(of: ".", with: ","), systemImage: "star.fill")

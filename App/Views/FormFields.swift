@@ -1,6 +1,38 @@
 import SportArenaKit
 import SwiftUI
 
+/// A form field that names itself: the title stays above the control when it is filled in (a placeholder would vanish), and one line under it
+/// says what the field is for.
+struct FormField<Content: View>: View {
+    let title: String
+    var hint: String?
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(.subheadline.weight(.semibold))
+            content
+            if let hint { Text(hint).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
+        }
+    }
+}
+
+/// A switch with a line under its name saying what it changes.
+struct HintedToggle: View {
+    let title: String
+    let hint: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                Text(hint).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
 /// A whole-number field that may be left empty (the keyboard allows digits only).
 struct OptionalIntField: View {
     let title: String

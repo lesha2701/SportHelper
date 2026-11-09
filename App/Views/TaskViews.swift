@@ -18,7 +18,19 @@ struct TeamTasksView: View {
     @Environment(AuthStore.self) private var auth
     let team: Team
     @State private var load: LoadState<[TeamTask]> = .loading
-    @State private var giving = false
+    @State private var giving: GiveSheet?
+
+    /// How a task is started: from nothing, by choosing a template of the library first, or from the template chosen.
+    private enum GiveSheet: Identifiable {
+        case blank, picker, template(TaskTemplate)
+        var id: String {
+            switch self {
+            case .blank: "blank"
+            case .picker: "picker"
+            case .template(let template): "template-\(template.id)"
+            }
+        }
+    }
 
     var body: some View {
         Group {
@@ -43,20 +55,41 @@ struct TeamTasksView: View {
         .toolbar {
             if team.canManage {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Дать задание", systemImage: "plus") { giving = true }.accessibilityIdentifier("tasks.add")
+                    Button("Назначить задание", systemImage: "plus") { giving = .blank }.accessibilityIdentifier("tasks.add")
                 }
             }
         }
         .task { await fetch() }
-        .sheet(isPresented: $giving) { TaskFormView(mode: .give(team)) { Task { await fetch() } } }
+        .sheet(item: $giving) { sheet in
+            switch sheet {
+            case .blank: TaskFormView(mode: .give(team)) { Task { await fetch() } }
+            case .template(let template): TaskFormView(mode: .give(team), template: template) { Task { await fetch() } }
+            case .picker: TaskTemplatePickerView { giving = .template($0) }
+            }
+        }
+    }
+
+    /// The first thing a coach sees: the tasks they have already made in the library are one tap away.
+    private var startSection: some View {
+        Section {
+            Button { giving = .picker } label: { Label("Добавить задание из библиотеки", systemImage: "books.vertical") }
+                .buttonStyle(.sag)
+                .accessibilityIdentifier("tasks.fromLibrary")
+            Button { giving = .blank } label: { Label("Создать новое задание", systemImage: "plus") }
+                .buttonStyle(.sagGhost)
+                .accessibilityIdentifier("tasks.new")
+        }
+        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+        .listRowBackground(Color.clear)
     }
 
     private func list(_ tasks: [TeamTask]) -> some View {
         List {
+            if team.canManage { startSection }
             if tasks.isEmpty {
                 ContentUnavailableView(
                     "Заданий нет", systemImage: "checklist",
-                    description: Text(team.canManage ? "Дайте первое задание кнопкой «+»." : "Тренер ещё не давал вам заданий.")
+                    description: Text(team.canManage ? "Назначьте первое задание: из библиотеки или новое." : "Тренер ещё не давал вам заданий.")
                 )
                 .listRowBackground(Color.clear)
             }
