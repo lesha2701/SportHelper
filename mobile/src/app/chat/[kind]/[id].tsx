@@ -225,7 +225,7 @@ export default function ChatScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: load.chat.title }} />
-      <View style={{ flex: 1, backgroundColor: colors.bg, paddingBottom: keyboard }}>
+      <View style={{ flex: 1, backgroundColor: colors.bg, paddingBottom: keyboard > 0 ? keyboard + (Platform.OS === "android" ? insets.bottom : 0) : 0 }}>
         <ScrollView
           ref={scrollRef}
           style={{ flex: 1 }}
@@ -308,7 +308,7 @@ export default function ChatScreen() {
         </ScrollView>
 
         {load.chat.canSend ? (
-          <View style={[styles.composer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: (keyboard > 0 ? 0 : insets.bottom) + 8 }]}>
+          <View style={[styles.composer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: (keyboard > 0 ? 0 : insets.bottom) + 10 }]}>
             {file ? (
               <View style={[styles.preview, { backgroundColor: colors.surfaceAlt }]}>
                 <Ionicons name={file.video ? "videocam-outline" : "image-outline"} size={18} color={colors.primary} />
