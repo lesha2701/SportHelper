@@ -13,6 +13,8 @@ struct SagTabBar: View {
 
     let items: [Item]
     @Binding var selection: AppTab
+    /// Called when the tab that is already selected is tapped again.
+    var onReselect: (AppTab) -> Void = { _ in }
     /// The bar stays where it is when the keyboard comes: the keyboard covers it. (Taking it away for the time the keyboard is up made the
     /// screens under it lay themselves out again in the middle of the keyboard's animation, and the app never became idle for the UI tests.)
     var body: some View {
@@ -23,7 +25,7 @@ struct SagTabBar: View {
         HStack(spacing: 2) {
             ForEach(items) { item in
                 let active = item.tab == selection
-                Button { selection = item.tab } label: {
+                Button { if active { onReselect(item.tab) } else { selection = item.tab } } label: {
                     VStack(spacing: 4) {
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: item.symbol).font(.system(size: 21, weight: active ? .semibold : .regular))

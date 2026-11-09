@@ -22,7 +22,13 @@ public struct HelpSection: Equatable, Sendable, Identifiable {
         self.symbol = symbol
         self.title = title
         self.intro = intro
-        self.items = items.map { Item(label: $0.0, text: $0.1) }
+        self.items = items.map { Item(label: $0.0, text: Self.capitalized($0.1)) }
+    }
+
+    /// The explanation under a heading begins with a capital, however it was written.
+    static func capitalized(_ text: String) -> String {
+        guard let first = text.first else { return text }
+        return first.uppercased() + text.dropFirst()
     }
 }
 

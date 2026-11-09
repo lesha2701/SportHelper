@@ -65,6 +65,7 @@ struct ProfileView: View {
             headerSection(me)
             if user.deletionRequestedAt != nil { deletionBanner }
             if me.player == nil && me.coach == nil { emptyProfileSection } else { detailsSection(me) }
+            if user.isCoach { CoachOffersSection() }
             trainingsSection
             appearanceSection
             accountSection
@@ -158,9 +159,6 @@ struct ProfileView: View {
                 .accessibilityIdentifier("profile.requests")
                 NavigationLink(value: ProfileRoute.coachBookings) { Label("Записи", systemImage: "calendar") }
                     .accessibilityIdentifier("profile.coachBookings")
-                NavigationLink(value: ProfileRoute.myListings) { Label("Мои объявления", systemImage: "megaphone") }
-                    .accessibilityIdentifier("profile.myListings")
-                if auth.features.trainerBalance { FinanceLink() }
             } else {
                 NavigationLink(value: ProfileRoute.myBookings) { Label("Мои брони", systemImage: "calendar.badge.clock") }
                     .accessibilityIdentifier("profile.myBookings")
@@ -170,11 +168,6 @@ struct ProfileView: View {
             NavigationLink(value: ProfileRoute.myStats) { Label("Моя статистика", systemImage: "chart.bar") }
                 .accessibilityIdentifier("profile.stats")
             NotificationsLink()
-            if user.isCoach {
-                // A phone's tab bar holds five tabs: a coach has «Библиотека» in the place of «Тренеры», which is reached from here.
-                NavigationLink(value: ProfileRoute.coachCatalog) { Label("Каталог тренеров", systemImage: "person.2") }
-                    .accessibilityIdentifier("profile.coachCatalog")
-            }
         }
     }
 

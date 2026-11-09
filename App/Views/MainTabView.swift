@@ -40,13 +40,14 @@ struct MainTabView: View {
                 ForEach(tabs, id: \.self) { tab in
                     if tab == current || opened.contains(tab) {
                         content(of: tab)
+                            .id(router.resets[tab, default: 0])
                             .opacity(tab == current ? 1 : 0)
                             .allowsHitTesting(tab == current)
                             .accessibilityHidden(tab != current)
                     }
                 }
             }
-            SagTabBar(items: bar, selection: $router.tab)
+            SagTabBar(items: bar, selection: $router.tab) { router.reselect($0) }
         }
         .ignoresSafeArea(.keyboard)
         .onChange(of: current, initial: true) { _, tab in opened.insert(tab) }

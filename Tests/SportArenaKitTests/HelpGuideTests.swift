@@ -15,7 +15,10 @@ struct HelpGuideTests {
             #expect(section.intro != nil || !section.items.isEmpty, "«\(section.title)» is empty")
             let labels = section.items.map(\.label)
             #expect(Set(labels).count == labels.count, "«\(section.title)» repeats a label")
-            for item in section.items { #expect(!item.text.isEmpty) }
+            for item in section.items {
+                #expect(!item.text.isEmpty)
+                #expect(item.text.first?.isUppercase == true, "«\(item.label)» starts with a lowercase letter")
+            }
         }
     }
 

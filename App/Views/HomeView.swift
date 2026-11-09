@@ -41,6 +41,8 @@ struct HomeView: View {
             .toolbar(.hidden, for: .navigationBar)
             .refreshable { await reload() }
             .task(id: scenePhase == .active) { if scenePhase == .active { await reload() } }
+            // Coming back to the tab shows what changed meanwhile (a training scheduled in a team, one marked as held).
+            .onChange(of: auth.router.tab) { _, tab in if tab == .home { Task { await reload() } } }
             .task(id: selectedTeam?.id) {
                 guard user.isCoach, let team = selectedTeam else { return }
                 home.select(team.id)

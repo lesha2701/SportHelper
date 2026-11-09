@@ -27,6 +27,14 @@ enum ProfileRoute: Hashable {
 final class Router {
     var tab: AppTab = .home
     var profilePath: [ProfileRoute] = []
+    /// Bumped when the person taps the tab they are already on: the tab's screens are made again, so it shows its first screen.
+    private(set) var resets: [AppTab: Int] = [:]
+
+    /// A second tap on the current tab returns it to its start, as on any iPhone.
+    func reselect(_ tab: AppTab) {
+        if tab == .profile { profilePath = [] }
+        resets[tab, default: 0] += 1
+    }
 
     func open(_ route: ProfileRoute) {
         profilePath = [route]

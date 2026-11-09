@@ -45,7 +45,7 @@ struct CoachesView: View {
                 )
             } else {
                 List(shown) { listing in
-                    NavigationLink(value: listing) { ListingCardView(listing: listing) }
+                    NavigationLink(value: listing) { ListingCardView(listing: listing, isOwn: listing.coachUserId == auth.user?.id) }
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         .accessibilityIdentifier("coaches.listing")
                 }
@@ -56,13 +56,11 @@ struct CoachesView: View {
         }
     }
 
-    /// Own offers are not shown to their author (a trainer does not book a lesson with themselves); then the text search.
+    /// The text search. A coach sees their own offers too, marked as theirs (the detail screen has no «Записаться» for them).
     private func visible(_ all: [CoachListingCard]) -> [CoachListingCard] {
-        let mine = auth.user?.id
         let text = query.trimmed.lowercased()
         return all.filter { listing in
-            listing.coachUserId != mine
-                && (text.isEmpty || listing.title.lowercased().contains(text) || listing.coachFullName.lowercased().contains(text))
+            text.isEmpty || listing.title.lowercased().contains(text) || listing.coachFullName.lowercased().contains(text)
         }
     }
 
@@ -91,6 +89,7 @@ extension CoachListingCard: Hashable {
 
 struct ListingCardView: View {
     let listing: CoachListingCard
+    var isOwn = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -98,6 +97,9 @@ struct ListingCardView: View {
                 .frame(width: 84, height: 84)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             VStack(alignment: .leading, spacing: 4) {
+                if isOwn {
+                    Text("Ваше объявление").font(.caption.bold()).textCase(.uppercase).foregroundStyle(Theme.primary)
+                }
                 Text(listing.title).font(.headline).lineLimit(2)
                 Text(listing.coachFullName).font(.subheadline).foregroundStyle(.secondary)
                 Text([listing.sport, listing.specialization].compactMap { $0 }.joined(separator: " · ")).font(.footnote).foregroundStyle(.secondary)

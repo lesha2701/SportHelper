@@ -111,19 +111,29 @@ struct TrainingFormView: View {
         }
     }
 
-    /// The coach's own plans. A plan chosen by another coach stays as it is (the server checks who may attach what).
+    /// The coach's own plans, always offered so the way to attach one is visible. A plan chosen by another coach stays as it is
+    /// (the server checks who may attach what).
     @ViewBuilder private var planSection: some View {
-        if !plans.isEmpty || planId != nil {
-            Section {
-                Picker("План тренировки", selection: $planId) {
+        Section {
+            if plans.isEmpty && planId == nil {
+                Label("В вашей библиотеке пока нет планов. Создайте план во вкладке «Библиотека» → «Планы», и он появится здесь.",
+                      systemImage: "book.closed")
+                    .font(.subheadline).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("trainingForm.planEmpty")
+            } else {
+                Picker(selection: $planId) {
                     Text("Без плана").tag(UUID?.none)
                     ForEach(plans) { Text($0.name).tag(UUID?.some($0.id)) }
                     if let planId, !plans.contains(where: { $0.id == planId }) { Text("План другого тренера").tag(UUID?.some(planId)) }
+                } label: {
+                    Label("Взять план из библиотеки", systemImage: "book.fill")
                 }
                 .accessibilityIdentifier("trainingForm.plan")
-            } footer: {
-                Text("Игроки увидят план в карточке тренировки.")
             }
+        } header: {
+            SagSectionHeader(title: "План тренировки")
+        } footer: {
+            Text("Игроки увидят план в карточке тренировки.")
         }
     }
 

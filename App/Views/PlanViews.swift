@@ -133,6 +133,8 @@ struct PlanFormView: View {
     let mode: Mode
     let onDone: (Plan) -> Void
     @State private var input = PlanInput()
+    @State private var draftItems: [PlanExerciseInput] = []
+    @State private var library: [Exercise] = []
     @State private var saving = false
     @State private var error: String?
     @State private var filled = false
@@ -152,6 +154,7 @@ struct PlanFormView: View {
                     TextField("Инвентарь", text: $input.equipment, axis: .vertical).lineLimit(1...3)
                     TextField("Заметка для себя", text: $input.comment, axis: .vertical).lineLimit(1...4)
                 }
+                if isCreate { PlanDraftSections(items: $draftItems, exercises: library) }
                 if let message = error ?? (input.name.isEmpty ? nil : input.problem) {
                     Section { Text(message).foregroundStyle(.red).accessibilityIdentifier("planForm.error") }
                 }
@@ -171,6 +174,9 @@ struct PlanFormView: View {
                 if case .edit(let plan) = mode { input = plan.asInput }
             }
             .task {
+                if isCreate, case .success(let list) = await auth.library.exercises() { library = list }
+            }
+            .task {
                 // A new plan starts with the coach's own sport.
                 guard isCreate, input.sport.isEmpty else { return }
                 if auth.profile.profile == nil { await auth.profile.refresh() }
@@ -179,12 +185,21 @@ struct PlanFormView: View {
         }
     }
 
+    /// The exercises picked while creating: saved one by one; if one fails the plan still exists and the coach finishes it there.
+    private func attachDrafts(to plan: Plan) async -> Plan {
+        for item in draftItems { _ = await auth.library.addExercise(item, to: plan.id) }
+        if case .success(let fresh) = await auth.library.plan(plan.id) { return fresh }
+        return plan
+    }
+
     private func save() async {
         saving = true
         defer { saving = false }
-        let result: Result<Plan, APIError>
+        var result: Result<Plan, APIError>
         switch mode {
-        case .create: result = await auth.library.createPlan(input)
+        case .create:
+            result = await auth.library.createPlan(input)
+            if case .success(var plan) = result, !draftItems.isEmpty { plan = await attachDrafts(to: plan); result = .success(plan) }
         case .edit(let plan): result = await auth.library.updatePlan(plan.id, input)
         }
         switch result {
