@@ -26,7 +26,7 @@ export function TeamChatRow({ teamId, members, unread }: { teamId: string; membe
           Чат команды
         </Text>
         <Text variant="caption" muted numberOfLines={1}>
-          {unread > 0 ? `Новых сообщений: ${unread}` : `Общая переписка · участников: ${members}`}
+          {unread > 0 ? `Новых сообщений: ${unread}` : `Участников: ${members}`}
         </Text>
       </View>
       {unread > 0 ? (
