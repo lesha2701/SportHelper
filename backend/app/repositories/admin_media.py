@@ -19,6 +19,7 @@ KINDS: dict[str, list[str]] = {
     "gallery": ["profile_media_photo", "profile_media_video"],
     "exercise": ["exercise_photo", "exercise_video"],
     "training": ["training_report_photo", "training_report_video", "task_photo", "task_video"],
+    "chat": ["chat_photo", "chat_video"],
 }
 KIND_OF_ENTITY = {entity: kind for kind, entities in KINDS.items() for entity in entities}
 
@@ -37,6 +38,8 @@ REFERENCES: dict[tuple[str, str], str] = {
     ("task_assignments", "photo_file_id"): "null",
     ("task_assignments", "video_file_id"): "null",
     ("profile_media", "file_id"): "delete",
+    # A chat message that showed the file stays as a deleted tombstone ("Сообщение удалено") for everyone in the chat.
+    ("chat_messages", "file_id"): "chat",
 }
 
 _FILE_COLUMNS = """
@@ -154,7 +157,7 @@ async def reference_count(conn: asyncpg.Connection, file_id: UUID) -> int:
     total = 0
     for (table, column), _ in REFERENCES.items():
         # Identifiers come from the constant above, never from a request.
-        extra = " AND deleted_at IS NULL" if table == "profile_media" else ""
+        extra = " AND deleted_at IS NULL" if table in ("profile_media", "chat_messages") else ""
         total += await conn.fetchval(f"SELECT count(*) FROM {table} WHERE {column} = $1{extra}", file_id)
     return total
 
@@ -191,6 +194,10 @@ async def detach_and_remove(conn: asyncpg.Connection, file_id: UUID, retention_d
         for (table, column), action in REFERENCES.items():
             if action == "delete":
                 await conn.execute(f"DELETE FROM {table} WHERE {column} = $1", file_id)
+            elif action == "chat":
+                await conn.execute(
+                    "UPDATE chat_messages SET deleted_at = COALESCE(deleted_at, now()), file_id = NULL WHERE file_id = $1", file_id
+                )
             else:
                 await conn.execute(f"UPDATE {table} SET {column} = NULL WHERE {column} = $1", file_id)
         await conn.execute(

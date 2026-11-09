@@ -2,6 +2,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { listCoachBookings } from "../../api/bookings";
 import { ApiError } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
+import { useChatUnread } from "../../hooks/useChatUnread";
+import { BookingChatButton } from "../chat/BookingChatButton";
+import { ChatScreen } from "../chat/ChatScreen";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
 import type { Booking } from "../../types/booking";
@@ -23,6 +27,8 @@ function BookingCard({
   onChange,
   onOpenPlayer,
   onOpenPlan,
+  unread,
+  onOpenChat,
 }: {
   booking: Booking;
   statusBadge: ReactNode;
@@ -31,6 +37,8 @@ function BookingCard({
   onChange: (updated: Booking) => void;
   onOpenPlayer: (userId: string) => void;
   onOpenPlan: (booking: Booking) => void;
+  unread: number;
+  onOpenChat: (booking: Booking) => void;
 }) {
   return (
     <div className={profileStyles.card}>
@@ -58,6 +66,7 @@ function BookingCard({
         </div>
       )}
       <CoachSessionActions token={token} booking={booking} onChange={onChange} />
+      <BookingChatButton booking={booking} label="Чат с игроком" unread={unread} onOpen={() => onOpenChat(booking)} />
     </div>
   );
 }
@@ -73,6 +82,10 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
   });
   const [planPickerFor, setPlanPickerFor] = useState<Booking | null>(null);
   const [viewingPlayerId, setViewingPlayerId] = useState<string | null>(null);
+  const [chatFor, setChatFor] = useState<Booking | null>(null);
+  const { state: authState } = useAuth();
+  const myUserId = authState.status === "ready" ? authState.user.id : "";
+  const { unread, refresh: refreshUnread } = useChatUnread(token);
 
   useEffect(() => {
     listCoachBookings(token)
@@ -84,6 +97,20 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
     if (state.status !== "ready") return;
     setState({ status: "ready", bookings: state.bookings.map((b) => (b.id === updated.id ? updated : b)) });
   };
+
+  if (chatFor) {
+    return (
+      <ChatScreen
+        token={token}
+        target={{ kind: "booking", id: chatFor.id }}
+        myUserId={myUserId}
+        onBack={() => {
+          setChatFor(null);
+          refreshUnread();
+        }}
+      />
+    );
+  }
 
   if (viewingPlayerId) {
     return <PlayerPublicProfileScreen token={token} playerUserId={viewingPlayerId} onBack={() => setViewingPlayerId(null)} />;
@@ -127,6 +154,8 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
           onChange={updateBooking}
           onOpenPlayer={setViewingPlayerId}
           onOpenPlan={setPlanPickerFor}
+          unread={unread.booking[b.id] ?? 0}
+          onOpenChat={setChatFor}
         />
       ))}
 
@@ -142,6 +171,8 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
           onChange={updateBooking}
           onOpenPlayer={setViewingPlayerId}
           onOpenPlan={setPlanPickerFor}
+          unread={unread.booking[b.id] ?? 0}
+          onOpenChat={setChatFor}
         />
       ))}
 
@@ -162,6 +193,8 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
               onChange={updateBooking}
               onOpenPlayer={setViewingPlayerId}
               onOpenPlan={setPlanPickerFor}
+          unread={unread.booking[b.id] ?? 0}
+          onOpenChat={setChatFor}
             />
           ))}
         </>

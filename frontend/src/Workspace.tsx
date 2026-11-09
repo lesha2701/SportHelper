@@ -21,6 +21,8 @@ import { searchAll, type SearchResult } from "./api/search";
 import { subscribeAppNav } from "./appNav";
 import { notificationToOverlay, type Overlay } from "./overlay";
 import { FinanceScreen } from "./components/finance/FinanceScreen";
+import { ChatScreen } from "./components/chat/ChatScreen";
+import { useFinanceFeatures } from "./features";
 import { NotificationsScreen } from "./components/notifications/NotificationsScreen";
 import { StateScreen } from "./components/StateScreen";
 import type { NavItem } from "./components/nav/BottomNav";
@@ -154,7 +156,7 @@ function playerTopBar(tab: PlayerTab, onCreateTraining: () => void): TopBarConfi
   }
 }
 
-function CoachTabContent({
+export function CoachTabContent({
   initialCoachUserId,
   marketplaceStart,
   tab,
@@ -200,7 +202,7 @@ function CoachTabContent({
     case "library":
       return <LibraryScreen token={token} />;
     case "calendar":
-      return <CalendarScreen token={token} />;
+      return <CalendarScreen token={token} onOpenEvent={onOpenEvent} onCreateTraining={onCreateTraining} />;
     case "coaches":
       return (
         <CoachMarketplaceScreen
@@ -240,6 +242,7 @@ function MainContent({
 }) {
   const { state } = useProfile();
   const { state: authState } = useAuth();
+  const { trainerBalance } = useFinanceFeatures();
   const myUserId = authState.status === "ready" ? authState.user.id : null;
   const myPhotoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
   useActivityPing(authState.status === "ready");
@@ -435,6 +438,8 @@ function MainContent({
     );
   } else if (overlay?.kind === "incoming-bookings") {
     overlayContent = <IncomingBookingsScreen token={token} onBack={closeOverlay} focusBookingId={overlay.focusBookingId} />;
+  } else if (overlay?.kind === "chat" && myUserId) {
+    overlayContent = <ChatScreen token={token} target={overlay.target} myUserId={myUserId} onBack={closeOverlay} />;
   } else if (overlay?.kind === "finance") {
     overlayContent = <FinanceScreen token={token} onBack={closeOverlay} />;
   } else if (overlay?.kind === "my-bookings") {
@@ -554,6 +559,7 @@ function MainContent({
                 ...coachTopBar(coachTab, onCreateTraining),
                 unreadNotifications,
                 onOpenNotifications: () => setOverlay({ kind: "notifications" }),
+                onOpenFinance: trainerBalance ? () => setOverlay({ kind: "finance" }) : undefined,
                 search: searchConfig,
               }
         }

@@ -200,8 +200,8 @@ def test_nothing_is_offered_while_payments_are_switched_off(world, monkeypatch) 
 
 
 def test_without_shop_keys_the_webhook_does_nothing_at_all(world, monkeypatch) -> None:  # noqa: F811
-    for name in ("YOOKASSA_ENABLED", "YOOKASSA_SHOP_ID", "YOOKASSA_SECRET_KEY"):
-        monkeypatch.delenv(name, raising=False)
+    for name, value in (("YOOKASSA_ENABLED", "false"), ("YOOKASSA_SHOP_ID", ""), ("YOOKASSA_SECRET_KEY", "")):
+        monkeypatch.setenv(name, value)  # explicit, so a developer's own .env cannot leak keys into the test
     get_settings.cache_clear()
     answer = world.client.post("/api/payments/yookassa/webhook", json={"event": "payment.succeeded", "object": {"id": "anything"}})
     assert answer.status_code == 200 and sql_value(world.dsn, "SELECT count(*) FROM payment_events") == 0
@@ -213,7 +213,7 @@ def test_the_site_says_payments_are_on_once_enabled_and_configured(world, provid
 
 def test_the_balance_and_withdrawal_flags_reach_the_site_and_withdrawals_need_the_balance(world, monkeypatch) -> None:  # noqa: F811
     for name in ("TRAINER_BALANCE_ENABLED", "TRAINER_WITHDRAWALS_ENABLED"):
-        monkeypatch.delenv(name, raising=False)
+        monkeypatch.setenv(name, "false")
     get_settings.cache_clear()
     features = world.client.get("/api/features").json()
     assert (features["trainer_balance"], features["trainer_withdrawals"]) == (False, False)  # everything is off by default
@@ -542,6 +542,55 @@ def test_a_user_session_is_needed_and_the_csrf_token_is_checked_to_start_a_payme
     forged = world.client.post(f"/api/bookings/{booking['id']}/pay", headers={"X-CSRF-Token": "forged"})
     assert forged.status_code == 403 and forged.json()["error"]["code"] == "csrf_failed"
     assert provider.payments == {}
+
+
+# --- the trainer hears about a payment outside the site as well -------------------------------------------------------------
+
+
+def test_the_trainer_is_told_by_e_mail_and_in_the_bell_when_a_player_pays(world, provider, monkeypatch) -> None:  # noqa: F811
+    from app.services import background
+
+    sent = []
+
+    async def fake_send(mail, settings):
+        sent.append(mail)
+        return True
+
+    coach, player, booking = confirmed_booking(world, confirm=True)
+    monkeypatch.setattr(background.email_service, "send_email", fake_send)  # after the people exist: sign-up mails use the same sender
+    player.ok("POST", f"/api/bookings/{booking['id']}/pay")
+    provider.finish(_first_provider_id(provider), "succeeded")
+    assert webhook(world, _first_provider_id(provider)).status_code == 200
+
+    settings = get_settings()
+    run(with_conn(world.dsn, lambda c: background.send_due_notifications(c, None, settings)))
+    run(with_conn(world.dsn, lambda c: background.send_due_notifications(c, None, settings)))  # a second pass must not repeat anything
+
+    to_coach = [m for m in sent if m.to == coach.email]
+    assert len(to_coach) == 1 and "Игрок оплатил тренировку" in to_coach[0].subject
+    assert "2\u00a0250,00 ₽" in to_coach[0].text and "SportArena" in to_coach[0].text  # the amount the trainer receives, after the commission
+    assert len([m for m in sent if m.to == player.email]) == 1
+    bell = coach.ok("GET", "/api/notifications")
+    assert [n["title"] for n in bell if n["category"] == "earning_update"] == ["Игрок оплатил тренировку"]
+
+
+def test_a_mail_failure_never_blocks_the_notification(world, provider, monkeypatch) -> None:  # noqa: F811
+    from app.services import background
+
+    async def broken(mail, settings):
+        raise RuntimeError("smtp is down")
+
+    coach, player, booking = confirmed_booking(world, confirm=True)
+    monkeypatch.setattr(background.email_service, "send_email", broken)
+    player.ok("POST", f"/api/bookings/{booking['id']}/pay")
+    provider.finish(_first_provider_id(provider), "succeeded")
+    webhook(world, _first_provider_id(provider))
+
+    settings = get_settings()
+    run(with_conn(world.dsn, lambda c: background.send_due_notifications(c, None, settings)))
+
+    assert sql_value(world.dsn, "SELECT count(*) FROM notifications WHERE status = 'pending'") == 0  # handled, not stuck
+    assert [n["category"] for n in coach.ok("GET", "/api/notifications")].count("earning_update") == 1
 
 
 # --- the client itself (against a mock transport) ---------------------------------------------------------------------------

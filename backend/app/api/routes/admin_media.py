@@ -79,7 +79,7 @@ def _snapshot(media: MediaDetailOut | dict) -> dict:
 @router.get("", response_model=MediaPageOut)
 async def list_media(
     q: str | None = Query(default=None, max_length=100),
-    kind: Literal["avatar", "logo", "listing", "gallery", "exercise", "training"] | None = None,
+    kind: Literal["avatar", "logo", "listing", "gallery", "exercise", "training", "chat"] | None = None,
     media_type: Literal["image", "video"] | None = None,
     state: Literal["visible", "hidden"] | None = None,
     limit: int = Query(default=24, ge=1, le=100),

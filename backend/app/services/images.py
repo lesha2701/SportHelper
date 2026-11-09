@@ -68,6 +68,8 @@ PROFILES: dict[str, ImageProfile] = {
     "gallery_photo": ImageProfile("gallery_photo", 1920, 1920, 85, thumbnail=480),
     "exercise_photo": ImageProfile("exercise_photo", 1600, 1600, 82, thumbnail=480),
     "report_photo": ImageProfile("report_photo", 1600, 1600, 82),
+    # A photo sent in a chat: the same limits as any other photo, with a small copy for the message list.
+    "chat_photo": ImageProfile("chat_photo", 1600, 1600, 82, thumbnail=480),
 }
 
 THUMBNAIL_QUALITY = 75

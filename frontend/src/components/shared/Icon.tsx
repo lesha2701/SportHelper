@@ -44,7 +44,9 @@ export type IconName =
   | "shield"
   | "monitor"
   | "send"
-  | "wallet";
+  | "wallet"
+  | "message"
+  | "paperclip";
 
 const PATHS: Record<IconName, ReactElement> = {
   home: (
@@ -280,6 +282,8 @@ const PATHS: Record<IconName, ReactElement> = {
     </>
   ),
   send: <path d="M20.5 4 3.5 11l6 2.2L11.7 19.5 20.5 4ZM9.5 13.2l5.6-4.4" />,
+  message: <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 4v-4h0A1.5 1.5 0 0 1 4 14.5v-9Z" />,
+  paperclip: <path d="m20 11-8.2 8.2a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.5a1.7 1.7 0 0 1-2.4-2.4l7.9-7.8" />,
   wallet: (
     <>
       <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3" />

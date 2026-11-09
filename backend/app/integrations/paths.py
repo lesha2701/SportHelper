@@ -20,6 +20,11 @@ def build_team_file_path(
     return f"{root_folder.rstrip('/')}/{app_mode}/teams/{team_id}/{category}/{file_id}{ext}"
 
 
+def build_chat_file_path(root_folder: str, app_mode: str, conversation_id: UUID, file_id: UUID, extension: str) -> str:
+    ext = f".{extension.lstrip('.')}" if extension else ""
+    return f"{root_folder.rstrip('/')}/{app_mode}/chats/{conversation_id}/{file_id}{ext}"
+
+
 def build_user_file_path(
     root_folder: str, app_mode: str, user_id: UUID, category: str, file_id: UUID, extension: str
 ) -> str:

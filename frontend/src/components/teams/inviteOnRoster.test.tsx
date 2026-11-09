@@ -4,6 +4,8 @@ import { acceptApplication, createInvite, getTeam, listApplications, listInvites
 import type { Invite, JoinRequest, Team, TeamMember, TeamRole } from "../../types/team";
 import { TeamDetailScreen } from "./TeamDetailScreen";
 
+vi.mock("../../context/AuthContext", () => ({ useAuth: () => ({ state: { status: "ready", user: { id: "me" } } }) }));
+vi.mock("../../hooks/useChatUnread", () => ({ useChatUnread: () => ({ unread: { booking: {}, team: {}, total: 0 }, refresh: () => {} }) }));
 vi.mock("../../api/teams", () => ({
   getTeam: vi.fn(), listMembers: vi.fn(), listInvites: vi.fn(), createInvite: vi.fn(), leaveTeam: vi.fn(),
   listApplications: vi.fn(async () => []), acceptApplication: vi.fn(), rejectApplication: vi.fn(),

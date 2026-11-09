@@ -13,6 +13,8 @@ vi.mock("../../api/payments", () => ({
   startBookingPayment: vi.fn(),
   openPaymentPage: vi.fn(),
 }));
+vi.mock("../../context/AuthContext", () => ({ useAuth: () => ({ state: { status: "ready", user: { id: "me" } } }) }));
+vi.mock("../../hooks/useChatUnread", () => ({ useChatUnread: () => ({ unread: { booking: {}, team: {}, total: 0 }, refresh: () => {} }) }));
 vi.mock("../../features", () => ({ usePaymentsEnabled: () => false }));
 vi.mock("../../api/bookings", () => ({
   confirmBooking: vi.fn(),

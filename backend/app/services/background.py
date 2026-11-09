@@ -34,11 +34,27 @@ from app.repositories import sessions as sessions_repo
 from app.repositories import tasks as tasks_repo
 from app.repositories import trainings as trainings_repo
 from app.repositories import users as users_repo
+from app.services import email as email_service
+from app.services import email_templates
 from app.services import reconcile as reconcile_service
 from app.services import notifications as notifications_service
 from app.services import nudges as nudges_service
 
 logger = logging.getLogger("teamflow.background")
+
+# Money events are also e-mailed: a trainer who never linked Telegram and is not looking at the site would otherwise not learn that
+# a player paid. Best effort and once only - a mail problem never blocks, delays or repeats anything.
+EMAILED_CATEGORIES = frozenset({"payment_update", "earning_update", "withdrawal_update", "finance_admin"})
+
+
+async def _email_copy(user: dict, notification: dict, settings: Settings) -> None:
+    if notification["category"] not in EMAILED_CATEGORIES or not user.get("email") or not user.get("email_verified_at"):
+        return
+    try:
+        mail = email_templates.money_notification_email(settings, user["email"], user.get("first_name") or "", notification["title"], notification["body"])
+        await email_service.send_email(mail, settings)
+    except Exception:  # noqa: BLE001 - e-mail is a courtesy copy; the bell and the books are the record
+        logger.exception("Could not e-mail notification %s", notification["id"])
 
 BOOKING_EXPIRY_HOURS = 24
 
@@ -54,6 +70,8 @@ async def send_due_notifications(conn: asyncpg.Connection, bot: Bot | None, sett
         if user is None or user.get("deleted_at") is not None:
             await notifications_repo.mark_cancelled(conn, notification["id"])
             continue
+
+        await _email_copy(user, notification, settings)
 
         # Telegram is an optional extra channel. A user who never linked it
         # (or a server without a bot) still sees every notification in the

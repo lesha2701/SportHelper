@@ -281,3 +281,35 @@ async def discard_stored_image(settings: Settings, stored: StoredImage) -> None:
                 await client.delete(path)
     except (RuntimeError, YandexDiskError):
         logger.warning("Could not remove an orphaned upload from Yandex.Disk")
+
+
+async def store_video_or_raise(settings: Settings, upload: UploadFile, disk_path: str) -> int:
+    """Stores a video under the SAME limits as every other video on the site (MAX_VIDEO_SIZE_MB, MAX_VIDEO_DURATION_SECONDS, ffprobe
+    check) and turns every failure into the API error the person should see. Returns the size in bytes."""
+    try:
+        return await upload_video_to_disk(
+            settings, disk_path, upload, settings.max_video_size_mb * 1024 * 1024, settings.upload_chunk_size_kb * 1024,
+            settings.max_video_duration_seconds,
+        )
+    except RuntimeError as exc:
+        raise APIError(str(exc), code="yandex_disk_not_configured", status_code=503) from exc
+    except FileTooLarge as exc:
+        raise APIError(f"Видео слишком большое: максимум {settings.max_video_size_mb} МБ.", code="file_too_large", status_code=413) from exc
+    except VideoTooLong as exc:
+        raise APIError(
+            f"Видео должно быть короче {settings.max_video_duration_seconds} секунд (сейчас {exc.duration_seconds:.0f}).",
+            code="video_too_long", status_code=413,
+        ) from exc
+    except VideoProbeError as exc:
+        raise APIError("Не удалось прочитать видео: файл повреждён или это не видео.", code="invalid_video", status_code=415) from exc
+    except YandexDiskError as exc:
+        logger.error("Yandex.Disk upload failed (status %s)", exc.status_code)
+        raise APIError("Не удалось сохранить файл. Попробуйте ещё раз позже.", code="storage_error", status_code=502) from exc
+
+
+async def discard_disk_path(settings: Settings, disk_path: str) -> None:
+    """Best-effort removal of one freshly uploaded file when the database write that should point at it failed."""
+    try:
+        await YandexDiskClient(settings).delete(disk_path)
+    except (RuntimeError, YandexDiskError):
+        logger.warning("Could not remove an orphaned upload from Yandex.Disk")
