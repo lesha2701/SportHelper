@@ -58,6 +58,7 @@ function Routes() {
           <Stack.Screen name="match/new" />
           <Stack.Screen name="match/[id]" />
           <Stack.Screen name="notifications" />
+          <Stack.Screen name="chat/[kind]/[id]" />
           <Stack.Screen name="stats" />
           <Stack.Screen name="metric-new" />
           <Stack.Screen name="search" />

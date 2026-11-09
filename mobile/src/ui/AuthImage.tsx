@@ -5,7 +5,7 @@ import { API_BASE_URL } from "@/config";
 import { radius } from "@/theme/tokens";
 
 /** A picture stored on the server (/api/files/{id}); the request carries the session token. */
-export function AuthImage({ fileId, height = 200, fit = "cover" }: { fileId: string; height?: number | "100%"; fit?: "cover" | "contain" }) {
+export function AuthImage({ fileId, height = 200, fit = "cover", thumb }: { fileId: string; height?: number | "100%"; fit?: "cover" | "contain"; thumb?: boolean }) {
   const [token, setToken] = useState<string | null | undefined>(undefined);
   useEffect(() => {
     void getToken().then(setToken);
@@ -14,7 +14,7 @@ export function AuthImage({ fileId, height = 200, fit = "cover" }: { fileId: str
   return (
     <Image
       accessibilityIgnoresInvertColors
-      source={{ uri: `${API_BASE_URL}/api/files/${fileId}`, headers: token ? { Authorization: `Bearer ${token}` } : undefined }}
+      source={{ uri: `${API_BASE_URL}/api/files/${fileId}${thumb ? "?size=thumb" : ""}`, headers: token ? { Authorization: `Bearer ${token}` } : undefined }}
       style={[styles.image, { height }]}
       resizeMode={fit}
     />

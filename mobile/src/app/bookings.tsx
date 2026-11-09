@@ -1,6 +1,8 @@
 import { Stack, router } from "expo-router";
 import { CoachSessionActions, PlanPicker, ReviewSheet } from "@/booking/SessionParts";
 import { useState } from "react";
+import { useChatUnread } from "@/lib/useChatUnread";
+import { bookingHasChat } from "@/shared/types/chat";
 import { confirmBooking, declineBooking, listCoachBookings, listCoachPendingBookings, listMyBookings, reviewBooking } from "@/api/bookings";
 import { openPaymentPage, startBookingPayment, syncBookingPayment } from "@/api/payments";
 import { useAuth } from "@/auth/AuthProvider";
@@ -16,7 +18,19 @@ import { ErrorView, LoadingView } from "@/ui/StateViews";
 import { Text } from "@/ui/Text";
 import { useToast } from "@/ui/Toast";
 
-function PlayerBooking({ b, onChanged }: { b: Booking; onChanged: () => void }) {
+/** «Чат с тренером» / «Чат с игроком»: only for a confirmed lesson that is paid (or free), when the server opens the chat. */
+function ChatButton({ b, label, unread }: { b: Booking; label: string; unread: number }) {
+  if (!bookingHasChat(b)) return null;
+  return (
+    <Button
+      title={unread > 0 ? `${label} · ${unread > 9 ? "9+" : unread}` : label}
+      variant="secondary"
+      onPress={() => router.push({ pathname: "/chat/[kind]/[id]", params: { kind: "booking", id: b.id } })}
+    />
+  );
+}
+
+function PlayerBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => void; unread: number }) {
   const toast = useToast();
   const features = useFeatures();
   const [busy, setBusy] = useState(false);
@@ -63,6 +77,7 @@ function PlayerBooking({ b, onChanged }: { b: Booking; onChanged: () => void }) 
           <Button title="Я оплатил(а), проверить" variant="secondary" onPress={check} disabled={busy} />
         </>
       ) : null}
+      <ChatButton b={b} label="Чат с тренером" unread={unread} />
       {b.trainingId ? <Button title="Открыть тренировку" variant="secondary" onPress={() => router.push({ pathname: "/training/[id]", params: { id: b.trainingId! } })} /> : null}
       {b.isCompleted && !b.hasReview ? <Button title="Оставить отзыв" variant="secondary" onPress={() => setReviewing(true)} /> : null}
       <ReviewSheet
@@ -108,7 +123,7 @@ function PendingRequest({ b, onChanged }: { b: PendingBooking; onChanged: () => 
   );
 }
 
-function CoachBooking({ b, onChanged }: { b: Booking; onChanged: () => void }) {
+function CoachBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => void; unread: number }) {
   const toast = useToast();
 
   async function decide(accept: boolean) {
@@ -138,6 +153,7 @@ function CoachBooking({ b, onChanged }: { b: Booking; onChanged: () => void }) {
           <Button title="Отклонить" variant="secondary" onPress={() => void decide(false)} />
         </>
       ) : null}
+      <ChatButton b={b} label="Чат с игроком" unread={unread} />
       <CoachSessionActions booking={b} onChange={onChanged} />
       <PlanPicker booking={b} onChange={onChanged} />
       {b.trainingId ? <Button title="Открыть тренировку" variant="secondary" onPress={() => router.push({ pathname: "/training/[id]", params: { id: b.trainingId! } })} /> : null}
@@ -149,6 +165,7 @@ function CoachBooking({ b, onChanged }: { b: Booking; onChanged: () => void }) {
 /** My sessions: as a player, the ones I booked (pay, review); as a coach, the requests to answer and the confirmed sessions. */
 export default function BookingsScreen() {
   const { user } = useAuth();
+  const chats = useChatUnread();
   const isCoach = user?.preferredRole === "coach";
   const data = useLoad(async () => {
     if (!isCoach) return { pending: [] as PendingBooking[], bookings: await listMyBookings() };
@@ -172,7 +189,7 @@ export default function BookingsScreen() {
         ))}
         {pending.length > 0 && items.length > 0 ? <Text variant="heading">Записи</Text> : null}
         {items.length === 0 && pending.length === 0 ? <Text muted>{isCoach ? "Записей пока нет." : "Вы ещё ни на что не записывались."}</Text> : null}
-        {items.map((b) => (isCoach ? <CoachBooking key={b.id} b={b} onChanged={data.reload} /> : <PlayerBooking key={b.id} b={b} onChanged={data.reload} />))}
+        {items.map((b) => (isCoach ? <CoachBooking key={b.id} b={b} onChanged={data.reload} unread={chats.booking[b.id] ?? 0} /> : <PlayerBooking key={b.id} b={b} onChanged={data.reload} unread={chats.booking[b.id] ?? 0} />))}
       </Screen>
     </>
   );

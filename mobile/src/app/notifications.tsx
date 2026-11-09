@@ -42,7 +42,7 @@ export default function NotificationsScreen() {
     } catch (e) {
       toast.error(toFormError(e).message);
     }
-    const route = routeForNotification(n.entityType, n.entityId);
+    const route = routeForNotification(n.entityType, n.entityId, n.category);
     if (route) router.push(route);
     else list.reload();
   }

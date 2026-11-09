@@ -8,6 +8,7 @@ import { useLoad } from "@/lib/useLoad";
 import { count } from "@/shared/lib/plural";
 import { SKILL_LEVEL_LABELS } from "@/shared/types/profile";
 import { TEAM_ROLE_LABELS } from "@/shared/types/team";
+import { useChatUnread } from "@/lib/useChatUnread";
 import { TeamTile } from "@/team/TeamTile";
 import { TransferOwnership } from "@/team/TransferOwnership";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -43,6 +44,7 @@ export default function TeamScreen() {
     const requests = staff ? (await listApplications(t.id).catch(() => [])).filter((a) => a.status === "pending").length : 0;
     return { t, staff, requests };
   }, [id]);
+  const chats = useChatUnread();
   const [leaving, setLeaving] = useState(false);
   const [transferring, setTransferring] = useState(false);
 
@@ -111,6 +113,13 @@ export default function TeamScreen() {
           <TeamTile icon="barbell-outline" title="Тренировки" subtitle={staff ? "Расписание и посещаемость" : "Расписание команды"} onPress={() => open("trainings")} />
           <TeamTile icon="football-outline" title="Матчи" subtitle={staff ? "Составы и итоги" : "Игры и результаты"} onPress={() => open("matches")} />
           <TeamTile icon="clipboard-outline" title="Задания" subtitle={staff ? "Задания и отчёты" : "Что задал тренер"} onPress={() => open("tasks")} />
+          <TeamTile
+            icon="chatbubbles-outline"
+            title="Чат"
+            subtitle="Переписка команды"
+            badge={chats.team[t.id] ?? 0}
+            onPress={() => router.push({ pathname: "/chat/[kind]/[id]", params: { kind: "team", id: t.id } })}
+          />
           <TeamTile icon="stats-chart-outline" title="Статистика" subtitle="Посещаемость, задания, матчи" onPress={() => open("stats")} />
           {staff ? <TeamTile icon="person-add-outline" title="Приглашения" subtitle="Ссылка и заявки" badge={requests} onPress={() => open("invites")} /> : null}
         </View>

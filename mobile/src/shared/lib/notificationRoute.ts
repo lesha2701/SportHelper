@@ -1,9 +1,13 @@
 /** Where a notification leads, by what it is about. null: it is only to be read. */
 export type AppRoute =
   | { pathname: "/training/[id]" | "/match/[id]" | "/task/[id]"; params: { id: string } }
-  | { pathname: "/bookings" | "/finance" };
+  | { pathname: "/bookings" | "/finance" }
+  | { pathname: "/chat/[kind]/[id]"; params: { kind: "booking" | "team"; id: string } };
 
-export function routeForNotification(entityType: string, entityId: string): AppRoute | null {
+/** `category` matters for chat messages: they share the entity type "booking" / "team" with other notifications but open the chat. */
+export function routeForNotification(entityType: string, entityId: string, category?: string): AppRoute | null {
+  if (category === "chat_booking") return { pathname: "/chat/[kind]/[id]", params: { kind: "booking", id: entityId } };
+  if (category === "chat_team") return { pathname: "/chat/[kind]/[id]", params: { kind: "team", id: entityId } };
   switch (entityType) {
     case "training":
       return { pathname: "/training/[id]", params: { id: entityId } };

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { getFinanceSummary, requestWithdrawal } from "@/api/finance";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
+import { uuid } from "@/lib/uuid";
 import { formatKopecks, parseRubles } from "@/shared/lib/money";
 import { PAYOUT_METHOD_LABELS, type PayoutMethod } from "@/shared/types/finance";
 import { Button } from "@/ui/Button";
@@ -33,16 +34,11 @@ const FIELDS: Record<PayoutMethod, Field[]> = {
 
 const METHODS = (Object.keys(PAYOUT_METHOD_LABELS) as PayoutMethod[]).map((m) => ({ value: m, title: PAYOUT_METHOD_LABELS[m] }));
 
-/** One key per opened form, so a double tap or a retry after a lost answer can only ever create one request. */
-function newKey(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-}
-
 /** The payout request (as on the website): amount, where to send it (SBP or bank details), confirmed with the password. */
 export default function WithdrawScreen() {
   const toast = useToast();
   const summary = useLoad(getFinanceSummary);
-  const [clientKey] = useState(newKey);
+  const [clientKey] = useState(uuid);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<PayoutMethod>("sbp");
   const [fields, setFields] = useState<Record<string, string>>({});

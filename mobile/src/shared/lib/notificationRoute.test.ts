@@ -14,4 +14,9 @@ describe("routeForNotification", () => {
     expect(routeForNotification("withdrawal", "w")).toEqual({ pathname: "/finance" });
     expect(routeForNotification("user", "u")).toBeNull();
   });
+
+  it("opens the chat for chat messages, whatever the entity type", () => {
+    expect(routeForNotification("booking", "b1", "chat_booking")).toEqual({ pathname: "/chat/[kind]/[id]", params: { kind: "booking", id: "b1" } });
+    expect(routeForNotification("team", "t1", "chat_team")).toEqual({ pathname: "/chat/[kind]/[id]", params: { kind: "team", id: "t1" } });
+  });
 });
