@@ -9,6 +9,7 @@ import { count } from "@/shared/lib/plural";
 import { SKILL_LEVEL_LABELS } from "@/shared/types/profile";
 import { TEAM_ROLE_LABELS } from "@/shared/types/team";
 import { useChatUnread } from "@/lib/useChatUnread";
+import { TeamChatRow } from "@/team/TeamChatRow";
 import { TeamTile } from "@/team/TeamTile";
 import { TransferOwnership } from "@/team/TransferOwnership";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -108,18 +109,13 @@ export default function TeamScreen() {
           ) : null}
         </Card>
 
+        <TeamChatRow teamId={t.id} members={t.membersCount} unread={chats.team[t.id] ?? 0} />
+
         <View style={styles.tiles}>
           <TeamTile icon="people-outline" title="Состав" subtitle="Игроки и тренеры, роли" onPress={() => open("members")} />
           <TeamTile icon="barbell-outline" title="Тренировки" subtitle={staff ? "Расписание и посещаемость" : "Расписание команды"} onPress={() => open("trainings")} />
           <TeamTile icon="football-outline" title="Матчи" subtitle={staff ? "Составы и итоги" : "Игры и результаты"} onPress={() => open("matches")} />
           <TeamTile icon="clipboard-outline" title="Задания" subtitle={staff ? "Задания и отчёты" : "Что задал тренер"} onPress={() => open("tasks")} />
-          <TeamTile
-            icon="chatbubbles-outline"
-            title="Чат"
-            subtitle="Переписка команды"
-            badge={chats.team[t.id] ?? 0}
-            onPress={() => router.push({ pathname: "/chat/[kind]/[id]", params: { kind: "team", id: t.id } })}
-          />
           <TeamTile icon="stats-chart-outline" title="Статистика" subtitle="Посещаемость, задания, матчи" onPress={() => open("stats")} />
           {staff ? <TeamTile icon="person-add-outline" title="Приглашения" subtitle="Ссылка и заявки" badge={requests} onPress={() => open("invites")} /> : null}
         </View>
