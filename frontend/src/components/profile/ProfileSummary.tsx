@@ -184,9 +184,23 @@ export function ProfileSummary({
           ]
         : [];
 
+  // A coach's offers to the players are a block of their own, right after «О тренере»: their listings, the money, the catalogue.
+  const offerRows: ActionRowDef[] = [];
+  if (mode === "coach" && profile.coach) {
+    offerRows.push({ key: "listings", icon: "settings", label: "Мои объявления", onClick: onOpenMarketplaceSettings });
+    if (trainerBalance) {
+      offerRows.push({ key: "finance", icon: "wallet", label: "Финансы", onClick: () => navigateApp({ kind: "finance" }) });
+    }
+    offerRows.push({
+      key: "catalogue",
+      icon: "users",
+      label: "Каталог тренеров",
+      onClick: () => navigateApp({ kind: "tab", tab: "coaches" }),
+    });
+  }
+
   const actionRows: ActionRowDef[] = [];
   if (mode === "coach" && profile.coach) {
-    actionRows.push({ key: "listings", icon: "settings", label: "Мои объявления", onClick: onOpenMarketplaceSettings });
     actionRows.push({
       key: "incoming",
       icon: "inbox",
@@ -194,9 +208,6 @@ export function ProfileSummary({
       badge: pendingCount,
       onClick: onOpenIncomingBookings,
     });
-  }
-  if (mode === "coach" && profile.coach && trainerBalance) {
-    actionRows.push({ key: "finance", icon: "wallet", label: "Финансы", onClick: () => navigateApp({ kind: "finance" }) });
   }
   actionRows.push({ key: "stats", icon: "award", label: "Моя статистика", onClick: onOpenMyStats });
   actionRows.push(
@@ -368,6 +379,18 @@ export function ProfileSummary({
 
         {myUserId && <AchievementsGallery token={token} userId={myUserId} editable />}
 
+        {offerRows.length > 0 && (
+          <>
+            <h2 className={styles.actionGroupTitle}>Объявления</h2>
+            <div className={styles.actionRowList}>
+              {offerRows.map((def) => (
+                <ActionRow key={def.key} def={def} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {offerRows.length > 0 && <h2 className={styles.actionGroupTitle}>Тренировки</h2>}
         <div className={styles.actionRowList}>
           {actionRows.map((def) => (
             <ActionRow key={def.key} def={def} />

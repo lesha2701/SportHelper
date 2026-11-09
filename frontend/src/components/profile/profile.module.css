@@ -713,6 +713,7 @@
 }
 
 .requiredHint {
+  display: block;
   font-size: 12px;
   color: var(--color-text-secondary);
   margin: -4px 0 4px;
@@ -801,4 +802,14 @@
 .themeOptionActive {
   color: var(--color-primary-text);
   background: var(--color-primary);
+}
+
+.actionGroupTitle {
+  margin: 8px 0 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
 }

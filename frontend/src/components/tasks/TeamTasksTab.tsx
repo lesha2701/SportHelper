@@ -134,13 +134,24 @@ export function TeamTasksTab({ token, teamId, canManage }: { token: string; team
   return (
     <>
       {canManage && (
-        <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
-          <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 4 }}>
+          <button
+            type="button"
+            className={styles.addButton}
+            style={{ justifyContent: "center", width: "100%" }}
+            onClick={() => setView({ screen: "pick-template" })}
+          >
+            <Icon name="book" size={16} />
+            Добавить задание из библиотеки
+          </button>
+          <button
+            type="button"
+            className={styles.iconButton}
+            style={{ justifyContent: "center", width: "100%" }}
+            onClick={() => setView({ screen: "create" })}
+          >
             <Icon name="plus" size={16} />
             Новое задание
-          </button>
-          <button type="button" className={styles.iconButton} onClick={() => setView({ screen: "pick-template" })}>
-            Из шаблона
           </button>
         </div>
       )}

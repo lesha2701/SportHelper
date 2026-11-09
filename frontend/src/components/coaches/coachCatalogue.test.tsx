@@ -52,12 +52,13 @@ describe("the coaches tab for a coach", () => {
     expect(listListings).toHaveBeenCalledTimes(2);
   });
 
-  it("does not show the coach's own listings, only other coaches'", async () => {
+  it("shows the coach's own listing too, marked as theirs", async () => {
     render(<CoachMarketplaceScreen token="t" myUserId="me" canCreateListing />);
 
     await screen.findByText("Чужое объявление");
-    expect(screen.queryByText("Моё объявление")).toBeNull();
-    expect(screen.getByText("Найдено 1 объявление")).toBeTruthy();
+    expect(screen.getByText("Моё объявление")).toBeTruthy();
+    expect(screen.getAllByText("Ваше объявление")).toHaveLength(1);
+    expect(screen.getByText("Найдено 2 объявления")).toBeTruthy();
   });
 });
 

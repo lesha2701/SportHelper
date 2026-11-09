@@ -33,7 +33,7 @@ type View =
 
 type ListState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; listings: CoachListingCard[] };
 
-function ListingCardView({ token, listing, onOpen }: { token: string; listing: CoachListingCard; onOpen: () => void }) {
+function ListingCardView({ token, listing, own = false, onOpen }: { token: string; listing: CoachListingCard; own?: boolean; onOpen: () => void }) {
   return (
     <button type="button" className={styles.coachCard} onClick={onOpen}>
       <div className={styles.coachCardTop}>
@@ -43,6 +43,7 @@ function ListingCardView({ token, listing, onOpen }: { token: string; listing: C
           <div className={styles.coachAvatar}>{listing.coachFullName.charAt(0).toUpperCase()}</div>
         )}
         <div>
+          {own && <span className={styles.ownBadge}>Ваше объявление</span>}
           <h3 className={styles.coachName}>{listing.title}</h3>
           <p className={styles.coachMeta}>
             {listing.coachFullName} · {listing.sport}
@@ -85,11 +86,13 @@ function ListingCardView({ token, listing, onOpen }: { token: string; listing: C
 function ListingDetailPanel({
   token,
   listing,
+  own = false,
   onBook,
   onOpenProfile,
 }: {
   token: string;
   listing: CoachListingCard;
+  own?: boolean;
   onBook: () => void;
   onOpenProfile: () => void;
 }) {
@@ -140,9 +143,11 @@ function ListingDetailPanel({
         </div>
 
         <div className={libStyles.detailActions}>
-          <button type="button" className={profileStyles.buttonPrimary} onClick={onBook}>
-            Записаться
-          </button>
+          {!own && (
+            <button type="button" className={profileStyles.buttonPrimary} onClick={onBook}>
+              Записаться
+            </button>
+          )}
           <button type="button" className={profileStyles.buttonSecondary} onClick={onOpenProfile}>
             Профиль
           </button>
@@ -212,7 +217,7 @@ export function CoachMarketplaceScreen({
   /** A visitor without an account: everything is browsable, booking asks them to sign in first. */
   guest?: boolean;
   onRequireLogin?: (listingId: string) => void;
-  /** The signed-in person: their own listings are not shown here (there is nothing to book from them). */
+  /** The signed-in person: their own listings are shown, marked as theirs, without a «Записаться» (nothing to book from oneself). */
   myUserId?: string | null;
   /** A coach can start a new listing from this tab. */
   canCreateListing?: boolean;
@@ -255,7 +260,7 @@ export function CoachMarketplaceScreen({
     setState({ status: "loading" });
     listListings(token, filters)
       .then((listings) =>
-        setState({ status: "ready", listings: myUserId ? listings.filter((listing) => listing.coachUserId !== myUserId) : listings }),
+        setState({ status: "ready", listings }),
       )
       .catch((err: unknown) => {
         const message = err instanceof ApiError ? err.message : "Не удалось загрузить список тренеров";
@@ -344,6 +349,7 @@ export function CoachMarketplaceScreen({
         onBack={() =>
           setView(view.coachUserId ? { screen: "coachProfile", coachUserId: view.coachUserId } : { screen: "list" })
         }
+        ownUserId={myUserId}
         onBook={(listing) => (guest ? onRequireLogin?.(listing.id) : setView({ screen: "booking", listing }))}
       />
     );
@@ -548,6 +554,7 @@ export function CoachMarketplaceScreen({
                     key={listing.id}
                     token={token}
                     listing={listing}
+                    own={!!myUserId && listing.coachUserId === myUserId}
                     onOpen={() =>
                       showDetailPanel
                         ? setSelectedId(listing.id)
@@ -569,6 +576,7 @@ export function CoachMarketplaceScreen({
                 <ListingDetailPanel
                   token={token}
                   listing={selected}
+                  own={!!myUserId && selected.coachUserId === myUserId}
                   onBook={() => setView({ screen: "profile", listingId: selected.id, coachUserId: selected.coachUserId })}
                   onOpenProfile={() => setView({ screen: "coachProfile", coachUserId: selected.coachUserId })}
                 />

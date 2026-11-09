@@ -21,10 +21,13 @@ export function ListingPublicProfileScreen({
   listingId,
   onBack,
   onBook,
+  ownUserId = null,
 }: {
   token: string;
   listingId: string;
   onBack: () => void;
+  /** The signed-in person: on their own listing there is no «Записаться». */
+  ownUserId?: string | null;
   onBook: (listing: CoachListingProfile) => void;
 }) {
   const [state, setState] = useState<
@@ -127,9 +130,11 @@ export function ListingPublicProfileScreen({
               )}
 
               <div className={profileStyles.formActions}>
-                <button type="button" className={profileStyles.buttonPrimary} onClick={() => onBook(listing)}>
-                  Записаться
-                </button>
+                {listing.coachUserId !== ownUserId && (
+                  <button type="button" className={profileStyles.buttonPrimary} onClick={() => onBook(listing)}>
+                    Записаться
+                  </button>
+                )}
                 <ReportButton targetType="listing" targetId={listing.id} ownerUserId={listing.coachUserId} label="Пожаловаться на объявление" />
               </div>
             </div>
