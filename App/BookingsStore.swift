@@ -136,6 +136,11 @@ final class BookingsStore {
         }
     }
 
+    /// The booking behind a personal training the coach was booked for; nil where there is none of theirs (the site then shows nothing).
+    func coachBooking(forTraining trainingId: UUID) async -> Booking? {
+        try? await service.coachBooking(forTraining: trainingId)
+    }
+
     // MARK: payment
 
     /// The payment page to open, or the server's error text.

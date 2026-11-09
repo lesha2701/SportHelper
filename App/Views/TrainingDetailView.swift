@@ -32,6 +32,10 @@ struct TrainingDetailView: View {
     @State private var doing: Session?
     /// Whether a workout of this training was left unfinished on this device (it is looked up when the workout screen closes).
     @State private var hasDraft = false
+    /// The chat of the session the coach opened from the session card.
+    @State private var sessionChat: UUID?
+    /// The booking behind a personal training the person was booked for as the coach (none otherwise).
+    @State private var sessionBooking: Booking?
 
     /// A workout being done: a list of exercises with sets to fill in, or a circuit on the clock.
     private enum Session: Identifiable {
@@ -72,6 +76,7 @@ struct TrainingDetailView: View {
             if case .loading = auth.teams.mine { await auth.teams.reloadMine() }
             await fetch()
         }
+        .navigationDestination(item: $sessionChat) { ChatView(store: auth.chatStore(for: .booking($0))) }
         .sheet(item: $editing) { training in TrainingFormView(mode: .edit(training)) { Task { await fetch() } } }
         .onChange(of: doing?.id) { hasDraft = WorkoutRunner.hasDraft(for: trainingId) }
         .fullScreenCover(item: $doing) { session in
@@ -210,6 +215,9 @@ struct TrainingDetailView: View {
                 if let minutes = training.reminderMinutesBefore { LabeledContent("Напоминание", value: TrainingReminder.title(minutes)) }
                 if training.recurrenceGroupId != nil { LabeledContent("Повтор", value: "Каждую неделю") }
             }
+            if training.type == "personal", training.createdBy != auth.user?.id {
+                CoachSessionCard(booking: $sessionBooking, onChanged: { Task { await fetch() } }, onChat: { sessionChat = $0 })
+            }
             if let plan { planSection(plan) }
             if let list = ownChecklist(training) {
                 exercises(list)
@@ -333,6 +341,9 @@ struct TrainingDetailView: View {
                 if case .success(let found) = await auth.library.plan(planId) { plan = found }
             } else {
                 plan = nil
+            }
+            if training.type == "personal", training.createdBy != auth.user?.id {
+                sessionBooking = await auth.bookings.coachBooking(forTraining: trainingId)
             }
             if training.type == "personal", training.createdBy == auth.user?.id, case .success(let saved) = await auth.trainings.workout(of: trainingId) {
                 workout = saved

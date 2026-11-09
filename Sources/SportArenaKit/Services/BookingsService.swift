@@ -30,6 +30,11 @@ public final class BookingsService: Sendable {
         try await client.send(.get, "/api/bookings/coach")
     }
 
+    /// The booking behind a personal training the coach was booked for (404 where the training is not one of theirs).
+    public func coachBooking(forTraining trainingId: UUID) async throws -> Booking {
+        try await client.send(.get, "/api/bookings/coach/by-training/\(trainingId.uuidString.lowercased())")
+    }
+
     public func confirm(_ id: UUID) async throws -> Booking {
         try await client.send(.post, path(id, "/confirm"))
     }

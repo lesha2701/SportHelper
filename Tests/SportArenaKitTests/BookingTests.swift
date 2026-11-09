@@ -234,11 +234,32 @@ struct BookingsServiceTests {
             #expect(error.code == "already_paid")
         } catch { Issue.record("wrong error \(error)") }
     }
+
+    @Test func theBookingBehindATrainingIsAskedByTheTrainingId() async throws {
+        let seen = RequestLog()
+        let (bookings, _) = make { request in seen.add(request); return json(bookingJSON()) }
+        let training = UUID(uuidString: "AAAAAAAA-2222-4333-8444-555555555555")!
+        let booking = try await bookings.coachBooking(forTraining: training)
+        #expect(seen.all.first?.httpMethod == "GET")
+        #expect(seen.all.first?.url?.path == "/api/bookings/coach/by-training/aaaaaaaa-2222-4333-8444-555555555555")
+        #expect(booking.status == .confirmed)
+    }
+
+    @Test func aTrainingThatIsNotTheCoachsComesBackAsTheServersRefusal() async {
+        let (bookings, _) = make { _ in json(#"{"error":{"code":"not_found","message":"Запись не найдена."}}"#, status: 404) }
+        do {
+            _ = try await bookings.coachBooking(forTraining: UUID())
+            Issue.record("expected an error")
+        } catch let error as APIError {
+            #expect(error.status == 404)
+        } catch { Issue.record("wrong error \(error)") }
+    }
 }
 
 private actor Counter {
     private(set) var value = 0
     func next() -> Int { value += 1; return value }
+
 }
 
 struct PaymentPollingTests {
