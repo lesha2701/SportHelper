@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { AppState, Keyboard, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, type UploadFile } from "@/api/client";
 import { deleteChatMessage, getChat, listChatMessages, markChatRead, openChat, sendChatMedia, sendChatMessage } from "@/api/chat";
@@ -52,6 +52,7 @@ export default function ChatScreen() {
   const [deleting, setDeleting] = useState<ChatMessage | null>(null);
   const [viewing, setViewing] = useState<number | null>(null);
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const [keyboard, setKeyboard] = useState(0);
   const stickRef = useRef(true);
   const keyRef = useRef<string | null>(null);
   const lastIdRef = useRef(0);
@@ -74,6 +75,22 @@ export default function ChatScreen() {
       for (const m of incoming) byId.set(m.id, m);
       return [...byId.values()].sort((a, b) => a.id - b.id);
     });
+  }, []);
+
+  // The composer rides up with the keyboard: on Android (edge to edge) the window does not shrink by itself, so the
+  // keyboard's height is added at the bottom; the list then stays at the newest message.
+  useEffect(() => {
+    const ios = Platform.OS === "ios";
+    const show = Keyboard.addListener(ios ? "keyboardWillShow" : "keyboardDidShow", (e) => {
+      setKeyboard(e.endCoordinates.height);
+      stickRef.current = true;
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+    });
+    const hide = Keyboard.addListener(ios ? "keyboardWillHide" : "keyboardDidHide", () => setKeyboard(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
   }, []);
 
   // Open the chat, then its latest page.
@@ -208,7 +225,7 @@ export default function ChatScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: load.chat.title }} />
-      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}>
+      <View style={{ flex: 1, backgroundColor: colors.bg, paddingBottom: keyboard }}>
         <ScrollView
           ref={scrollRef}
           style={{ flex: 1 }}
@@ -291,7 +308,7 @@ export default function ChatScreen() {
         </ScrollView>
 
         {load.chat.canSend ? (
-          <View style={[styles.composer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: insets.bottom + 8 }]}>
+          <View style={[styles.composer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: (keyboard > 0 ? 0 : insets.bottom) + 8 }]}>
             {file ? (
               <View style={[styles.preview, { backgroundColor: colors.surfaceAlt }]}>
                 <Ionicons name={file.video ? "videocam-outline" : "image-outline"} size={18} color={colors.primary} />
@@ -340,7 +357,7 @@ export default function ChatScreen() {
             </Text>
           </View>
         )}
-      </KeyboardAvoidingView>
+      </View>
 
       <MediaViewer items={gallery} index={viewing} onIndex={setViewing} onClose={() => setViewing(null)} />
       <ConfirmModal visible={deleting !== null} title="Удалить сообщение?" message="Оно исчезнет у всех участников чата." confirmLabel="Удалить" destructive onCancel={() => setDeleting(null)} onConfirm={() => void remove()} />
