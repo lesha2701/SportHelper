@@ -1,5 +1,4 @@
-# Who reviews what: GitHub asks these people for a review of a pull request that touches the paths.
-# Everything not listed below belongs to both developers.
-*                 @lesha2701 @lorg031
-/ios/             @lesha2701
+# Who GitHub asks for a review of a pull request that touches a path (the last matching line wins).
+# Everything is the iOS developer's (he merges into main) except the Android app, which its developer owns.
+*                 @lesha2701
 /mobile/          @lorg031

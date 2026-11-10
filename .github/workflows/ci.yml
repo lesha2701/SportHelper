@@ -1,12 +1,15 @@
 name: CI
 
+# Tests run once per change: on a pull request (before the merge) and on main (after it, which then deploys).
+# A branch push without a pull request runs nothing, so a pull request is not tested twice.
+# A change that touches only an app (ios/, mobile/), a text document or the owners file needs neither the tests nor a deploy.
+# (docs/openapi.json is not a text document: the contract test reads it, so a change of it does run the tests.)
 on:
-  # A change that touches only an app (ios/, mobile/) needs neither the server tests nor a deploy.
   push:
-    branches: ["**"]
-    paths-ignore: ["ios/**", "mobile/**"]
+    branches: [main]
+    paths-ignore: ["ios/**", "mobile/**", "**/*.md", ".github/CODEOWNERS"]
   pull_request:
-    paths-ignore: ["ios/**", "mobile/**"]
+    paths-ignore: ["ios/**", "mobile/**", "**/*.md", ".github/CODEOWNERS"]
 
 jobs:
   backend-tests:
