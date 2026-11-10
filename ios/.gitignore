@@ -1,0 +1,23 @@
+# Swift / Xcode
+.build/
+.swiftpm/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+.DS_Store
+
+# Secrets and local configuration - never committed
+.env
+.env.*
+*.p8
+*.p12
+*.mobileprovision
+*.cer
+Secrets.xcconfig
+Config/Local.xcconfig
+GoogleService-Info.plist
+
+# Xcode project is generated from project.yml (xcodegen generate)
+SportArena.xcodeproj/
+build-ios/
