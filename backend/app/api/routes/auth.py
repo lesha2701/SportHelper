@@ -53,6 +53,8 @@ from app.schemas.auth import (
     MfaSetupIn,
     MfaSetupOut,
     MfaStatusOut,
+    MobileAuthOut,
+    MobileVerifyEmailOut,
     PasswordIn,
     RegisterIn,
     RegisterOut,
@@ -68,7 +70,7 @@ from app.schemas.auth import (
 from app.schemas.user import UserOut
 from app.security import passwords, totp
 from app.security.client import describe_device
-from app.security.sessions import clear_session_cookie, set_session_cookie, start_session
+from app.security.sessions import clear_session_cookie, session_expiry, set_session_cookie, start_session
 from app.security.tokens import csrf_token_for, generate_token, hash_token
 from app.services import accounts as svc
 from app.services import admin_audit
@@ -224,14 +226,23 @@ async def _sign_in_after_verification(
     return _auth_out(user, token, settings)
 
 
-@router.post("/verify-email", response_model=VerifyEmailOut)
-async def verify_email(
-    payload: VerifyEmailIn,
-    request: Request,
-    response: Response,
-    conn: asyncpg.Connection = Depends(get_db),
-    settings: Settings = Depends(get_settings_dep),
-) -> VerifyEmailOut:
+async def _mobile_sign_in_after_verification(
+    conn: asyncpg.Connection, request: Request, user_id: UUID, settings: Settings
+) -> MobileAuthOut | None:
+    """The token variant of _sign_in_after_verification (same rules: never for a blocked or two-factor account)."""
+    user = await users_repo.get_by_id(conn, user_id)
+    if user is None or user.get("deleted_at") is not None or user.get("is_banned"):
+        return None
+    mfa = await mfa_repo.get(conn, user_id)
+    if mfa is not None and mfa["enabled_at"]:
+        return None
+    await users_repo.clear_login_failures(conn, user_id)
+    token, session = await start_session(conn, request, user_id, settings)
+    return MobileAuthOut(**user, access_token=token, expires_at=session.get("expires_at") or session_expiry(settings))
+
+
+async def _confirm_email(payload: VerifyEmailIn, request: Request, conn: asyncpg.Connection, settings: Settings) -> dict:
+    """Spends an email-confirmation link for someone who knows the registration password; returns the user."""
     token_hash = hash_token(payload.token)
     await svc.enforce_rate_limit(request, conn, settings, "verify-ip", svc.ip_of(request, settings), limit=30, window_seconds=3600)
     # Guessing the registration password for a link you hold buys nothing, but cap it anyway.
@@ -253,8 +264,35 @@ async def verify_email(
         raise ConflictError("Этот email уже привязан к другому аккаунту.", code="email_taken")
     if status != "ok" or user is None:
         raise APIError(_INVALID_LINK, code="invalid_token", status_code=400)
+    return user
+
+
+@router.post("/verify-email", response_model=VerifyEmailOut)
+async def verify_email(
+    payload: VerifyEmailIn,
+    request: Request,
+    response: Response,
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> VerifyEmailOut:
+    user = await _confirm_email(payload, request, conn, settings)
     session = await _sign_in_after_verification(conn, request, response, user["id"], settings)
     return VerifyEmailOut(verified=True, email=user["email"], session=session)
+
+
+@router.post("/mobile/verify-email", response_model=MobileVerifyEmailOut)
+async def mobile_verify_email(
+    payload: VerifyEmailIn,
+    request: Request,
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> MobileVerifyEmailOut:
+    """Same as /verify-email, but the automatic sign-in returns the session token in the body (no cookie)."""
+    if not settings.mobile_auth_enabled:
+        raise NotFoundError("Not found")
+    user = await _confirm_email(payload, request, conn, settings)
+    session = await _mobile_sign_in_after_verification(conn, request, user["id"], settings)
+    return MobileVerifyEmailOut(verified=True, email=user["email"], session=session)
 
 
 @router.post("/verify-email/set-password", response_model=VerifyEmailOut)
@@ -317,14 +355,12 @@ async def resend_verification(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/login", response_model=AuthOut)
-async def login(
-    payload: LoginIn,
-    request: Request,
-    response: Response,
-    conn: asyncpg.Connection = Depends(get_db),
-    settings: Settings = Depends(get_settings_dep),
-) -> AuthOut:
+async def _verify_login(
+    payload: LoginIn, request: Request, conn: asyncpg.Connection, settings: Settings
+) -> dict:
+    """Rate limits, lockout and the password / account-state checks shared by the
+    cookie login and the mobile login. Returns the credentials row of a person who
+    may now be given a session; raises otherwise."""
     ip = svc.ip_of(request, settings)
     await svc.enforce_rate_limit(request, conn, settings, "login-ip", ip, limit=30, window_seconds=600)
     email = svc.try_normalize_email(payload.email)
@@ -376,12 +412,42 @@ async def login(
     if passwords.needs_rehash(creds["password_hash"], settings):
         await users_repo.set_password(conn, creds["id"], await svc.hash_in_thread(payload.password, settings))
     await users_repo.clear_login_failures(conn, creds["id"])
+    return creds
 
+
+@router.post("/login", response_model=AuthOut)
+async def login(
+    payload: LoginIn,
+    request: Request,
+    response: Response,
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> AuthOut:
+    creds = await _verify_login(payload, request, conn, settings)
     token, _session = await start_session(conn, request, creds["id"], settings)
     set_session_cookie(response, token, settings)
     user = await users_repo.get_by_id(conn, creds["id"])
     assert user is not None
     return _auth_out(user, token, settings)
+
+
+@router.post("/mobile/login", response_model=MobileAuthOut)
+async def mobile_login(
+    payload: LoginIn,
+    request: Request,
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> MobileAuthOut:
+    """Sign-in for the native app: same checks as /login, but the session token is returned in the
+    body (the app keeps it in the system secure storage) and no cookie is set. The token is then sent
+    as `Authorization: Bearer`, which needs no CSRF token. Off unless MOBILE_AUTH_ENABLED."""
+    if not settings.mobile_auth_enabled:
+        raise NotFoundError("Not found")
+    creds = await _verify_login(payload, request, conn, settings)
+    token, session = await start_session(conn, request, creds["id"], settings)
+    user = await users_repo.get_by_id(conn, creds["id"])
+    assert user is not None
+    return MobileAuthOut(**user, access_token=token, expires_at=session.get("expires_at") or session_expiry(settings))
 
 
 async def _burn_time(password: str, settings: Settings) -> None:

@@ -154,3 +154,31 @@ def test_calendar_invalid_range_rejected(logged_in_client) -> None:
     )
     assert too_large.status_code == 400
     assert too_large.json()["error"]["code"] == "range_too_large"
+
+
+def test_personal_training_is_named_after_its_exercises(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+
+    def create(description):
+        client.post(
+            "/api/trainings/personal",
+            headers=headers,
+            json={
+                "training_date": _TOMORROW, "start_time": "09:00:00", "duration_minutes": 45,
+                "location": None, "description": description, "plan_id": None, "reminder_minutes_before": None,
+                "repeat_weekly_until": None, "is_independent": False, "responsible_user_id": None,
+            },
+        )
+
+    create("1. Приседания — 3 подх. x 10 повт.\n2. Планка — 3 подх. x 30 сек")
+    create("1. Бег — 3000 м\n2. Планка\n3. Отжимания\n4. Пресс")
+    create("Свободное описание без списка")
+
+    titles = sorted(e["title"] for e in _range(client, token).json() if e["type"] == "training")
+
+    assert titles == [
+        "Личная тренировка",
+        "Личная: Бег, Планка и ещё 2",
+        "Личная: Приседания, Планка",
+    ]

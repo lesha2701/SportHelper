@@ -37,15 +37,24 @@ def _setup_team_with_two_players(client, coach_token, login_as):
     return team, coach_headers, good_token, good_id, absent_id, training
 
 
-def test_only_coach_staff_can_view_team_stats(logged_in_client, login_as) -> None:
+def test_players_see_team_totals_but_not_who_misses_trainings(logged_in_client, login_as) -> None:
     client, coach_token = logged_in_client
     team, coach_headers, good_token, good_id, absent_id, training = _setup_team_with_two_players(client, coach_token, login_as)
 
-    forbidden = client.get(f"/api/teams/{team['id']}/stats", headers={"Authorization": f"Bearer {good_token}"})
-    assert forbidden.status_code == 403
+    coach_view = client.get(f"/api/teams/{team['id']}/stats", headers=coach_headers)
+    assert coach_view.status_code == 200
+    assert coach_view.json()["frequent_absence_players"]
 
-    ok = client.get(f"/api/teams/{team['id']}/stats", headers=coach_headers)
-    assert ok.status_code == 200
+    player_view = client.get(f"/api/teams/{team['id']}/stats", headers={"Authorization": f"Bearer {good_token}"})
+    assert player_view.status_code == 200
+    body = player_view.json()
+    assert body["members_count"] == coach_view.json()["members_count"]
+    assert body["attendance_rate"] == coach_view.json()["attendance_rate"]
+    assert body["low_activity_players"] == [] and body["frequent_absence_players"] == []
+
+    outsider_token = login_as(880004, first_name="Outsider")
+    outsider = client.get(f"/api/teams/{team['id']}/stats", headers={"Authorization": f"Bearer {outsider_token}"})
+    assert outsider.status_code == 403
 
 
 def test_team_stats_attendance_and_activity_lists(logged_in_client, login_as) -> None:

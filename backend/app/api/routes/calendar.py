@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import date, time
 
 import asyncpg
@@ -21,6 +22,23 @@ _TRAINING_TITLES = {
     "team": "Тренировка команды",
     "independent": "Самостоятельная тренировка",
 }
+
+
+_EXERCISE_LINE = re.compile(r"^\d+\.\s+(.+?)(?:\s+—\s+.*)?$")
+
+
+def _personal_title(description: str | None) -> str:
+    """A personal training is named after its exercises ("Личная: Приседания, Планка и ещё 2"), so two of them on one
+    day can be told apart; one without an exercise list keeps the plain name."""
+    names = []
+    for line in (description or "").splitlines():
+        match = _EXERCISE_LINE.match(line.strip())
+        if match:
+            names.append(match.group(1).strip())
+    if not names:
+        return _TRAINING_TITLES["personal"]
+    shown = ", ".join(names[:2])
+    return f"Личная: {shown}" + (f" и ещё {len(names) - 2}" if len(names) > 2 else "")
 
 
 @router.get("", response_model=list[CalendarEventOut])
@@ -50,7 +68,7 @@ async def get_calendar(
                 title=(
                     f"Сессия с {t['booked_athlete_name']}"
                     if t.get("booked_athlete_name")
-                    else _TRAINING_TITLES[t["type"]]
+                    else (_personal_title(t.get("description")) if t["type"] == "personal" else _TRAINING_TITLES[t["type"]])
                 ),
                 team_id=t["team_id"],
                 team_name=t["team_name"],

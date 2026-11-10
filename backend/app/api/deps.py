@@ -61,7 +61,7 @@ def extract_session_token(
     """(token, came_from_cookie). An explicit Authorization header wins over the
     cookie - but only when BEARER_AUTH_ENABLED; otherwise it is ignored, so the
     only way to authenticate is the HttpOnly cookie (plus the CSRF check)."""
-    if settings.bearer_auth_enabled and credentials is not None and credentials.credentials:
+    if (settings.bearer_auth_enabled or settings.mobile_auth_enabled) and credentials is not None and credentials.credentials:
         return credentials.credentials, False
     cookie = request.cookies.get(settings.session_cookie_name)
     if cookie:

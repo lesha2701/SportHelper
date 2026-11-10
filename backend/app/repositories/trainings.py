@@ -146,7 +146,7 @@ async def list_calendar_trainings(
     with them (`booked_athlete_name` is set for those)."""
     rows = await conn.fetch(
         """
-        SELECT t.id, t.type, t.training_date, t.start_time, t.status, t.team_id, tm.name AS team_name,
+        SELECT t.id, t.type, t.training_date, t.start_time, t.status, t.team_id, tm.name AS team_name, t.description,
                CASE WHEN bk.id IS NOT NULL
                     THEN au.first_name || COALESCE(' ' || au.last_name, '') END AS booked_athlete_name
         FROM trainings t
