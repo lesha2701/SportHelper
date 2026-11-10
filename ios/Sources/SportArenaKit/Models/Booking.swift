@@ -110,10 +110,14 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
     private let hasPlayerReviewRaw: Bool?
     public let paymentStatusRaw: String?
     public let paidAt: Date?
+    private let canCancelRaw: Bool?
+    /// Set once the booking is cancelled: who, when, why and where the money is.
+    public let cancellation: Cancellation?
 
     private enum CodingKeys: String, CodingKey {
         case id, coachUserId, coachFullName, listingId, listingTitle, athleteUserId, athleteFullName, athleteNotes, startsAt
-        case durationMinutes, format, pricePerSession, currency, isCompleted, trainingId, trainingPlanId, trainingPlanName, hasReview, paidAt, trainingStatus
+        case durationMinutes, format, pricePerSession, currency, isCompleted, trainingId, trainingPlanId, trainingPlanName, hasReview, paidAt, trainingStatus, cancellation
+        case canCancelRaw = "canCancel"
         case hasPlayerReviewRaw = "hasPlayerReview"
         case statusRaw = "status"
         case paymentStatusRaw = "paymentStatus"
@@ -122,6 +126,9 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
     public var status: BookingStatus { BookingStatus(raw: statusRaw) }
     /// The coach has already reviewed the athlete (an older server that does not say it counts as no).
     public var hasPlayerReview: Bool { hasPlayerReviewRaw ?? false }
+
+    /// The «Отменить запись» button: the server says whether the booking can be cancelled right now (an older server that does not say it counts as no).
+    public var canCancel: Bool { canCancelRaw ?? false }
 
     /// The athlete may review the coach once the session counts as held and no review was left.
     public var athleteCanReview: Bool { status == .confirmed && isCompleted && !hasReview }

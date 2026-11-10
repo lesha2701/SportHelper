@@ -82,4 +82,56 @@ final class BookingsUITests: SignedInUITestCase {
         XCTAssertTrue(message.waitForExistence(timeout: 10), "no answer was shown")
         XCTAssertTrue(message.label.contains("подтверждена"), message.label)
     }
+
+    // MARK: cancelling
+
+    func testAnAthleteSeesTheMoneyFirstAndCancelsAConfirmedBooking() throws {
+        try openMyBookings()
+        let cancel = app.buttons["booking.cancel"].firstMatch
+        guard cancel.waitForExistence(timeout: 10) else { throw XCTSkip("No confirmed booking to cancel for this account (run the coach confirmation first).") }
+        let before = app.buttons.matching(identifier: "booking.cancel").count
+        cancel.tap()
+
+        // what the cancellation means for the money is shown BEFORE the button is pressed
+        let explanation = app.staticTexts["cancel.explanation"]
+        XCTAssertTrue(explanation.waitForExistence(timeout: 15), "the window did not tell what happens to the money: \(app.staticTexts["cancel.loadError"].exists ? app.staticTexts["cancel.loadError"].label : "no message")")
+        XCTAssertTrue(["Вернём 100%", "Деньги не вернутся", "деньги не списывались"].contains { explanation.label.contains($0) }, explanation.label)
+        app.buttons["cancel.confirm"].tap()
+
+        // the cancelled booking no longer offers cancelling (the list is long: its new place is at the bottom, off the screen)
+        let gone = NSPredicate { _, _ in self.app.buttons.matching(identifier: "booking.cancel").count == before - 1 }
+        wait(for: [XCTNSPredicateExpectation(predicate: gone, object: nil)], timeout: 20)
+        XCTAssertEqual(app.buttons.matching(identifier: "booking.cancel").count, before - 1, "the cancelled booking must not offer cancelling again")
+        let list = app.collectionViews["bookings.list"]
+        for _ in 0..<12 where !text(containing: "Отменена вами").exists { list.swipeUp() }
+        XCTAssertTrue(text(containing: "Отменена вами").exists, "the booking did not move to the cancelled ones")
+    }
+
+    func testACoachCannotCancelWithoutAReasonAndDoesWithOne() throws {
+        try openProfile()
+        let row = app.buttons["profile.coachBookings"]
+        // the profile is a long list: the coach's rows sit under its first screen and are not built until scrolled to
+        _ = app.buttons["profile.edit"].waitForExistence(timeout: 10)
+        for _ in 0..<6 where !row.exists { app.swipeUp() }
+        guard row.exists else { throw XCTSkip("This test needs a coach account.") }
+        for _ in 0..<3 where !row.isHittable { app.swipeUp() }
+        row.tap()
+        XCTAssertTrue(app.navigationBars["Записи"].waitForExistence(timeout: 10))
+        let cancel = app.buttons["booking.cancel"].firstMatch
+        guard cancel.waitForExistence(timeout: 10) else { throw XCTSkip("No confirmed booking to cancel for this coach.") }
+        cancel.tap()
+
+        XCTAssertTrue(app.staticTexts["cancel.explanation"].waitForExistence(timeout: 15), "the window did not tell what happens to the money")
+        app.buttons["cancel.confirm"].tap()
+        XCTAssertTrue(app.staticTexts["cancel.error"].waitForExistence(timeout: 5), "a coach must be asked for a reason")
+
+        let reason = app.textFields["cancel.reason"]
+        reason.tap()
+        reason.typeText("Заболел тренер")
+        app.buttons["cancel.confirm"].tap()
+        XCTAssertTrue(app.buttons["cancel.confirm"].waitForNonExistence(timeout: 20), "the window should close once the booking is cancelled")
+        let list = app.collectionViews["coachBookings.list"]  // the cancelled bookings are the last section, off the screen
+        for _ in 0..<12 where !text(containing: "Отменена вами").exists { list.swipeUp() }
+        XCTAssertTrue(text(containing: "Отменена вами").exists, "the cancelled booking should show who cancelled it")
+    }
 }

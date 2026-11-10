@@ -8,6 +8,7 @@ struct MyBookingsView: View {
     @State private var payErrors: [UUID: String] = [:]
     @State private var starting: Set<UUID> = []
     @State private var reviewing: Booking?
+    @State private var cancelling: Booking?
     /// A «leave a review» notification opens this screen with that booking's form ready.
     var reviewBookingId: UUID?
 
@@ -43,6 +44,7 @@ struct MyBookingsView: View {
                 await store.review(booking.id, draft: draft, ofPlayer: false)
             }
         }
+        .cancelBookingSheet(item: $cancelling, side: .athlete, store: store)
         .sheet(item: $page, onDismiss: afterPayment) { SafariView(url: $0.url).ignoresSafeArea() }
     }
 
@@ -50,7 +52,8 @@ struct MyBookingsView: View {
         let waiting = bookings.filter { $0.status == .pending }.sorted { $0.startsAt < $1.startsAt }
         let upcoming = bookings.filter { $0.status == .confirmed && !$0.isCompleted }.sorted { $0.startsAt < $1.startsAt }
         let past = bookings.filter { $0.status == .confirmed && $0.isCompleted }.sorted { $0.startsAt > $1.startsAt }
-        let closed = bookings.filter { ![.pending, .confirmed].contains($0.status) }.sorted { $0.startsAt > $1.startsAt }
+        let closed = bookings.filter { ![.pending, .confirmed, .cancelled].contains($0.status) }.sorted { $0.startsAt > $1.startsAt }
+        let cancelled = bookings.filter { $0.status == .cancelled }.sorted { $0.startsAt > $1.startsAt }
         return List {
             if bookings.isEmpty {
                 ContentUnavailableView {
@@ -66,6 +69,7 @@ struct MyBookingsView: View {
             section("Предстоящие", upcoming)
             section("Прошедшие", past)
             section("Отклонённые и закрытые", closed)
+            section("Отменённые", cancelled)
         }
         .refreshable { await store.reloadMine() }
         .accessibilityIdentifier("bookings.list")
@@ -82,7 +86,8 @@ struct MyBookingsView: View {
                         onCheck: { Task { await store.settlePayment(booking.id) } },
                         onChat: { auth.router.profilePath.append(.bookingChat(booking.id)) },
                         chatUnread: auth.chatUnread.unread.forBooking(booking.id),
-                        onReview: { reviewing = booking }
+                        onReview: { reviewing = booking },
+                        onCancel: { cancelling = booking }
                     )
                 }
             }

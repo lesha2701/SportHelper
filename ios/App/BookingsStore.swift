@@ -104,6 +104,35 @@ final class BookingsStore {
         }
     }
 
+    // MARK: cancelling
+
+    /// What cancelling right now would mean for the money, or the server's text.
+    func cancelPreview(_ id: UUID) async -> Result<CancelPreview, APIError> {
+        do {
+            return .success(try await service.cancelPreview(id))
+        } catch let error as APIError {
+            return .failure(error)
+        } catch {
+            return .failure(.unknown)
+        }
+    }
+
+    /// Cancels the booking (the server settles the money). The cancelled booking replaces the old one in both lists; where the server
+    /// refused, the lists are read again (the booking may have started, been cancelled by the other side, or been held meanwhile).
+    func cancel(_ id: UUID, reason: String?) async -> Result<Booking, APIError> {
+        do {
+            let booking = try await service.cancel(id, reason: reason)
+            replace(booking)
+            return .success(booking)
+        } catch let error as APIError {
+            await reloadMine()
+            await reloadCoachBookings()
+            return .failure(error)
+        } catch {
+            return .failure(.unknown)
+        }
+    }
+
     // MARK: reviews
 
     /// The athlete's review of the coach (`ofPlayer` false) or the coach's review of the athlete. Returns the server's text when it did

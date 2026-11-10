@@ -48,6 +48,18 @@ public final class BookingsService: Sendable {
         try await client.send(.patch, path(id, "/plan"), body: BookingPlanBody(planId: plan))
     }
 
+    // MARK: cancelling
+
+    /// What cancelling right now would mean for the money (the athlete and the coach of the booking). Changes nothing.
+    public func cancelPreview(_ id: UUID) async throws -> CancelPreview {
+        try await client.send(.get, path(id, "/cancel-preview"))
+    }
+
+    /// Cancels a confirmed booking by the server's rule; the money goes back by itself. Repeating it is harmless. The coach gives a reason.
+    public func cancel(_ id: UUID, reason: String?) async throws -> Booking {
+        try await client.send(.post, path(id, "/cancel"), body: CancelBody(reason: reason))
+    }
+
     // MARK: reviews
 
     /// The athlete's review of the coach after a held session. The server refuses a second one («already_reviewed»).
