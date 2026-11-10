@@ -1,9 +1,12 @@
 name: CI
 
 on:
+  # A change that touches only an app (ios/, mobile/) needs neither the server tests nor a deploy.
   push:
     branches: ["**"]
+    paths-ignore: ["ios/**", "mobile/**"]
   pull_request:
+    paths-ignore: ["ios/**", "mobile/**"]
 
 jobs:
   backend-tests:

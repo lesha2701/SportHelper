@@ -1,8 +1,9 @@
 # SportArenaGlobal для iOS
 
-Нативное приложение (SwiftUI, iOS 17+) для платформы SportArenaGlobal. Сервер и сайт живут в другом репозитории
-(`lesha2701/SportHelper`); здесь только iOS. Полное задание — [docs/BRIEF.md](docs/BRIEF.md), контракт сервера —
-[docs/openapi-mobile.json](docs/openapi-mobile.json).
+Нативное приложение (SwiftUI, iOS 17+) для платформы SportArenaGlobal. С 10.11.2026 лежит в папке `ios/` репозитория
+`lesha2701/SportHelper` (бывший отдельный репозиторий `SportArenaIOS` заархивирован). Сервер, сайт и Android живут рядом.
+Полное задание — [docs/BRIEF.md](docs/BRIEF.md) (написано, когда приложение начиналось в отдельном репозитории), контракт сервера —
+[../docs/ios/openapi-mobile.json](../docs/ios/openapi-mobile.json) и [../docs/ios/README.md](../docs/ios/README.md).
 
 ## Что уже есть в приложении
 
