@@ -18,6 +18,7 @@ struct CoachSessionCard: View {
     @State private var reviewing: Booking?
     @State private var viewing: PlayerRef?
     @State private var message: String?
+    @State private var cancelling: Booking?
 
     private var store: BookingsStore { auth.bookings }
 
@@ -37,12 +38,17 @@ struct CoachSessionCard: View {
             onComplete: { Task { await complete(booking) } },
             onReviewPlayer: { reviewing = booking },
             onOpenPlayer: { viewing = PlayerRef(id: booking.athleteUserId) },
-            isCompleting: completing
+            isCompleting: completing,
+            onCancel: { cancelling = booking }
         )
         .task {
             if booking.canChoosePlan, case .success(let list) = await auth.library.plans() { plans = list }
         }
         .playerProfileSheet(item: $viewing)
+        .cancelBookingSheet(item: $cancelling, side: .coach, store: store) { updated in
+            self.booking = updated
+            onChanged()  // the session behind the booking is cancelled: the training screen reads it again
+        }
         .sheet(item: $reviewing) { booking in
             ReviewSheet(
                 title: "Отзыв: \(booking.athleteFullName)",

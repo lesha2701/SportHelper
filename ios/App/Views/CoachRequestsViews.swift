@@ -104,6 +104,7 @@ struct CoachBookingsView: View {
     @State private var completing: Set<UUID> = []
     @State private var actionError: String?
     @State private var viewingPlayer: PlayerRef?
+    @State private var cancelling: Booking?
 
     private var store: BookingsStore { auth.bookings }
 
@@ -131,6 +132,7 @@ struct CoachBookingsView: View {
             if case .success(let list) = await auth.library.plans() { plans = list }
         }
         .playerProfileSheet(item: $viewingPlayer)
+        .cancelBookingSheet(item: $cancelling, side: .coach, store: store)
         .sheet(item: $reviewingPlayer) { booking in
             ReviewSheet(
                 title: "Отзыв: \(booking.athleteFullName)",
@@ -154,7 +156,8 @@ struct CoachBookingsView: View {
     private func list(_ bookings: [Booking]) -> some View {
         let upcoming = bookings.filter { $0.status == .confirmed && !$0.isCompleted }.sorted { $0.startsAt < $1.startsAt }
         let past = bookings.filter { $0.status == .confirmed && $0.isCompleted }.sorted { $0.startsAt > $1.startsAt }
-        let closed = bookings.filter { ![.pending, .confirmed].contains($0.status) }.sorted { $0.startsAt > $1.startsAt }
+        let closed = bookings.filter { ![.pending, .confirmed, .cancelled].contains($0.status) }.sorted { $0.startsAt > $1.startsAt }
+        let cancelled = bookings.filter { $0.status == .cancelled }.sorted { $0.startsAt > $1.startsAt }
         return List {
             if bookings.isEmpty {
                 ContentUnavailableView("Записей пока нет", systemImage: "calendar", description: Text("Подтверждённые заявки появятся здесь."))
@@ -163,6 +166,7 @@ struct CoachBookingsView: View {
             section("Предстоящие", upcoming)
             section("Прошедшие", past)
             section("Отклонённые и закрытые", closed)
+            section("Отменённые", cancelled)
         }
         .refreshable { await store.reloadCoachBookings() }
         .accessibilityIdentifier("coachBookings.list")
@@ -180,7 +184,8 @@ struct CoachBookingsView: View {
                         onComplete: { [booking = $0] in Task { await complete(booking) } },
                         onReviewPlayer: { [booking = $0] in reviewingPlayer = booking },
                         onOpenPlayer: { [id = $0.athleteUserId] in viewingPlayer = PlayerRef(id: id) },
-                        isCompleting: completing.contains($0.id)
+                        isCompleting: completing.contains($0.id),
+                        onCancel: { [booking = $0] in cancelling = booking }
                     )
                 }
             }

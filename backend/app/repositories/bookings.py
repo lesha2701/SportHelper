@@ -186,6 +186,29 @@ def is_completed(booking: dict[str, Any]) -> bool:
     return datetime.now(ends_at.tzinfo) > ends_at
 
 
+def can_cancel(booking: dict[str, Any], *, now: datetime | None = None) -> bool:
+    """Whether a confirmed booking can still be cancelled: its session has not started, was not conducted and was not cancelled."""
+    if booking["status"] != "confirmed" or booking.get("training_status") in ("completed", "cancelled"):
+        return False
+    return booking["starts_at"] > (now or datetime.now(timezone.utc))
+
+
+async def has_confirmed_booking_for_training(conn: asyncpg.Connection, training_id: UUID) -> bool:
+    """Whether the training is the session of a confirmed booking (its cancelling then has to go through the booking, with the money)."""
+    return bool(await conn.fetchval("SELECT EXISTS (SELECT 1 FROM bookings WHERE training_id = $1 AND status = 'confirmed')", training_id))
+
+
+async def lock_booking(conn: asyncpg.Connection, booking_id: UUID) -> bool:
+    """Takes the booking's row lock for the rest of the transaction (two people acting on it at once are served one after the other)."""
+    return await conn.fetchval("SELECT 1 FROM bookings WHERE id = $1 FOR UPDATE", booking_id) is not None
+
+
+async def mark_cancelled(conn: asyncpg.Connection, booking_id: UUID) -> bool:
+    """confirmed -> cancelled. Frees the slot (the unique index only holds pending and confirmed bookings)."""
+    result = await conn.execute("UPDATE bookings SET status = 'cancelled' WHERE id = $1 AND status = 'confirmed'", booking_id)
+    return result.endswith("1")
+
+
 async def get_for_coach_by_training(conn: asyncpg.Connection, training_id: UUID, coach_user_id: UUID) -> dict[str, Any] | None:
     """The coach's confirmed booking behind a personal training, in the full
     booking shape (same proof of "is the coach of this session" as

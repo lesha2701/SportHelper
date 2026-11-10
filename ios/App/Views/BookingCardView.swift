@@ -24,6 +24,8 @@ struct BookingCardView: View {
     /// The coach opens the athlete's page.
     var onOpenPlayer: (() -> Void)?
     var isCompleting = false
+    /// «Отменить запись»: offered only where the server says the booking can be cancelled (`canCancel`); nil where it is not offered.
+    var onCancel: (() -> Void)?
 
     enum Viewer { case athlete, coach }
 
@@ -53,6 +55,12 @@ struct BookingCardView: View {
                 booking: booking, viewer: viewer, isWorking: isCompleting, onReview: onReview, onComplete: onComplete, onReviewPlayer: onReviewPlayer
             )
             if booking.hasChat, let onChat { chatButton(onChat) }
+            if booking.canCancel, let onCancel {
+                Button(role: .destructive, action: onCancel) { Label("Отменить запись", systemImage: "xmark.circle").frame(maxWidth: .infinity) }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("booking.cancel")
+            }
+            if let cancellation = booking.cancellation { CancellationNote(cancellation: cancellation, side: viewer == .coach ? .coach : .athlete) }
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .contain)

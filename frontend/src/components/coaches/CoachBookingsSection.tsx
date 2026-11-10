@@ -12,6 +12,7 @@ import type { Booking } from "../../types/booking";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
+import { CancelBooking, CancellationNote } from "./CancelBooking";
 import { CoachSessionActions } from "./CoachSessionActions";
 import { PlanPickerModal } from "./PlanPickerModal";
 import { PlayerPublicProfileScreen } from "./PlayerPublicProfileScreen";
@@ -66,6 +67,8 @@ function BookingCard({
         </div>
       )}
       <CoachSessionActions token={token} booking={booking} onChange={onChange} />
+      <CancelBooking token={token} booking={booking} side="coach" onCancelled={onChange} />
+      <CancellationNote cancellation={booking.cancellation} side="coach" />
       <BookingChatButton booking={booking} label="Чат с игроком" unread={unread} onOpen={() => onOpenChat(booking)} />
     </div>
   );
@@ -122,6 +125,7 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
   const upcoming = state.bookings.filter((b) => !b.isCompleted && b.status === "confirmed");
   const past = state.bookings.filter((b) => b.isCompleted);
   const declinedOrExpired = state.bookings.filter((b) => b.status === "declined" || b.status === "expired");
+  const cancelled = state.bookings.filter((b) => b.status === "cancelled");
 
   return (
     <div className={profileStyles.screen}>
@@ -195,6 +199,26 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
               onOpenPlan={setPlanPickerFor}
           unread={unread.booking[b.id] ?? 0}
           onOpenChat={setChatFor}
+            />
+          ))}
+        </>
+      )}
+
+      {cancelled.length > 0 && (
+        <>
+          <h2 className={profileStyles.title}>Отменённые</h2>
+          {cancelled.map((b) => (
+            <BookingCard
+              key={b.id}
+              booking={b}
+              statusBadge={<span className={styles.bookingStatusMuted}>{b.cancellation?.cancelledByRole === "coach" ? "Отменена вами" : "Отменена игроком"}</span>}
+              showPlanRow={false}
+              token={token}
+              onChange={updateBooking}
+              onOpenPlayer={setViewingPlayerId}
+              onOpenPlan={setPlanPickerFor}
+              unread={unread.booking[b.id] ?? 0}
+              onOpenChat={setChatFor}
             />
           ))}
         </>

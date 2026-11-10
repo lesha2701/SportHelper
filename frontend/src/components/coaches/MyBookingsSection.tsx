@@ -20,6 +20,7 @@ import type { CoachListingProfile } from "../../types/coachListing";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
+import { CancelBooking, CancellationNote } from "./CancelBooking";
 import { ReviewModal } from "./ReviewModal";
 
 type CoachView =
@@ -79,6 +80,9 @@ export function MyBookingsSection({
     const settled = target?.paymentStatus === "paid" || target?.paymentStatus === "not_required";
     if (target?.status === "confirmed" && target.trainingId && settled) setOpenTrainingId(target.trainingId);
   }, [focusBookingId, state]);
+
+  const updateBooking = (updated: Booking) =>
+    setState((current) => (current.status === "ready" ? { status: "ready", bookings: current.bookings.map((b) => (b.id === updated.id ? updated : b)) } : current));
 
   const focusProps = (b: Booking) =>
     b.id === focusBookingId
@@ -205,6 +209,7 @@ export function MyBookingsSection({
   const upcoming = state.bookings.filter((b) => !b.isCompleted && b.status === "confirmed");
   const past = state.bookings.filter((b) => b.isCompleted);
   const declinedOrExpired = state.bookings.filter((b) => b.status === "declined" || b.status === "expired");
+  const cancelled = state.bookings.filter((b) => b.status === "cancelled");
 
   return (
     <div className={profileStyles.screen}>
@@ -266,6 +271,7 @@ export function MyBookingsSection({
             <span className={styles.bookingStatus}>Подтверждена</span>
           </div>
           <BookingPayment token={token} booking={b} />
+          <CancelBooking token={token} booking={b} side="athlete" onCancelled={updateBooking} />
           <BookingChatButton booking={b} label="Чат с тренером" unread={unread.booking[b.id] ?? 0} onOpen={() => setChatFor(b)} />
         </div>
       ))}
@@ -320,6 +326,25 @@ export function MyBookingsSection({
                   {b.status === "declined" ? "Отклонена тренером" : "Истекла — тренер не ответил"}
                 </span>
               </div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {cancelled.length > 0 && (
+        <>
+          <h2 className={profileStyles.title}>Отменённые</h2>
+          {cancelled.map((b) => (
+            <div className={profileStyles.card} key={b.id} {...focusProps(b)}>
+              <div className={styles.bookingCardTop}>
+                <div>
+                  <CoachNameButton booking={b} onOpen={(coachUserId) => setCoachView({ screen: "profile", coachUserId })} />
+                  {b.listingTitle && <p className={profileStyles.subtitle}>{b.listingTitle}</p>}
+                  <p className={profileStyles.subtitle}>{formatDate(b.startsAt)}</p>
+                </div>
+                <span className={styles.bookingStatusMuted}>Отменена</span>
+              </div>
+              <CancellationNote cancellation={b.cancellation} side="athlete" />
             </div>
           ))}
         </>

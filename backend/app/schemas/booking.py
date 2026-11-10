@@ -29,6 +29,37 @@ class BookingIn(BaseModel):
         return self
 
 
+class CancellationOut(BaseModel):
+    """Who cancelled the booking, why, by which rule and what happened to the money (None on the booking until it is cancelled)."""
+
+    cancelled_by_role: str  # athlete | coach
+    cancelled_at: datetime
+    reason: str | None = None
+    policy: str  # unpaid | athlete_early | athlete_late | coach
+    refund_percent: int
+    refund_amount_kopecks: int
+    # none (nothing to return) | pending (waits for ЮKassa) | succeeded | failed (the administrator decides by hand)
+    refund_status: str
+
+
+class CancelIn(BaseModel):
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class CancelPreviewOut(BaseModel):
+    """What cancelling the booking right now would mean; changes nothing."""
+
+    booking_id: UUID
+    cancelled_by_role: str
+    policy: str
+    hours_before_start: float
+    free_cancel_until: datetime | None
+    paid_kopecks: int
+    refund_percent: int
+    refund_kopecks: int
+    trainer_keeps_payment: bool
+
+
 class BookingOut(BaseModel):
     id: UUID
     coach_user_id: UUID
@@ -56,6 +87,9 @@ class BookingOut(BaseModel):
     # not_required (free) | unpaid | pending (a payment page is open) | paid
     payment_status: str = "unpaid"
     paid_at: datetime | None = None
+    # The «Отменить» button is shown by this: the booking is confirmed and its session has not started, was not conducted and was not cancelled.
+    can_cancel: bool = False
+    cancellation: CancellationOut | None = None
 
 
 class PaymentStartOut(BaseModel):

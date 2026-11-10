@@ -56,28 +56,50 @@ async def request_refund(
             refund = await refunds_repo.insert(conn, payment_id=payment["id"], attempt_id=attempt_id, kind="duplicate", amount=amount_kopecks,
                                                commission=0, trainer=amount_kopecks, reason=reason.strip(), requested_by=admin_user_id)
         else:
-            if payment["status"] not in ("paid", "partially_refunded"):
-                raise APIError("Вернуть можно только оплаченный платёж.", code="not_refundable", status_code=409)
-            attempt = await payments_repo.succeeded_attempt(conn, payment["id"])
-            if attempt is None:
-                raise APIError("Нет успешной оплаты для возврата.", code="not_refundable", status_code=409)
-            room = payment["gross_kopecks"] - payment["refund_reserved_kopecks"]
-            left_after = room - amount_kopecks
-            if amount_kopecks < MIN_REFUND_KOPECKS or amount_kopecks > room or (0 < left_after < MIN_REFUND_KOPECKS):
-                raise APIError("Недопустимая сумма возврата: от 1 ₽, не больше остатка, и остаток должен быть 0 либо не меньше 1 ₽.",
-                               code="amount_invalid", status_code=422)
-            done = await refunds_repo.sums_for_payment(conn, payment["id"])
-            commission, trainer = split_refund(
-                amount_kopecks, gross_kopecks=payment["gross_kopecks"], fee_kopecks=payment["platform_fee_kopecks"],
-                fee_already_refunded=done["commission"], refunded_before=done["amount"], return_commission=settings.refund_returns_commission,
-            )
-            refund = await refunds_repo.insert(conn, payment_id=payment["id"], attempt_id=attempt["id"], kind="payment", amount=amount_kopecks,
-                                               commission=commission, trainer=trainer, reason=reason.strip(), requested_by=admin_user_id)
-            # Reserving the amount first is what makes "refunds never exceed the payment" hold under races (CHECK in the database).
-            await conn.execute(
-                "UPDATE payments SET refund_reserved_kopecks = refund_reserved_kopecks + $2, updated_at = now() WHERE id = $1", payment["id"], amount_kopecks
-            )
+            refund = await reserve_payment_refund(conn, settings, payment, amount_kopecks=amount_kopecks, reason=reason, requested_by=admin_user_id)
     return await _send_to_provider(conn, settings, refund)
+
+
+async def reserve_payment_refund(
+    conn: asyncpg.Connection, settings: Settings, payment: dict[str, Any], *, amount_kopecks: int, reason: str, requested_by: UUID
+) -> dict[str, Any]:
+    """Records a refund of a paid payment and reserves its amount in the payment (nothing is sent to ЮKassa here).
+
+    The caller holds the payment row locked, inside its own transaction. A refund asked for by an administrator and one that follows
+    from cancelling a booking are made the same way, so the same rules hold for both."""
+    if payment["status"] not in ("paid", "partially_refunded"):
+        raise APIError("Вернуть можно только оплаченный платёж.", code="not_refundable", status_code=409)
+    attempt = await payments_repo.succeeded_attempt(conn, payment["id"])
+    if attempt is None:
+        raise APIError("Нет успешной оплаты для возврата.", code="not_refundable", status_code=409)
+    room = payment["gross_kopecks"] - payment["refund_reserved_kopecks"]
+    left_after = room - amount_kopecks
+    if amount_kopecks < MIN_REFUND_KOPECKS or amount_kopecks > room or (0 < left_after < MIN_REFUND_KOPECKS):
+        raise APIError("Недопустимая сумма возврата: от 1 ₽, не больше остатка, и остаток должен быть 0 либо не меньше 1 ₽.",
+                       code="amount_invalid", status_code=422)
+    done = await refunds_repo.sums_for_payment(conn, payment["id"])
+    commission, trainer = split_refund(
+        amount_kopecks, gross_kopecks=payment["gross_kopecks"], fee_kopecks=payment["platform_fee_kopecks"],
+        fee_already_refunded=done["commission"], refunded_before=done["amount"], return_commission=settings.refund_returns_commission,
+    )
+    refund = await refunds_repo.insert(conn, payment_id=payment["id"], attempt_id=attempt["id"], kind="payment", amount=amount_kopecks,
+                                       commission=commission, trainer=trainer, reason=reason.strip(), requested_by=requested_by)
+    # Reserving the amount first is what makes "refunds never exceed the payment" hold under races (CHECK in the database).
+    await conn.execute(
+        "UPDATE payments SET refund_reserved_kopecks = refund_reserved_kopecks + $2, updated_at = now() WHERE id = $1", payment["id"], amount_kopecks
+    )
+    return refund
+
+
+async def dispatch_reserved_refund(conn: asyncpg.Connection, settings: Settings, refund: dict[str, Any]) -> dict[str, Any]:
+    """Sends a reserved refund to ЮKassa and never raises: the caller's own work (cancelling a booking) must not depend on the provider.
+
+    When the provider cannot be reached the refund stays 'requested'; the reconciliation sends it again with the same Idempotence-Key."""
+    try:
+        return await _send_to_provider(conn, settings, refund)
+    except Exception as exc:  # noqa: BLE001 - the refund is recorded and retried, whatever went wrong here
+        logger.warning("Refund %s was not sent now and stays queued: %s", refund["id"], exc)
+        return await refunds_repo.get(conn, refund["id"]) or refund
 
 
 async def _refund_receipt(conn: asyncpg.Connection, settings: Settings, payment: dict[str, Any], kopecks: int) -> dict[str, Any] | None:

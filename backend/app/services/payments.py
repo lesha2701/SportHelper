@@ -252,6 +252,7 @@ async def _finalize_canceled(conn: asyncpg.Connection, payment: dict[str, Any], 
 
 
 async def _finalize_success(conn: asyncpg.Connection, settings: Settings, attempt_id: UUID) -> None:
+    late_refund: dict[str, Any] | None = None
     async with conn.transaction():
         attempt = await payments_repo.get_attempt(conn, attempt_id)
         assert attempt is not None
@@ -292,6 +293,20 @@ async def _finalize_success(conn: asyncpg.Connection, settings: Settings, attemp
             if await payments_repo.record_incident(conn, kind="paid_booking_closed", payment_id=payment["id"], attempt_id=attempt_id,
                                                   detail="the payment succeeded for a booking that is no longer active: decide on a refund"):
                 await notify.incident(conn, settings, kind="paid_booking_closed", payment_id=payment["id"], key=str(attempt_id))
+        if booking is not None and booking["status"] == "cancelled":
+            # The athlete paid on a page opened before the booking was cancelled: the money goes back in full by itself (the incident above stays for the administrator).
+            from app.services import refunds as refunds_service  # local: refunds imports this module
+
+            paid = await payments_repo.get_payment(conn, payment["id"], lock=True)
+            if paid is not None:
+                late_refund = await refunds_service.reserve_payment_refund(
+                    conn, settings, paid, amount_kopecks=paid["gross_kopecks"], requested_by=paid["payer_user_id"],
+                    reason="Запись отменена до оплаты: оплата возвращена",
+                )
+    if late_refund is not None:
+        from app.services import refunds as refunds_service
+
+        await refunds_service.dispatch_reserved_refund(conn, settings, late_refund)
 
 
 # --- what the booking screens call -------------------------------------------------------------------------------------------

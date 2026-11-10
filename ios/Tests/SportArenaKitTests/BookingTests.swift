@@ -360,3 +360,135 @@ struct BookingPlanTests {
         #expect(detached["plan_id"] is NSNull, "a plan taken off must be sent as null")
     }
 }
+
+// MARK: cancelling a booking
+
+private let cancelledJSON = """
+{"id":"11111111-2222-4333-8444-555555555555","coach_user_id":"99999999-2222-4333-8444-555555555555","coach_full_name":"Анна Тренер","listing_id":null,
+ "listing_title":"Теннис","athlete_user_id":"77777777-2222-4333-8444-555555555555","athlete_full_name":"Игорь","athlete_notes":null,
+ "starts_at":"2026-11-20T10:00:00Z","duration_minutes":60,"format":"online","price_per_session":2500,"currency":"RUB","status":"cancelled",
+ "payment_status":"refund_pending","is_completed":false,"training_id":null,"training_plan_id":null,"training_plan_name":null,"training_status":"cancelled",
+ "has_review":false,"has_player_review":false,"paid_at":null,"can_cancel":false,
+ "cancellation":{"cancelled_by_role":"athlete","cancelled_at":"2026-11-18T09:00:00Z","reason":"Заболел","policy":"athlete_early","refund_percent":100,
+ "refund_amount_kopecks":250000,"refund_status":"pending"}}
+"""
+
+private func previewJSON(policy: String, percent: Int = 100, refund: Int = 250000, paid: Int = 250000, until: String? = "2026-11-19T10:00:00Z") -> String {
+    """
+    {"booking_id":"11111111-2222-4333-8444-555555555555","cancelled_by_role":"athlete","policy":"\(policy)","hours_before_start":48.25,
+     "free_cancel_until":\(until.map { "\"\($0)\"" } ?? "null"),"paid_kopecks":\(paid),"refund_percent":\(percent),"refund_kopecks":\(refund),
+     "trainer_keeps_payment":\(policy == "athlete_late")}
+    """
+}
+
+private func preview(_ policy: String, percent: Int = 100, refund: Int = 250000, paid: Int = 250000, until: String? = "2026-11-19T10:00:00Z") throws -> CancelPreview {
+    try APIClient.decoder.decode(CancelPreview.self, from: Data(previewJSON(policy: policy, percent: percent, refund: refund, paid: paid, until: until).utf8))
+}
+
+struct BookingCancellationTests {
+    private let space = "\u{00A0}"
+    private func plain(_ text: String) -> String { text.replacingOccurrences(of: "\u{00A0}", with: " ") }
+
+    @Test func aCancelledBookingIsReadWithWhoWhyAndTheMoney() throws {
+        let booking = try decode(cancelledJSON)
+        #expect(booking.status == .cancelled && !booking.canCancel)
+        let cancellation = try #require(booking.cancellation)
+        #expect(cancellation.cancelledByRole == "athlete" && cancellation.reason == "Заболел" && cancellation.policy == .athleteEarly)
+        #expect(cancellation.refundAmountKopecks == 250000 && cancellation.refundStatus == .pending)
+    }
+
+    @Test func anOlderServerWithoutCancellationMeansNothingToCancel() throws {
+        let booking = try decode(bookingJSON())
+        #expect(!booking.canCancel && booking.cancellation == nil)
+    }
+
+    @Test func theServerSaysWhenABookingCanBeCancelled() throws {
+        let with = bookingJSON().replacingOccurrences(of: "\"paid_at\":null", with: "\"paid_at\":null,\"can_cancel\":true")
+        #expect(try decode(with).canCancel)
+    }
+
+    @Test func aCancelledBookingIsNeverPayableAndHasNoChat() throws {
+        let booking = try decode(cancelledJSON)
+        #expect(!booking.canPay && !booking.hasChat)
+    }
+
+    @Test func theAthleteIsToldAboutAFullRefundBeforePressing() throws {
+        let text = plain(try preview("athlete_early").explanation(side: .athlete))
+        #expect(text.contains("Вернём 100% — 2 500,00 ₽") && text.contains("Бесплатная отмена возможна до 19 ноября, 10:00"))
+    }
+
+    @Test func aLateCancellationWarnsThatNothingComesBack() throws {
+        let late = try preview("athlete_late", percent: 0, refund: 0)
+        #expect(late.explanation(side: .athlete).contains("Деньги не вернутся: оплата остаётся у тренера"))
+        #expect(late.trainerKeepsPayment)
+    }
+
+    @Test func anUnpaidBookingCostsNothingToCancel() throws {
+        let unpaid = try preview("unpaid", percent: 0, refund: 0, paid: 0, until: nil)
+        #expect(unpaid.explanation(side: .athlete).contains("деньги не списывались"))
+    }
+
+    @Test func theCoachIsToldThatThePlayerGetsEverything() throws {
+        let text = plain(try preview("coach", until: nil).explanation(side: .coach))
+        #expect(text.contains("Игрок получит полный возврат — 2 500,00 ₽"))
+    }
+
+    @Test func aPolicyWeDoNotKnowIsNotWordedAsMoney() throws {
+        let strange = try preview("future_rule")
+        #expect(strange.policy == .other("future_rule") && strange.explanation(side: .athlete) == "Условия отмены определит сервер.")
+    }
+
+    @Test func theCardOfACancelledBookingSaysWhoAndWhereTheMoneyIs() throws {
+        let cancellation = try #require(try decode(cancelledJSON).cancellation)
+        #expect(cancellation.headline(side: .athlete) == "Отменена вами · 18 ноября, 09:00")
+        #expect(cancellation.headline(side: .coach) == "Отменена игроком · 18 ноября, 09:00")
+        #expect(plain(cancellation.refundLine(side: .athlete) ?? "").contains("Возврат 2 500,00 ₽ обрабатывается"))
+        #expect(plain(cancellation.refundLine(side: .coach) ?? "") == "Игроку возвращается 2 500,00 ₽.")
+    }
+
+    @Test(arguments: [
+        ("succeeded", "athlete_early", "Возвращено 2 500,00 ₽ на карту, с которой вы платили."),
+        ("failed", "coach", "Банк не принял возврат. Администратор разберётся вручную — если вопрос не решится, напишите в поддержку."),
+        ("none", "athlete_late", "Деньги не возвращены: отмена пришла позже срока бесплатной отмены."),
+    ])
+    func theMoneyLineFollowsTheRuleAndTheRefund(status: String, policy: String, expected: String) throws {
+        let text = cancelledJSON.replacingOccurrences(of: "\"refund_status\":\"pending\"", with: "\"refund_status\":\"\(status)\"")
+            .replacingOccurrences(of: "\"policy\":\"athlete_early\"", with: "\"policy\":\"\(policy)\"")
+        let cancellation = try #require(try decode(text).cancellation)
+        #expect(plain(cancellation.refundLine(side: .athlete) ?? "") == expected)
+    }
+
+    @Test func nothingIsSaidAboutMoneyWhenNothingWasPaid() throws {
+        let text = cancelledJSON.replacingOccurrences(of: "\"policy\":\"athlete_early\"", with: "\"policy\":\"unpaid\"")
+        #expect(try #require(try decode(text).cancellation).refundLine(side: .athlete) == nil)
+    }
+
+    @Test func theCoachMustGiveAReasonTheAthleteNeedNot() {
+        #expect(CancelReason.problem("", side: .athlete) == nil)
+        #expect(CancelReason.problem("   ", side: .coach) != nil && CancelReason.problem("ab", side: .coach) != nil)
+        #expect(CancelReason.problem(" Травма ", side: .coach) == nil)
+        #expect(CancelReason.tidy("  Заболел ") == "Заболел" && CancelReason.tidy("  ") == nil)
+        #expect(CancelReason.tidy(String(repeating: "я", count: 600))?.count == CancelReason.maxLength)
+    }
+
+    @Test func askingAndCancellingUseTheRightRoutesAndSendTheReason() async throws {
+        let seen = RequestLog()
+        let service = BookingsService(client: APIClient(baseURL: base, session: MockServer.session { request in
+            seen.add(request)
+            return request.httpMethod == "GET" ? json(previewJSON(policy: "athlete_early")) : json(cancelledJSON)
+        }))
+        let id = UUID(uuidString: "11111111-2222-4333-8444-555555555555")!
+
+        let asked = try await service.cancelPreview(id)
+        let cancelled = try await service.cancel(id, reason: "Заболел")
+        _ = try await service.cancel(id, reason: nil)
+
+        #expect(asked.refundKopecks == 250000 && cancelled.status == .cancelled)
+        #expect(seen.all.map(\.httpMethod) == ["GET", "POST", "POST"])
+        #expect(seen.all[0].url?.path == "/api/bookings/11111111-2222-4333-8444-555555555555/cancel-preview")
+        #expect(seen.all[1].url?.path == "/api/bookings/11111111-2222-4333-8444-555555555555/cancel")
+        #expect(seen.all[1].bodyJSON as? [String: String] == ["reason": "Заболел"])
+        let none = try #require(seen.all[2].bodyJSON as? [String: Any])
+        #expect(none["reason"] == nil, "no reason is no field, not an empty text")
+    }
+}
