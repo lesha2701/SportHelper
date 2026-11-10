@@ -63,7 +63,8 @@ function AiActionCard({
   );
 }
 
-export function TeamStatsTab({ token, teamId }: { token: string; teamId: string }) {
+/** The team's numbers for every member; the AI reviews are for the coaches (the server leaves the attention lists empty for players). */
+export function TeamStatsTab({ token, teamId, canManage }: { token: string; teamId: string; canManage: boolean }) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
 
   const load = useCallback(() => {
@@ -165,24 +166,28 @@ export function TeamStatsTab({ token, teamId }: { token: string; teamId: string 
         </div>
       )}
 
-      <AiActionCard
-        title="Сводка по команде"
-        description="Краткая сводка и предупреждение о возможной перегрузке игроков, если она есть."
-        buttonLabel="Сформировать сводку"
-        onRun={() => getTeamSummary(token, teamId)}
-      />
-      <AiActionCard
-        title="Анализ посещаемости"
-        description="ИИ разберёт посещаемость игроков и подскажет, на что обратить внимание."
-        buttonLabel="Проанализировать посещаемость"
-        onRun={() => getAttendanceAnalysis(token, teamId)}
-      />
-      <AiActionCard
-        title="Анализ отчётов"
-        description="ИИ разберёт последние отчёты о самостоятельных тренировках."
-        buttonLabel="Проанализировать отчёты"
-        onRun={() => getReportAnalysis(token, teamId)}
-      />
+      {canManage && (
+        <>
+          <AiActionCard
+            title="Сводка по команде"
+            description="Краткая сводка и предупреждение о возможной перегрузке игроков, если она есть."
+            buttonLabel="Сформировать сводку"
+            onRun={() => getTeamSummary(token, teamId)}
+          />
+          <AiActionCard
+            title="Анализ посещаемости"
+            description="ИИ разберёт посещаемость игроков и подскажет, на что обратить внимание."
+            buttonLabel="Проанализировать посещаемость"
+            onRun={() => getAttendanceAnalysis(token, teamId)}
+          />
+          <AiActionCard
+            title="Анализ отчётов"
+            description="ИИ разберёт последние отчёты о самостоятельных тренировках."
+            buttonLabel="Проанализировать отчёты"
+            onRun={() => getReportAnalysis(token, teamId)}
+          />
+        </>
+      )}
     </div>
   );
 }

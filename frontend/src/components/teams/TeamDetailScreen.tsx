@@ -204,7 +204,6 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
 
   const form = recentMatches.slice(-5).map((m) => (m.result === "win" ? "В" : m.result === "loss" ? "П" : "Н"));
   const visibleTabs = (Object.keys(TAB_LABELS) as Tab[]).filter((t) => {
-    if (t === "stats") return isCoachStaff;
     if (t === "settings") return canSeeSettingsTab;
     return true;
   });
@@ -413,10 +412,10 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
       {tab === "library" && <TeamLibraryTab token={token} teamId={teamId} teamName={team.name} canManage={isCoachStaff} />}
 
       {tab === "matches" && (
-        <TeamMatchesTab token={token} teamId={teamId} canManage={isCoachStaff} onOpenStats={isCoachStaff ? () => setTab("stats") : undefined} />
+        <TeamMatchesTab token={token} teamId={teamId} canManage={isCoachStaff} onOpenStats={() => setTab("stats")} />
       )}
 
-      {tab === "stats" && isCoachStaff && <TeamStatsTab token={token} teamId={teamId} />}
+      {tab === "stats" && <TeamStatsTab token={token} teamId={teamId} canManage={isCoachStaff} />}
 
       {tab === "settings" && (
         <>

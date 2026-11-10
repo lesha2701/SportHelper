@@ -56,6 +56,21 @@ class AuthOut(UserOut):
     csrf_token: str
 
 
+class MobileAuthOut(UserOut):
+    """Returned by /auth/mobile/login: the user plus the session token the app sends as
+    `Authorization: Bearer` (kept only in the device's secure storage) and when it expires."""
+
+    access_token: str
+    expires_at: datetime
+
+
+class MobileVerifyEmailOut(BaseModel):
+    verified: bool
+    email: str | None = None
+    # Set when confirming the address also signed the person in (not for blocked or two-factor accounts).
+    session: MobileAuthOut | None = None
+
+
 class TokenIn(BaseModel):
     token: str = Field(max_length=512)
 
