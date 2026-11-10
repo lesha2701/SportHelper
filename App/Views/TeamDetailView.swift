@@ -153,7 +153,7 @@ struct TeamDetailView: View {
                 hubButton("Задания", "checklist", .tasks, id: "team.tasks")
                 hubButton("Матчи", "sportscourt", .matches, id: "team.matches")
                 hubButton("Упражнения и планы", "book", .library, id: "team.library")
-                if team.canManage { hubButton("Статистика", "chart.bar", .stats, id: "team.stats") }
+                hubButton("Статистика", "chart.bar", .stats, id: "team.stats")
             }
             .padding(.vertical, 4)
             .listRowInsets(EdgeInsets())

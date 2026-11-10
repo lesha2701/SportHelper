@@ -30,7 +30,8 @@ class PersonalTrainingUITestCase: SignedInUITestCase {
         XCTAssertTrue(app.navigationBars["Календарь"].waitForExistence(timeout: 15), "the form did not close: \(element("trainingForm.error").exists ? element("trainingForm.error").label : "")")
         // The list holds earlier trainings too and builds only the rows near the screen: the week is short, and today is in it.
         app.buttons["Неделя"].tap()
-        let mine = NSPredicate(format: "label CONTAINS 'Личная тренировка' AND label CONTAINS '18:00'")
+        // The server titles a personal training by its exercises («Личная: Приседания, Бег»), or «Личная тренировка» when it has none.
+        let mine = NSPredicate(format: "label CONTAINS 'Личная' AND label CONTAINS '18:00'")
         let candidates = app.buttons.matching(identifier: "calendar.training").matching(mine)
         _ = candidates.firstMatch.waitForExistence(timeout: 15)
         scrollUntilVisible(candidates.firstMatch, attempts: 12)

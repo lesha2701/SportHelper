@@ -61,6 +61,11 @@ struct TeamStatsView: View {
             }
             .accessibilityIdentifier("teamStats.empty")
         }
+        // the AI analyses are the coaching staff's: the server refuses them to a player, so a player does not see the buttons
+        if team.canManage { analyses }
+    }
+
+    @ViewBuilder private var analyses: some View {
         AnalysisCard(
             title: "Сводка по команде", hint: "Краткая сводка и предупреждение о возможной перегрузке игроков, если она есть.",
             button: "Сформировать сводку", identifier: "teamStats.summary"

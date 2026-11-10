@@ -100,6 +100,28 @@ final class StatsUITests: SignedInUITestCase {
         XCTAssertTrue(element("teamStats.summary").exists && element("teamStats.attendanceAnalysis").exists && element("teamStats.reportAnalysis").exists)
     }
 
+    /// A player of the team reads its numbers like on the site, without the AI analyses (the server gives those to the coaching staff only).
+    func testAPlayerSeesTheTeamsNumbersButNotTheCoachesAnalyses() throws {
+        try launchSignedIn()
+        guard app.staticTexts["Твой прогресс"].waitForExistence(timeout: 10) else { throw XCTSkip("This needs a player account in a team.") }
+        app.mainTabBar.buttons["Команды"].tap()
+        XCTAssertTrue(app.navigationBars["Команды"].waitForExistence(timeout: 10))
+        let teams = app.buttons.matching(identifier: "teams.team")
+        let row = env["SAG_TEAM_NAME"].map { teams.matching(NSPredicate(format: "label CONTAINS %@", $0)).firstMatch } ?? teams.firstMatch
+        guard row.waitForExistence(timeout: 15) else { throw XCTSkip("The player is in no team.") }
+        scrollUntilVisible(row)  // a player's list has more above the team than a coach's
+        row.tap()
+        XCTAssertTrue(element("team.chat").waitForExistence(timeout: 15), "the team did not open")
+        scrollUntilVisible(element("team.stats"))
+        XCTAssertTrue(element("team.stats").waitForExistence(timeout: 15), "a player does not see the statistics button")
+        element("team.stats").tap()
+        XCTAssertTrue(app.navigationBars["Статистика"].waitForExistence(timeout: 10), "the team statistics did not open")
+        XCTAssertTrue(element("stats.tile").waitForExistence(timeout: 15) || element("teamStats.empty").exists, "neither numbers nor the empty note")
+        XCTAssertFalse(element("teamStats.summary").exists, "a player is offered the coach's AI summary")
+        XCTAssertFalse(element("teamStats.attendanceAnalysis").exists)
+        XCTAssertFalse(element("teamStats.reportAnalysis").exists)
+    }
+
     func testACoachOpensAPlayerOfTheTeamAndAddsAMeasuredValue() throws {
         try openTeam()
         let member = app.buttons["team.member"].firstMatch
