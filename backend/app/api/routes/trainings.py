@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 
 from app.api.deps import get_current_user, get_db
 from app.core.exceptions import APIError, ForbiddenError, NotFoundError
+from app.repositories import bookings as bookings_repo
 from app.repositories import notifications as notifications_repo
 from app.repositories import plans as plans_repo
 from app.repositories import teams as teams_repo
@@ -89,6 +90,16 @@ async def _check_edit_access(conn: asyncpg.Connection, training: dict, user_id: 
         member = await teams_repo.get_member(conn, training["team_id"], user_id)
         if member is None or member["role"] not in _COACH_STAFF:
             raise ForbiddenError("only the head coach or an assistant coach can manage team trainings")
+
+
+async def _refuse_to_drop_a_booked_session(conn: asyncpg.Connection, training: dict) -> None:
+    """A session that belongs to a confirmed booking is cancelled through the booking (POST /api/bookings/{id}/cancel), which also
+    settles the money; cancelling or deleting the training alone would leave the booking paid and the athlete without a refund."""
+    if await bookings_repo.has_confirmed_booking_for_training(conn, training["id"]):
+        raise APIError(
+            "Это занятие по записи игрока. Отмените запись кнопкой «Отменить запись» — тогда игрок получит уведомление и возврат по правилам.",
+            code="booked_session_use_cancel", status_code=409,
+        )
 
 
 async def _get_training_or_404(conn: asyncpg.Connection, training_id: UUID) -> dict:
@@ -215,6 +226,8 @@ async def update_training(
     training = await _get_training_or_404(conn, training_id)
     await _check_edit_access(conn, training, user["id"])
     await _validate_plan_ownership(conn, payload.plan_id, user["id"])
+    if payload.status == "cancelled" and training["status"] != "cancelled":
+        await _refuse_to_drop_a_booked_session(conn, training)
 
     if training["type"] == "personal":
         if payload.is_independent:
@@ -260,6 +273,7 @@ async def delete_training(
 ) -> None:
     training = await _get_training_or_404(conn, training_id)
     await _check_edit_access(conn, training, user["id"])
+    await _refuse_to_drop_a_booked_session(conn, training)
     await trainings_repo.soft_delete(conn, training_id)
     await notifications_repo.cancel_pending_for_entity(conn, "training", training_id)
 

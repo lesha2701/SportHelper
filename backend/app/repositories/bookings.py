@@ -193,6 +193,11 @@ def can_cancel(booking: dict[str, Any], *, now: datetime | None = None) -> bool:
     return booking["starts_at"] > (now or datetime.now(timezone.utc))
 
 
+async def has_confirmed_booking_for_training(conn: asyncpg.Connection, training_id: UUID) -> bool:
+    """Whether the training is the session of a confirmed booking (its cancelling then has to go through the booking, with the money)."""
+    return bool(await conn.fetchval("SELECT EXISTS (SELECT 1 FROM bookings WHERE training_id = $1 AND status = 'confirmed')", training_id))
+
+
 async def lock_booking(conn: asyncpg.Connection, booking_id: UUID) -> bool:
     """Takes the booking's row lock for the rest of the transaction (two people acting on it at once are served one after the other)."""
     return await conn.fetchval("SELECT 1 FROM bookings WHERE id = $1 FOR UPDATE", booking_id) is not None

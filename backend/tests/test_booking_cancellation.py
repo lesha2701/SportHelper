@@ -246,3 +246,22 @@ def test_the_preview_changes_nothing_and_tells_the_amount(fin) -> None:
     assert (theirs["policy"], theirs["free_cancel_until"], theirs["refund_kopecks"]) == ("coach", None, 250000)
     assert sql_value(fin.dsn, "SELECT status FROM bookings") == "confirmed" and sql_value(fin.dsn, "SELECT count(*) FROM booking_cancellations") == 0
     assert player.ok("GET", "/api/bookings/me")[0]["can_cancel"] is True
+
+
+def test_a_booked_session_cannot_be_cancelled_or_deleted_around_the_booking(fin) -> None:
+    """The athlete owns the session in the calendar. Cancelling or deleting it alone would leave the booking confirmed and paid, and the trainer's slot taken: that road is closed."""
+    coach, player, booking, payment_id = paid_booking(fin)
+    starts_in(fin, booking, 48)
+    training_id = booking.get("training_id") or sql_value(fin.dsn, "SELECT training_id::text FROM bookings WHERE id = $1::uuid", booking["id"])
+    training = player.ok("GET", f"/api/trainings/{training_id}")
+    body = {"training_date": training["training_date"], "start_time": training["start_time"], "duration_minutes": training["duration_minutes"],
+            "location": training["location"], "description": training["description"], "plan_id": training["plan_id"],
+            "reminder_minutes_before": training["reminder_minutes_before"], "status": "cancelled", "is_independent": False, "responsible_user_id": None}
+
+    cancelled = player.call("PUT", f"/api/trainings/{training_id}", json=body)
+    deleted = player.call("DELETE", f"/api/trainings/{training_id}")
+
+    assert cancelled.status_code == deleted.status_code == 409
+    assert cancelled.json()["error"]["code"] == deleted.json()["error"]["code"] == "booked_session_use_cancel"
+    assert sql_value(fin.dsn, "SELECT status FROM trainings WHERE id = $1::uuid", training_id) == "scheduled"
+    assert cancel(coach, booking, reason=REASON).status_code == 200  # the way that settles the money still works

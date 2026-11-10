@@ -2524,6 +2524,12 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(users_module, "get_ai_analysis_consent", fake_get_consent)
     monkeypatch.setattr(users_module, "set_ai_analysis_consent", fake_set_consent)
     monkeypatch.setattr(bookings_module_ai, "get_confirmed_for_training", fake_get_confirmed_for_training)
+
+
+    async def fake_has_confirmed_booking_for_training(conn, training_id):
+        return False  # the in-memory world has no marketplace bookings behind trainings
+
+    monkeypatch.setattr(bookings_module_ai, "has_confirmed_booking_for_training", fake_has_confirmed_booking_for_training)
     monkeypatch.setattr(analyses_module, "upsert", fake_analyses_upsert)
     monkeypatch.setattr(analyses_module, "get_for_training", fake_analyses_get)
     monkeypatch.setattr(analyses_module, "delete_for_player", fake_analyses_delete_for_player)
