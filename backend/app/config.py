@@ -172,6 +172,8 @@ class Settings(BaseSettings):
 
     # The platform's commission, a percentage of the price. Read ONLY when a payment obligation is created and then frozen in it.
     platform_commission_percent: Decimal = Field(default=Decimal("10"), ge=0, le=50, alias="PLATFORM_COMMISSION_PERCENT")
+    # An athlete who cancels a confirmed booking at least this many hours before the start gets the money back in full; later, nothing.
+    cancel_free_hours: int = Field(default=24, ge=0, le=720, alias="CANCEL_FREE_HOURS")
     trainer_min_withdrawal_rub: int = Field(default=10000, ge=1, alias="TRAINER_MIN_WITHDRAWAL_RUB")
     trainer_balance_enabled: bool = Field(default=False, alias="TRAINER_BALANCE_ENABLED")
     trainer_withdrawals_enabled: bool = Field(default=False, alias="TRAINER_WITHDRAWALS_ENABLED")

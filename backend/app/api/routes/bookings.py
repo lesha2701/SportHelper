@@ -10,6 +10,7 @@ from app.api.deps import get_current_user, get_db, get_settings_dep
 from app.config import Settings
 from app.core.exceptions import APIError, ForbiddenError, NotFoundError
 from app.integrations.yookassa import YooKassaError
+from app.repositories import booking_cancellations as cancellations_repo
 from app.repositories import bookings as bookings_repo
 from app.repositories import coach_listings as listings_repo
 from app.repositories import coach_reviews as coach_reviews_repo
@@ -18,7 +19,19 @@ from app.repositories import payments as payments_repo
 from app.repositories import player_reviews as player_reviews_repo
 from app.repositories import plans as plans_repo
 from app.repositories import trainings as trainings_repo
-from app.schemas.booking import BookingIn, BookingOut, BookingPlanIn, PaymentStartOut, PendingBookingOut, ReviewIn, ReviewOut
+from app.schemas.booking import (
+    BookingIn,
+    BookingOut,
+    BookingPlanIn,
+    CancelIn,
+    CancellationOut,
+    CancelPreviewOut,
+    PaymentStartOut,
+    PendingBookingOut,
+    ReviewIn,
+    ReviewOut,
+)
+from app.services import cancellations as cancellations_service
 from app.services import notifications as notifications_service
 from app.services import payments as payments_service
 from app.services.accounts import ip_of
@@ -30,8 +43,23 @@ async def _to_out(conn: asyncpg.Connection, booking: dict) -> BookingOut:
     review = await coach_reviews_repo.get_by_booking(conn, booking["id"])
     player_review = await player_reviews_repo.get_by_booking(conn, booking["id"])
     payment = await payments_repo.summary_for_booking(conn, booking["id"])
+    cancellation = None
+    if booking["status"] == "cancelled":
+        row = await cancellations_repo.get_for_booking(conn, booking["id"])
+        if row is not None:
+            cancellation = CancellationOut(
+                cancelled_by_role=row["cancelled_by_role"],
+                cancelled_at=row["created_at"],
+                reason=row["reason"],
+                policy=row["policy"],
+                refund_percent=row["refund_percent"],
+                refund_amount_kopecks=row["refund_kopecks"],
+                refund_status=cancellations_service.refund_status_of(await cancellations_service.refund_of(conn, row)),
+            )
     return BookingOut(
         **booking,
+        can_cancel=bookings_repo.can_cancel(booking),
+        cancellation=cancellation,
         payment_status=payments_service.payment_status_of(booking, payment),
         paid_at=payment["paid_at"] if payment and payment["status"] in ("paid", "partially_refunded", "refunded") else None,
         is_completed=bookings_repo.is_completed(booking),
@@ -223,6 +251,41 @@ async def decline_booking(
         raise APIError("booking is no longer pending", code="booking_not_pending", status_code=409)
     await notifications_service.schedule_booking_decided_notification(conn, declined, outcome="declined")
     return await _to_out(conn, declined)
+
+
+@router.get("/{booking_id}/cancel-preview", response_model=CancelPreviewOut)
+async def preview_cancel_booking(
+    booking_id: UUID,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> CancelPreviewOut:
+    """What cancelling the booking right now would mean (so the screen can say «Вернём 100%» or «Деньги не вернутся» before the button)."""
+    _, plan = await cancellations_service.preview(conn, settings, booking_id, user)
+    return CancelPreviewOut(
+        booking_id=booking_id,
+        cancelled_by_role=plan.role,
+        policy=plan.policy,
+        hours_before_start=float(plan.hours_before_start),
+        free_cancel_until=plan.free_cancel_until,
+        paid_kopecks=plan.paid_kopecks,
+        refund_percent=plan.refund_percent,
+        refund_kopecks=plan.refund_kopecks,
+        trainer_keeps_payment=plan.trainer_keeps_payment,
+    )
+
+
+@router.post("/{booking_id}/cancel", response_model=BookingOut)
+async def cancel_booking(
+    booking_id: UUID,
+    payload: CancelIn,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> BookingOut:
+    """Cancels a confirmed booking by the rule in docs/refunds-api.md; the money goes back by itself. Repeating the call changes nothing."""
+    booking, _ = await cancellations_service.cancel(conn, settings, booking_id=booking_id, user=user, reason=payload.reason)
+    return await _to_out(conn, booking)
 
 
 @router.post("/{booking_id}/reviews", response_model=ReviewOut)

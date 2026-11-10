@@ -231,6 +231,33 @@ async def schedule_booking_decided_notification(
     )
 
 
+async def schedule_booking_cancelled_notification(
+    conn: asyncpg.Connection, booking: dict[str, Any], *, by_role: str, refund_percent: int, paid: bool
+) -> None:
+    """Tells the other side that a confirmed booking was cancelled, and what happens to the money."""
+    when = booking["starts_at"].strftime("%d.%m в %H:%M")
+    if by_role == "athlete":
+        recipient = booking["coach_user_id"]
+        body = f"Игрок {booking['athlete_full_name']} отменил тренировку {when}."
+        if paid:
+            body += " Оплата остаётся у вас." if refund_percent == 0 else " Деньги возвращаются игроку, начисление за это занятие снято."
+    else:
+        recipient = booking["athlete_user_id"]
+        body = f"Тренер отменил тренировку {when}."
+        if paid:
+            body += " Деньги вернутся на ту карту, которой вы платили."
+    await _notify_recipients(
+        conn,
+        recipient_ids=[recipient],
+        category="booking_decided",
+        title="Тренировка отменена",
+        body=body,
+        entity_type="booking",
+        entity_id=booking["id"],
+        send_at=datetime.now(timezone.utc),
+    )
+
+
 async def schedule_review_requested_notification(conn: asyncpg.Connection, booking: dict[str, Any]) -> None:
     """Asks the athlete to review their coach once the coach has marked the
     session as conducted. Opens the booking's review form via the usual

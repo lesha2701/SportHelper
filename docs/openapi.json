@@ -12325,6 +12325,114 @@
         }
       }
     },
+    "/api/bookings/{booking_id}/cancel-preview": {
+      "get": {
+        "tags": [
+          "bookings"
+        ],
+        "summary": "Preview Cancel Booking",
+        "description": "What cancelling the booking right now would mean (so the screen can say «Вернём 100%» or «Деньги не вернутся» before the button).",
+        "operationId": "preview_cancel_booking_api_bookings__booking_id__cancel_preview_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Booking Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelPreviewOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings/{booking_id}/cancel": {
+      "post": {
+        "tags": [
+          "bookings"
+        ],
+        "summary": "Cancel Booking",
+        "description": "Cancels a confirmed booking by the rule in docs/refunds-api.md; the money goes back by itself. Repeating the call changes nothing.",
+        "operationId": "cancel_booking_api_bookings__booking_id__cancel_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Booking Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/bookings/{booking_id}/reviews": {
       "post": {
         "tags": [
@@ -13996,6 +14104,21 @@
               }
             ],
             "title": "Paid At"
+          },
+          "can_cancel": {
+            "type": "boolean",
+            "title": "Can Cancel",
+            "default": false
+          },
+          "cancellation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CancellationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -14117,6 +14240,138 @@
           "status"
         ],
         "title": "CalendarEventOut"
+      },
+      "CancelIn": {
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "title": "CancelIn"
+      },
+      "CancelPreviewOut": {
+        "properties": {
+          "booking_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Booking Id"
+          },
+          "cancelled_by_role": {
+            "type": "string",
+            "title": "Cancelled By Role"
+          },
+          "policy": {
+            "type": "string",
+            "title": "Policy"
+          },
+          "hours_before_start": {
+            "type": "number",
+            "title": "Hours Before Start"
+          },
+          "free_cancel_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Free Cancel Until"
+          },
+          "paid_kopecks": {
+            "type": "integer",
+            "title": "Paid Kopecks"
+          },
+          "refund_percent": {
+            "type": "integer",
+            "title": "Refund Percent"
+          },
+          "refund_kopecks": {
+            "type": "integer",
+            "title": "Refund Kopecks"
+          },
+          "trainer_keeps_payment": {
+            "type": "boolean",
+            "title": "Trainer Keeps Payment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "booking_id",
+          "cancelled_by_role",
+          "policy",
+          "hours_before_start",
+          "free_cancel_until",
+          "paid_kopecks",
+          "refund_percent",
+          "refund_kopecks",
+          "trainer_keeps_payment"
+        ],
+        "title": "CancelPreviewOut",
+        "description": "What cancelling the booking right now would mean; changes nothing."
+      },
+      "CancellationOut": {
+        "properties": {
+          "cancelled_by_role": {
+            "type": "string",
+            "title": "Cancelled By Role"
+          },
+          "cancelled_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Cancelled At"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "policy": {
+            "type": "string",
+            "title": "Policy"
+          },
+          "refund_percent": {
+            "type": "integer",
+            "title": "Refund Percent"
+          },
+          "refund_amount_kopecks": {
+            "type": "integer",
+            "title": "Refund Amount Kopecks"
+          },
+          "refund_status": {
+            "type": "string",
+            "title": "Refund Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cancelled_by_role",
+          "cancelled_at",
+          "policy",
+          "refund_percent",
+          "refund_amount_kopecks",
+          "refund_status"
+        ],
+        "title": "CancellationOut",
+        "description": "Who cancelled the booking, why, by which rule and what happened to the money (None on the booking until it is cancelled)."
       },
       "ChangeEmailIn": {
         "properties": {
