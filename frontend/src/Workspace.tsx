@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ProfileProvider, useProfile } from "./context/ProfileContext";
 import { useAuth } from "./context/AuthContext";
 import { ProfileScreen } from "./components/profile/ProfileScreen";
@@ -259,6 +259,8 @@ function MainContent({
   const [coachTab, setCoachTab] = useState<CoachTab>(marketplaceIntent ? "coaches" : (savedView.coachTab ?? "dashboard"));
   const [playerTab, setPlayerTab] = useState<PlayerTab>(marketplaceIntent ? "coaches" : (savedView.playerTab ?? "dashboard"));
   // The sidebar gear opens the profile tab straight on its settings screen.
+  // Tapping the tab you are already on returns it to its first screen: the content is made again under a new key.
+  const [tabResetKey, setTabResetKey] = useState(0);
   const [profileSettingsRequested, setProfileSettingsRequested] = useState(false);
   const clearProfileSettingsRequest = useCallback(() => setProfileSettingsRequested(false), []);
 
@@ -536,6 +538,7 @@ function MainContent({
           setOverlay(null);
           setMarketplaceCoachId(null);
           setMarketplaceStart(null);
+          if (tab === coachTab) setTabResetKey((key) => key + 1);
           setCoachTab(tab);
         }}
         hasOverlay={hasOverlay}
@@ -566,6 +569,7 @@ function MainContent({
       >
         {overlayContent ?? (
           <CoachTabContent
+            key={tabResetKey}
             initialCoachUserId={marketplaceCoachId}
             marketplaceStart={marketplaceStart}
             tab={coachTab}
@@ -593,6 +597,7 @@ function MainContent({
         setOverlay(null);
         setMarketplaceCoachId(null);
         setMarketplaceStart(null);
+        if (tab === playerTab) setTabResetKey((key) => key + 1);
         setPlayerTab(tab);
       }}
       hasOverlay={hasOverlay}
@@ -621,7 +626,7 @@ function MainContent({
       }
     >
       {overlayContent ?? (
-        <>
+        <Fragment key={tabResetKey}>
           {playerTab === "dashboard" && myUserId && (
             <DashboardScreen
               token={token}
@@ -662,7 +667,7 @@ function MainContent({
               onSettingsOpened={clearProfileSettingsRequest}
             />
           )}
-        </>
+        </Fragment>
       )}
     </AppShell>
   );

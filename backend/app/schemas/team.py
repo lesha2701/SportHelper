@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.profile import SkillLevel
 
@@ -20,6 +20,30 @@ class TeamIn(BaseModel):
     sport: str = Field(min_length=1, max_length=50)
     age_category: str | None = Field(default=None, max_length=50)
     level: SkillLevel | None = None
+    # Left out of a request = unchanged (the older clients of the update do not know these two).
+    tournaments: list[str] | None = Field(default=None, max_length=20)
+    home_venue: str | None = Field(default=None, max_length=200)
+
+    @field_validator("tournaments")
+    @classmethod
+    def _clean_tournaments(cls, value: list[str] | None) -> list[str] | None:
+        if value is None:
+            return None
+        cleaned: list[str] = []
+        for item in value:
+            name = item.strip()
+            if not name:
+                continue
+            if len(name) > 150:
+                raise ValueError("a tournament name is at most 150 characters")
+            if name not in cleaned:
+                cleaned.append(name)
+        return cleaned
+
+    @field_validator("home_venue")
+    @classmethod
+    def _clean_venue(cls, value: str | None) -> str | None:
+        return (value or "").strip() or None
 
 
 class TeamOut(BaseModel):
@@ -32,6 +56,8 @@ class TeamOut(BaseModel):
     status: TeamStatus
     created_by: UUID
     logo_file_id: UUID | None = None
+    tournaments: list[str] = []
+    home_venue: str | None = None
     created_at: datetime
     updated_at: datetime
     my_role: TeamRole | None = None

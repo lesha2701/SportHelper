@@ -55,3 +55,9 @@ export async function uploadExerciseVideo(token: string, exerciseId: string, fil
   const dto = await apiUpload<ExerciseDto>(`/api/exercises/${exerciseId}/video`, { token, formData });
   return mapExerciseDto(dto);
 }
+
+/** The exercises the coach opened to this team (readable by any member). */
+export async function listTeamExercises(token: string, teamId: string): Promise<Exercise[]> {
+  const dtos = await apiRequest<ExerciseDto[]>(`/api/teams/${teamId}/exercises`, { token });
+  return dtos.map(mapExerciseDto);
+}

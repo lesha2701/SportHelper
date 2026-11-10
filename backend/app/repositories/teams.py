@@ -14,7 +14,7 @@ import asyncpg
 
 _TEAM_FIELDS = (
     "id, name, description, sport, age_category, level, status, "
-    "created_by, logo_file_id, created_at, updated_at"
+    "created_by, logo_file_id, tournaments, home_venue, created_at, updated_at"
 )
 _MEMBER_FIELDS = (
     "m.user_id, u.first_name, u.last_name, u.username, "
@@ -30,8 +30,8 @@ async def create_team(conn: asyncpg.Connection, creator_id: UUID, data: dict[str
     async with conn.transaction():
         team = await conn.fetchrow(
             f"""
-            INSERT INTO teams (name, description, sport, age_category, level, created_by)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO teams (name, description, sport, age_category, level, tournaments, home_venue, created_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING {_TEAM_FIELDS}
             """,
             data["name"],
@@ -39,6 +39,8 @@ async def create_team(conn: asyncpg.Connection, creator_id: UUID, data: dict[str
             data["sport"],
             data.get("age_category"),
             data.get("level"),
+            data.get("tournaments") or [],
+            data.get("home_venue"),
             creator_id,
         )
         await conn.execute(
@@ -55,9 +57,12 @@ async def get_team(conn: asyncpg.Connection, team_id: UUID) -> dict[str, Any] | 
 
 
 async def update_team(conn: asyncpg.Connection, team_id: UUID, data: dict[str, Any]) -> dict[str, Any]:
+    """`tournaments` and `home_venue` are changed only when the key is present in `data` (the caller drops the ones the request left out)."""
     row = await conn.fetchrow(
         f"""
-        UPDATE teams SET name = $2, description = $3, sport = $4, age_category = $5, level = $6
+        UPDATE teams SET name = $2, description = $3, sport = $4, age_category = $5, level = $6,
+            tournaments = CASE WHEN $7 THEN $8::text[] ELSE tournaments END,
+            home_venue = CASE WHEN $9 THEN $10 ELSE home_venue END
         WHERE id = $1
         RETURNING {_TEAM_FIELDS}
         """,
@@ -67,6 +72,10 @@ async def update_team(conn: asyncpg.Connection, team_id: UUID, data: dict[str, A
         data["sport"],
         data.get("age_category"),
         data.get("level"),
+        "tournaments" in data,
+        data.get("tournaments") or [],
+        "home_venue" in data,
+        data.get("home_venue"),
     )
     return dict(row)
 
@@ -76,7 +85,7 @@ async def list_my_teams(conn: asyncpg.Connection, user_id: UUID) -> list[dict[st
         """
         SELECT
             t.id, t.name, t.description, t.sport, t.age_category, t.level, t.status,
-            t.created_by, t.logo_file_id, t.created_at, t.updated_at,
+            t.created_by, t.logo_file_id, t.tournaments, t.home_venue, t.created_at, t.updated_at,
             m.role AS my_role,
             (SELECT COUNT(*) FROM team_members WHERE team_id = t.id) AS members_count
         FROM teams t

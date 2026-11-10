@@ -230,11 +230,13 @@ export function ListingEditScreen({
             maxLength={200}
             placeholder="Индивидуальные тренировки"
           />
+          <span className={profileStyles.requiredHint}>Заголовок карточки в каталоге: чем вы занимаетесь и для кого.</span>
         </label>
 
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Описание</span>
           <textarea className={profileStyles.textarea} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
+          <span className={profileStyles.requiredHint}>Что входит в занятие, кому подойдёт, чего ждать от первой тренировки.</span>
         </label>
 
         <div className={styles.toggleRow}>
@@ -263,11 +265,13 @@ export function ListingEditScreen({
             onChange={(e) => setPrice(e.target.value)}
             placeholder="2000"
           />
+          <span className={profileStyles.requiredHint}>Стоимость одного занятия. Её видит игрок при записи.</span>
         </label>
 
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Валюта</span>
           <input className={profileStyles.input} value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
+          <span className={profileStyles.requiredHint}>Трёхбуквенный код, например RUB.</span>
         </label>
 
         <div className={profileStyles.field}>
@@ -280,16 +284,19 @@ export function ListingEditScreen({
               Очно
             </button>
           </div>
+          <span className={profileStyles.requiredHint}>Как вы проводите занятия: по видеосвязи, лично или и так и так.</span>
         </div>
 
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Город (для очных тренировок)</span>
           <input className={profileStyles.input} value={location} onChange={(e) => setLocation(e.target.value)} maxLength={200} />
+          <span className={profileStyles.requiredHint}>Где проходят очные занятия: город или район. Для онлайна не нужен.</span>
         </label>
 
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Длительность тренировки, мин</span>
           <input className={profileStyles.input} type="number" min={1} value={duration} onChange={(e) => setDuration(e.target.value)} />
+          <span className={profileStyles.requiredHint}>Сколько длится одно занятие. По этой длине система нарежет слоты расписания.</span>
         </label>
 
       </div>

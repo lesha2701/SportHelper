@@ -399,9 +399,22 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
         </label>
 
         {mode === "team" && (
-          <CollapsibleSection label="Настройки команды" defaultOpen={isEdit}>
-            <label className={profileStyles.field}>
-              <span className={profileStyles.label}>План тренировки</span>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              padding: 12,
+              border: "1px solid var(--color-primary)",
+              borderRadius: "var(--radius-sm)",
+              background: "var(--color-surface-alt)",
+            }}
+          >
+            <label className={profileStyles.field} style={{ margin: 0 }}>
+              <span className={profileStyles.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon name="book" size={16} />
+                Взять план из библиотеки
+              </span>
               <select className={profileStyles.select} value={planId} onChange={(e) => setPlanId(e.target.value)}>
                 <option value="">Без плана</option>
                 {plans.map((plan) => (
@@ -411,7 +424,16 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
                 ))}
               </select>
             </label>
+            <p className={profileStyles.subtitle} style={{ margin: 0 }}>
+              {plans.length === 0
+                ? "В вашей библиотеке пока нет планов. Создайте план во вкладке «Библиотека» — и он появится здесь."
+                : "Игроки увидят план в карточке тренировки."}
+            </p>
+          </div>
+        )}
 
+        {mode === "team" && (
+          <CollapsibleSection label="Настройки команды" defaultOpen={isEdit}>
             <label className={profileStyles.field} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <input type="checkbox" checked={isIndependent} onChange={(e) => setIsIndependent(e.target.checked)} />
               <span className={profileStyles.label}>Самостоятельная тренировка (без тренера)</span>

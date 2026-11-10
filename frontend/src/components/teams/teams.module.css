@@ -264,6 +264,7 @@
 
 .addButton {
   display: inline-flex;
+  justify-content: center;
   align-items: center;
   gap: 6px;
   padding: 9px 16px;
@@ -533,6 +534,7 @@
 
 .iconButton {
   display: inline-flex;
+  justify-content: center;
   align-items: center;
   gap: 6px;
   padding: 7px 12px;

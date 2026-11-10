@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { capitalized } from "../../lib/capitalized";
 import { Icon, type IconName } from "../shared/Icon";
 import { WelcomeGuide } from "../welcome/WelcomeGuide";
 import styles from "../teams/teams.module.css";
@@ -156,7 +157,7 @@ export function HelpScreen({
           {section.items?.map((item) => (
             <div className={profileStyles.row} key={item.label}>
               <span className={profileStyles.rowLabel}>{item.label}</span>
-              <span className={profileStyles.rowValue}>{item.text}</span>
+              <span className={profileStyles.rowValue}>{capitalized(item.text)}</span>
             </div>
           ))}
         </div>

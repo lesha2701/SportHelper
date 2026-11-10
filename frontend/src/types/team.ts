@@ -22,6 +22,10 @@ export interface Team {
   status: TeamStatus;
   createdBy: string;
   logoFileId: string | null;
+  /** The tournaments the team plays in (the match form offers them). */
+  tournaments: string[];
+  /** The home venue: a home match takes it as its place. */
+  homeVenue: string | null;
   myRole: TeamRole | null;
   membersCount: number;
 }
@@ -69,6 +73,9 @@ export interface TeamDto {
   status: TeamStatus;
   created_by: string;
   logo_file_id: string | null;
+  /** Absent on a server that does not know them yet. */
+  tournaments?: string[];
+  home_venue?: string | null;
   created_at: string;
   updated_at: string;
   my_role: TeamRole | null;
@@ -119,6 +126,8 @@ export function mapTeamDto(dto: TeamDto): Team {
     status: dto.status,
     createdBy: dto.created_by,
     logoFileId: dto.logo_file_id,
+    tournaments: dto.tournaments ?? [],
+    homeVenue: dto.home_venue ?? null,
     myRole: dto.my_role,
     membersCount: dto.members_count,
   };
@@ -169,4 +178,6 @@ export interface TeamInput {
   sport: string;
   age_category: string | null;
   level: SkillLevel | null;
+  tournaments?: string[];
+  home_venue?: string | null;
 }

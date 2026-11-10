@@ -108,7 +108,8 @@ async def update_team(
     member = await _get_membership_or_403(conn, team_id, user["id"])
     if member["role"] not in _COACH_STAFF:
         raise ForbiddenError("only the head coach or an assistant coach can edit the team")
-    team = await teams_repo.update_team(conn, team_id, payload.model_dump())
+    # a request that leaves tournaments / home_venue out keeps what the team has
+    team = await teams_repo.update_team(conn, team_id, payload.model_dump(exclude_unset=True))
     members_count = await teams_repo.count_members(conn, team_id)
     return _team_out(team, my_role=member["role"], members_count=members_count)
 

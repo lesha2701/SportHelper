@@ -30,15 +30,19 @@ interface TaskFormProps {
   onCancel: () => void;
 }
 
-const REQUIREMENT_FIELDS: { key: keyof typeof INITIAL_REQUIREMENTS; label: string }[] = [
-  { key: "requireComment", label: "Комментарий" },
-  { key: "requirePhoto", label: "Фото" },
-  { key: "requireVideo", label: "Видео" },
-  { key: "requireSetsReps", label: "Подходы и повторения" },
-  { key: "requireDuration", label: "Длительность" },
-  { key: "requireMetricValue", label: "Значение показателя" },
-  { key: "requireDifficulty", label: "Сложность (1–10)" },
-  { key: "requireWellbeing", label: "Самочувствие (1–5)" },
+const REQUIREMENT_FIELDS: { key: keyof typeof INITIAL_REQUIREMENTS; label: string; hint: string }[] = [
+  { key: "requireComment", label: "Комментарий", hint: "Игрок напишет, как прошло выполнение, что получилось и что нет." },
+  { key: "requirePhoto", label: "Фото", hint: "Игрок приложит фото: например, результат или положение тела в упражнении." },
+  { key: "requireVideo", label: "Видео", hint: "Игрок приложит видео выполнения, чтобы вы разобрали технику." },
+  { key: "requireSetsReps", label: "Подходы и повторения", hint: "Игрок впишет подходы и повторы по каждому упражнению." },
+  { key: "requireDuration", label: "Длительность", hint: "Игрок укажет, сколько времени заняло выполнение." },
+  {
+    key: "requireMetricValue",
+    label: "Значение показателя",
+    hint: "Игрок впишет число по показателю задания (например, вес или время). Показатель задаётся ниже.",
+  },
+  { key: "requireDifficulty", label: "Сложность (1–10)", hint: "Игрок оценит по шкале от 1 до 10, насколько было тяжело." },
+  { key: "requireWellbeing", label: "Самочувствие (1–5)", hint: "Игрок оценит по шкале от 1 до 5, как себя чувствовал после." },
 ];
 
 const INITIAL_REQUIREMENTS = {
@@ -63,6 +67,7 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
   const isEdit = initial !== undefined;
   const seed = initial ?? prefill;
 
+  const [showRequirementsHelp, setShowRequirementsHelp] = useState(false);
   const [title, setTitle] = useState(seed?.title ?? "");
   const [description, setDescription] = useState(seed?.description ?? "");
   const [planId, setPlanId] = useState(seed?.planId ?? "");
@@ -316,9 +321,41 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
           </CollapsibleSection>
         )}
 
-        <CollapsibleSection label="Формат подтверждения" defaultOpen={isEdit || seed !== undefined} forceOpenKey={aiFillSignal}>
+        <CollapsibleSection label="Что игрок должен сдать" defaultOpen={isEdit || seed !== undefined} forceOpenKey={aiFillSignal}>
           <div className={profileStyles.field}>
-            <span className={profileStyles.label}>Формат подтверждения</span>
+            <span className={profileStyles.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              Что игрок должен сдать
+              <button
+                type="button"
+                aria-label="Что значит каждый пункт"
+                aria-expanded={showRequirementsHelp}
+                onClick={() => setShowRequirementsHelp((open) => !open)}
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-surface-alt)",
+                  color: "var(--color-text-secondary)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                ?
+              </button>
+            </span>
+            {showRequirementsHelp && (
+              <div role="note" style={{ background: "var(--color-surface-alt)", borderRadius: "var(--radius-sm)", padding: "8px 12px", margin: "4px 0" }}>
+                {REQUIREMENT_FIELDS.map((field) => (
+                  <p key={field.key} className={profileStyles.subtitle} style={{ margin: "4px 0" }}>
+                    <strong>{field.label}.</strong> {field.hint}
+                  </p>
+                ))}
+              </div>
+            )}
             {REQUIREMENT_FIELDS.map((field) => (
               <label key={field.key} style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, padding: "4px 0" }}>
                 <input
