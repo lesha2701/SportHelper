@@ -9315,6 +9315,55 @@
         }
       }
     },
+    "/api/bookings/{booking_id}/money": {
+      "get": {
+        "tags": [
+          "bookings"
+        ],
+        "summary": "Booking Money",
+        "description": "The money history of the booking: the payment and every refund with its amount and state (athlete and trainer of the booking).",
+        "operationId": "booking_money_api_bookings__booking_id__money_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Booking Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingMoneyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/bookings/{booking_id}/cancel-preview": {
       "get": {
         "tags": [
@@ -10927,6 +10976,199 @@
           "format"
         ],
         "title": "BookingIn"
+      },
+      "BookingMoneyOut": {
+        "properties": {
+          "booking_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Booking Id"
+          },
+          "viewer_role": {
+            "type": "string",
+            "title": "Viewer Role"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "payment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookingMoneyPaymentOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "refunds": {
+            "items": {
+              "$ref": "#/components/schemas/BookingMoneyRefundOut"
+            },
+            "type": "array",
+            "title": "Refunds"
+          },
+          "refunded_kopecks": {
+            "type": "integer",
+            "title": "Refunded Kopecks"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "cancellation_policy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancellation Policy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "booking_id",
+          "viewer_role",
+          "currency",
+          "payment",
+          "refunds",
+          "refunded_kopecks"
+        ],
+        "title": "BookingMoneyOut",
+        "description": "The payment and the refunds of one booking (the same for the athlete and the trainer, except the trainer's own share)."
+      },
+      "BookingMoneyPaymentOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "gross_kopecks": {
+            "type": "integer",
+            "title": "Gross Kopecks"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          },
+          "trainer_kopecks": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trainer Kopecks"
+          },
+          "platform_fee_kopecks": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Platform Fee Kopecks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "gross_kopecks"
+        ],
+        "title": "BookingMoneyPaymentOut"
+      },
+      "BookingMoneyRefundOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "amount_kopecks": {
+            "type": "integer",
+            "title": "Amount Kopecks"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "trainer_refund_kopecks": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trainer Refund Kopecks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "amount_kopecks",
+          "status",
+          "source",
+          "created_at"
+        ],
+        "title": "BookingMoneyRefundOut"
       },
       "BookingOut": {
         "properties": {

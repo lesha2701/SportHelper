@@ -81,13 +81,13 @@ public struct CancelPreview: Decodable, Equatable, Sendable {
         case .unpaid:
             return "Запись не оплачена, поэтому отмена бесплатна: деньги не списывались."
         case .athleteEarly:
-            return "Вернём 100% — \(refundText). Деньги вернутся на карту, с которой вы платили. Бесплатная отмена возможна до \(until)."
+            return "Вернём \(refundPercent)% — \(refundText). Деньги вернутся на карту, с которой вы платили. Бесплатная отмена возможна до \(until)."
         case .athleteLate:
             return "До занятия осталось слишком мало времени (бесплатная отмена была возможна до \(until)). Деньги не вернутся: оплата остаётся у тренера."
         case .coach:
             return side == .coach
                 ? "Игрок получит полный возврат — \(refundText). Комиссия платформы тоже возвращается, ваше начисление за это занятие снимается."
-                : "Вернём 100% — \(refundText)."
+                : "Вернём \(refundPercent)% — \(refundText)."
         case .other:
             return "Условия отмены определит сервер."
         }
