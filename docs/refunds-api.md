@@ -70,6 +70,26 @@ Android строились параллельно. Маршруты реализ
 
 Ответ `200`: `BookingOut` (раздел 4) уже со статусом `cancelled` и заполненным `cancellation`.
 
+### `GET /api/bookings/{booking_id}/money` (REF-13)
+История денег одной записи: платёж и все возвраты по ней. Доступ: игрок или тренер записи, чужая запись — `404`. Ничего не меняет.
+
+```json
+{
+  "booking_id": "…", "viewer_role": "athlete", "currency": "RUB",
+  "payment": { "status": "paid", "gross_kopecks": 250000, "paid_at": "2026-11-18T09:00:00Z",
+               "trainer_kopecks": null, "platform_fee_kopecks": null },
+  "refunds": [ { "id": "…", "amount_kopecks": 250000, "status": "succeeded", "source": "cancellation", "reason": "Заболел",
+                 "created_at": "…", "completed_at": "…", "trainer_refund_kopecks": null } ],
+  "refunded_kopecks": 250000, "cancelled_at": "…", "cancellation_policy": "athlete_early"
+}
+```
+- `payment`: `null`, пока записи не оплачивали. `trainer_kopecks`, `platform_fee_kopecks` и `trainer_refund_kopecks` заполнены **только для тренера** (его доля и комиссия платформы); игроку они не нужны.
+- `refunds[].status`: `pending` (создан, ждёт банк) | `succeeded` | `failed` (банк отказал, решает администратор).
+- `refunds[].source`: `cancellation` (по отмене записи) | `automatic` (оплата пришла после отмены и вернулась сама) | `administrator` (вручную).
+- `refunds[].reason`: причина отмены, если возврат её; **внутренняя заметка администратора наружу не отдаётся** (`null`).
+- Возвраты за повторную оплату (`duplicate`) сюда не входят: это инцидент для администратора.
+- История тренера по всем операциям с балансом уже есть: `GET /api/finance/operations`.
+
 ### Что меняется в существующих маршрутах (только добавления)
 - `GET /api/bookings/me` и `GET /api/bookings/coach` теперь включают отменённые записи (`status = "cancelled"`) и новые поля в `BookingOut`.
 - `PATCH /{id}/plan`, `/complete`, `/pay`, `/reviews`: для отменённой записи отвечают `409` (`booking_not_confirmed`, `booking_closed`), как для закрытой.

@@ -21,6 +21,7 @@ from app.repositories import plans as plans_repo
 from app.repositories import trainings as trainings_repo
 from app.schemas.booking import (
     BookingIn,
+    BookingMoneyOut,
     BookingOut,
     BookingPlanIn,
     CancelIn,
@@ -31,6 +32,7 @@ from app.schemas.booking import (
     ReviewIn,
     ReviewOut,
 )
+from app.services import booking_money as booking_money_service
 from app.services import cancellations as cancellations_service
 from app.services import notifications as notifications_service
 from app.services import payments as payments_service
@@ -251,6 +253,16 @@ async def decline_booking(
         raise APIError("booking is no longer pending", code="booking_not_pending", status_code=409)
     await notifications_service.schedule_booking_decided_notification(conn, declined, outcome="declined")
     return await _to_out(conn, declined)
+
+
+@router.get("/{booking_id}/money", response_model=BookingMoneyOut)
+async def booking_money(
+    booking_id: UUID,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> BookingMoneyOut:
+    """The money history of the booking: the payment and every refund with its amount and state (athlete and trainer of the booking)."""
+    return BookingMoneyOut(**await booking_money_service.history(conn, booking_id, user["id"]))
 
 
 @router.get("/{booking_id}/cancel-preview", response_model=CancelPreviewOut)

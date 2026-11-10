@@ -265,3 +265,171 @@ def test_a_booked_session_cannot_be_cancelled_or_deleted_around_the_booking(fin)
     assert cancelled.json()["error"]["code"] == deleted.json()["error"]["code"] == "booked_session_use_cancel"
     assert sql_value(fin.dsn, "SELECT status FROM trainings WHERE id = $1::uuid", training_id) == "scheduled"
     assert cancel(coach, booking, reason=REASON).status_code == 200  # the way that settles the money still works
+
+
+# --- the money history of a booking (REF-13) -----------------------------------------------------------------------------------
+
+
+def test_the_money_history_tells_the_payment_and_the_refund_to_both_sides(fin) -> None:
+    coach, player, booking, payment_id = paid_booking(fin)
+    starts_in(fin, booking, 48)
+    cancel(player, booking, reason=REASON)
+
+    mine = player.ok("GET", f"/api/bookings/{booking['id']}/money")
+    theirs = coach.ok("GET", f"/api/bookings/{booking['id']}/money")
+
+    assert (mine["viewer_role"], theirs["viewer_role"]) == ("athlete", "coach")
+    assert mine["payment"]["status"] == "paid" and mine["payment"]["gross_kopecks"] == 250000 and mine["payment"]["paid_at"] is not None
+    assert "trainer_kopecks" in mine["payment"] and mine["payment"]["trainer_kopecks"] is None, "the athlete has no use for the commission split"
+    assert (theirs["payment"]["trainer_kopecks"], theirs["payment"]["platform_fee_kopecks"]) == (225000, 25000)
+    refund = mine["refunds"][0]
+    assert (refund["amount_kopecks"], refund["status"], refund["source"], refund["reason"]) == (250000, "pending", "cancellation", REASON)
+    assert refund["trainer_refund_kopecks"] is None and theirs["refunds"][0]["trainer_refund_kopecks"] == 225000
+    assert mine["cancellation_policy"] == "athlete_early" and mine["cancelled_at"] is not None and mine["refunded_kopecks"] == 0
+
+    finish_refund(fin)
+    done = player.ok("GET", f"/api/bookings/{booking['id']}/money")
+    assert done["refunds"][0]["status"] == "succeeded" and done["refunds"][0]["completed_at"] is not None
+    assert (done["refunded_kopecks"], done["payment"]["status"]) == (250000, "refunded")
+
+
+def test_an_unpaid_booking_has_no_money_history_and_a_stranger_sees_nothing(fin) -> None:
+    coach, player, booking = confirmed_booking(fin.world, confirm=True)
+    empty = player.ok("GET", f"/api/bookings/{booking['id']}/money")
+    assert empty["payment"] is None and empty["refunds"] == [] and empty["refunded_kopecks"] == 0
+    stranger = Browser(fin.world.client, "stranger2@example.com", "Чужой", "player")
+    assert stranger.call("GET", f"/api/bookings/{booking['id']}/money").status_code == 404
+
+
+def test_an_administrators_refund_is_in_the_history_without_the_internal_note(fin) -> None:
+    coach, player, booking, payment_id = paid_booking(fin)
+    fin.admin.ok("POST", f"/api/admin/finance/payments/{payment_id}/refund", json={"amount_kopecks": 100000, "reason": "внутренняя заметка"})
+
+    refund = player.ok("GET", f"/api/bookings/{booking['id']}/money")["refunds"][0]
+
+    assert (refund["amount_kopecks"], refund["source"], refund["reason"]) == (100000, "administrator", None)
+
+
+def test_a_payment_returned_by_itself_after_the_cancellation_is_marked_automatic(fin) -> None:
+    coach, player, booking = confirmed_booking(fin.world, confirm=True)
+    starts_in(fin, booking, 48)
+    player.ok("POST", f"/api/bookings/{booking['id']}/pay")
+    pid = next(iter(fin.provider.payments))
+    cancel(coach, booking, reason=REASON)
+    fin.provider.finish(pid, "succeeded")
+    webhook(fin.world, pid)
+
+    refund = coach.ok("GET", f"/api/bookings/{booking['id']}/money")["refunds"][0]
+
+    assert (refund["source"], refund["amount_kopecks"]) == ("automatic", 250000)
+
+
+# --- edge cases of the rule ----------------------------------------------------------------------------------------------------
+
+
+def test_after_a_part_was_refunded_the_cancellation_returns_only_what_is_left(fin) -> None:
+    coach, player, booking, payment_id = paid_booking(fin)
+    fin.admin.ok("POST", f"/api/admin/finance/payments/{payment_id}/refund", json={"amount_kopecks": 100000, "reason": "часть"})
+    starts_in(fin, booking, 48)
+
+    preview = player.ok("GET", f"/api/bookings/{booking['id']}/cancel-preview")
+    body = cancel(player, booking).json()
+
+    assert (preview["refund_kopecks"], preview["refund_percent"]) == (150000, 60)  # not «100%» of a price that was partly returned already
+    assert body["cancellation"]["refund_amount_kopecks"] == 150000 and body["cancellation"]["refund_percent"] == 60
+    assert sql_value(fin.dsn, "SELECT refund_reserved_kopecks FROM payments") == 250000  # never more than was paid
+
+
+def test_a_refund_the_bank_refuses_is_shown_as_failed_and_the_money_is_not_stuck(fin) -> None:
+    coach, player, booking, payment_id = paid_booking(fin)
+    starts_in(fin, booking, 48)
+    fin.provider.fail_refund_next = YooKassaError("ЮKassa answered 400 invalid_request", status_code=400)  # not retryable
+
+    done = cancel(player, booking)
+
+    assert done.status_code == 200 and done.json()["status"] == "cancelled"
+    assert done.json()["cancellation"]["refund_status"] == "failed"
+    assert sql_value(fin.dsn, "SELECT status FROM refunds") == "failed"
+    assert sql_value(fin.dsn, "SELECT refund_reserved_kopecks FROM payments") == 0  # the reserve is released: an administrator can return it by hand
+    assert player.ok("GET", f"/api/bookings/{booking['id']}/money")["refunds"][0]["status"] == "failed"
+    assert fin.admin.call("POST", f"/api/admin/finance/payments/{payment_id}/refund", json={"amount_kopecks": 250000, "reason": "вручную"}).status_code == 200
+
+
+def test_the_free_period_follows_the_setting(fin) -> None:
+    from tests.test_finance import reconfigure
+
+    coach, player, booking, payment_id = paid_booking(fin)
+    starts_in(fin, booking, 30)
+    assert player.ok("GET", f"/api/bookings/{booking['id']}/cancel-preview")["policy"] == "athlete_early"
+    reconfigure(fin, CANCEL_FREE_HOURS="48")
+    assert player.ok("GET", f"/api/bookings/{booking['id']}/cancel-preview")["policy"] == "athlete_late"
+    reconfigure(fin, CANCEL_FREE_HOURS="0")
+    starts_in(fin, booking, 0.5)
+    assert player.ok("GET", f"/api/bookings/{booking['id']}/cancel-preview")["policy"] == "athlete_early"  # with 0 hours anything before the start is free
+
+
+def test_two_cancellations_at_once_return_the_money_once(fin) -> None:
+    import asyncio
+    import uuid
+
+    from app.services import cancellations as cancellations_service
+
+    coach, player, booking, payment_id = paid_booking(fin)
+    starts_in(fin, booking, 48)
+
+    async def go(user_id: str, reason: str | None):
+        async def work(conn):
+            return await cancellations_service.cancel(conn, get_settings(), booking_id=uuid.UUID(booking["id"]), user={"id": uuid.UUID(user_id)}, reason=reason)
+        return await with_conn(fin.dsn, work)
+
+    async def both():
+        return await asyncio.gather(go(player.user_id, None), go(coach.user_id, REASON), return_exceptions=True)
+
+    results = run(both())
+
+    assert not [r for r in results if isinstance(r, Exception)], results
+    assert sql_value(fin.dsn, "SELECT count(*) FROM booking_cancellations") == 1 and sql_value(fin.dsn, "SELECT count(*) FROM refunds") == 1
+    assert sql_value(fin.dsn, "SELECT refund_reserved_kopecks FROM payments") == 250000
+    assert len(fin.provider.refund_requests) == 1
+
+
+# --- the trainer's money around a late cancellation (REF-12) ---------------------------------------------------------------------
+
+
+def test_a_late_cancellation_earning_is_released_by_itself_after_the_hold(fin) -> None:
+    from app.services import earnings as earnings_service
+    from tests.test_finance import reconfigure
+
+    reconfigure(fin, EARNING_RELEASE_MODE="auto_after_hold", EARNING_HOLD_HOURS="72")
+    coach, player, booking, payment_id = paid_booking(fin)
+    starts_in(fin, booking, 2)
+    cancel(player, booking)
+
+    async def tick(conn):
+        return await earnings_service.release_due_earnings(conn, get_settings())
+
+    assert run(with_conn(fin.dsn, tick)) == 0  # the hold has not passed
+    sql(fin.dsn, "UPDATE trainer_earnings SET session_confirmed_at = now() - interval '73 hours'")
+    assert run(with_conn(fin.dsn, tick)) == 1
+
+    assert sql_value(fin.dsn, "SELECT status FROM trainer_earnings") == "available"
+    assert trainer_balances(fin.dsn, coach.user_id)["trainer_available"] == 225000
+    assert_books_are_sound(fin.dsn)
+
+
+def test_a_refund_by_an_administrator_after_a_late_cancellation_and_a_payout_becomes_a_debt(fin) -> None:
+    from tests.test_finance import ask_withdrawal
+
+    coach, player, booking, payment_id = paid_booking(fin)
+    starts_in(fin, booking, 2)
+    cancel(player, booking)  # the trainer keeps the payment
+    fin.admin.ok("POST", f"/api/admin/finance/earnings/{earning_of(fin, booking)}/release", json={})
+    ask_withdrawal(coach, 225000)  # all of it is reserved for a payout
+
+    assert fin.admin.call("POST", f"/api/admin/finance/payments/{payment_id}/refund", json={"amount_kopecks": 250000, "reason": "спор"}).status_code == 200
+    finish_refund(fin)
+
+    balances = trainer_balances(fin.dsn, coach.user_id)
+    assert (balances["trainer_reserved"], balances["trainer_available"], balances["trainer_debt"]) == (225000, 0, 225000)
+    assert sql_value(fin.dsn, "SELECT count(*) FROM payment_incidents WHERE kind = 'trainer_debt' AND status = 'open'") == 1
+    assert_books_are_sound(fin.dsn)

@@ -93,7 +93,9 @@ def make_plan(booking: dict[str, Any], payment: dict[str, Any] | None, role: str
     amount = min(room, gross * percent // 100) if percent > 0 else 0
     if amount < refunds_service.MIN_REFUND_KOPECKS:
         amount = 0  # ЮKassa does not return less than 1 RUB
-    return Plan(role, policy, hours, free_until if role == ATHLETE else None, gross, percent if amount > 0 else 0, amount)
+    # the percent is of what is really returned: after a part was already refunded by an administrator, «everything» is only what is left
+    actual = max(1, min(100, (amount * 100 + gross // 2) // gross)) if amount > 0 else 0
+    return Plan(role, policy, hours, free_until if role == ATHLETE else None, gross, actual, amount)
 
 
 async def preview(conn: asyncpg.Connection, settings: Settings, booking_id: UUID, user: dict[str, Any]) -> tuple[dict[str, Any], Plan]:

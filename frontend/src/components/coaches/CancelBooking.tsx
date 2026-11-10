@@ -22,13 +22,13 @@ export function previewText(preview: CancelPreview, side: CancelSide): string {
     case "unpaid":
       return "Запись не оплачена, поэтому отмена бесплатна: деньги не списывались.";
     case "athlete_early":
-      return `Вернём 100% — ${refund}. Деньги вернутся на карту, с которой вы платили. Бесплатная отмена возможна до ${formatDate(preview.freeCancelUntil ?? "")}.`;
+      return `Вернём ${preview.refundPercent}% — ${refund}. Деньги вернутся на карту, с которой вы платили. Бесплатная отмена возможна до ${formatDate(preview.freeCancelUntil ?? "")}.`;
     case "athlete_late":
       return `До занятия осталось слишком мало времени (бесплатная отмена была возможна до ${formatDate(preview.freeCancelUntil ?? "")}). Деньги не вернутся: оплата остаётся у тренера.`;
     case "coach":
       return side === "coach"
         ? `Игрок получит полный возврат — ${refund}. Комиссия платформы тоже возвращается, ваше начисление за это занятие снимается.`
-        : `Вернём 100% — ${refund}.`;
+        : `Вернём ${preview.refundPercent}% — ${refund}.`;
   }
 }
 

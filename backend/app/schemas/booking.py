@@ -60,6 +60,40 @@ class CancelPreviewOut(BaseModel):
     trainer_keeps_payment: bool
 
 
+class BookingMoneyPaymentOut(BaseModel):
+    status: str  # awaiting | paid | partially_refunded | refunded
+    gross_kopecks: int
+    paid_at: datetime | None = None
+    # the trainer's side only
+    trainer_kopecks: int | None = None
+    platform_fee_kopecks: int | None = None
+
+
+class BookingMoneyRefundOut(BaseModel):
+    id: UUID
+    amount_kopecks: int
+    status: str  # pending | succeeded | failed
+    source: str  # cancellation | automatic | administrator
+    reason: str | None = None
+    created_at: datetime
+    completed_at: datetime | None = None
+    # the trainer's side only
+    trainer_refund_kopecks: int | None = None
+
+
+class BookingMoneyOut(BaseModel):
+    """The payment and the refunds of one booking (the same for the athlete and the trainer, except the trainer's own share)."""
+
+    booking_id: UUID
+    viewer_role: str  # athlete | coach
+    currency: str
+    payment: BookingMoneyPaymentOut | None
+    refunds: list[BookingMoneyRefundOut]
+    refunded_kopecks: int
+    cancelled_at: datetime | None = None
+    cancellation_policy: str | None = None
+
+
 class BookingOut(BaseModel):
     id: UUID
     coach_user_id: UUID
