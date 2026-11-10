@@ -1,6 +1,6 @@
 // frontend/src/api/bookings.ts
 import { apiRequest } from "./client";
-import { mapBookingDto, mapPendingBookingDto, type Booking, type BookingDto, type BookingInput, type PendingBooking, type PendingBookingDto, type ReviewDto, type ReviewInput } from "../types/booking";
+import { mapBookingDto, mapCancelPreviewDto, mapPendingBookingDto, type Booking, type BookingDto, type CancelPreview, type CancelPreviewDto, type BookingInput, type PendingBooking, type PendingBookingDto, type ReviewDto, type ReviewInput } from "../types/booking";
 
 export async function createBooking(token: string, input: BookingInput): Promise<Booking> {
   const dto = await apiRequest<BookingDto>("/api/bookings", { method: "POST", successMessage: "Заявка отправлена тренеру", token, body: input });
@@ -68,6 +68,23 @@ export async function setBookingPlan(token: string, bookingId: string, planId: s
     method: "PATCH", successMessage: "План привязан к тренировке",
     token,
     body: { plan_id: planId },
+  });
+  return mapBookingDto(dto);
+}
+
+/** What cancelling the booking right now would mean: «Вернём 100%» or «Деньги не вернутся». Changes nothing. */
+export async function getCancelPreview(token: string, bookingId: string): Promise<CancelPreview> {
+  const dto = await apiRequest<CancelPreviewDto>(`/api/bookings/${bookingId}/cancel-preview`, { token });
+  return mapCancelPreviewDto(dto);
+}
+
+/** Cancels a confirmed booking by the agreed rule; the money goes back by itself. The coach has to give a reason. */
+export async function cancelBooking(token: string, bookingId: string, reason: string | null): Promise<Booking> {
+  const dto = await apiRequest<BookingDto>(`/api/bookings/${bookingId}/cancel`, {
+    method: "POST",
+    token,
+    body: { reason },
+    successMessage: "Запись отменена",
   });
   return mapBookingDto(dto);
 }

@@ -34,6 +34,8 @@ function makeBooking(overrides: Partial<Booking> = {}): Booking {
     hasPlayerReview: false,
     paymentStatus: "not_required",
     paidAt: null,
+    canCancel: false,
+    cancellation: null,
     ...overrides,
   };
 }

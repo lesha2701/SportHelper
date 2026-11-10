@@ -6,6 +6,66 @@ export type PaymentStatus = "not_required" | "unpaid" | "processing" | "paid" | 
 
 export type BookingStatus = "pending" | "confirmed" | "declined" | "expired" | "cancelled";
 
+/** Who cancelled, by which rule, and what happens to the money. none: nothing to return; pending: waits for the bank;
+ * succeeded: returned; failed: the bank refused, an administrator decides by hand. */
+export type RefundStatus = "none" | "pending" | "succeeded" | "failed";
+export type CancelPolicy = "unpaid" | "athlete_early" | "athlete_late" | "coach";
+
+export interface CancellationDto {
+  cancelled_by_role: "athlete" | "coach";
+  cancelled_at: string;
+  reason: string | null;
+  policy: CancelPolicy;
+  refund_percent: number;
+  refund_amount_kopecks: number;
+  refund_status: RefundStatus;
+}
+
+export interface Cancellation {
+  cancelledByRole: "athlete" | "coach";
+  cancelledAt: string;
+  reason: string | null;
+  policy: CancelPolicy;
+  refundPercent: number;
+  refundAmountKopecks: number;
+  refundStatus: RefundStatus;
+}
+
+export interface CancelPreviewDto {
+  booking_id: string;
+  cancelled_by_role: "athlete" | "coach";
+  policy: CancelPolicy;
+  hours_before_start: number;
+  free_cancel_until: string | null;
+  paid_kopecks: number;
+  refund_percent: number;
+  refund_kopecks: number;
+  trainer_keeps_payment: boolean;
+}
+
+/** What cancelling the booking right now would mean (nothing is changed by asking). */
+export interface CancelPreview {
+  policy: CancelPolicy;
+  hoursBeforeStart: number;
+  freeCancelUntil: string | null;
+  paidKopecks: number;
+  refundPercent: number;
+  refundKopecks: number;
+  trainerKeepsPayment: boolean;
+}
+
+export function mapCancelPreviewDto(dto: CancelPreviewDto): CancelPreview {
+  return {
+    policy: dto.policy,
+    hoursBeforeStart: dto.hours_before_start,
+    freeCancelUntil: dto.free_cancel_until,
+    paidKopecks: dto.paid_kopecks,
+    refundPercent: dto.refund_percent,
+    refundKopecks: dto.refund_kopecks,
+    trainerKeepsPayment: dto.trainer_keeps_payment,
+  };
+}
+
 export interface BookingDto {
   id: string;
   coach_user_id: string;
@@ -30,6 +90,8 @@ export interface BookingDto {
   has_player_review: boolean;
   payment_status?: PaymentStatus;
   paid_at?: string | null;
+  can_cancel?: boolean;
+  cancellation?: CancellationDto | null;
 }
 
 export interface Booking {
@@ -58,6 +120,10 @@ export interface Booking {
   hasPlayerReview: boolean;
   paymentStatus: PaymentStatus;
   paidAt: string | null;
+  /** The «Отменить» button is shown by this: confirmed, not started, not conducted, not cancelled. */
+  canCancel: boolean;
+  /** Set once the booking is cancelled. */
+  cancellation: Cancellation | null;
 }
 
 export function mapBookingDto(dto: BookingDto): Booking {
@@ -85,6 +151,18 @@ export function mapBookingDto(dto: BookingDto): Booking {
     hasPlayerReview: dto.has_player_review ?? false,
     paymentStatus: dto.payment_status ?? "not_required",
     paidAt: dto.paid_at ?? null,
+    canCancel: dto.can_cancel ?? false,
+    cancellation: dto.cancellation
+      ? {
+          cancelledByRole: dto.cancellation.cancelled_by_role,
+          cancelledAt: dto.cancellation.cancelled_at,
+          reason: dto.cancellation.reason,
+          policy: dto.cancellation.policy,
+          refundPercent: dto.cancellation.refund_percent,
+          refundAmountKopecks: dto.cancellation.refund_amount_kopecks,
+          refundStatus: dto.cancellation.refund_status,
+        }
+      : null,
   };
 }
 
