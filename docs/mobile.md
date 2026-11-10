@@ -2,6 +2,9 @@
 
 Код приложения лежит в `mobile/`. Здесь — то, что приложению нужно от backend.
 
+Полный контракт API — [`docs/openapi.json`](openapi.json) (то же без админских маршрутов: [`docs/ios/openapi-mobile.json`](ios/openapi-mobile.json)). Файлы выгружаются из
+приложения (`python scripts/export_openapi.py` в `backend/`), руками их не правят; тест не даст слить изменение API без обновлённого контракта.
+
 ## Вход по токену
 
 `POST /api/auth/mobile/login` — тело как у `/api/auth/login` (`email`, `password`). Работает только при
