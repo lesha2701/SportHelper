@@ -1,0 +1,8 @@
+// The server of a Debug build. In xcconfig "//" starts a comment, so the URL is written with an empty variable between the slashes.
+// The simulator reaches the server on this Mac as localhost; a real iPhone needs the Mac's address, which is personal and goes into
+// Config/Local.xcconfig (not committed), for example:
+//   SAG_DEV_API_URL[sdk=iphoneos*] = http:/$()/MacBook-Pro.local:8010
+SAG_DEV_API_URL = http:/$()/localhost:8010
+
+// Personal settings: DEVELOPMENT_TEAM = <your team id>, and the address above. The file may be absent.
+#include? "Local.xcconfig"

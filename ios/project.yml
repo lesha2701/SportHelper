@@ -1,0 +1,83 @@
+name: SportArena
+options:
+  bundleIdPrefix: ru.sportarenaglobal
+  developmentLanguage: ru
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: ""            # set your team in Xcode (Signing & Capabilities); never commit certificates
+    CODE_SIGN_STYLE: Automatic
+packages:
+  SportArenaKit:
+    path: .
+targets:
+  SportArena:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+    dependencies:
+      - package: SportArenaKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ru.sportarenaglobal.app
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: App/Resources/Info.plist
+        TARGETED_DEVICE_FAMILY: "1"     # iPhone
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      configs:
+        Debug:
+          API_BASE_URL: "$(SAG_DEV_API_URL)"
+        Release:
+          API_BASE_URL: "https://sportarenaglobal.ru"
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
+    info:
+      path: App/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: SportArena
+        UILaunchScreen: {}
+        # Oswald (headings) and Montserrat (text) of the site: variable fonts, SIL Open Font License (App/Resources/Fonts)
+        UIAppFonts: [Oswald.ttf, Montserrat.ttf]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        API_BASE_URL: "$(API_BASE_URL)"
+        # Plain http is allowed only for a server on this Mac (the simulator reaches it as localhost, a phone by the Mac's name on the
+        # local network); the release build talks https.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSLocalNetworkUsageDescription: Приложение подключается к тестовому серверу на вашем компьютере в этой же сети.
+  SportArenaTests:
+    type: bundle.unit-test
+    platform: iOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    sources:
+      - path: AppTests
+    dependencies:
+      - target: SportArena
+  SportArenaUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    sources:
+      - path: AppUITests
+    dependencies:
+      - target: SportArena
+schemes:
+  SportArena:
+    build:
+      targets:
+        SportArena: all
+    test:
+      targets:
+        - SportArenaTests
+        - SportArenaUITests

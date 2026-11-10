@@ -1,0 +1,2 @@
+// Personal settings (DEVELOPMENT_TEAM = <your team id>) kept out of the repository. The file may be absent.
+#include? "Local.xcconfig"
