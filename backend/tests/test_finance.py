@@ -25,6 +25,12 @@ PASSWORD = "correct horse battery"
 SBP = {"phone": "+7 912 345-67-89", "bank": "Сбербанк", "recipient": "Иванов Иван Иванович"}
 
 
+def shows_the_phone(text: str) -> bool:
+    """Whether the SBP phone of `SBP` is readable in the text. A bare «912» is not a test of that: it turns up by chance in random
+    ids ("...991268af...") and made the payout test fail now and then."""
+    return any(shown in text for shown in ("912 345", "345-67-89", "9123456789"))
+
+
 @pytest.fixture
 def fin(world, monkeypatch):  # noqa: F811
     provider = FakeProvider()
@@ -378,12 +384,12 @@ def test_payout_details_are_encrypted_masked_and_fixed_per_request(fin) -> None:
 
     assert created["details_hint"] == "СБП · +7 ••• •••-••-89 · Сбербанк" and "details" not in created and "details_enc" not in created
     stored = sql_value(fin.dsn, "SELECT details_enc FROM withdrawal_requests")
-    assert "912" not in stored and "Иванов" not in stored and "Сбербанк" not in stored  # nothing readable at rest
+    assert not shows_the_phone(stored) and "Иванов" not in stored and "Сбербанк" not in stored  # nothing readable at rest
     listed = coach.ok("GET", "/api/finance/withdrawals")["items"][0]
-    assert "912" not in json.dumps(listed) and listed["details_hint"] == created["details_hint"]
+    assert not shows_the_phone(json.dumps(listed)) and listed["details_hint"] == created["details_hint"]
     opened = fin.admin.ok("GET", f"/api/admin/finance/withdrawals/{created['id']}")["withdrawal"]
     assert opened["coach_email"] == coach.email and opened["coach_full_name"]  # the drawer says whose request it is
-    assert "912" not in json.dumps(opened) and "details_enc" not in opened
+    assert not shows_the_phone(json.dumps(opened)) and "details_enc" not in opened
     detail = fin.admin.ok("POST", f"/api/admin/finance/withdrawals/{created['id']}/details")
     assert detail["details"]["phone"] == "+79123456789" and detail["details"]["recipient"] == "Иванов Иван Иванович"
     audit = sql(fin.dsn, "SELECT action FROM admin_audit_log WHERE action = 'finance.withdrawal.details_viewed'")
@@ -433,7 +439,7 @@ def test_the_manual_payout_process_end_to_end(fin) -> None:
     wid = ask_withdrawal(coach, 150_000).json()["id"]
     assert sql_value(fin.dsn, "SELECT count(*) FROM notifications WHERE category = 'finance_admin'") == 1  # the administrator is told (no requisites in it)
     note = sql_value(fin.dsn, "SELECT body FROM notifications WHERE category = 'finance_admin'")
-    assert "912" not in note and "Сбербанк" not in note
+    assert not shows_the_phone(note) and "Сбербанк" not in note
 
     fin.admin.ok("POST", f"/api/admin/finance/withdrawals/{wid}/review", json={})
     fin.admin.ok("POST", f"/api/admin/finance/withdrawals/{wid}/approve", json={})
@@ -871,6 +877,6 @@ def test_the_account_owner_gets_a_security_email_without_any_requisites(fin) -> 
 
     mails = [m for m in fin.world.client.outbox[before:] if m.to == "coach0@example.com"]
     assert len(mails) == 1 and "заявка на вывод" in mails[0].text.lower() and "1 500,00 ₽" in mails[0].text.replace(" ", " ")
-    assert "912" not in mails[0].text and "Сбербанк" not in mails[0].text
+    assert not shows_the_phone(mails[0].text) and "Сбербанк" not in mails[0].text
     ask_withdrawal(coach, 150_000, key=json.loads(json.dumps(str(uuid.uuid4()))))
     # (a repeated identical form would not mail again: see the idempotence test)
