@@ -71,6 +71,7 @@ const booking = (overrides: Partial<Booking> = {}): Booking => ({
   canCancel: false,
   hasStarted: false,
   cancellation: null,
+  sessionConfirmation: null,
   ...overrides,
 });
 

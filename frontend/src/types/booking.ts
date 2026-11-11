@@ -93,6 +93,78 @@ export interface BookingDto {
   can_cancel?: boolean;
   has_started?: boolean;
   cancellation?: CancellationDto | null;
+  session_confirmation?: SessionConfirmationDto | null;
+}
+
+/** Whether the session took place (docs/session-confirmation.md), as this side sees it. */
+export type SessionConfirmationState =
+  | "scheduled"
+  | "awaiting"
+  | "confirmed"
+  | "auto_confirmed"
+  | "disputed"
+  | "resolved_released"
+  | "resolved_refunded";
+export type SessionProblemKind = "athlete_no_show" | "coach_no_show" | "not_conducted" | "other";
+
+export interface SessionConfirmationDto {
+  state: string;
+  window_closes_at: string;
+  coach_marked_at: string | null;
+  confirmed_at: string | null;
+  confirmed_method: "athlete" | "code" | "auto" | null;
+  disputed_by_role: "athlete" | "coach" | null;
+  dispute_kind: SessionProblemKind | null;
+  dispute_text: string | null;
+  resolved_at: string | null;
+  can_confirm: boolean;
+  can_report_problem: boolean;
+  can_get_code: boolean;
+  can_enter_code: boolean;
+}
+
+export interface SessionConfirmation {
+  /** A state this version does not know yet is shown as waiting, never as an error. */
+  state: SessionConfirmationState;
+  windowClosesAt: string;
+  coachMarkedAt: string | null;
+  confirmedAt: string | null;
+  confirmedMethod: "athlete" | "code" | "auto" | null;
+  disputedByRole: "athlete" | "coach" | null;
+  disputeKind: SessionProblemKind | null;
+  disputeText: string | null;
+  resolvedAt: string | null;
+  canConfirm: boolean;
+  canReportProblem: boolean;
+  canGetCode: boolean;
+  canEnterCode: boolean;
+}
+
+const KNOWN_CONFIRMATION_STATES: readonly string[] = [
+  "scheduled", "awaiting", "confirmed", "auto_confirmed", "disputed", "resolved_released", "resolved_refunded",
+];
+
+export function mapSessionConfirmationDto(dto: SessionConfirmationDto): SessionConfirmation {
+  return {
+    state: (KNOWN_CONFIRMATION_STATES.includes(dto.state) ? dto.state : "awaiting") as SessionConfirmationState,
+    windowClosesAt: dto.window_closes_at,
+    coachMarkedAt: dto.coach_marked_at,
+    confirmedAt: dto.confirmed_at,
+    confirmedMethod: dto.confirmed_method,
+    disputedByRole: dto.disputed_by_role,
+    disputeKind: dto.dispute_kind,
+    disputeText: dto.dispute_text,
+    resolvedAt: dto.resolved_at,
+    canConfirm: dto.can_confirm,
+    canReportProblem: dto.can_report_problem,
+    canGetCode: dto.can_get_code,
+    canEnterCode: dto.can_enter_code,
+  };
+}
+
+export interface SessionCode {
+  code: string;
+  expiresAt: string;
 }
 
 export interface Booking {
@@ -128,6 +200,8 @@ export interface Booking {
   hasStarted: boolean;
   /** Set once the booking is cancelled. */
   cancellation: Cancellation | null;
+  /** Whether the session took place: null until the booking is confirmed and after it is cancelled. */
+  sessionConfirmation: SessionConfirmation | null;
 }
 
 export function mapBookingDto(dto: BookingDto): Booking {
@@ -168,6 +242,7 @@ export function mapBookingDto(dto: BookingDto): Booking {
           refundStatus: dto.cancellation.refund_status,
         }
       : null,
+    sessionConfirmation: dto.session_confirmation ? mapSessionConfirmationDto(dto.session_confirmation) : null,
   };
 }
 

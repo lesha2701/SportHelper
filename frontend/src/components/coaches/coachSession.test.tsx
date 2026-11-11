@@ -37,6 +37,7 @@ function makeBooking(overrides: Partial<Booking> = {}): Booking {
     canCancel: false,
     hasStarted: true,
     cancellation: null,
+    sessionConfirmation: null,
     ...overrides,
   };
 }

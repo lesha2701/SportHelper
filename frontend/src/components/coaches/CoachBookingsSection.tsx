@@ -13,6 +13,7 @@ import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 import { CancelBooking, CancellationNote } from "./CancelBooking";
+import { SessionConfirmation } from "./SessionConfirmation";
 import { CoachSessionActions } from "./CoachSessionActions";
 import { PlanPickerModal } from "./PlanPickerModal";
 import { PlayerPublicProfileScreen } from "./PlayerPublicProfileScreen";
@@ -67,6 +68,7 @@ function BookingCard({
         </div>
       )}
       <CoachSessionActions token={token} booking={booking} onChange={onChange} />
+      <SessionConfirmation token={token} booking={booking} side="coach" onChange={onChange} />
       <CancelBooking token={token} booking={booking} side="coach" onCancelled={onChange} />
       <CancellationNote cancellation={booking.cancellation} side="coach" />
       <BookingChatButton booking={booking} label="Чат с игроком" unread={unread} onOpen={() => onOpenChat(booking)} />
