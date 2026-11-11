@@ -174,3 +174,16 @@ async def refund_of(conn: asyncpg.Connection, cancellation: dict[str, Any]) -> d
     if cancellation["refund_id"] is None:
         return None
     return await refunds_repo.get(conn, cancellation["refund_id"])
+
+
+async def refund_for_card(conn: asyncpg.Connection, cancellation: dict[str, Any]) -> dict[str, Any] | None:
+    """The refund the card of a cancelled booking tells about: the one the cancellation made, or, when nothing was paid at the time,
+    the one that returned a payment made afterwards on a page opened before the cancellation (services/payments.py returns it by itself)."""
+    refund = await refund_of(conn, cancellation)
+    if refund is not None or cancellation["policy"] != "unpaid":
+        return refund
+    payment = await payments_repo.get_for_booking(conn, cancellation["booking_id"])
+    if payment is None:
+        return None
+    returned = [r for r in await refunds_repo.list_for_payment(conn, payment["id"]) if r["kind"] == "payment"]
+    return returned[-1] if returned else None

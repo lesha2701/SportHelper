@@ -131,6 +131,11 @@ async def _send_to_provider(conn: asyncpg.Connection, settings: Settings, refund
         logger.warning("Refund %s could not be sent: %s", refund["id"], exc)
         if not exc.retryable:
             await _fail_refund(conn, refund, f"provider_rejected: {exc.status_code}")
+            # A refund that follows a cancellation is sent with nobody watching: the administrator must hear about it, as when
+            # ЮKassa cancels a refund later (sync_refund).
+            if await payments_repo.record_incident(conn, kind="refund_failed", payment_id=refund["payment_id"], attempt_id=refund["attempt_id"],
+                                                   detail=f"ЮKassa refused the refund ({exc.status_code})"):
+                await notify.incident(conn, settings, kind="refund_failed", payment_id=refund["payment_id"], key=str(refund["id"]))
         # a retryable failure leaves it 'requested': the same Idempotence-Key makes the retry (reconciliation) safe
         raise APIError("Не удалось отправить возврат в ЮKassa. Запрос сохранён, повторите позже.", code="payment_provider_error", status_code=502) from exc
     await refunds_repo.attach_provider(conn, refund["id"], provider_id)

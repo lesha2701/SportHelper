@@ -49,14 +49,16 @@ async def _to_out(conn: asyncpg.Connection, booking: dict) -> BookingOut:
     if booking["status"] == "cancelled":
         row = await cancellations_repo.get_for_booking(conn, booking["id"])
         if row is not None:
+            refund = await cancellations_service.refund_for_card(conn, row)
             cancellation = CancellationOut(
                 cancelled_by_role=row["cancelled_by_role"],
                 cancelled_at=row["created_at"],
                 reason=row["reason"],
                 policy=row["policy"],
                 refund_percent=row["refund_percent"],
-                refund_amount_kopecks=row["refund_kopecks"],
-                refund_status=cancellations_service.refund_status_of(await cancellations_service.refund_of(conn, row)),
+                # a payment returned after an unpaid cancellation is told with its own amount
+                refund_amount_kopecks=row["refund_kopecks"] if row["refund_id"] is not None or refund is None else refund["amount_kopecks"],
+                refund_status=cancellations_service.refund_status_of(refund),
             )
     return BookingOut(
         **booking,

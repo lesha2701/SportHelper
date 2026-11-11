@@ -163,6 +163,21 @@ describe("the card of a cancelled booking", () => {
     render(<CancellationNote cancellation={cancellation({ policy: "unpaid", refundPercent: 0, refundAmountKopecks: 0, refundStatus: "none" })} side="athlete" />);
     expect(screen.queryByText(/Возврат|Деньги|Возвращено/)).toBeNull();
   });
+
+  it("tells about a payment made after the cancellation and returned by itself", () => {
+    const paidLater = cancellation({ policy: "unpaid", refundPercent: 0, refundAmountKopecks: 250000, refundStatus: "pending" });
+    const { rerender } = render(<CancellationNote cancellation={paidLater} side="athlete" />);
+    expect(screen.getByText(/Возврат 2\s?500.* обрабатывается/)).toBeTruthy();
+    rerender(<CancellationNote cancellation={paidLater} side="coach" />);
+    expect(screen.getByText(/Игроку возвращается 2\s?500/)).toBeTruthy();
+  });
+
+  it("shows the moment of the cancellation in the reader's own time (it is a real moment, not a session's wall-clock time)", () => {
+    const at = "2026-11-11T07:48:00Z";
+    render(<CancellationNote cancellation={cancellation({ cancelledAt: at })} side="athlete" />);
+    const local = new Date(at).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    expect(screen.getByText(`Отменена вами · ${local}`)).toBeTruthy();
+  });
 });
 
 describe("the lists", () => {
