@@ -19,7 +19,7 @@ function makeBooking(overrides: Partial<Booking> = {}): Booking {
     athleteUserId: "a1",
     athleteFullName: "Игорь",
     athleteNotes: null,
-    startsAt: new Date(Date.now() - 10 * 60_000).toISOString(), // started 10 minutes ago
+    startsAt: "2026-11-16T10:00:00Z",
     durationMinutes: 60,
     format: "online",
     pricePerSession: null,
@@ -35,6 +35,7 @@ function makeBooking(overrides: Partial<Booking> = {}): Booking {
     paymentStatus: "not_required",
     paidAt: null,
     canCancel: false,
+    hasStarted: true,
     cancellation: null,
     ...overrides,
   };
@@ -57,11 +58,23 @@ describe("coach session actions", () => {
   });
 
   it("explains that the button appears later when the session hasn't started", () => {
-    const future = makeBooking({ startsAt: new Date(Date.now() + 3600_000).toISOString() });
+    const future = makeBooking({ hasStarted: false });
     render(<CoachSessionActions token="t" booking={future} onChange={vi.fn()} />);
 
     expect(screen.queryByRole("button", { name: "Тренировка проведена" })).toBeNull();
     expect(screen.getByText(/появится, когда занятие начнётся/)).not.toBeNull();
+  });
+
+  it("goes by the server's has_started, never by the device's clock (startsAt is wall-clock time)", () => {
+    // 10:00 Moscow is stored as 10:00Z; at 10:30 in Moscow the device's clock reads 07:30Z and would say "not yet".
+    const begun = makeBooking({ startsAt: "2999-01-01T10:00:00Z", hasStarted: true });
+    const { unmount } = render(<CoachSessionActions token="t" booking={begun} onChange={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Тренировка проведена" })).not.toBeNull();
+    unmount();
+
+    const ahead = makeBooking({ startsAt: "2000-01-01T10:00:00Z", hasStarted: false });
+    render(<CoachSessionActions token="t" booking={ahead} onChange={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Тренировка проведена" })).toBeNull();
   });
 
   it("pressing it saves, then immediately asks for the player review window", async () => {

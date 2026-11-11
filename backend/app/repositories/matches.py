@@ -8,6 +8,8 @@ from uuid import UUID
 
 import asyncpg
 
+from app.core import session_time
+
 _MATCH_FIELDS = (
     "id, team_id, created_by, opponent_name, match_date, start_time, location, "
     "is_home, tournament, status, our_score, opponent_score, comment, created_at, updated_at"
@@ -23,6 +25,11 @@ _UPCOMING_FIRST_ORDER = """
         CASE WHEN match_date < CURRENT_DATE THEN match_date END DESC,
         CASE WHEN match_date < CURRENT_DATE THEN start_time END DESC
 """
+
+
+def _upcoming_first_order() -> str:
+    """The order with CURRENT_DATE read as today's date on the platform's clock (app/core/session_time.py)."""
+    return _UPCOMING_FIRST_ORDER.replace("CURRENT_DATE", session_time.sql_wall_today())
 
 
 async def create_match(conn: asyncpg.Connection, team_id: UUID, created_by: UUID, **fields: Any) -> dict[str, Any]:
@@ -82,7 +89,7 @@ async def list_team_matches(conn: asyncpg.Connection, team_id: UUID) -> list[dic
         f"""
         SELECT {_MATCH_FIELDS} FROM matches
         WHERE team_id = $1 AND deleted_at IS NULL
-        {_UPCOMING_FIRST_ORDER}
+        {_upcoming_first_order()}
         """,
         team_id,
     )

@@ -7,6 +7,7 @@ import asyncpg
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core import session_time
 from app.services import email as email_service
 from app.services.email import OutgoingEmail
 from tests import real_db
@@ -413,7 +414,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
         record = bookings_store.get(booking_id)
         if record is None or record["coach_user_id"] != coach_user_id or record["status"] != "pending":
             return None
-        if record["starts_at"] <= datetime.now(timezone.utc):
+        if record["starts_at"] <= session_time.wall_now():
             return None
         listing = listings_store.get(record.get("listing_id"), {})
         training = await trainings_module.create_training(
@@ -489,7 +490,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
         expired = []
         for record in bookings_store.values():
             if record["status"] == "pending" and (
-                record["created_at"] < older_than or record["starts_at"] < datetime.now(timezone.utc)
+                record["created_at"] < older_than or record["starts_at"] < session_time.wall_now()
             ):
                 record["status"] = "expired"
                 record["responded_at"] = datetime.now(timezone.utc)
@@ -1227,7 +1228,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
         return count
 
     def _sort_upcoming_first(records):
-        today = date.today()
+        today = session_time.wall_today()
         # Upcoming trainings ascending (soonest first), then past ones descending (most recent first).
         upcoming = sorted((r for r in records if r["training_date"] >= today), key=lambda r: (r["training_date"], r["start_time"]))
         past = sorted((r for r in records if r["training_date"] < today), key=lambda r: (r["training_date"], r["start_time"]), reverse=True)
@@ -1319,10 +1320,10 @@ def client(monkeypatch: pytest.MonkeyPatch):
     def _held(record) -> bool:
         # Mirrors repositories.trainings.HELD: marked completed counts at once (even for a future
         # date); an unmarked one counts once its day has come; a cancelled one never counts.
-        return record["status"] == "completed" or (record["status"] == "scheduled" and record["training_date"] <= date.today())
+        return record["status"] == "completed" or (record["status"] == "scheduled" and record["training_date"] <= session_time.wall_today())
 
     def _upcoming(record) -> bool:
-        return record["status"] == "scheduled" and record["training_date"] > date.today()
+        return record["status"] == "scheduled" and record["training_date"] > session_time.wall_today()
 
     async def fake_count_team_trainings_summary(conn, team_id):
         completed = upcoming = independent = 0
@@ -2355,7 +2356,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
             if min_rating is not None and (rating["average"] or 0) < min_rating:
                 continue
             user_row = _find_user_by_id(listing["coach_user_id"])
-            next_slot = await fake_listing_compute_open_slots(conn, listing["id"], date.today(), date.today() + timedelta(days=28))
+            next_slot = await fake_listing_compute_open_slots(conn, listing["id"], session_time.wall_today(), session_time.wall_today() + timedelta(days=28))
             cards.append(
                 {
                     "id": listing["id"],
@@ -2416,7 +2417,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
                 cursor = datetime.combine(day, window["start_time"], tzinfo=timezone.utc)
                 window_end = datetime.combine(day, window["end_time"], tzinfo=timezone.utc)
                 while cursor + timedelta(minutes=duration) <= window_end:
-                    if cursor not in booked and cursor > datetime.now(timezone.utc):
+                    if cursor not in booked and cursor > session_time.wall_now():
                         slots.append({"starts_at": cursor, "duration_minutes": duration})
                     cursor += timedelta(minutes=duration)
             day += timedelta(days=1)

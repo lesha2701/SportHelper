@@ -90,11 +90,10 @@ export function ReviewSheet({
 export function CoachSessionActions({ booking, onChange }: { booking: Booking; onChange: (b: Booking) => void }) {
   const [busy, setBusy] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [now] = useState(() => Date.now());
   if (booking.status !== "confirmed" || booking.trainingStatus === "cancelled") return null;
 
-  const started = new Date(booking.startsAt).getTime() <= now;
-  const canMarkConducted = booking.trainingStatus === "scheduled" && started;
+  // The server says whether the session has begun: startsAt is wall-clock time, so the device's clock can't tell (REF-19).
+  const canMarkConducted = booking.trainingStatus === "scheduled" && booking.hasStarted;
   const canReview = booking.isCompleted && !booking.hasPlayerReview && !canMarkConducted;
 
   async function markConducted() {
@@ -120,7 +119,7 @@ export function CoachSessionActions({ booking, onChange }: { booking: Booking; o
           </Text>
         </>
       ) : null}
-      {!canMarkConducted && booking.trainingStatus === "scheduled" && !started ? (
+      {!canMarkConducted && booking.trainingStatus === "scheduled" && !booking.hasStarted ? (
         <Text variant="caption" muted>
           Кнопка «Тренировка проведена» появится, когда занятие начнётся.
         </Text>

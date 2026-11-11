@@ -13,6 +13,7 @@ import re
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -233,6 +234,24 @@ class Settings(BaseSettings):
     # After this many nudges in a row without the user coming back, stop until they do.
     nudge_max_unanswered: int = Field(default=3, alias="NUDGE_MAX_UNANSWERED")
     nudge_batch_size: int = Field(default=200, alias="NUDGE_BATCH_SIZE")
+
+    # The platform's clock for session times (app/core/session_time.py). Coach hours, bookings, trainings and matches are kept as
+    # wall-clock times of this zone ("в 10:00"); bookings.starts_at writes them with a UTC label (10:00Z = 10:00 here), and every
+    # client shows them as they are. Comparing them with the real current moment goes through this zone. Users have no zone of
+    # their own; changing this setting re-reads every stored session time in the new zone.
+    session_timezone: str = Field(default="Europe/Moscow", alias="SESSION_TIMEZONE")
+
+    @field_validator("session_timezone")
+    @classmethod
+    def _known_session_timezone(cls, value: str) -> str:
+        # The name also goes into SQL text (AT TIME ZONE '...'), so only a real IANA zone name is accepted.
+        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_+\-/]*", value):
+            raise ValueError("SESSION_TIMEZONE must be an IANA time zone name, e.g. Europe/Moscow")
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            raise ValueError(f"unknown SESSION_TIMEZONE: {value}") from exc
+        return value
 
     @field_validator("cookie_secure", "api_docs_enabled", mode="before")
     @classmethod

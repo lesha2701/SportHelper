@@ -7,16 +7,17 @@ private let bookingId = "11111111-2222-4333-8444-555555555555"
 
 private func booking(
     status: String = "confirmed", completed: Bool = true, training: String? = "scheduled", starts: String = "2026-11-05T10:00:00Z",
-    reviewed: Bool = false, playerReviewed: Bool? = false
+    reviewed: Bool = false, playerReviewed: Bool? = false, started: Bool? = nil
 ) -> String {
     let trainingField = training.map { "\"\($0)\"" } ?? "null"
     let playerField = playerReviewed.map { "\"has_player_review\":\($0)," } ?? ""
+    let startedField = started.map { "\"has_started\":\($0)," } ?? ""
     return """
     {"id":"\(bookingId)","coach_user_id":"99999999-2222-4333-8444-555555555555","coach_full_name":"Анна Тренер","listing_id":null,
      "listing_title":"Теннис","athlete_user_id":"77777777-2222-4333-8444-555555555555","athlete_full_name":"Игорь Петров","athlete_notes":null,
      "starts_at":"\(starts)","duration_minutes":60,"format":"online","price_per_session":2500,"currency":"RUB","status":"\(status)",
      "is_completed":\(completed),"training_id":"22222222-2222-4333-8444-555555555555","training_plan_id":null,"training_plan_name":null,
-     "training_status":\(trainingField),"has_review":\(reviewed),\(playerField)"paid_at":null}
+     "training_status":\(trainingField),"has_review":\(reviewed),\(playerField)\(startedField)"paid_at":null}
     """
 }
 
@@ -54,6 +55,14 @@ struct ReviewRulesTests {
         #expect(!(try decode(booking(training: "completed")).coachCanMarkConducted(now: after)))
         #expect(!(try decode(booking(completed: false, training: "cancelled")).coachCanMarkConducted(now: after)))
         #expect(!(try decode(booking(completed: false, training: nil)).coachCanMarkConducted(now: after)))
+    }
+
+    @Test func theServerSaysWhetherTheSessionHasBegunNotTheDevicesClock() throws {
+        // 10:00 in Moscow arrives as 10:00Z; at 10:30 in Moscow the device's clock reads 07:30Z — "before" by itself.
+        let begun = try decode(booking(completed: false, started: true))
+        #expect(begun.hasStarted(now: before) && begun.coachCanMarkConducted(now: before))
+        let ahead = try decode(booking(completed: false, started: false))
+        #expect(!ahead.hasStarted(now: after) && !ahead.coachCanMarkConducted(now: after))
     }
 
     @Test func theCoachReviewsThePlayerOnlyAfterTheSessionIsMarkedConducted() throws {

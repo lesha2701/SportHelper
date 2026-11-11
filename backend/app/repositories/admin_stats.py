@@ -1,14 +1,16 @@
 """Platform statistics for the admin dashboard. Every number comes straight from PostgreSQL.
 
 Time: "today" and every chart day are UTC calendar days (the same convention user_activity_days uses), so
-the registration chart, the activity chart and DAU/WAU/MAU all agree. Training dates are plain calendar
-dates without a time zone, so "upcoming" compares them with the database's CURRENT_DATE.
+the registration chart, the activity chart and DAU/WAU/MAU all agree. Session times are the platform's wall-clock
+times (app/core/session_time.py), so "upcoming" trainings and bookings are counted on the platform's clock.
 """
 from __future__ import annotations
 
 from typing import Any
 
 import asyncpg
+
+from app.core import session_time
 
 CHART_DAYS = 30
 _TODAY = "(now() AT TIME ZONE 'UTC')::date"
@@ -36,11 +38,11 @@ async def get_dashboard(conn: asyncpg.Connection) -> dict[str, Any]:
             (SELECT count(*) FROM trainings WHERE deleted_at IS NULL) AS trainings_total,
             (SELECT count(*) FROM trainings WHERE deleted_at IS NULL AND status = 'scheduled') AS trainings_active,
             (SELECT count(*) FROM trainings WHERE deleted_at IS NULL AND status = 'scheduled'
-                AND training_date >= CURRENT_DATE) AS trainings_upcoming,
+                AND training_date >= {session_time.sql_wall_today()}) AS trainings_upcoming,
             (SELECT count(*) FROM trainings WHERE deleted_at IS NULL AND status = 'completed') AS trainings_completed,
             (SELECT count(*) FROM bookings) AS bookings_total,
             (SELECT count(*) FROM bookings WHERE status = 'confirmed') AS bookings_confirmed,
-            (SELECT count(*) FROM bookings WHERE status = 'confirmed' AND starts_at >= now()) AS bookings_upcoming,
+            (SELECT count(*) FROM bookings WHERE status = 'confirmed' AND starts_at >= {session_time.sql_wall_now()}) AS bookings_upcoming,
             (SELECT count(*) FROM complaints WHERE status = 'new') AS new_complaints,
             (SELECT count(*) FROM complaints WHERE status IN ('new', 'in_progress') AND target_type IN ('media', 'listing')) AS content_pending
         """

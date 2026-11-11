@@ -9,6 +9,8 @@ from uuid import UUID
 
 import asyncpg
 
+from app.core import session_time
+
 from app.repositories import coach_reviews as coach_reviews_repo
 
 # What makes a listing public: switched on by its coach, not deleted, not hidden by moderation, and its coach not blocked.
@@ -98,7 +100,7 @@ async def has_active_booking(conn: asyncpg.Connection, listing_id: UUID) -> bool
     return await conn.fetchval(
         "SELECT EXISTS (SELECT 1 FROM bookings WHERE listing_id = $1 AND ("
         "status = 'pending' OR "
-        "(status = 'confirmed' AND starts_at + (duration_minutes || ' minutes')::interval > now())"
+        f"(status = 'confirmed' AND starts_at + (duration_minutes || ' minutes')::interval > {session_time.sql_wall_now()})"
         "))",
         listing_id,
     )
@@ -313,6 +315,9 @@ async def compute_open_slots(
     )
     booked = {row["starts_at"] for row in booked_rows}
 
+    # The coach's hours are wall-clock hours of the platform's zone; a slot is offered as that wall-clock time with a UTC label
+    # (10:00 -> 10:00Z, the form bookings.starts_at is kept in), and one whose start has come on the platform's clock is not offered.
+    now = session_time.wall_now()
     slots: list[dict[str, Any]] = []
     day = from_date
     while day <= to_date:
@@ -322,7 +327,7 @@ async def compute_open_slots(
             cursor = datetime.combine(day, window["start_time"], tzinfo=timezone.utc)
             window_end = datetime.combine(day, window["end_time"], tzinfo=timezone.utc)
             while cursor + timedelta(minutes=duration) <= window_end:
-                if cursor not in booked and cursor > datetime.now(timezone.utc):
+                if cursor not in booked and cursor > now:
                     slots.append({"starts_at": cursor, "duration_minutes": duration})
                 cursor += timedelta(minutes=duration)
         day += timedelta(days=1)
@@ -330,7 +335,7 @@ async def compute_open_slots(
 
 
 async def _next_available_slot(conn: asyncpg.Connection, listing_id: UUID) -> datetime | None:
-    today = date.today()
+    today = session_time.wall_today()
     slots = await compute_open_slots(conn, listing_id, today, today + timedelta(days=28))
     return slots[0]["starts_at"] if slots else None
 

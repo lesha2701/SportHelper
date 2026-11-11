@@ -9,6 +9,7 @@ import httpx
 import pytest
 
 from app.config import get_settings
+from app.core import session_time
 from app.integrations import yookassa as yookassa_module
 from app.integrations.yookassa import YooKassaClient, YooKassaError
 from app.services import payments as payments_service
@@ -165,7 +166,7 @@ def test_a_declined_closed_or_cancelled_booking_cannot_be_paid(world, provider) 
     assert _pay(player, booking["id"]).status_code == 409
 
     coach2, player2, booking2 = confirmed_booking(world, coach_email="coach2@example.com", player_email="player2@example.com", title="Плавание", confirm=True)
-    sql(world.dsn, "UPDATE bookings SET starts_at = now() - interval '3 hours' WHERE id = $1::uuid", booking2["id"])
+    sql(world.dsn, f"UPDATE bookings SET starts_at = {session_time.sql_wall_now()} - interval '3 hours' WHERE id = $1::uuid", booking2["id"])
     closed = _pay(player2, booking2["id"])
     assert closed.status_code == 409 and closed.json()["error"]["code"] == "booking_closed"
 

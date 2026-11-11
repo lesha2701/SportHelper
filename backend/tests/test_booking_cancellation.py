@@ -6,6 +6,7 @@ from __future__ import annotations
 import pytest
 
 from app.config import get_settings
+from app.core import session_time
 from app.integrations.yookassa import YooKassaError
 from app.services import reconcile
 from tests.admin_world import live_client, pg, world  # noqa: F401  (fixtures)
@@ -17,7 +18,8 @@ REASON = "Заболел"
 
 
 def starts_in(fin, booking, hours: float) -> None:
-    sql(fin.dsn, "UPDATE bookings SET starts_at = now() + make_interval(secs => $2) WHERE id = $1::uuid", booking["id"], hours * 3600)
+    """The session starts in `hours` on the platform's clock (starts_at is wall-clock time, see app/core/session_time.py)."""
+    sql(fin.dsn, f"UPDATE bookings SET starts_at = {session_time.sql_wall_now()} + make_interval(secs => $2) WHERE id = $1::uuid", booking["id"], hours * 3600)
 
 
 def cancel(user, booking, **body):
@@ -143,6 +145,22 @@ def test_a_session_that_started_or_was_conducted_cannot_be_cancelled(fin) -> Non
     refused = cancel(coach, booking, reason=REASON)
     assert refused.status_code == 409 and refused.json()["error"]["code"] == "session_completed"
     assert sql_value(fin.dsn, "SELECT count(*) FROM refunds") == 0
+
+
+def test_session_times_are_read_on_the_platform_clock(fin) -> None:
+    """REF-19: starts_at is Moscow wall-clock time with a UTC label. Read as a real instant, every rule ran 3 hours late:
+    22 hours before the start was still «free», and a session that began an hour ago could still be cancelled."""
+    coach, player, booking, payment_id = paid_booking(fin)
+    starts_in(fin, booking, 22)
+    preview = player.ok("GET", f"/api/bookings/{booking['id']}/cancel-preview")
+    assert preview["policy"] == "athlete_late" and 21.9 < preview["hours_before_start"] <= 22
+    assert player.ok("GET", "/api/bookings/me")[0]["has_started"] is False
+
+    starts_in(fin, booking, -1)
+    assert cancel(player, booking).json()["error"]["code"] == "session_started"
+    assert player.ok("GET", "/api/bookings/me")[0]["has_started"] is True
+    assert coach.ok("GET", "/api/bookings/coach")[0]["has_started"] is True
+    coach.ok("POST", f"/api/bookings/{booking['id']}/complete")  # «Тренировка проведена» is accepted as soon as the session has begun
 
 
 def test_only_a_confirmed_booking_is_cancelled(fin) -> None:

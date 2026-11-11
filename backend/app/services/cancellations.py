@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 from uuid import UUID
@@ -20,6 +20,7 @@ from uuid import UUID
 import asyncpg
 
 from app.config import Settings
+from app.core import session_time
 from app.core.exceptions import APIError, NotFoundError
 from app.repositories import booking_cancellations as cancellations_repo
 from app.repositories import bookings as bookings_repo
@@ -65,6 +66,7 @@ def role_of(booking: dict[str, Any], user_id: UUID) -> str:
 
 
 def check_cancellable(booking: dict[str, Any], *, now: datetime) -> None:
+    """`now` is the platform's wall clock (session_time.wall_now()), the form starts_at is kept in."""
     if booking["status"] != "confirmed":
         raise APIError("Отменить можно только подтверждённую тренером запись.", code="booking_not_confirmed", status_code=409)
     if booking.get("training_status") == "completed":
@@ -76,6 +78,8 @@ def check_cancellable(booking: dict[str, Any], *, now: datetime) -> None:
 
 
 def make_plan(booking: dict[str, Any], payment: dict[str, Any] | None, role: str, *, now: datetime, settings: Settings) -> Plan:
+    """`now` is the platform's wall clock (session_time.wall_now()), so the hours left and `free_cancel_until` are counted on the
+    clock the session time is written in; `free_cancel_until` goes out in that form too (shown as is, like starts_at)."""
     hours = Decimal((booking["starts_at"] - now).total_seconds() / 3600).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     paid = payment is not None and payment["status"] in ("paid", "partially_refunded", "refunded")
     if not paid:
@@ -103,7 +107,7 @@ async def preview(conn: asyncpg.Connection, settings: Settings, booking_id: UUID
     if booking is None:
         raise NotFoundError("booking not found")
     role = role_of(booking, user["id"])
-    now = datetime.now(timezone.utc)
+    now = session_time.wall_now()
     check_cancellable(booking, now=now)
     payment = await payments_repo.get_for_booking(conn, booking_id)
     return booking, make_plan(booking, payment, role, now=now, settings=settings)
@@ -125,7 +129,7 @@ async def cancel(
         existing = await cancellations_repo.get_for_booking(conn, booking_id)
         if existing is not None:
             return booking, existing
-        now = datetime.now(timezone.utc)
+        now = session_time.wall_now()
         check_cancellable(booking, now=now)
         if role == COACH and (reason is None or len(reason) < MIN_COACH_REASON):
             raise APIError("Укажите причину отмены.", code="reason_required", status_code=422)

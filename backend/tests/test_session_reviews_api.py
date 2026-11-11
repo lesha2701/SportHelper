@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+from app.core import session_time
+
 from tests.test_booking_confirmation_api import _create_pending_booking
 from tests.test_teams_api import _create_coach_profile
 
@@ -22,7 +24,7 @@ def _session_started(client, booking_id: str, *, minutes_ago: int = 5) -> None:
     """Moves the session to 'in progress' (started, not yet over) — confirming needs a future slot."""
     for record in client.bookings_store.values():
         if str(record["id"]) == booking_id:
-            record["starts_at"] = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
+            record["starts_at"] = session_time.wall_now() - timedelta(minutes=minutes_ago)
             record["duration_minutes"] = 60
 
 

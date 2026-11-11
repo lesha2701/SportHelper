@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.core.session_time import WALL_CLOCK_DOC
+
 
 class CoachListingIn(BaseModel):
     title: str = Field(min_length=1, max_length=200)
@@ -86,7 +88,7 @@ class CoachListingCardOut(BaseModel):
     offers_online: bool
     offers_offline: bool
     photo_file_id: UUID | None
-    next_available_slot: datetime | None
+    next_available_slot: datetime | None = Field(description=WALL_CLOCK_DOC)
 
 
 class CoachListingProfileOut(CoachListingCardOut):
@@ -106,7 +108,7 @@ class CoachReviewOut(BaseModel):
 
 
 class OpenSlotOut(BaseModel):
-    starts_at: datetime
+    starts_at: datetime = Field(description=WALL_CLOCK_DOC)
     duration_minutes: int
 
 

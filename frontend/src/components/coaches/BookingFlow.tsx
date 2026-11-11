@@ -8,6 +8,7 @@ import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
 import type { CoachListingProfile, OpenSlot } from "../../types/coachListing";
 import type { Booking } from "../../types/booking";
+import { localDateKey } from "../../lib/localDate";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
@@ -23,9 +24,8 @@ function nextNDays(n: number): Date[] {
   return days;
 }
 
-function toDateKey(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
+// The day strip is the device's calendar days (see lib/localDate.ts); a slot's own time stays on the UTC label it came with.
+const toDateKey = localDateKey;
 
 export function BookingFlow({
   token,
@@ -124,7 +124,7 @@ export function BookingFlow({
                 className={key === selectedDay ? styles.dateChipActive : styles.dateChip}
                 onClick={() => setSelectedDay(key)}
               >
-                {d.toLocaleDateString("ru-RU", { day: "2-digit", month: "short", timeZone: "UTC" })}
+                {d.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })}
               </button>
             );
           })}
