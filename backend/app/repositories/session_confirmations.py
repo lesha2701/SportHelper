@@ -1,0 +1,97 @@
+"""Data access for confirming that a booked session took place (one row per booking, migration 0044). All queries are parameterized.
+
+No row means nothing has been recorded yet: before the session's end it is scheduled, after it the window is open. Every change moves the
+state forward only from where it must be (the WHERE of each UPDATE), so racing requests and repeated background passes change nothing twice."""
+from __future__ import annotations
+
+from typing import Any
+from uuid import UUID
+
+import asyncpg
+
+_FIELDS = (
+    "booking_id, state, coach_marked_at, confirmed_at, confirmed_by, confirmed_method, disputed_at, disputed_by, disputed_by_role, "
+    "dispute_kind, dispute_text, resolved_at, resolved_by, resolution_note, created_at, updated_at"
+)
+CLOSED = ("confirmed", "auto_confirmed", "resolved_released", "resolved_refunded")
+
+
+async def get(conn: asyncpg.Connection, booking_id: UUID, *, lock: bool = False) -> dict[str, Any] | None:
+    row = await conn.fetchrow(f"SELECT {_FIELDS} FROM session_confirmations WHERE booking_id = $1{' FOR UPDATE' if lock else ''}", booking_id)
+    return dict(row) if row else None
+
+
+async def ensure(conn: asyncpg.Connection, booking_id: UUID) -> None:
+    """Makes the row exist (state 'awaiting'), so that it can be locked and moved."""
+    await conn.execute("INSERT INTO session_confirmations (booking_id) VALUES ($1) ON CONFLICT (booking_id) DO NOTHING", booking_id)
+
+
+async def mark_by_coach(conn: asyncpg.Connection, booking_id: UUID) -> None:
+    """The coach's «Тренировка проведена»: only a mark (the first one is kept)."""
+    await ensure(conn, booking_id)
+    await conn.execute(
+        "UPDATE session_confirmations SET coach_marked_at = COALESCE(coach_marked_at, now()), updated_at = now() WHERE booking_id = $1", booking_id
+    )
+
+
+async def confirm(conn: asyncpg.Connection, booking_id: UUID, *, by: UUID | None, method: str) -> dict[str, Any] | None:
+    """awaiting → confirmed (athlete, code) or auto_confirmed (auto, by=None). None when the window was not open (already closed or disputed)."""
+    await ensure(conn, booking_id)
+    row = await conn.fetchrow(
+        f"""
+        UPDATE session_confirmations
+           SET state = CASE WHEN $3 = 'auto' THEN 'auto_confirmed' ELSE 'confirmed' END,
+               confirmed_at = now(), confirmed_by = $2, confirmed_method = $3, updated_at = now()
+         WHERE booking_id = $1 AND state = 'awaiting'
+        RETURNING {_FIELDS}
+        """,
+        booking_id, by, method,
+    )
+    return dict(row) if row else None
+
+
+async def dispute(conn: asyncpg.Connection, booking_id: UUID, *, by: UUID, role: str, kind: str, text: str | None) -> dict[str, Any] | None:
+    """awaiting → disputed. None when the window was not open."""
+    await ensure(conn, booking_id)
+    row = await conn.fetchrow(
+        f"""
+        UPDATE session_confirmations
+           SET state = 'disputed', disputed_at = now(), disputed_by = $2, disputed_by_role = $3, dispute_kind = $4, dispute_text = $5, updated_at = now()
+         WHERE booking_id = $1 AND state = 'awaiting'
+        RETURNING {_FIELDS}
+        """,
+        booking_id, by, role, kind, text,
+    )
+    return dict(row) if row else None
+
+
+async def resolve(conn: asyncpg.Connection, booking_id: UUID, *, by: UUID, outcome: str, note: str | None) -> dict[str, Any] | None:
+    """disputed → resolved_released | resolved_refunded (the administrator's decision). None when it was not disputed."""
+    row = await conn.fetchrow(
+        f"""
+        UPDATE session_confirmations
+           SET state = $3, resolved_at = now(), resolved_by = $2, resolution_note = $4, updated_at = now()
+         WHERE booking_id = $1 AND state = 'disputed'
+        RETURNING {_FIELDS}
+        """,
+        booking_id, by, outcome, note,
+    )
+    return dict(row) if row else None
+
+
+async def due_for_auto_confirmation(conn: asyncpg.Connection, *, window_hours: int, limit: int) -> list[UUID]:
+    """Confirmed bookings whose session ended at least window_hours ago, was not cancelled, and whose window is still open."""
+    rows = await conn.fetch(
+        """
+        SELECT b.id FROM bookings b
+          JOIN trainings t ON t.id = b.training_id
+          LEFT JOIN session_confirmations c ON c.booking_id = b.id
+         WHERE b.status = 'confirmed' AND t.status <> 'cancelled' AND t.deleted_at IS NULL
+           AND b.starts_at + make_interval(mins => b.duration_minutes) + make_interval(hours => $1) <= now()
+           AND (c.booking_id IS NULL OR c.state = 'awaiting')
+         ORDER BY b.starts_at
+         LIMIT $2
+        """,
+        window_hours, limit,
+    )
+    return [r["id"] for r in rows]
