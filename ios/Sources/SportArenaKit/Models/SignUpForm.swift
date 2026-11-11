@@ -1,6 +1,7 @@
 import Foundation
 
-/// The legal documents of the site. Their texts are published by the site at `path` (the app opens them there); the edition below is what
+/// The legal documents of the site. Their texts are published by the site at `path`, and the app carries a copy to read in place
+/// (`LegalText`, `App/Resources/Legal`); the edition below is what
 /// the sign-up form reports as «accepted», and the server records an acceptance only when the edition is its current one.
 /// The same list lives in `frontend/src/legal/documents.ts` and `backend/app/services/legal.py`: change all three together.
 public enum LegalDocument: String, CaseIterable, Identifiable, Sendable {

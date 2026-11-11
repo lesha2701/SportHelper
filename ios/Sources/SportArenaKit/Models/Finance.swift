@@ -83,6 +83,9 @@ public struct Withdrawal: Decodable, Equatable, Identifiable, Sendable {
     public let createdAt: Date
 
     public var amountText: String { Money.kopecks(amountKopecks) }
+
+    /// The coach can take the request back until it goes to payment (the server says 409 `withdrawal_not_cancelable` after that).
+    public var isCancelable: Bool { status == .requested || status == .underReview }
 }
 
 public struct FinanceOperation: Decodable, Equatable, Identifiable, Sendable {
