@@ -22,6 +22,7 @@ from app.repositories import earnings as earnings_repo
 from app.repositories import finance_views
 from app.repositories import ledger
 from app.repositories import payments as payments_repo
+from app.repositories import payouts as payouts_repo
 from app.repositories import refunds as refunds_repo
 from app.repositories import session_confirmations as confirmations_repo
 from app.repositories import withdrawals as withdrawals_repo
@@ -376,6 +377,32 @@ async def withdrawal_detail(withdrawal_id: UUID, ctx: AuthContext = Depends(requ
     # The same two fields the list carries, so the drawer can say whose request it is.
     withdrawal = {**withdrawal, "coach_full_name": coach["full_name"] if coach else None, "coach_email": coach["email"] if coach else None}
     return {"withdrawal": withdrawal, "events": await withdrawals_repo.events(conn, withdrawal_id), "trainer_balances": balances}
+
+
+@router.get("/payouts/automation")
+async def payouts_automation(
+    ctx: AuthContext = Depends(require_finance_admin), conn: asyncpg.Connection = Depends(get_db), settings: Settings = Depends(get_settings_dep)
+) -> dict[str, Any]:
+    """Whether automatic payouts are on, whether the system stopped them itself and why."""
+    state = await payouts_repo.state(conn)
+    return {
+        "enabled": settings.payouts_auto_enabled, "provider": settings.payout_provider, "halted": state["halted"], "halted_reason": state["halted_reason"],
+        "halted_at": state["halted_at"], "reconciled_at": state["reconciled_at"],
+        "limits": {"max_kopecks": settings.payout_auto_max_rub * 100, "daily_trainer_kopecks": settings.payout_auto_daily_trainer_rub * 100,
+                   "daily_total_kopecks": settings.payout_auto_daily_total_rub * 100, "new_details_cooldown_hours": settings.payout_new_details_cooldown_hours},
+    }
+
+
+@router.post("/payouts/automation/resume")
+async def payouts_automation_resume(ctx: AuthContext = Depends(require_finance_recent_mfa), conn: asyncpg.Connection = Depends(get_db)) -> dict[str, Any]:
+    """After looking into why the system stopped: resumes automatic payouts. Audited."""
+    async with conn.transaction():
+        state = await payouts_repo.state(conn, lock=True)
+        if not state["halted"]:
+            return {"halted": False}
+        await payouts_repo.resume(conn, ctx.user["id"])
+        await admin_audit.record(conn, ctx.user["id"], "finance.payouts.resume", target_type="payouts", target_id="automation", reason=state["halted_reason"])
+    return {"halted": False}
 
 
 @router.post("/withdrawals/{withdrawal_id}/details")

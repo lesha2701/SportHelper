@@ -24,6 +24,7 @@ from app.config import Settings
 from app.core.exceptions import APIError
 from app.repositories import ledger
 from app.repositories import rate_limits as rate_limits_repo
+from app.repositories import payouts as payouts_repo
 from app.repositories import users as users_repo
 from app.repositories import withdrawals as repo
 from app.repositories.ledger import Leg
@@ -72,6 +73,7 @@ async def create_withdrawal(
         withdrawal = await repo.insert(
             conn, coach_user_id=user["id"], amount_kopecks=amount_kopecks, method=method, details_enc=payout_details.encrypt(details, settings),
             details_hint=payout_details.hint(method, details), client_key=client_key,
+            details_fingerprint=payout_details.fingerprint(method, details, settings),
         )
         if withdrawal is None:  # a parallel identical request won the race
             return (await repo.get_by_client_key(conn, user["id"], client_key)), False  # type: ignore[return-value]
@@ -170,6 +172,12 @@ async def _admin_step(
         elif current != expected_from:
             raise APIError("Это действие недоступно для текущего статуса заявки.", code="invalid_transition", status_code=409)
 
+        # A transfer the system has started belongs to the system until the provider's answer is known.
+        attempt = await payouts_repo.live_attempt(conn, withdrawal_id) if action in ("reject", "mark_paid") else None
+        if attempt is not None and attempt["status"] in ("created", "sent", "succeeded"):
+            raise APIError("Перевод уже отправлен банком автоматически: дождитесь его результата (если ответа нет долго, заявка отметится сама).",
+                           code="payout_in_flight", status_code=409)
+
         extra: dict[str, Any] = {}
         if action == "mark_paid":
             if not settings.trainer_payout_confirmation_enabled:
@@ -196,6 +204,11 @@ async def _admin_step(
                                    field="bank_reference"), "the bank reference was already used") from exc
         if not moved:
             raise APIError("Статус заявки только что изменился.", code="withdrawal_changed", status_code=409)
+        if attempt is not None:  # an attempt without an answer: the administrator has now decided what really happened
+            if action == "reject":
+                await payouts_repo.set_attempt(conn, attempt["id"], status="failed", error="declared not sent by an administrator")
+            else:
+                await payouts_repo.set_attempt(conn, attempt["id"], status="succeeded", provider_payout_id=extra["bank_reference"], error="confirmed by an administrator")
         if action == "reject":
             await _release_reservation(conn, withdrawal, actor=admin["id"], reason=reason)
         elif action == "mark_paid":

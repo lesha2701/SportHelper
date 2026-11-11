@@ -195,6 +195,24 @@ class Settings(BaseSettings):
     reconcile_batch_size: int = Field(default=20, ge=1, le=200, alias="PAYMENT_RECONCILE_BATCH")
     withdrawal_requests_per_hour: int = Field(default=5, ge=1, alias="WITHDRAWAL_REQUESTS_PER_HOUR")
 
+    # --- Automatic payouts (docs/payouts-automation.md). OFF by default; a person still does everything while it is off. ---
+    # "manual": nothing is sent by the system. "fake": a pretend bank for local development and tests (refused in production).
+    # A real provider is added when the bank / ЮKassa confirm the terms.
+    payout_provider: str = Field(default="manual", pattern="^(manual|fake)$", alias="PAYOUT_PROVIDER")
+    payouts_auto_enabled: bool = Field(default=False, alias="PAYOUTS_AUTO_ENABLED")
+    # The trainer can still cancel the request during this time; the system touches it only afterwards.
+    payout_auto_delay_minutes: int = Field(default=10, ge=0, le=24 * 60, alias="PAYOUT_AUTO_DELAY_MINUTES")
+    # Above these a request is left for a person (every number is in roubles).
+    payout_auto_max_rub: int = Field(default=5000, ge=1, alias="PAYOUT_AUTO_MAX_RUB")
+    payout_auto_daily_trainer_rub: int = Field(default=15000, ge=1, alias="PAYOUT_AUTO_DAILY_TRAINER_RUB")
+    payout_auto_daily_total_rub: int = Field(default=300000, ge=1, alias="PAYOUT_AUTO_DAILY_TOTAL_RUB")
+    # Requisites that this trainer has not been paid to before wait this long (a hijacked account cannot cash out at once);
+    # the very first payout of every trainer is always made by a person.
+    payout_new_details_cooldown_hours: int = Field(default=72, ge=0, le=24 * 30, alias="PAYOUT_NEW_DETAILS_COOLDOWN_HOURS")
+    # How long a payout may stay without an answer from the provider before it is escalated.
+    payout_unknown_escalate_minutes: int = Field(default=30, ge=1, alias="PAYOUT_UNKNOWN_ESCALATE_MINUTES")
+    payout_batch_size: int = Field(default=10, ge=1, le=100, alias="PAYOUT_BATCH")
+
     invite_expiration_hours: int = Field(default=24, alias="INVITE_EXPIRATION_HOURS")
 
     yandex_disk_oauth_token: str = Field(default="", alias="YANDEX_DISK_OAUTH_TOKEN")
@@ -428,6 +446,12 @@ def production_problems(settings: "Settings") -> tuple[list[str], list[str]]:
                 "YOOKASSA_WEBHOOK_IP_CHECK=true needs TRUST_PROXY_HEADERS=true behind the reverse proxy (otherwise every notification looks "
                 "like it comes from the proxy and is refused); or set YOOKASSA_WEBHOOK_IP_CHECK=false"
             )
+    if settings.payout_provider == "fake":
+        fatal.append("PAYOUT_PROVIDER=fake is a pretend bank and is not allowed in production")
+    if settings.payouts_auto_enabled and settings.payout_provider == "manual":
+        fatal.append("PAYOUTS_AUTO_ENABLED=true needs a payout provider (PAYOUT_PROVIDER)")
+    if settings.payouts_auto_enabled and not settings.finance_admin_emails_list:
+        fatal.append("PAYOUTS_AUTO_ENABLED=true needs FINANCE_ADMIN_EMAILS: someone must be told when automation stops")
     if settings.bearer_auth_enabled:
         warnings.append("BEARER_AUTH_ENABLED is on: session tokens are accepted outside the HttpOnly cookie")
     if settings.mobile_auth_enabled:
