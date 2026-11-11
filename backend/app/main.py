@@ -47,6 +47,7 @@ from app.api.routes import (
 )
 from app.bot.bot import create_bot
 from app.config import Settings, get_settings, production_problems
+from app.core.client_version import is_older, parse_version, platform_of
 from app.core.error_log import attach_error_log_handler
 from app.core.exceptions import APIError
 from app.core.logging import configure_logging
@@ -56,6 +57,8 @@ from app.database import create_pool, run_migrations
 from app.services.background import run_background_loop
 
 _UNLIMITED_PATHS = {"/api/health", "/docs", "/redoc", "/openapi.json"}
+# Reachable by an app that has to be updated: it reads there why, and the server's own health check is not about the app.
+_CLIENT_VERSION_EXEMPT_PATHS = {"/api/app-config", "/api/health"}
 _SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
 logger = logging.getLogger("teamflow.main")
@@ -134,9 +137,27 @@ def create_app() -> FastAPI:
         allow_origins=settings.cors_origins_list,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
+        allow_headers=["Content-Type", "Authorization", "X-CSRF-Token", "X-Client-Platform", "X-Client-Version"],
         expose_headers=["Retry-After"],
     )
+
+    @app.middleware("http")
+    async def client_version_gate(request: Request, call_next):
+        # An app older than MIN_CLIENT_VERSION_<PLATFORM> is told to update before the request reaches any route (card #28). The website
+        # and apps that do not say who they are pass; so do /api/app-config (where the app reads why) and /api/health.
+        path = request.url.path
+        platform = platform_of(request.headers.get("x-client-platform"))
+        if platform and path.startswith("/api/") and path not in _CLIENT_VERSION_EXEMPT_PATHS:
+            # read per request like every route does (get_settings is cached), so the policy is the one the routes see
+            minimum_text, _, update_url = get_settings().client_policy(platform)
+            minimum, version = parse_version(minimum_text), parse_version(request.headers.get("x-client-version"))
+            if minimum is not None and version is not None and is_older(version, minimum):
+                return JSONResponse(
+                    status_code=426,
+                    content={"error": {"code": "client_update_required", "message": "Эта версия приложения больше не поддерживается. Обновите приложение.",
+                                       "min_version": minimum_text, "update_url": update_url or None}},
+                )
+        return await call_next(request)
 
     @app.middleware("http")
     async def csrf_origin_middleware(request: Request, call_next):

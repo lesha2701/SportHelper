@@ -241,6 +241,41 @@ class Settings(BaseSettings):
     # their own; changing this setting re-reads every stored session time in the new zone.
     session_timezone: str = Field(default="Europe/Moscow", alias="SESSION_TIMEZONE")
 
+    # Telling an out-of-date mobile app to update (app/core/client_version.py). A minimum left empty means every version is accepted. The
+    # apps send X-Client-Platform and X-Client-Version; a request of an app older than the minimum is answered with 426. «Latest» only
+    # makes the app offer an update without forcing it. The store links are shown on the update screen.
+    min_client_version_ios: str = Field(default="", alias="MIN_CLIENT_VERSION_IOS")
+    min_client_version_android: str = Field(default="", alias="MIN_CLIENT_VERSION_ANDROID")
+    latest_client_version_ios: str = Field(default="", alias="LATEST_CLIENT_VERSION_IOS")
+    latest_client_version_android: str = Field(default="", alias="LATEST_CLIENT_VERSION_ANDROID")
+    app_store_url: str = Field(default="", alias="APP_STORE_URL")
+    play_store_url: str = Field(default="", alias="PLAY_STORE_URL")
+
+    @field_validator("min_client_version_ios", "min_client_version_android", "latest_client_version_ios", "latest_client_version_android")
+    @classmethod
+    def _a_dotted_version_or_nothing(cls, value: str) -> str:
+        # A typo («1.4.x») must stop the server at start, not silently let every old app through or lock every app out.
+        from app.core.client_version import parse_version
+
+        value = value.strip()
+        if value and parse_version(value) is None:
+            raise ValueError("a client version must be dotted numbers like 1.4.0")
+        return value
+
+    @field_validator("app_store_url", "play_store_url")
+    @classmethod
+    def _a_web_link_or_nothing(cls, value: str) -> str:
+        value = value.strip()
+        if value and not value.startswith("https://"):
+            raise ValueError("a store link must start with https://")
+        return value
+
+    def client_policy(self, platform: str) -> tuple[str, str, str]:
+        """(minimum version, latest version, update link) of the platform's app; empty strings where nothing is set."""
+        if platform == "ios":
+            return self.min_client_version_ios, self.latest_client_version_ios, self.app_store_url
+        return self.min_client_version_android, self.latest_client_version_android, self.play_store_url
+
     @field_validator("session_timezone")
     @classmethod
     def _known_session_timezone(cls, value: str) -> str:
