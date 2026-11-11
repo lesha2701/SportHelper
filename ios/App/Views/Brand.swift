@@ -313,15 +313,30 @@ extension View {
 struct TeamAvatar: View {
     let name: String
     var size: CGFloat = 44
+    /// The team's logo, when it has one: the letter tile stays until the picture has loaded (or when it cannot be loaded).
+    var logoFileId: UUID?
+
+    @Environment(AuthStore.self) private var auth
+    @State private var logo: UIImage?
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.26, style: .continuous).fill(Theme.primaryTint)
-            Text(String(name.prefix(1)).uppercased())
-                .font(Theme.display(size * 0.48, weight: .heavy, relativeTo: .title2)).foregroundStyle(Theme.primary)
+            if let logo {
+                Image(uiImage: logo).resizable().scaledToFill()
+            } else {
+                Text(String(name.prefix(1)).uppercased())
+                    .font(Theme.display(size * 0.48, weight: .heavy, relativeTo: .title2)).foregroundStyle(Theme.primary)
+            }
         }
         .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: size * 0.26, style: .continuous))
         .accessibilityHidden(true)
+        .task(id: logoFileId) {
+            logo = nil
+            guard let logoFileId else { return }
+            logo = await auth.profile.image(for: logoFileId)
+        }
     }
 }
 

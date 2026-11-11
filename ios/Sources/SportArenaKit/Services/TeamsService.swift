@@ -13,6 +13,10 @@ public final class TeamsService: Sendable {
     public func members(of id: UUID) async throws -> [TeamMember] { try await client.send(.get, path(id, "/members")) }
     public func create(_ input: TeamInput) async throws -> Team { try await client.send(.post, "/api/teams", body: input) }
     public func update(id: UUID, _ input: TeamInput) async throws -> Team { try await client.send(.put, path(id), body: input) }
+    /// Sets the team's logo (the head coach or an assistant coach; the server checks the picture and shrinks it). Answers the team as it is now.
+    public func uploadLogo(of id: UUID, data: Data, filename: String = "logo.jpg", mimeType: String = "image/jpeg") async throws -> Team {
+        try await client.upload(path(id, "/logo"), file: UploadFile(filename: filename, mimeType: mimeType, data: data))
+    }
     public func leave(id: UUID) async throws { try await client.sendIgnoringResponse(.post, path(id, "/leave")) }
 
     // MARK: coaching staff

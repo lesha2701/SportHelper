@@ -1,4 +1,5 @@
 import SportArenaKit
+import PhotosUI
 import SwiftUI
 
 /// One team: its chat, its people, and for the coaching staff the applications and the invitation.
@@ -16,6 +17,7 @@ struct TeamDetailView: View {
     @State private var reporting: ReportTarget?
     /// The section of the hub that is open.
     @State private var hub: HubDestination?
+    @State private var pickedLogo: PhotosPickerItem?
 
     private enum HubDestination: Hashable { case chat, trainings, tasks, matches, library, stats }
 
@@ -33,6 +35,7 @@ struct TeamDetailView: View {
                         .accessibilityIdentifier("team.notice")
                 }
             }
+            if team.canManage { logoSection }
             chatSection
             if team.canManage { applicationsSection }
             membersSection
@@ -104,7 +107,7 @@ struct TeamDetailView: View {
         Section {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 14) {
-                    TeamAvatar(name: team.name, size: 60)
+                    TeamAvatar(name: team.name, size: 60, logoFileId: team.logoFileId)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(team.name).font(Theme.display(26, weight: .heavy, relativeTo: .title2)).foregroundStyle(Theme.panelText)
                             .fixedSize(horizontal: false, vertical: true)
@@ -131,6 +134,33 @@ struct TeamDetailView: View {
             .listRowInsets(EdgeInsets())
             .listRowBackground(Theme.panel)
             .accessibilityElement(children: .contain)
+        }
+    }
+
+    /// The head coach and the assistant coaches set the logo (the server refuses anyone else). A photo from the library; there is no way
+    /// to take a logo off, only to replace it.
+    private var logoSection: some View {
+        Section {
+            PhotosPicker(selection: $pickedLogo, matching: .images) {
+                HStack {
+                    Label(team.logoFileId == nil ? "Загрузить логотип" : "Сменить логотип", systemImage: "photo")
+                    Spacer()
+                    if model.isUploadingLogo { ProgressView() }
+                }
+            }
+            .disabled(model.isUploadingLogo)
+            .accessibilityIdentifier("team.logo")
+            .onChange(of: pickedLogo) { _, item in
+                guard let item else { return }
+                Task {
+                    defer { pickedLogo = nil }
+                    guard let data = try? await item.loadTransferable(type: Data.self) else {
+                        model.logoFailed("Не удалось открыть выбранное фото.")
+                        return
+                    }
+                    await model.uploadLogo(photoData: data)
+                }
+            }
         }
     }
 

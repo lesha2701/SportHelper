@@ -49,6 +49,7 @@ struct ProfileView: View {
                 case .privacy: PrivacySettingsView()
                 case .finance: FinanceView()
                 case .legalDocuments: LegalDocumentsView(isCoach: user.isCoach)
+                case .myAchievements: MyAchievementsView(userId: user.id)
                 }
             }
             .task {
@@ -169,6 +170,8 @@ struct ProfileView: View {
                 .accessibilityIdentifier("profile.myTasks")
             NavigationLink(value: ProfileRoute.myStats) { Label("Моя статистика", systemImage: "chart.bar") }
                 .accessibilityIdentifier("profile.stats")
+            NavigationLink(value: ProfileRoute.myAchievements) { Label("Мои достижения", systemImage: "trophy") }
+                .accessibilityIdentifier("profile.achievements")
             NotificationsLink()
         }
     }

@@ -143,6 +143,28 @@ final class TeamDetailModel {
 
     func updated(_ newTeam: Team) { team = newTeam }
 
+    private(set) var isUploadingLogo = false
+
+    func logoFailed(_ text: String) { notice = (text, true) }
+
+    /// Sets the team's logo from a picked photo (a JPEG of a sensible size; the server shrinks it again).
+    func uploadLogo(photoData: Data) async {
+        guard let jpeg = ImageEncoding.jpeg(from: photoData, maxSide: 1024) else {
+            notice = ("Не удалось прочитать фото. Выберите другое.", true)
+            return
+        }
+        isUploadingLogo = true
+        defer { isUploadingLogo = false }
+        do {
+            team = try await service.uploadLogo(of: team.id, data: jpeg)
+            notice = ("Логотип команды обновлён.", false)
+        } catch let error as APIError {
+            notice = (error.code == "unsupported_media_type" ? "Такой файл не подходит: нужна картинка (JPEG, PNG, WebP или GIF)." : error.message, true)
+        } catch {
+            notice = (APIError.unknown.message, true)
+        }
+    }
+
     /// Hands the head coach's role to another member; the person stays as an assistant coach. Nil when it went through, else the error text.
     func transferOwnership(to member: TeamMember) async -> String? {
         do {

@@ -83,6 +83,10 @@ final class ProfileStore {
         } catch let error as APIError { return error.message } catch { return APIError.unknown.message }
     }
 
+    func addAchievement(photoData: Data) async throws -> ProfileMedia { try await service.addAchievementPhoto(data: photoData) }
+    func addAchievement(videoData: Data) async throws -> ProfileMedia { try await service.addAchievementVideo(data: videoData) }
+    func deleteAchievement(_ item: ProfileMedia) async throws { try await service.deleteAchievement(id: item.id) }
+
     /// An avatar picture (kept in memory once loaded; a replaced avatar has a new id, so nothing goes stale).
     func image(for fileId: UUID, thumbnail: Bool = true) async -> UIImage? {
         let key = (fileId.uuidString + (thumbnail ? "" : ":full")) as NSString

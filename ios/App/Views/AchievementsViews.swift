@@ -20,7 +20,7 @@ struct AchievementsSection: View {
                 Section(sag: "Достижения") {
                     LazyVGrid(columns: columns, spacing: 8) {
                         ForEach(items) { item in
-                            Button { open(item) } label: { tile(item) }
+                            Button { open(item) } label: { AchievementTile(item: item) }
                                 .buttonStyle(.plain)
                                 .contextMenu {
                                     if userId != auth.user?.id {
@@ -44,8 +44,13 @@ struct AchievementsSection: View {
     private func open(_ item: ProfileMedia) {
         if item.kind == .photo { openedPhoto = item } else { openedVideo = item }
     }
+}
 
-    private func tile(_ item: ProfileMedia) -> some View {
+/// One photo or video of the gallery as a square: the picture itself, or a dark tile with a play sign for a video.
+struct AchievementTile: View {
+    let item: ProfileMedia
+
+    var body: some View {
         ZStack {
             if item.kind == .photo {
                 RemoteImageView(fileId: item.fileId)
