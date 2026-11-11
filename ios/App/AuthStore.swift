@@ -21,6 +21,9 @@ final class AuthStore {
     /// The server's code for that message: «email_not_verified» offers to send the letter again.
     private(set) var errorCode: String?
     private(set) var isWorking = false
+    /// Why the app asks to be updated: required (the server refuses this version; the whole app is replaced by the update screen)
+    /// or only offered (a dismissible note). nil while this version is fine.
+    private(set) var updateNotice: UpdateNotice?
 
     let client: APIClient
     /// The signed-in person's profile data; emptied on sign-out so the next person never sees it.
@@ -54,7 +57,10 @@ final class AuthStore {
     init(environment: AppEnvironment) {
         adminPanelURL = environment.baseURL.appendingPathComponent("admin")
         let holder = ExpiryHolder()
-        let client = APIClient(baseURL: environment.baseURL, onSessionExpired: { holder.fire() })
+        let updateHolder = UpdateHolder()
+        let client = APIClient(
+            baseURL: environment.baseURL, onSessionExpired: { holder.fire() }, onUpdateRequired: { updateHolder.fire($0) }
+        )
         self.client = client
         self.profile = ProfileStore(client: client)
         self.calendar = CalendarStore(client: client)
@@ -82,12 +88,16 @@ final class AuthStore {
         )
         trainings.onChange = { [weak self] in Task { await self?.calendar.reload() } }
         holder.action = { [weak self] in Task { @MainActor in self?.sessionEnded() } }
+        // any request the server refuses with 426 (the minimum was raised while the app was open) ends in the update screen
+        updateHolder.action = { [weak self] error in Task { @MainActor in self?.updateRequired(error) } }
     }
 
     /// On launch: a stored cookie either still works (the person is in) or the server says 401 (show sign-in).
     func start() async {
         persistence.restore()  // the session survives the app being closed
         features = (try? await service.features()) ?? ServerFeatures()
+        await checkVersion()
+        if updateNotice?.isRequired == true { return }  // nothing else would work: the update screen is all that is shown
         do {
             state = .signedIn(try await service.currentUser())
             persistence.save()
@@ -185,6 +195,24 @@ final class AuthStore {
         router.reset()
     }
 
+    /// Asks the server whether this version may still run. An unanswered question changes nothing: a server that cannot be reached
+    /// is not a reason to lock the person out (a 426 on any later request still does).
+    func checkVersion() async {
+        guard let config = try? await service.appConfig() else { return }
+        updateNotice = UpdateNotice(config)
+    }
+
+    /// «Не сейчас» on the offer of a newer version. A required update cannot be dismissed.
+    func dismissUpdateOffer() {
+        if updateNotice?.isRequired == false { updateNotice = nil }
+    }
+
+    private func updateRequired(_ error: APIError) {
+        guard let notice = UpdateNotice(error) else { return }
+        // keep the link already known when the refusal itself has none
+        updateNotice = UpdateNotice(minVersion: notice.minVersion, url: notice.url ?? updateNotice?.url, isRequired: true)
+    }
+
     private func sessionEnded() {
         if case .signedIn = state {
             persistence.clear()
@@ -199,4 +227,10 @@ final class AuthStore {
 private final class ExpiryHolder: @unchecked Sendable {
     var action: (() -> Void)?
     func fire() { action?() }
+}
+
+/// The same for a refusal to serve an out-of-date app.
+private final class UpdateHolder: @unchecked Sendable {
+    var action: ((APIError) -> Void)?
+    func fire(_ error: APIError) { action?(error) }
 }
