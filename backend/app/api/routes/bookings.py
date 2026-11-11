@@ -349,12 +349,14 @@ async def complete_booking_session(
         raise ForbiddenError("only the coach of this session can mark it as conducted")
     if booking["status"] != "confirmed" or booking["training_id"] is None:
         raise APIError("only a confirmed booking can be marked as conducted", code="booking_not_confirmed", status_code=409)
-    if booking["training_status"] == "completed":
-        return await _to_out(conn, booking)
     if booking["training_status"] == "cancelled":
         raise APIError("this session was cancelled", code="session_cancelled", status_code=409)
     if not bookings_repo.has_started(booking):
         raise APIError("the session has not started yet", code="session_not_started", status_code=409)
+    if booking["training_status"] == "completed":
+        # Already marked (a repeat, or a session its athlete marked from the calendar before that road was closed): the earning is still settled.
+        await earnings_repo.confirm_session(conn, booking_id)
+        return await _to_out(conn, booking)
 
     await trainings_repo.update_training(conn, booking["training_id"], status="completed")
     # If the booking was paid, the trainer's earning is now eligible for release review (it is NOT released by this mark alone).
