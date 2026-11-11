@@ -86,3 +86,17 @@ def test_the_coachs_mark_is_recorded_even_when_the_training_was_already_marked(f
     assert coach.call("POST", f"/api/bookings/{booking['id']}/complete").status_code == 200  # repeating it is still harmless
     assert sql_value(fin.dsn, "SELECT coach_marked_at IS NOT NULL FROM session_confirmations") is True
     assert _confirmed_at(fin) is None
+
+
+def test_a_plan_of_the_coach_on_a_booked_session_does_not_hide_the_real_reason(fin) -> None:
+    """The coach's plan sits on the athlete's training; sending it back unchanged used to fail with «plan not found»
+    before the booking's own refusal («проведена» belongs to the booking) could be told."""
+    coach, player, booking, _ = paid_booking(fin)
+    training_id = _training_id(fin, booking)
+    plan = coach.ok("POST", "/api/plans", json={"sport": "tennis", "name": "План тренера"})
+    sql(fin.dsn, "UPDATE trainings SET plan_id = $2::uuid WHERE id = $1::uuid", training_id, plan["id"])
+    refused = _edit(player, training_id, status="completed")
+    assert refused.status_code == 409 and refused.json()["error"]["code"] == "booked_session_managed_by_booking", refused.text
+    assert _edit(player, training_id, description="Взять ракетку").status_code == 200  # the athlete's own notes still save
+    foreign = _edit(player, training_id, plan_id=str(__import__("uuid").uuid4()))
+    assert foreign.status_code == 404  # attaching a plan that is not theirs is still refused

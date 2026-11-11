@@ -239,7 +239,10 @@ async def update_training(
 ) -> TrainingOut:
     training = await _get_training_or_404(conn, training_id)
     await _check_edit_access(conn, training, user["id"])
-    await _validate_plan_ownership(conn, payload.plan_id, user["id"])
+    if payload.plan_id != training["plan_id"]:
+        # Only a plan being attached is checked: the one already on the training may be somebody else's (the coach's plan of a booked
+        # session), and sending it back unchanged must not fail with «plan not found» before the real reason is told.
+        await _validate_plan_ownership(conn, payload.plan_id, user["id"])
     if payload.status == "cancelled" and training["status"] != "cancelled":
         await _refuse_to_drop_a_booked_session(conn, training)
     await _refuse_to_move_or_mark_a_booked_session(conn, training, payload)
