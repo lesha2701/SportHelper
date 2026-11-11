@@ -48,6 +48,7 @@ struct ProfileView: View {
                 case .accountSecurity: AccountSecurityView(user: user)
                 case .privacy: PrivacySettingsView()
                 case .finance: FinanceView()
+                case .legalDocuments: LegalDocumentsView(isCoach: user.isCoach)
                 }
             }
             .task {
@@ -233,6 +234,8 @@ struct ProfileView: View {
                 .accessibilityIdentifier("profile.security")
             NavigationLink(value: ProfileRoute.privacy) { Label("Конфиденциальность", systemImage: "hand.raised") }
                 .accessibilityIdentifier("profile.privacy")
+            NavigationLink(value: ProfileRoute.legalDocuments) { Label("Правовые документы", systemImage: "doc.text") }
+                .accessibilityIdentifier("profile.legal")
             HelpLink(ownRole: user.isCoach ? "coach" : "player")
             Button("Выйти из аккаунта", role: .destructive) { Task { await auth.logout() } }
                 .accessibilityIdentifier("main.logout")

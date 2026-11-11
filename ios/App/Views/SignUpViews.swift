@@ -84,16 +84,6 @@ struct AuthNotice: View {
     private var tint: Color { kind == .danger ? Theme.dangerTint : (kind == .success ? Theme.successTint : Theme.surfaceAlt) }
 }
 
-/// A page of the site (a legal document) in Safari's own controller.
-struct LegalPageSheet: View {
-    let document: LegalDocument
-
-    var body: some View {
-        SafariView(url: URL(string: document.path, relativeTo: AppEnvironment.siteURL)?.absoluteURL ?? AppEnvironment.siteURL)
-            .ignoresSafeArea()
-    }
-}
-
 // MARK: - Sign up
 
 /// «Создать аккаунт»: the role, the name, the address, the password and the boxes the role must tick. The server then sends a letter;
