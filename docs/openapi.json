@@ -3296,6 +3296,139 @@
         }
       }
     },
+    "/api/admin/finance/disputes": {
+      "get": {
+        "tags": [
+          "admin-finance"
+        ],
+        "summary": "Disputes",
+        "operationId": "disputes_api_admin_finance_disputes_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "open_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Open Only"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Disputes Api Admin Finance Disputes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/finance/disputes/{booking_id}/resolve": {
+      "post": {
+        "tags": [
+          "admin-finance"
+        ],
+        "summary": "Resolve Dispute",
+        "description": "release: the trainer keeps the payment; refund: what is left of it goes back to the athlete. Decided once.",
+        "operationId": "resolve_dispute_api_admin_finance_disputes__booking_id__resolve_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Booking Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveDisputeIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Resolve Dispute Api Admin Finance Disputes  Booking Id  Resolve Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/finance/incidents": {
       "get": {
         "tags": [
@@ -12648,6 +12781,222 @@
         }
       }
     },
+    "/api/bookings/{booking_id}/session/confirm": {
+      "post": {
+        "tags": [
+          "bookings"
+        ],
+        "summary": "Confirm Session By Athlete",
+        "description": "The athlete confirms that the session took place (after its end). Closes the window; the trainer's money may be released. Repeat-safe.",
+        "operationId": "confirm_session_by_athlete_api_bookings__booking_id__session_confirm_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Booking Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings/{booking_id}/session/code": {
+      "post": {
+        "tags": [
+          "bookings"
+        ],
+        "summary": "Issue Session Code",
+        "description": "A new one-time code for the athlete of an in-person session that has begun. Shown only in this answer; the previous code stops working.",
+        "operationId": "issue_session_code_api_bookings__booking_id__session_code_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Booking Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCodeOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings/{booking_id}/session/code/verify": {
+      "post": {
+        "tags": [
+          "bookings"
+        ],
+        "summary": "Verify Session Code",
+        "description": "The coach enters the athlete's code: right — the session is confirmed; wrong — counted, five wrong entries lock the code.",
+        "operationId": "verify_session_code_api_bookings__booking_id__session_code_verify_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Booking Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionCodeIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings/{booking_id}/session/problem": {
+      "post": {
+        "tags": [
+          "bookings"
+        ],
+        "summary": "Report Session Problem",
+        "description": "Either side reports a problem (a no-show, a session that did not happen) while the window is open: the trainer's money is frozen\nand an administrator decides.",
+        "operationId": "report_session_problem_api_bookings__booking_id__session_problem_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Booking Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionProblemIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/payments/yookassa/webhook": {
       "post": {
         "tags": [
@@ -14364,6 +14713,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/CancellationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "session_confirmation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionConfirmationOut"
               },
               {
                 "type": "null"
@@ -20915,6 +21274,31 @@
         ],
         "title": "ResolveComplaintIn"
       },
+      "ResolveDisputeIn": {
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "release",
+              "refund"
+            ],
+            "title": "Outcome"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 3,
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "outcome",
+          "note"
+        ],
+        "title": "ResolveDisputeIn",
+        "description": "The administrator's decision on a disputed session: the trainer keeps the payment, or the athlete gets back what is left of it."
+      },
       "ResolveIncidentIn": {
         "properties": {
           "resolution": {
@@ -21108,6 +21492,185 @@
         ],
         "title": "SearchResultOut"
       },
+      "SessionCodeIn": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 20,
+            "minLength": 1,
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "SessionCodeIn"
+      },
+      "SessionCodeOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "expires_at"
+        ],
+        "title": "SessionCodeOut",
+        "description": "The athlete's one-time code: shown once; asking again issues a new one and this one stops working."
+      },
+      "SessionConfirmationOut": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "awaiting",
+              "confirmed",
+              "auto_confirmed",
+              "disputed",
+              "resolved_released",
+              "resolved_refunded"
+            ],
+            "title": "State"
+          },
+          "window_closes_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Window Closes At"
+          },
+          "coach_marked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coach Marked At"
+          },
+          "confirmed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed At"
+          },
+          "confirmed_method": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "athlete",
+                  "code",
+                  "auto"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed Method"
+          },
+          "disputed_by_role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "athlete",
+                  "coach"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disputed By Role"
+          },
+          "dispute_kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "athlete_no_show",
+                  "coach_no_show",
+                  "not_conducted",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispute Kind"
+          },
+          "dispute_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispute Text"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "can_confirm": {
+            "type": "boolean",
+            "title": "Can Confirm",
+            "default": false
+          },
+          "can_report_problem": {
+            "type": "boolean",
+            "title": "Can Report Problem",
+            "default": false
+          },
+          "can_get_code": {
+            "type": "boolean",
+            "title": "Can Get Code",
+            "default": false
+          },
+          "can_enter_code": {
+            "type": "boolean",
+            "title": "Can Enter Code",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "state",
+          "window_closes_at"
+        ],
+        "title": "SessionConfirmationOut",
+        "description": "Whether the session took place, as one side of the booking sees it, and what that side can do now."
+      },
       "SessionOut": {
         "properties": {
           "id": {
@@ -21155,6 +21718,37 @@
           "current"
         ],
         "title": "SessionOut"
+      },
+      "SessionProblemIn": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "athlete_no_show",
+              "coach_no_show",
+              "not_conducted",
+              "other"
+            ],
+            "title": "Kind"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "title": "SessionProblemIn"
       },
       "ShareExerciseIn": {
         "properties": {

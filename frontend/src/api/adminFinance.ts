@@ -218,3 +218,32 @@ export const markWithdrawalPaid = (id: string, body: { bankReference: string; pa
     paid_at: body.paidAt || null,
     transfer_note: body.transferNote || null,
   });
+
+/** A dispute about whether a booked session took place (docs/session-confirmation.md). */
+export interface AdminDispute {
+  bookingId: string;
+  state: "disputed" | "resolved_released" | "resolved_refunded";
+  coachMarkedAt: string | null;
+  disputedAt: string;
+  disputedByRole: "athlete" | "coach";
+  disputeKind: "athlete_no_show" | "coach_no_show" | "not_conducted" | "other";
+  disputeText: string | null;
+  resolvedAt: string | null;
+  resolutionNote: string | null;
+  startsAt: string;
+  durationMinutes: number;
+  format: string;
+  listingTitle: string | null;
+  coachFullName: string | null;
+  athleteFullName: string;
+  paymentId: string | null;
+  grossKopecks: number | null;
+  paymentStatus: string | null;
+  earningStatus: string | null;
+  trainerKopecks: number | null;
+}
+
+export const listFinanceDisputes = (q: { openOnly: boolean; limit: number; offset: number }) =>
+  get<FinancePage<AdminDispute>>(`/api/admin/finance/disputes${queryString({ open_only: String(q.openOnly), limit: q.limit, offset: q.offset })}`);
+export const resolveFinanceDispute = (bookingId: string, outcome: "release" | "refund", note: string) =>
+  post<{ bookingId: string; state: string; refundId: string | null }>(`/api/admin/finance/disputes/${bookingId}/resolve`, { outcome, note });

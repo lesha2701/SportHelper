@@ -21,6 +21,7 @@ import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 import { CancelBooking, CancellationNote } from "./CancelBooking";
+import { SessionConfirmation } from "./SessionConfirmation";
 import { ReviewModal } from "./ReviewModal";
 
 type CoachView =
@@ -271,6 +272,7 @@ export function MyBookingsSection({
             <span className={styles.bookingStatus}>Подтверждена</span>
           </div>
           <BookingPayment token={token} booking={b} />
+          <SessionConfirmation token={token} booking={b} side="athlete" onChange={updateBooking} />
           <CancelBooking token={token} booking={b} side="athlete" onCancelled={updateBooking} />
           <BookingChatButton booking={b} label="Чат с тренером" unread={unread.booking[b.id] ?? 0} onOpen={() => setChatFor(b)} />
         </div>
@@ -307,6 +309,7 @@ export function MyBookingsSection({
               </button>
             )}
           </div>
+          <SessionConfirmation token={token} booking={b} side="athlete" onChange={updateBooking} />
           <BookingChatButton booking={b} label="Чат с тренером" unread={unread.booking[b.id] ?? 0} onOpen={() => setChatFor(b)} />
         </div>
       ))}

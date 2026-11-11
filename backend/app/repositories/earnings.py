@@ -2,6 +2,7 @@
 accrual (which payment/booking, the frozen split, and where it is in the release process)."""
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -9,7 +10,7 @@ import asyncpg
 
 _FIELDS = (
     "e.id, e.payment_id, e.booking_id, e.coach_user_id, e.gross_kopecks, e.platform_fee_kopecks, e.trainer_kopecks, e.commission_percent, "
-    "e.status, e.reversed_kopecks, e.held_reason, e.session_confirmed_at, e.released_by, e.released_at, e.release_note, e.created_at, e.updated_at"
+    "e.status, e.reversed_kopecks, e.held_reason, e.session_confirmed_at, e.release_after, e.released_by, e.released_at, e.release_note, e.created_at, e.updated_at"
 )
 _LISTING_JOIN = (
     "JOIN bookings b ON b.id = e.booking_id LEFT JOIN coach_listings cl ON cl.id = b.listing_id "
@@ -53,12 +54,16 @@ async def get_for_payment(conn: asyncpg.Connection, payment_id: UUID, *, lock: b
     return dict(row) if row else None
 
 
-async def confirm_session(conn: asyncpg.Connection, booking_id: UUID) -> dict[str, Any] | None:
-    """The trainer marked the session conducted: the earning (if the booking was paid) becomes eligible for release review."""
+async def confirm_session(conn: asyncpg.Connection, booking_id: UUID, *, release_after: datetime | None = None) -> dict[str, Any] | None:
+    """The session is confirmed (or the trainer keeps the payment): the earning (if the booking was paid) becomes eligible for release.
+
+    release_after: from when the automatic release may take it (None: the old rule, confirmation + EARNING_HOLD_HOURS). The first
+    confirmation is kept: a repeated call changes neither moment."""
     row = await conn.fetchrow(
-        f"UPDATE trainer_earnings e SET session_confirmed_at = COALESCE(session_confirmed_at, now()), updated_at = now() "
+        f"UPDATE trainer_earnings e SET release_after = CASE WHEN session_confirmed_at IS NULL THEN $2 ELSE release_after END, "
+        f"session_confirmed_at = COALESCE(session_confirmed_at, now()), updated_at = now() "
         f"WHERE e.booking_id = $1 RETURNING {_FIELDS.replace('e.', '')}",
-        booking_id,
+        booking_id, release_after,
     )
     return dict(row) if row else None
 
@@ -125,7 +130,7 @@ async def due_for_auto_release(conn: asyncpg.Connection, *, hold_hours: int, lim
         f"""
         SELECT {_FIELDS} FROM trainer_earnings e
          WHERE e.status = 'pending' AND e.session_confirmed_at IS NOT NULL
-           AND e.session_confirmed_at <= now() - make_interval(hours => $1)
+           AND COALESCE(e.release_after, e.session_confirmed_at + make_interval(hours => $1)) <= now()
          ORDER BY e.session_confirmed_at LIMIT $2
         """,
         hold_hours, limit,

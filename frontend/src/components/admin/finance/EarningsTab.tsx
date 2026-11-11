@@ -39,7 +39,7 @@ export function EarningsTab() {
         ))}
       </div>
       <p className={styles.pageHint}>
-        Деньги тренеру открываются, только когда тренер отметил занятие проведённым и вы подтвердили это. Занятия, которые тренер уже отметил, показаны первыми.
+        Деньги тренеру открываются, только когда занятие подтверждено (игроком, кодом игрока или само через 48 часов) и вы это подтвердили. Подтверждённые показаны первыми.
       </p>
       {query.status === "error" && <ErrorBox message={query.message} onRetry={reload} />}
       {query.status === "loading" && <p className={styles.pageHint}>Загрузка…</p>}
@@ -73,14 +73,14 @@ export function EarningsTab() {
                       <td>
                         <Pill tone={e.status === "available" ? "ok" : e.status === "held" ? "bad" : "neutral"}>{EARNING_STATUS_LABELS[e.status] ?? e.status}</Pill>
                         <div className={styles.muted}>
-                          {e.sessionConfirmedAt ? `Тренер отметил проведённым ${formatDateTime(e.sessionConfirmedAt)}` : "Тренер ещё не отметил занятие"}
+                          {e.sessionConfirmedAt ? `Занятие подтверждено ${formatDateTime(e.sessionConfirmedAt)}` : "Занятие ещё не подтверждено"}
                         </div>
                         {e.heldReason && <div className={styles.muted}>Причина заморозки: {e.heldReason}</div>}
                       </td>
                       <td>
                         <div className={styles.actions}>
                           {e.status === "pending" && (
-                            <button type="button" className={styles.buttonPrimary} disabled={!e.sessionConfirmedAt} title={e.sessionConfirmedAt ? undefined : "Тренер ещё не отметил занятие проведённым"} onClick={() => ask(e, "release")}>
+                            <button type="button" className={styles.buttonPrimary} disabled={!e.sessionConfirmedAt} title={e.sessionConfirmedAt ? undefined : "Занятие ещё не подтверждено"} onClick={() => ask(e, "release")}>
                               Открыть тренеру
                             </button>
                           )}

@@ -114,3 +114,11 @@ async def incident(conn: asyncpg.Connection, settings: Settings, *, kind: str, p
         await _send(conn, user_id=admin_id, category="finance_admin", title="Финансовый инцидент",
                     body="Обнаружено расхождение по платежу — откройте раздел «Финансы» админ-панели.",
                     entity_type="payment", entity_id=payment_id or admin_id, key=f"incident:{kind}:{key}:{admin_id}")
+
+
+async def session_disputed(conn: asyncpg.Connection, settings: Settings, booking_id: UUID) -> None:
+    """A side reported a problem with a booked session: the earning is frozen until an administrator decides."""
+    for admin_id in await finance_admin_ids(conn, settings):
+        await _send(conn, user_id=admin_id, category="finance_admin", title="Спор по занятию",
+                    body="Сторона записи сообщила о проблеме с занятием, начисление тренеру заморожено — откройте раздел «Финансы» админ-панели.",
+                    entity_type="booking", entity_id=booking_id, key=f"session_disputed:{booking_id}:{admin_id}")

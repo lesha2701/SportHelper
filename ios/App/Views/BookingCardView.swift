@@ -54,6 +54,7 @@ struct BookingCardView: View {
             BookingSessionActions(
                 booking: booking, viewer: viewer, isWorking: isCompleting, onReview: onReview, onComplete: onComplete, onReviewPlayer: onReviewPlayer
             )
+            SessionConfirmationSection(booking: booking, side: viewer == .coach ? .coach : .athlete)
             if booking.hasChat, let onChat { chatButton(onChat) }
             if booking.canCancel, let onCancel {
                 Button(role: .destructive, action: onCancel) { Label("Отменить запись", systemImage: "xmark.circle").frame(maxWidth: .infinity) }

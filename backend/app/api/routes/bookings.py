@@ -13,7 +13,6 @@ from app.repositories import booking_cancellations as cancellations_repo
 from app.repositories import bookings as bookings_repo
 from app.repositories import coach_listings as listings_repo
 from app.repositories import coach_reviews as coach_reviews_repo
-from app.repositories import earnings as earnings_repo
 from app.repositories import payments as payments_repo
 from app.repositories import player_reviews as player_reviews_repo
 from app.repositories import plans as plans_repo
@@ -30,17 +29,21 @@ from app.schemas.booking import (
     PendingBookingOut,
     ReviewIn,
     ReviewOut,
+    SessionCodeIn,
+    SessionCodeOut,
+    SessionProblemIn,
 )
 from app.services import booking_money as booking_money_service
 from app.services import cancellations as cancellations_service
 from app.services import notifications as notifications_service
 from app.services import payments as payments_service
+from app.services import session_confirmation as session_confirmation_service
 from app.services.accounts import ip_of
 
 router = APIRouter(prefix="/api/bookings", tags=["bookings"])
 
 
-async def _to_out(conn: asyncpg.Connection, booking: dict) -> BookingOut:
+async def _to_out(conn: asyncpg.Connection, booking: dict, viewer_id: UUID) -> BookingOut:
     review = await coach_reviews_repo.get_by_booking(conn, booking["id"])
     player_review = await player_reviews_repo.get_by_booking(conn, booking["id"])
     payment = await payments_repo.summary_for_booking(conn, booking["id"])
@@ -64,6 +67,7 @@ async def _to_out(conn: asyncpg.Connection, booking: dict) -> BookingOut:
         can_cancel=bookings_repo.can_cancel(booking),
         has_started=bookings_repo.has_started(booking),
         cancellation=cancellation,
+        session_confirmation=await session_confirmation_service.view_for(conn, booking, viewer_id),
         payment_status=payments_service.payment_status_of(booking, payment),
         paid_at=payment["paid_at"] if payment and payment["status"] in ("paid", "partially_refunded", "refunded") else None,
         is_completed=bookings_repo.is_completed(booking),
@@ -109,7 +113,7 @@ async def create_booking(
     if booking is None:
         raise APIError("slot was just booked by someone else", code="slot_unavailable", status_code=409)
     await notifications_service.schedule_booking_requested_notification(conn, booking)
-    return await _to_out(conn, booking)
+    return await _to_out(conn, booking, user["id"])
 
 
 @router.get("/me", response_model=list[BookingOut])
@@ -118,7 +122,7 @@ async def list_my_bookings(
     conn: asyncpg.Connection = Depends(get_db),
 ) -> list[BookingOut]:
     bookings = await bookings_repo.list_for_athlete(conn, user["id"])
-    return [await _to_out(conn, b) for b in bookings]
+    return [await _to_out(conn, b, user["id"]) for b in bookings]
 
 
 @router.get("/coach/pending", response_model=list[PendingBookingOut])
@@ -136,7 +140,7 @@ async def list_coach_bookings(
     conn: asyncpg.Connection = Depends(get_db),
 ) -> list[BookingOut]:
     bookings = await bookings_repo.list_for_coach(conn, user["id"])
-    return [await _to_out(conn, b) for b in bookings]
+    return [await _to_out(conn, b, user["id"]) for b in bookings]
 
 
 @router.get("/coach/by-training/{training_id}", response_model=BookingOut)
@@ -151,7 +155,7 @@ async def get_coach_booking_by_training(
     booking = await bookings_repo.get_for_coach_by_training(conn, training_id, user["id"])
     if booking is None:
         raise NotFoundError("no confirmed booking of yours for this training")
-    return await _to_out(conn, booking)
+    return await _to_out(conn, booking, user["id"])
 
 
 @router.patch("/{booking_id}/plan", response_model=BookingOut)
@@ -178,7 +182,7 @@ async def set_booking_plan(
             raise NotFoundError("plan not found")
     await trainings_repo.update_training(conn, booking["training_id"], plan_id=payload.plan_id)
     updated = await bookings_repo.get_booking(conn, booking_id)
-    return await _to_out(conn, updated)
+    return await _to_out(conn, updated, user["id"])
 
 
 @router.post("/{booking_id}/confirm", response_model=BookingOut)
@@ -198,7 +202,7 @@ async def confirm_booking(
     await notifications_service.schedule_booking_decided_notification(
         conn, confirmed, outcome="confirmed", payable=get_settings_dep().payments_enabled
     )
-    return await _to_out(conn, confirmed)
+    return await _to_out(conn, confirmed, user["id"])
 
 
 async def _own_booking_for_payment(conn: asyncpg.Connection, booking_id: UUID, user: dict) -> dict:
@@ -236,7 +240,7 @@ async def sync_booking_payment(
         await payments_service.refresh_booking_payment(conn, settings, booking_id)
     except YooKassaError as exc:
         raise APIError("Не удалось проверить оплату. Попробуйте ещё раз.", code="payment_provider_error", status_code=502) from exc
-    return await _to_out(conn, booking)
+    return await _to_out(conn, booking, user["id"])
 
 
 @router.post("/{booking_id}/decline", response_model=BookingOut)
@@ -254,7 +258,7 @@ async def decline_booking(
     if declined is None:
         raise APIError("booking is no longer pending", code="booking_not_pending", status_code=409)
     await notifications_service.schedule_booking_decided_notification(conn, declined, outcome="declined")
-    return await _to_out(conn, declined)
+    return await _to_out(conn, declined, user["id"])
 
 
 @router.get("/{booking_id}/money", response_model=BookingMoneyOut)
@@ -299,7 +303,7 @@ async def cancel_booking(
 ) -> BookingOut:
     """Cancels a confirmed booking by the rule in docs/refunds-api.md; the money goes back by itself. Repeating the call changes nothing."""
     booking, _ = await cancellations_service.cancel(conn, settings, booking_id=booking_id, user=user, reason=payload.reason)
-    return await _to_out(conn, booking)
+    return await _to_out(conn, booking, user["id"])
 
 
 @router.post("/{booking_id}/reviews", response_model=ReviewOut)
@@ -353,17 +357,16 @@ async def complete_booking_session(
         raise APIError("this session was cancelled", code="session_cancelled", status_code=409)
     if not bookings_repo.has_started(booking):
         raise APIError("the session has not started yet", code="session_not_started", status_code=409)
+    # The coach's word is recorded, but it does not open the trainer's money: the athlete's confirmation, the athlete's code or the 48 hours
+    # do (docs/session-confirmation.md, TR-06).
+    await session_confirmation_service.mark_by_coach(conn, booking_id)
     if booking["training_status"] == "completed":
-        # Already marked (a repeat, or a session its athlete marked from the calendar before that road was closed): the earning is still settled.
-        await earnings_repo.confirm_session(conn, booking_id)
-        return await _to_out(conn, booking)
+        return await _to_out(conn, booking, user["id"])  # a repeat, or a session marked from the calendar before that road was closed
 
     await trainings_repo.update_training(conn, booking["training_id"], status="completed")
-    # If the booking was paid, the trainer's earning is now eligible for release review (it is NOT released by this mark alone).
-    await earnings_repo.confirm_session(conn, booking_id)
     updated = await bookings_repo.get_booking(conn, booking_id)
     await notifications_service.schedule_review_requested_notification(conn, updated)
-    return await _to_out(conn, updated)
+    return await _to_out(conn, updated, user["id"])
 
 
 @router.post("/{booking_id}/player-review", response_model=ReviewOut)
@@ -396,3 +399,62 @@ async def review_player(
     if review is None:
         raise APIError("this booking already has a review", code="already_reviewed", status_code=409)
     return ReviewOut(**review)
+
+
+# --- confirming that the session took place (docs/session-confirmation.md) ---------------------------------------------------------
+
+@router.post("/{booking_id}/session/confirm", response_model=BookingOut)
+async def confirm_session_by_athlete(
+    booking_id: UUID,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> BookingOut:
+    """The athlete confirms that the session took place (after its end). Closes the window; the trainer's money may be released. Repeat-safe."""
+    await session_confirmation_service.confirm_by_athlete(conn, settings, booking_id, user)
+    booking = await bookings_repo.get_booking(conn, booking_id)
+    assert booking is not None
+    return await _to_out(conn, booking, user["id"])
+
+
+@router.post("/{booking_id}/session/code", response_model=SessionCodeOut)
+async def issue_session_code(
+    booking_id: UUID,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> SessionCodeOut:
+    """A new one-time code for the athlete of an in-person session that has begun. Shown only in this answer; the previous code stops working."""
+    issued = await session_confirmation_service.issue_code(conn, settings, booking_id, user)
+    return SessionCodeOut(**issued)
+
+
+@router.post("/{booking_id}/session/code/verify", response_model=BookingOut)
+async def verify_session_code(
+    booking_id: UUID,
+    payload: SessionCodeIn,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> BookingOut:
+    """The coach enters the athlete's code: right — the session is confirmed; wrong — counted, five wrong entries lock the code."""
+    await session_confirmation_service.verify_code(conn, settings, booking_id, user, payload.code)
+    booking = await bookings_repo.get_booking(conn, booking_id)
+    assert booking is not None
+    return await _to_out(conn, booking, user["id"])
+
+
+@router.post("/{booking_id}/session/problem", response_model=BookingOut)
+async def report_session_problem(
+    booking_id: UUID,
+    payload: SessionProblemIn,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> BookingOut:
+    """Either side reports a problem (a no-show, a session that did not happen) while the window is open: the trainer's money is frozen
+    and an administrator decides."""
+    await session_confirmation_service.report_problem(conn, settings, booking_id, user, kind=payload.kind, text=payload.text)
+    booking = await bookings_repo.get_booking(conn, booking_id)
+    assert booking is not None
+    return await _to_out(conn, booking, user["id"])

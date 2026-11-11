@@ -278,3 +278,73 @@ async def schedule_review_requested_notification(conn: asyncpg.Connection, booki
         entity_id=booking["id"],
         send_at=datetime.now(timezone.utc),
     )
+
+
+# --- confirming that a booked session took place (docs/session-confirmation.md, TR-10, TR-11, TR-14) -------------------------------
+
+# what the OTHER side reads after «Тренер сообщил» / «Игрок сообщил»
+_DISPUTE_WORDS = {
+    "athlete_no_show": ", что вы не пришли на тренировку",
+    "coach_no_show": ", что вы не пришли на тренировку",
+    "not_conducted": ", что тренировка не состоялась",
+    "other": " о проблеме с тренировкой",
+}
+
+
+async def _booking_note(conn: asyncpg.Connection, booking: dict[str, Any], *, recipient: UUID, title: str, body: str, key: str) -> None:
+    await notifications_repo.create_or_reschedule(
+        conn, user_id=recipient, category="booking_decided", title=title, body=body, entity_type="booking", entity_id=booking["id"],
+        send_at=datetime.now(timezone.utc), dedup_key=f"{key}:{booking['id']}:{recipient}",
+    )
+
+
+async def schedule_session_confirmation_reminder(conn: asyncpg.Connection, booking: dict[str, Any], *, hours_after_end: int) -> None:
+    """TR-10 / TR-11: the athlete has neither confirmed the session nor reported a problem (only the athlete can confirm it)."""
+    when = booking["starts_at"].strftime("%d.%m в %H:%M")
+    if hours_after_end < 47:
+        title, body = "Подтвердите тренировку", f"Тренировка {when} состоялась? Подтвердите её — или сообщите, если что-то пошло не так."
+    else:
+        title = "Тренировка подтвердится через час"
+        body = f"Через час тренировка {when} подтвердится автоматически, и тренер получит оплату. Если что-то не так, сообщите о проблеме сейчас."
+    await _booking_note(conn, booking, recipient=booking["athlete_user_id"], title=title, body=body, key=f"session_confirm_{hours_after_end}")
+
+
+async def schedule_session_confirmed_notification(conn: asyncpg.Connection, booking: dict[str, Any], *, method: str) -> None:
+    """TR-14: the window closed. The athlete's own press needs no message to the athlete."""
+    when = booking["starts_at"].strftime("%d.%m в %H:%M")
+    if method == "auto":
+        await _booking_note(conn, booking, recipient=booking["athlete_user_id"], title="Тренировка подтверждена",
+                            body=f"Тренировка {when} подтверждена автоматически.", key="session_confirmed")
+        await _booking_note(conn, booking, recipient=booking["coach_user_id"], title="Тренировка подтверждена",
+                            body=f"Тренировка {when} подтверждена автоматически: игрок не сообщил о проблемах.", key="session_confirmed")
+    elif method == "athlete":
+        await _booking_note(conn, booking, recipient=booking["coach_user_id"], title="Игрок подтвердил тренировку",
+                            body=f"{booking['athlete_full_name']} подтвердил, что тренировка {when} состоялась.", key="session_confirmed")
+    else:  # the code: both were there and both saw it; the athlete is told that the code worked
+        await _booking_note(conn, booking, recipient=booking["athlete_user_id"], title="Тренировка подтверждена",
+                            body=f"Тренер ввёл ваш код: тренировка {when} подтверждена.", key="session_confirmed")
+
+
+async def schedule_session_disputed_notification(conn: asyncpg.Connection, booking: dict[str, Any], *, by_role: str, kind: str) -> None:
+    """TR-14: the other side learns about the reported problem and that the money waits for an administrator."""
+    when = booking["starts_at"].strftime("%d.%m в %H:%M")
+    words = _DISPUTE_WORDS.get(kind, _DISPUTE_WORDS["other"])
+    if by_role == "coach":
+        recipient = booking["athlete_user_id"]
+        body = f"Тренер сообщил{words} {when}. Решение примет администратор; если это не так — напишите в поддержку."
+    else:
+        recipient = booking["coach_user_id"]
+        body = f"Игрок сообщил{words} {when}. Оплата заморожена до решения администратора."
+    await _booking_note(conn, booking, recipient=recipient, title="Спор по тренировке", body=body, key="session_disputed")
+
+
+async def schedule_session_dispute_resolved_notification(conn: asyncpg.Connection, booking: dict[str, Any], *, refunded: bool) -> None:
+    when = booking["starts_at"].strftime("%d.%m в %H:%M")
+    if refunded:
+        athlete = f"Администратор рассмотрел спор по тренировке {when}: деньги вернутся на карту, которой вы платили."
+        coach = f"Администратор рассмотрел спор по тренировке {when}: деньги возвращены игроку, начисление за занятие снято."
+    else:
+        athlete = f"Администратор рассмотрел спор по тренировке {when}: оплата остаётся у тренера."
+        coach = f"Администратор рассмотрел спор по тренировке {when}: оплата за занятие ваша."
+    await _booking_note(conn, booking, recipient=booking["athlete_user_id"], title="Спор решён", body=athlete, key="session_dispute_resolved")
+    await _booking_note(conn, booking, recipient=booking["coach_user_id"], title="Спор решён", body=coach, key="session_dispute_resolved")

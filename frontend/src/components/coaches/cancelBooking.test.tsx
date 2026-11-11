@@ -27,7 +27,7 @@ const booking = (overrides: Partial<Booking> = {}): Booking => ({
   athleteFullName: "Игорь", athleteNotes: null, startsAt: "2026-11-20T10:00:00Z", durationMinutes: 60, format: "online",
   pricePerSession: 2500, currency: "RUB", status: "confirmed", isCompleted: false, trainingId: "t-77", trainingPlanId: null,
   trainingPlanName: null, trainingStatus: "scheduled", hasReview: false, hasPlayerReview: false, paymentStatus: "paid", paidAt: null,
-  canCancel: true, hasStarted: false, cancellation: null,
+  canCancel: true, hasStarted: false, cancellation: null, sessionConfirmation: null,
   ...overrides,
 });
 

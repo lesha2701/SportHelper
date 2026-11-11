@@ -116,10 +116,12 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
     private let hasStartedRaw: Bool?
     /// Set once the booking is cancelled: who, when, why and where the money is.
     public let cancellation: Cancellation?
+    /// Whether the session took place: nil until the booking is confirmed, after it is cancelled, and from an older server.
+    public let sessionConfirmation: SessionConfirmation?
 
     private enum CodingKeys: String, CodingKey {
         case id, coachUserId, coachFullName, listingId, listingTitle, athleteUserId, athleteFullName, athleteNotes, startsAt
-        case durationMinutes, format, pricePerSession, currency, isCompleted, trainingId, trainingPlanId, trainingPlanName, hasReview, paidAt, trainingStatus, cancellation
+        case durationMinutes, format, pricePerSession, currency, isCompleted, trainingId, trainingPlanId, trainingPlanName, hasReview, paidAt, trainingStatus, cancellation, sessionConfirmation
         case canCancelRaw = "canCancel"
         case hasStartedRaw = "hasStarted"
         case hasPlayerReviewRaw = "hasPlayerReview"

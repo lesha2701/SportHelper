@@ -48,6 +48,28 @@ public final class BookingsService: Sendable {
         try await client.send(.patch, path(id, "/plan"), body: BookingPlanBody(planId: plan))
     }
 
+    // MARK: confirming that the session took place (docs/session-confirmation.md)
+
+    /// The athlete confirms that the session took place (after its end). Repeating it is harmless.
+    public func confirmSession(_ id: UUID) async throws -> Booking {
+        try await client.send(.post, path(id, "/session/confirm"))
+    }
+
+    /// A new one-time code for an in-person session that has begun. Shown only in this answer; the previous code stops working.
+    public func sessionCode(_ id: UUID) async throws -> SessionCode {
+        try await client.send(.post, path(id, "/session/code"))
+    }
+
+    /// The coach enters the athlete's code (spaces and dashes are fine).
+    public func verifySessionCode(_ id: UUID, code: String) async throws -> Booking {
+        try await client.send(.post, path(id, "/session/code/verify"), body: SessionCodeBody(code: code))
+    }
+
+    /// Either side reports a problem with the session; the coach's money waits for an administrator.
+    public func reportProblem(_ id: UUID, kind: SessionProblemKind, text: String?) async throws -> Booking {
+        try await client.send(.post, path(id, "/session/problem"), body: SessionProblemBody(kind: kind.rawValue, text: text))
+    }
+
     // MARK: cancelling
 
     /// What cancelling right now would mean for the money (the athlete and the coach of the booking). Changes nothing.

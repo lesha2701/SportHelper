@@ -14,6 +14,7 @@ from app.core import session_time
 from app.repositories import ledger
 from app.repositories.ledger import Leg
 from app.services import earnings as earnings_service
+from app.services import session_confirmation as session_confirmation_service
 from tests.admin_world import ADMIN_EMAIL, live_client, pg, set_admins, world  # noqa: F401  (fixtures)
 from tests.finance_helpers import (
     FakeProvider, assert_books_are_sound, confirmed_booking, enable_payments, ledger_totals, run, trainer_balances, webhook, with_conn,
@@ -49,9 +50,11 @@ def paid_booking(fin, n: int = 0):
     return coach, player, booking, payment_id
 
 
-def conduct(fin, coach, booking) -> None:
+def conduct(fin, coach, booking, player) -> None:
+    """The session took place: it is over, the coach marks it conducted and the athlete confirms it (docs/session-confirmation.md)."""
     sql(fin.dsn, f"UPDATE bookings SET starts_at = {session_time.sql_wall_now()} - interval '2 hours' WHERE id = $1::uuid", booking["id"])
     coach.ok("POST", f"/api/bookings/{booking['id']}/complete")
+    player.ok("POST", f"/api/bookings/{booking['id']}/session/confirm")
 
 
 def earning_of(fin, booking) -> str:
@@ -86,7 +89,7 @@ def test_a_payment_alone_never_makes_money_withdrawable(fin) -> None:
     assert (balance["pending_kopecks"], balance["available_kopecks"], balance["reserved_kopecks"]) == (225000, 0, 0)
     assert coach.call("POST", "/api/finance/withdrawals", json={"amount_kopecks": 225000, "method": "sbp", "details": SBP,
                                                                   "client_key": str(uuid.uuid4()), "password": PASSWORD}).status_code == 409
-    # nor does the session time passing: the trainer has to mark it conducted, and an administrator releases it
+    # nor does the session time passing: the athlete confirms it (or 48 hours pass), and an administrator releases it
     sql(fin.dsn, f"UPDATE bookings SET starts_at = {session_time.sql_wall_now()} - interval '5 days' WHERE id = $1::uuid", booking["id"])
     assert fin.admin.call("POST", f"/api/admin/finance/earnings/{earning_of(fin, booking)}/release", json={}).json()["error"]["code"] == "session_not_confirmed"
     assert coach.ok("GET", "/api/finance/summary")["available_kopecks"] == 0
@@ -94,7 +97,7 @@ def test_a_payment_alone_never_makes_money_withdrawable(fin) -> None:
 
 def test_the_full_release_path_with_notifications_and_an_audit_trail(fin) -> None:
     coach, player, booking, payment_id = paid_booking(fin)
-    conduct(fin, coach, booking)
+    conduct(fin, coach, booking, player)
     earning_id = earning_of(fin, booking)
     assert sql_value(fin.dsn, "SELECT session_confirmed_at IS NOT NULL FROM trainer_earnings") is True
     assert coach.ok("GET", "/api/finance/summary")["available_kopecks"] == 0  # marked conducted is only the START of the check
@@ -119,7 +122,7 @@ def test_the_full_release_path_with_notifications_and_an_audit_trail(fin) -> Non
 
 def test_a_frozen_earning_cannot_be_released_until_the_hold_is_lifted(fin) -> None:
     coach, player, booking, payment_id = paid_booking(fin)
-    conduct(fin, coach, booking)
+    conduct(fin, coach, booking, player)
     earning_id = earning_of(fin, booking)
 
     assert fin.admin.call("POST", f"/api/admin/finance/earnings/{earning_id}/hold", json={"reason": "спор с игроком"}).status_code == 200
@@ -131,7 +134,7 @@ def test_a_frozen_earning_cannot_be_released_until_the_hold_is_lifted(fin) -> No
 
 def test_release_is_for_finance_administrators_with_a_recent_second_factor(fin) -> None:
     coach, player, booking, payment_id = paid_booking(fin)
-    conduct(fin, coach, booking)
+    conduct(fin, coach, booking, player)
     url = f"/api/admin/finance/earnings/{earning_of(fin, booking)}/release"
 
     assert coach.call("POST", url, json={}).status_code == 403            # the trainer cannot release his own money
@@ -146,27 +149,43 @@ def test_release_is_for_finance_administrators_with_a_recent_second_factor(fin) 
     assert sql_value(fin.dsn, "SELECT status FROM trainer_earnings") == "pending"
 
 
-def test_the_automatic_release_mode_waits_for_the_hold_period(fin) -> None:
+def test_the_automatic_release_mode_follows_how_the_session_was_confirmed(fin) -> None:
+    """Owner's decision of 11.11.2026: confirmed by the athlete (or the code) — released at once; confirmed by itself after 48 hours,
+    or by the old rule (before confirmations existed) — after EARNING_HOLD_HOURS."""
     reconfigure(fin, EARNING_RELEASE_MODE="auto_after_hold", EARNING_HOLD_HOURS="72")
-    coach, player, booking, payment_id = paid_booking(fin)
-    conduct(fin, coach, booking)
     settings = get_settings()
 
-    assert run(with_conn(fin.dsn, lambda c: earnings_service.release_due_earnings(c, settings))) == 0
-    sql(fin.dsn, "UPDATE trainer_earnings SET session_confirmed_at = now() - interval '73 hours'")
-    assert run(with_conn(fin.dsn, lambda c: earnings_service.release_due_earnings(c, settings))) == 1
-    assert coach.ok("GET", "/api/finance/summary")["available_kopecks"] == 225000
+    def release() -> int:
+        return run(with_conn(fin.dsn, lambda c: earnings_service.release_due_earnings(c, settings)))
+
+    coach, player, booking, payment_id = paid_booking(fin)
+    conduct(fin, coach, booking, player)
+    assert release() == 1 and coach.ok("GET", "/api/finance/summary")["available_kopecks"] == 225000
+
+    coach3, player3, booking3, _ = paid_booking(fin, 3)
+    sql(fin.dsn, "UPDATE bookings SET starts_at = now() - interval '50 hours' WHERE id = $1::uuid", booking3["id"])
+    assert run(with_conn(fin.dsn, lambda c: session_confirmation_service.auto_confirm_due(c, settings))) == 1
+    assert release() == 0  # automatic: the usual hold
+    sql(fin.dsn, "UPDATE trainer_earnings SET release_after = now() - interval '1 minute' WHERE booking_id = $1::uuid", booking3["id"])
+    assert release() == 1
+
+    coach4, player4, booking4, _ = paid_booking(fin, 4)  # confirmed the old way: no release moment of its own
+    sql(fin.dsn, "UPDATE trainer_earnings SET session_confirmed_at = now() - interval '71 hours' WHERE booking_id = $1::uuid", booking4["id"])
+    assert release() == 0
+    sql(fin.dsn, "UPDATE trainer_earnings SET session_confirmed_at = now() - interval '73 hours' WHERE booking_id = $1::uuid", booking4["id"])
+    assert release() == 1
+
     # a frozen earning is never released automatically
     coach2, player2, booking2, _ = paid_booking(fin, 2)
-    conduct(fin, coach2, booking2)
+    sql(fin.dsn, "UPDATE bookings SET starts_at = now() - interval '2 hours' WHERE id = $1::uuid", booking2["id"])
     fin.admin.ok("POST", f"/api/admin/finance/earnings/{earning_of(fin, booking2)}/hold", json={"reason": "проверка"})
-    sql(fin.dsn, "UPDATE trainer_earnings SET session_confirmed_at = now() - interval '200 hours' WHERE status = 'held'")
-    assert run(with_conn(fin.dsn, lambda c: earnings_service.release_due_earnings(c, settings))) == 0
+    player2.ok("POST", f"/api/bookings/{booking2['id']}/session/confirm")
+    assert release() == 0
 
 
 def test_the_default_mode_never_releases_by_itself(fin) -> None:
     coach, player, booking, payment_id = paid_booking(fin)
-    conduct(fin, coach, booking)
+    conduct(fin, coach, booking, player)
     sql(fin.dsn, "UPDATE trainer_earnings SET session_confirmed_at = now() - interval '999 hours'")
 
     assert run(with_conn(fin.dsn, lambda c: earnings_service.release_due_earnings(c, get_settings()))) == 0
@@ -689,7 +708,7 @@ def test_simultaneous_refund_requests_cannot_exceed_the_payment(fin) -> None:
 
 def test_a_refund_after_release_takes_the_money_from_the_available_balance(fin) -> None:
     coach, player, booking, payment_id = paid_booking(fin)
-    conduct(fin, coach, booking)
+    conduct(fin, coach, booking, player)
     fin.admin.ok("POST", f"/api/admin/finance/earnings/{earning_of(fin, booking)}/release", json={})
 
     _refund(fin, payment_id, 100000)
@@ -701,7 +720,7 @@ def test_a_refund_after_release_takes_the_money_from_the_available_balance(fin) 
 
 def test_a_refund_after_money_was_reserved_or_paid_out_becomes_a_visible_debt(fin) -> None:
     coach, player, booking, payment_id = paid_booking(fin)
-    conduct(fin, coach, booking)
+    conduct(fin, coach, booking, player)
     fin.admin.ok("POST", f"/api/admin/finance/earnings/{earning_of(fin, booking)}/release", json={})
     wid = ask_withdrawal(coach, 225000).json()["id"]              # all of it is now reserved for a payout
 
@@ -787,7 +806,7 @@ def test_a_duplicate_charge_is_given_back_whole_without_touching_the_books(fin) 
 
 def test_the_overview_keeps_turnover_commission_and_obligations_apart(fin) -> None:
     coach, player, booking, payment_id = paid_booking(fin)
-    conduct(fin, coach, booking)
+    conduct(fin, coach, booking, player)
     fin.admin.ok("POST", f"/api/admin/finance/earnings/{earning_of(fin, booking)}/release", json={})
     coach2, player2, booking2, _ = paid_booking(fin, 2)
 

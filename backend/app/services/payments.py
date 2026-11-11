@@ -34,6 +34,7 @@ from app.repositories import legal as legal_repo
 from app.repositories import payments as payments_repo
 from app.repositories.ledger import Leg
 from app.services import finance_notifications as notify
+from app.services import session_confirmation as session_confirmation_service
 from app.services.legal import DOCUMENTS
 from app.services.money import rub_to_kopecks, split_commission
 
@@ -276,8 +277,8 @@ async def _finalize_success(conn: asyncpg.Connection, settings: Settings, attemp
                 await notify.incident(conn, settings, kind="paid_unexpected_state", payment_id=payment["id"], key=str(attempt_id))
             return
         booking = await bookings_repo.get_booking(conn, payment["booking_id"])
-        completed = bool(booking and booking.get("training_status") == "completed")
-        earning, _ = await earnings_repo.create(conn, payment, session_confirmed=completed)
+        # The earning starts unconfirmed; if the session's confirmation already closed (or is disputed), it follows that at once.
+        earning, _ = await earnings_repo.create(conn, payment, session_confirmed=False)
         await ledger.post(
             conn, kind="payment_received", business_key=f"payment:{payment['id']}:received",
             description="Оплата тренировки получена", payment_id=payment["id"], booking_id=payment["booking_id"], earning_id=earning["id"],
@@ -290,6 +291,7 @@ async def _finalize_success(conn: asyncpg.Connection, settings: Settings, attemp
                 Leg("trainer_pending", "credit", payment["trainer_kopecks"], owner=payment["coach_user_id"]),
             ],
         )
+        await session_confirmation_service.on_new_earning(conn, settings, booking)
         await notify.payment_confirmed(conn, payment)
         if booking is None or booking["status"] != "confirmed" or booking.get("training_status") == "cancelled":
             if await payments_repo.record_incident(conn, kind="paid_booking_closed", payment_id=payment["id"], attempt_id=attempt_id,

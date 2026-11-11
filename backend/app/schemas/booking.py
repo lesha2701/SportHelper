@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
@@ -96,6 +97,40 @@ class BookingMoneyOut(BaseModel):
     cancellation_policy: str | None = None
 
 
+class SessionConfirmationOut(BaseModel):
+    """Whether the session took place, as one side of the booking sees it, and what that side can do now."""
+
+    state: Literal["scheduled", "awaiting", "confirmed", "auto_confirmed", "disputed", "resolved_released", "resolved_refunded"]
+    window_closes_at: datetime  # when the background pass confirms it by itself (48 hours after the end) unless someone disputes
+    coach_marked_at: datetime | None = None
+    confirmed_at: datetime | None = None
+    confirmed_method: Literal["athlete", "code", "auto"] | None = None
+    disputed_by_role: Literal["athlete", "coach"] | None = None
+    dispute_kind: Literal["athlete_no_show", "coach_no_show", "not_conducted", "other"] | None = None
+    dispute_text: str | None = None
+    resolved_at: datetime | None = None
+    can_confirm: bool = False
+    can_report_problem: bool = False
+    can_get_code: bool = False
+    can_enter_code: bool = False
+
+
+class SessionCodeOut(BaseModel):
+    """The athlete's one-time code: shown once; asking again issues a new one and this one stops working."""
+
+    code: str
+    expires_at: datetime
+
+
+class SessionCodeIn(BaseModel):
+    code: str = Field(min_length=1, max_length=20)
+
+
+class SessionProblemIn(BaseModel):
+    kind: Literal["athlete_no_show", "coach_no_show", "not_conducted", "other"]
+    text: str | None = Field(default=None, max_length=1000)
+
+
 class BookingOut(BaseModel):
     id: UUID
     coach_user_id: UUID
@@ -129,6 +164,8 @@ class BookingOut(BaseModel):
     # comparing starts_at with the device's clock: starts_at is the session's wall-clock time with a UTC label, not a real instant.
     has_started: bool = Field(default=False, description="The session's start has come on the platform's clock.")
     cancellation: CancellationOut | None = None
+    # confirming that the session took place (docs/session-confirmation.md); None until the booking is confirmed or after it is cancelled
+    session_confirmation: SessionConfirmationOut | None = None
 
 
 class PaymentStartOut(BaseModel):

@@ -36,7 +36,7 @@ async def release_earning(
         if earning["status"] != "pending":
             raise APIError("Это начисление нельзя выпустить.", code="earning_not_releasable", status_code=409)
         if earning["session_confirmed_at"] is None:
-            raise APIError("Тренер ещё не отметил тренировку проведённой.", code="session_not_confirmed", status_code=409)
+            raise APIError("Занятие ещё не подтверждено (игроком, его кодом или само через 48 часов).", code="session_not_confirmed", status_code=409)
         amount = earning["trainer_kopecks"] - earning["reversed_kopecks"]
         if amount <= 0:
             raise APIError("Нечего выпускать: начисление полностью возвращено.", code="earning_not_releasable", status_code=409)

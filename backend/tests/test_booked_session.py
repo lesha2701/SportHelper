@@ -1,5 +1,5 @@
 """The session of a booking lives in the athlete's calendar, but its time and its «conducted» belong to the booking (docs/session-confirmation.md):
-the athlete must not mark it conducted or move it by editing the training, and the coach's «Тренировка проведена» always settles the earning."""
+the athlete must not mark it conducted or move it by editing the training; whether it took place is settled by the confirmation."""
 from __future__ import annotations
 
 from app.core import session_time
@@ -39,6 +39,8 @@ def test_the_athlete_cannot_mark_a_booked_session_conducted(fin) -> None:
         assert refused.status_code == 409 and refused.json()["error"]["code"] == "booked_session_managed_by_booking"
     assert sql_value(fin.dsn, "SELECT status FROM trainings WHERE id = $1::uuid", training_id) == "scheduled"
     assert coach.call("POST", f"/api/bookings/{booking['id']}/complete").status_code == 200
+    assert _confirmed_at(fin) is None  # the coach's mark is only a mark (TR-06): the athlete's confirmation opens the money
+    assert player.call("POST", f"/api/bookings/{booking['id']}/session/confirm").status_code == 200
     assert _confirmed_at(fin) is not None
 
 
@@ -68,17 +70,19 @@ def test_the_session_of_a_cancelled_booking_cannot_be_brought_back(fin) -> None:
     assert refused.status_code == 409 and sql_value(fin.dsn, "SELECT status FROM trainings WHERE id = $1::uuid", training_id) == "cancelled"
 
 
-def test_the_coachs_mark_settles_the_earning_even_when_the_training_was_already_marked(fin) -> None:
-    """Sessions an athlete marked conducted before this was closed: the coach's button must still settle the money, and only after the start."""
+def test_the_coachs_mark_is_recorded_even_when_the_training_was_already_marked(fin) -> None:
+    """Sessions an athlete marked conducted before this was closed: the coach's button still records the mark, and only after the start."""
     coach, player, booking, _ = paid_booking(fin)
     training_id = _training_id(fin, booking)
     sql(fin.dsn, "UPDATE trainings SET status = 'completed' WHERE id = $1::uuid", training_id)  # as the old road left it
 
     _starts_in(fin, booking, 48)
     early = coach.call("POST", f"/api/bookings/{booking['id']}/complete")
-    assert early.status_code == 409 and early.json()["error"]["code"] == "session_not_started" and _confirmed_at(fin) is None
+    assert early.status_code == 409 and early.json()["error"]["code"] == "session_not_started"
+    assert sql_value(fin.dsn, "SELECT count(*) FROM session_confirmations") == 0
 
     _starts_in(fin, booking, -2)
     assert coach.call("POST", f"/api/bookings/{booking['id']}/complete").status_code == 200
-    assert _confirmed_at(fin) is not None
     assert coach.call("POST", f"/api/bookings/{booking['id']}/complete").status_code == 200  # repeating it is still harmless
+    assert sql_value(fin.dsn, "SELECT coach_marked_at IS NOT NULL FROM session_confirmations") is True
+    assert _confirmed_at(fin) is None
