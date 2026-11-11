@@ -10,6 +10,8 @@ import {
   type FinanceOverview,
 } from "../../../api/adminFinance";
 import { ErrorBox, PageHead, Pager, Pill, ReasonDialog, formatDateTime, useAdminQuery } from "../adminUi";
+import { BankBalanceCard } from "./BankBalanceCard";
+import { CommissionCard } from "./CommissionCard";
 import { DisputesTab } from "./DisputesTab";
 import { EarningsTab } from "./EarningsTab";
 import { PaymentsTab } from "./PaymentsTab";
@@ -88,12 +90,16 @@ function OverviewTab({ onOpen }: { onOpen: (tab: TabId) => void }) {
       </div>
 
       <h2 className={styles.cardTitle}>Деньги платформы</h2>
+      <CommissionCard onChanged={reload} />
       <div className={styles.grid}>
         <Tile label="Получено от игроков" value={money(o.grossReceivedKopecks)} hint="за вычетом возвратов; это не доход платформы" />
         <Tile label="Комиссия платформы" value={money(o.platformCommissionKopecks)} hint={`${o.commissionPercent}% с каждой оплаты, без возвращённой`} />
         <Tile label="Выплачено тренерам" value={money(o.paidOutKopecks)} />
         <Tile label="Долги тренеров" value={money(o.trainerDebtsKopecks)} tone={o.trainerDebtsKopecks > 0 ? "bad" : undefined} hint="возвраты после выплаты" />
       </div>
+
+      <h2 className={styles.cardTitle}>Расчётный счёт: тренерские и наши деньги</h2>
+      <BankBalanceCard />
 
       <h2 className={styles.cardTitle}>Что платформа должна тренерам</h2>
       <div className={styles.grid}>
@@ -126,7 +132,7 @@ function OverviewTab({ onOpen }: { onOpen: (tab: TabId) => void }) {
         />
       </div>
       <p className={styles.pageHint}>
-        Комиссия ЮKassa и поступления на расчётный счёт сайтом не учитываются — их берут из отчётов ЮKassa и банковской выписки.
+        Остаток расчётного счёта вводит администратор по выписке: сайт его не видит. Комиссия ЮKassa снимается только с нашей части, поэтому тренерские деньги всегда точные.
       </p>
     </>
   );

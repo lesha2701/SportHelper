@@ -16,6 +16,8 @@ from app.api.deps import AuthContext, get_db, get_settings_dep, require_finance_
 from app.config import Settings
 from app.core.exceptions import APIError, NotFoundError
 from app.integrations.yookassa import YooKassaError
+from app.repositories import bank_balance as bank_balance_repo
+from app.repositories import commission as commission_repo
 from app.repositories import earnings as earnings_repo
 from app.repositories import finance_views
 from app.repositories import ledger
@@ -23,8 +25,9 @@ from app.repositories import payments as payments_repo
 from app.repositories import refunds as refunds_repo
 from app.repositories import session_confirmations as confirmations_repo
 from app.repositories import withdrawals as withdrawals_repo
-from app.schemas.finance import MarkPaidIn, OptionalNoteIn, ReasonIn, RefundIn, RejectIn, ResolveDisputeIn, ResolveIncidentIn
+from app.schemas.finance import BankBalanceIn, CommissionIn, MarkPaidIn, OptionalNoteIn, ReasonIn, RefundIn, RejectIn, ResolveDisputeIn, ResolveIncidentIn
 from app.services import admin_audit
+from app.services import commission as commission_service
 from app.services import earnings as earnings_service
 from app.services import payout_details
 from app.services import refunds as refunds_service
@@ -56,7 +59,7 @@ async def overview(
             "withdrawals": settings.trainer_withdrawals_enabled, "payout_confirmation": settings.trainer_payout_confirmation_enabled,
             "two_person_rule": settings.finance_two_person_rule, "release_mode": settings.earning_release_mode,
         },
-        "commission_percent": str(settings.platform_commission_percent),
+        "commission_percent": commission_service.percent_text(await commission_service.current_percent(conn, settings)),
         "min_withdrawal_kopecks": settings.trainer_min_withdrawal_rub * 100,
         "payments": data["payments"],
         "gross_received_kopecks": data["payments"]["gross"] - data["payments"]["refunded"],
@@ -74,6 +77,100 @@ async def overview(
         "provider_fees_kopecks": None,
         "bank_receipts_kopecks": None,
     }
+
+
+def _commission_view(percent, source: str, history: list[dict[str, Any]], settings: Settings) -> dict[str, Any]:
+    return {
+        "percent": commission_service.percent_text(percent),
+        "source": source,  # "admin": set here; "environment": nobody has changed it yet (PLATFORM_COMMISSION_PERCENT)
+        "environment_percent": commission_service.percent_text(settings.platform_commission_percent),
+        "max_percent": "50",
+        "applies_to": "new_payments",  # a payment keeps the percent it was created with
+        "history": [
+            {"id": h["id"], "percent": commission_service.percent_text(h["percent"]),
+             "previous": None if h["previous"] is None else commission_service.percent_text(h["previous"]),
+             "reason": h["reason"], "changed_by_email": h["changed_by_email"], "created_at": h["created_at"]}
+            for h in history
+        ],
+    }
+
+
+@router.get("/commission")
+async def get_commission(
+    ctx: AuthContext = Depends(require_finance_admin), conn: asyncpg.Connection = Depends(get_db), settings: Settings = Depends(get_settings_dep)
+) -> dict[str, Any]:
+    """The commission in force, where it comes from and the history of its changes."""
+    chosen = await commission_repo.latest(conn)
+    percent = chosen if chosen is not None else settings.platform_commission_percent
+    return _commission_view(percent, "admin" if chosen is not None else "environment", await commission_repo.history(conn), settings)
+
+
+@router.put("/commission")
+async def set_commission(
+    payload: CommissionIn,
+    ctx: AuthContext = Depends(require_finance_recent_mfa),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> dict[str, Any]:
+    """Changes the commission for the payments created from now on. Payments that already exist keep the percent they were created
+    with, so the earnings, refunds and payouts under them are untouched. Needs the second factor entered a moment ago; audited."""
+    async with conn.transaction():
+        # Two administrators changing it at once are served one after the other, each recording what applied before it.
+        await conn.execute("SELECT pg_advisory_xact_lock(hashtext('commission_changes'))")
+        before = await commission_service.current_percent(conn, settings)
+        if payload.percent == before:
+            raise APIError("Это и так текущая комиссия.", code="commission_unchanged", status_code=409)
+        await commission_repo.record_change(conn, percent=payload.percent, previous=before, reason=payload.reason.strip(), changed_by=ctx.user["id"])
+        await admin_audit.record(
+            conn, ctx.user["id"], "finance.commission.change", target_type="commission", target_id="platform", reason=payload.reason,
+            before={"percent": commission_service.percent_text(before)}, after={"percent": commission_service.percent_text(payload.percent)},
+        )
+    return _commission_view(payload.percent, "admin", await commission_repo.history(conn), settings)
+
+
+def _trainers_money(totals: dict[str, int]) -> int:
+    """The trainers' part of the account, exactly: waiting for the session + available + in withdrawal requests. The platform's own commission
+    is the rest, and the commission of ЮKassa comes off the platform's part only, never the trainers'. (A trainer's debt is money the
+    platform is owed, not money on the account, so it is not taken off.)"""
+    return totals["trainer_pending"] + totals["trainer_available"] + totals["trainer_reserved"]
+
+
+def _snapshot_view(s: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": s["id"], "balance_kopecks": s["balance_kopecks"], "trainers_kopecks": s["trainers_kopecks"],
+        "ours_kopecks": s["balance_kopecks"] - s["trainers_kopecks"],  # negative = the account holds less than the trainers are owed
+        "note": s["note"], "entered_by_email": s["entered_by_email"], "created_at": s["created_at"],
+    }
+
+
+@router.get("/bank-balance")
+async def get_bank_balance(ctx: AuthContext = Depends(require_finance_admin), conn: asyncpg.Connection = Depends(get_db)) -> dict[str, Any]:
+    """The last balance of the settlement account that someone entered, split into the trainers' money (exact, by the books at that
+    moment) and ours (the rest), next to what the trainers are owed now."""
+    snapshots = await bank_balance_repo.history(conn)
+    trainers_now = _trainers_money(await ledger.platform_totals(conn))
+    return {
+        "latest": _snapshot_view(snapshots[0]) if snapshots else None,
+        "trainers_now_kopecks": trainers_now,
+        "history": [_snapshot_view(s) for s in snapshots],
+    }
+
+
+@router.post("/bank-balance")
+async def enter_bank_balance(payload: BankBalanceIn, ctx: AuthContext = Depends(require_finance_write), conn: asyncpg.Connection = Depends(get_db)) -> dict[str, Any]:
+    """Records the balance copied from the bank statement. The trainers' money is read from the books in the same transaction, so the
+    split is exact for this moment. Nothing moves: this is a note of what the bank shows."""
+    async with conn.transaction():
+        trainers = _trainers_money(await ledger.platform_totals(conn))
+        snapshot = await bank_balance_repo.record(
+            conn, balance_kopecks=payload.balance_kopecks, trainers_kopecks=trainers,
+            note=(payload.note or "").strip() or None, entered_by=ctx.user["id"],
+        )
+        await admin_audit.record(
+            conn, ctx.user["id"], "finance.bank_balance.entered", target_type="bank_balance", target_id=snapshot["id"],
+            after={"balance_kopecks": payload.balance_kopecks, "trainers_kopecks": trainers},
+        )
+    return await get_bank_balance(ctx, conn)
 
 
 @router.get("/integrity")

@@ -29,6 +29,7 @@ function queryString(params: Record<string, string | number | undefined>): strin
 }
 
 const get = async <T>(path: string) => camelize<T>(await apiRequest<Json>(path, QUIET));
+const put = async <T>(path: string, body: unknown = {}) => camelize<T>(await apiRequest<Json>(path, { method: "PUT", body, silent: true }));
 const post = async <T>(path: string, body: unknown = {}) => camelize<T>(await apiRequest<Json>(path, { method: "POST", body, silent: true }));
 
 export interface FinancePage<T> {
@@ -247,3 +248,47 @@ export const listFinanceDisputes = (q: { openOnly: boolean; limit: number; offse
   get<FinancePage<AdminDispute>>(`/api/admin/finance/disputes${queryString({ open_only: String(q.openOnly), limit: q.limit, offset: q.offset })}`);
 export const resolveFinanceDispute = (bookingId: string, outcome: "release" | "refund", note: string) =>
   post<{ bookingId: string; state: string; refundId: string | null }>(`/api/admin/finance/disputes/${bookingId}/resolve`, { outcome, note });
+
+export interface CommissionChange {
+  id: number;
+  percent: string;
+  previous: string | null;
+  reason: string;
+  changedByEmail: string | null;
+  createdAt: string;
+}
+
+export interface Commission {
+  percent: string;
+  /** "admin": set in this panel; "environment": nobody has changed it yet, the server's setting applies. */
+  source: "admin" | "environment";
+  environmentPercent: string;
+  maxPercent: string;
+  history: CommissionChange[];
+}
+
+export const getCommission = () => get<Commission>("/api/admin/finance/commission");
+export const setCommission = (percent: string, reason: string) => put<Commission>("/api/admin/finance/commission", { percent, reason });
+
+export interface BankBalanceEntry {
+  id: number;
+  balanceKopecks: number;
+  /** The trainers' money by the books at the moment of the entry: exact. */
+  trainersKopecks: number;
+  /** The rest of the account: the platform's own money (negative when the account holds less than the trainers are owed). */
+  oursKopecks: number;
+  note: string | null;
+  enteredByEmail: string | null;
+  createdAt: string;
+}
+
+export interface BankBalance {
+  latest: BankBalanceEntry | null;
+  /** What the trainers are owed by the books right now. */
+  trainersNowKopecks: number;
+  history: BankBalanceEntry[];
+}
+
+export const getBankBalance = () => get<BankBalance>("/api/admin/finance/bank-balance");
+export const enterBankBalance = (balanceKopecks: number, note?: string) =>
+  post<BankBalance>("/api/admin/finance/bank-balance", { balance_kopecks: balanceKopecks, note: note || null });

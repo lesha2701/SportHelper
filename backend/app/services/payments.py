@@ -33,6 +33,7 @@ from app.repositories import ledger
 from app.repositories import legal as legal_repo
 from app.repositories import payments as payments_repo
 from app.repositories.ledger import Leg
+from app.services import commission as commission_service
 from app.services import finance_notifications as notify
 from app.services import session_confirmation as session_confirmation_service
 from app.services.legal import DOCUMENTS
@@ -133,14 +134,15 @@ async def start_payment(
         raise APIError("Онлайн-оплата сейчас недоступна.", code="payments_unavailable", status_code=503)
     ensure_payable(booking)
     gross = rub_to_kopecks(booking["price_per_session"])  # from the booking row, never from the request
-    fee, trainer = split_commission(gross, settings.platform_commission_percent)
+    percent = await commission_service.current_percent(conn, settings)
+    fee, trainer = split_commission(gross, percent)
 
     async with conn.transaction():
         # Serialises two simultaneous clicks on the same booking.
         await conn.execute("SELECT 1 FROM bookings WHERE id = $1 FOR UPDATE", booking["id"])
         payment, created = await payments_repo.create_payment(
             conn, booking_id=booking["id"], payer_user_id=user["id"], coach_user_id=booking["coach_user_id"], currency=booking["currency"],
-            gross_kopecks=gross, commission_percent=settings.platform_commission_percent, platform_fee_kopecks=fee, trainer_kopecks=trainer,
+            gross_kopecks=gross, commission_percent=percent, platform_fee_kopecks=fee, trainer_kopecks=trainer,
         )
         if payment["payer_user_id"] != user["id"]:
             raise APIError("Это бронирование оплачивает другой пользователь.", code="payment_owner_mismatch", status_code=409)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
@@ -20,6 +21,18 @@ class WithdrawalCreateIn(BaseModel):
 
 class ReasonIn(BaseModel):
     reason: str = Field(min_length=1, max_length=500)
+
+
+class CommissionIn(BaseModel):
+    """A new commission percent for the payments created from now on (0-50, at most two decimals) and why."""
+    percent: Decimal = Field(ge=0, le=50, decimal_places=2)
+    reason: str = Field(min_length=1, max_length=500)
+
+
+class BankBalanceIn(BaseModel):
+    """The balance of the settlement account as the bank shows it, in kopecks (the browser converts roubles exactly)."""
+    balance_kopecks: int = Field(ge=0, le=100_000_000_000_00)
+    note: str | None = Field(default=None, max_length=500)
 
 
 class OptionalNoteIn(BaseModel):

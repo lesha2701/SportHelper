@@ -20,6 +20,7 @@ from app.repositories import profiles as profiles_repo
 from app.repositories import withdrawals as withdrawals_repo
 from app.schemas.finance import WithdrawalCreateIn
 from app.services import accounts as accounts_service
+from app.services import commission as commission_service
 from app.services import email_templates as templates
 from app.services import withdrawals as withdrawals_service
 from app.services.money import format_rub
@@ -61,7 +62,7 @@ async def summary(
         "withdrawals_enabled": settings.trainer_withdrawals_enabled,
         "can_withdraw": settings.trainer_withdrawals_enabled and available >= minimum,
         "shortfall_kopecks": max(minimum - available, 0),
-        "commission_percent": str(settings.platform_commission_percent),
+        "commission_percent": commission_service.percent_text(await commission_service.current_percent(conn, settings)),
     }
 
 

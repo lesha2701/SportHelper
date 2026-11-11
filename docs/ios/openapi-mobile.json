@@ -10907,6 +10907,34 @@
         ],
         "title": "BanRecordOut"
       },
+      "BankBalanceIn": {
+        "properties": {
+          "balance_kopecks": {
+            "type": "integer",
+            "maximum": 10000000000000.0,
+            "minimum": 0.0,
+            "title": "Balance Kopecks"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "balance_kopecks"
+        ],
+        "title": "BankBalanceIn",
+        "description": "The balance of the settlement account as the bank shows it, in kopecks (the browser converts roubles exactly)."
+      },
       "BlockIn": {
         "properties": {
           "reason": {
@@ -13116,6 +13144,36 @@
           "created_at"
         ],
         "title": "CoachReviewOut"
+      },
+      "CommissionIn": {
+        "properties": {
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 50.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Percent"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "percent",
+          "reason"
+        ],
+        "title": "CommissionIn",
+        "description": "A new commission percent for the payments created from now on (0-50, at most two decimals) and why."
       },
       "ComplaintCreatedOut": {
         "properties": {
