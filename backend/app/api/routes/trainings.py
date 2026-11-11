@@ -102,6 +102,20 @@ async def _refuse_to_drop_a_booked_session(conn: asyncpg.Connection, training: d
         )
 
 
+async def _refuse_to_move_or_mark_a_booked_session(conn: asyncpg.Connection, training: dict, payload: TrainingUpdateIn) -> None:
+    """The athlete owns a booked session in the calendar, but its time and whether it took place belong to the booking: moving it here would
+    leave the booking at the old time, and marking it conducted here would close the booking without the coach (the coach's «Тренировка
+    проведена» settles the trainer's money). Notes, the plan and the reminder stay the athlete's own."""
+    changes_time = (payload.training_date, payload.start_time, payload.duration_minutes) != (
+        training["training_date"], training["start_time"], training["duration_minutes"]
+    )
+    if (changes_time or payload.status != training["status"]) and await bookings_repo.is_booked_session(conn, training["id"]):
+        raise APIError(
+            "Это занятие по записи к тренеру: его время и отметку «проведена» меняет запись, а не календарь.",
+            code="booked_session_managed_by_booking", status_code=409,
+        )
+
+
 async def _get_training_or_404(conn: asyncpg.Connection, training_id: UUID) -> dict:
     training = await trainings_repo.get_training(conn, training_id)
     if training is None:
@@ -228,6 +242,7 @@ async def update_training(
     await _validate_plan_ownership(conn, payload.plan_id, user["id"])
     if payload.status == "cancelled" and training["status"] != "cancelled":
         await _refuse_to_drop_a_booked_session(conn, training)
+    await _refuse_to_move_or_mark_a_booked_session(conn, training, payload)
 
     if training["type"] == "personal":
         if payload.is_independent:

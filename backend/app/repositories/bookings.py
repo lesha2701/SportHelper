@@ -201,6 +201,11 @@ def can_cancel(booking: dict[str, Any], *, now: datetime | None = None) -> bool:
     return not has_started(booking, now=now)
 
 
+async def is_booked_session(conn: asyncpg.Connection, training_id: UUID) -> bool:
+    """Whether the training is the session of a booking (confirmed or already cancelled): its time and status then belong to the booking."""
+    return bool(await conn.fetchval("SELECT EXISTS (SELECT 1 FROM bookings WHERE training_id = $1)", training_id))
+
+
 async def has_confirmed_booking_for_training(conn: asyncpg.Connection, training_id: UUID) -> bool:
     """Whether the training is the session of a confirmed booking (its cancelling then has to go through the booking, with the money)."""
     return bool(await conn.fetchval("SELECT EXISTS (SELECT 1 FROM bookings WHERE training_id = $1 AND status = 'confirmed')", training_id))

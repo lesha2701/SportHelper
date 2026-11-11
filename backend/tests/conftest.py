@@ -2531,6 +2531,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
         return False  # the in-memory world has no marketplace bookings behind trainings
 
     monkeypatch.setattr(bookings_module_ai, "has_confirmed_booking_for_training", fake_has_confirmed_booking_for_training)
+    monkeypatch.setattr(bookings_module_ai, "is_booked_session", fake_has_confirmed_booking_for_training)
     monkeypatch.setattr(analyses_module, "upsert", fake_analyses_upsert)
     monkeypatch.setattr(analyses_module, "get_for_training", fake_analyses_get)
     monkeypatch.setattr(analyses_module, "delete_for_player", fake_analyses_delete_for_player)
