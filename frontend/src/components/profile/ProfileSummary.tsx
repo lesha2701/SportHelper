@@ -184,10 +184,13 @@ export function ProfileSummary({
           ]
         : [];
 
-  // A coach's offers to the players are a block of their own, right after «О тренере»: their listings, the money, the catalogue.
+  // A coach's offers to the players are a block of their own, right after «О тренере»: their listings, the requests and bookings
+  // that come from them, the money, the catalogue.
   const offerRows: ActionRowDef[] = [];
   if (mode === "coach" && profile.coach) {
     offerRows.push({ key: "listings", icon: "settings", label: "Мои объявления", onClick: onOpenMarketplaceSettings });
+    offerRows.push({ key: "incoming", icon: "inbox", label: "Входящие заявки", badge: pendingCount, onClick: onOpenIncomingBookings });
+    offerRows.push({ key: "records", icon: "calendar", label: "Записи", onClick: onOpenCoachBookings });
     if (trainerBalance) {
       offerRows.push({ key: "finance", icon: "wallet", label: "Финансы", onClick: () => navigateApp({ kind: "finance" }) });
     }
@@ -200,21 +203,8 @@ export function ProfileSummary({
   }
 
   const actionRows: ActionRowDef[] = [];
-  if (mode === "coach" && profile.coach) {
-    actionRows.push({
-      key: "incoming",
-      icon: "inbox",
-      label: "Входящие заявки",
-      badge: pendingCount,
-      onClick: onOpenIncomingBookings,
-    });
-  }
   actionRows.push({ key: "stats", icon: "award", label: "Моя статистика", onClick: onOpenMyStats });
-  actionRows.push(
-    mode === "coach"
-      ? { key: "records", icon: "calendar", label: "Записи", onClick: onOpenCoachBookings }
-      : { key: "bookings", icon: "calendar", label: "Мои брони", onClick: onOpenMyBookings },
-  );
+  if (mode !== "coach") actionRows.push({ key: "bookings", icon: "calendar", label: "Мои брони", onClick: onOpenMyBookings });
   actionRows.push({
     key: "notifications",
     icon: "bell",

@@ -403,6 +403,16 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
         </div>
       )}
 
+      {/* A player (or a captain of a team with a coach) has no «Настройки»: leaving is offered under the roster. */}
+      {tab === "roster" && !canSeeSettingsTab && myRole && (
+        <div className={profileStyles.card}>
+          {leaveError && <p className={profileStyles.error}>{leaveError}</p>}
+          <button type="button" className={profileStyles.buttonSecondary} onClick={() => setLeaveConfirmOpen(true)}>
+            Покинуть команду
+          </button>
+        </div>
+      )}
+
       {tab === "chat" && <ChatScreen token={token} target={{ kind: "team", id: teamId }} myUserId={myUserId} embedded onBack={() => setTab("roster")} />}
 
       {tab === "trainings" && <TeamTrainingsTab token={token} teamId={teamId} canManage={isCoachStaff} />}
@@ -483,7 +493,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
           description={
             isHeadCoach
               ? "Вы главный тренер — после выхода команда останется без тренера, пока капитан не пригласит нового."
-              : undefined
+              : "Вы перестанете видеть тренировки, задания и чат этой команды. Вернуться можно по новому приглашению."
           }
           danger
           busy={leaveBusy}
