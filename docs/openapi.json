@@ -5330,6 +5330,29 @@
         }
       }
     },
+    "/api/app-config": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "App Config",
+        "description": "What a mobile app reads when it starts (and after a 426): the minimum version it may run, the latest one and where to update.\nPublic and never refused for an old version. When the app says who it is (X-Client-Platform, X-Client-Version), `client` also answers\nfor it: `update_required` (the server will refuse it) and `update_available` (a newer version exists; offering it is up to the app).",
+        "operationId": "app_config_api_app_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response App Config Api App Config Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/profile/me": {
       "get": {
         "tags": [

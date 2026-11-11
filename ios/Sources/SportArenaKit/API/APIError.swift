@@ -11,13 +11,20 @@ public struct APIError: Error, Equatable, Sendable, LocalizedError {
     public let field: String?
     /// Seconds to wait before retrying a rate-limited request (HTTP 429).
     public let retryAfter: Int?
+    /// For `client_update_required` (HTTP 426): the oldest version the server still accepts, and where to get a newer one.
+    public let minVersion: String?
+    public let updateURL: String?
 
-    public init(status: Int, code: String, message: String, field: String? = nil, retryAfter: Int? = nil) {
+    public init(
+        status: Int, code: String, message: String, field: String? = nil, retryAfter: Int? = nil, minVersion: String? = nil, updateURL: String? = nil
+    ) {
         self.status = status
         self.code = code
         self.message = message
         self.field = field
         self.retryAfter = retryAfter
+        self.minVersion = minVersion
+        self.updateURL = updateURL
     }
 
     public var errorDescription: String? { message }
@@ -28,6 +35,8 @@ public struct APIError: Error, Equatable, Sendable, LocalizedError {
 
     public var isSessionExpired: Bool { status == 401 }
     public var isCSRFFailure: Bool { code == "csrf_failed" }
+    /// The server refuses this version of the app: nothing works until it is updated (docs/mobile.md, «Минимальная версия приложения»).
+    public var isUpdateRequired: Bool { status == 426 && code == "client_update_required" }
 }
 
 struct APIErrorEnvelope: Decodable {
@@ -36,6 +45,8 @@ struct APIErrorEnvelope: Decodable {
         let message: String
         let field: String?
         let retryAfter: Int?
+        let minVersion: String?
+        let updateUrl: String?
     }
     let error: Body
 }

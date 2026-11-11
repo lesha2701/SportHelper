@@ -25,6 +25,7 @@ public final class APIClient: Sendable {
     private let session: URLSession
     private let csrf: CSRFTokenStore
     private let onSessionExpired: (@Sendable () -> Void)?
+    private let onUpdateRequired: (@Sendable (APIError) -> Void)?
 
     /// Paths where a 401 means "wrong credentials / not signed in yet", not "your session ended".
     private static let openPaths: Set<String> = ["/api/auth/login", "/api/auth/register", "/api/auth/me", "/api/features"]
@@ -33,12 +34,29 @@ public final class APIClient: Sendable {
         baseURL: URL,
         session: URLSession = APIClient.makeSession(),
         csrf: CSRFTokenStore = CSRFTokenStore(),
-        onSessionExpired: (@Sendable () -> Void)? = nil
+        onSessionExpired: (@Sendable () -> Void)? = nil,
+        onUpdateRequired: (@Sendable (APIError) -> Void)? = nil,
+        version: String? = APIClient.appVersion
     ) {
         self.baseURL = baseURL
         self.session = session
         self.csrf = csrf
         self.onSessionExpired = onSessionExpired
+        self.onUpdateRequired = onUpdateRequired
+        self.version = Self.versionForServer(version)
+    }
+
+    /// What this app sends as `X-Client-Version` (nil = nothing is sent, e.g. a build number that is not dotted numbers).
+    private let version: String?
+
+    /// The version of this build from Info.plist («1.4.0»).
+    public static var appVersion: String? { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String }
+
+    /// The server compares versions as dotted numbers («1.4.0») and ignores anything else, so a value like «1.4-beta» is not sent at all.
+    static func versionForServer(_ text: String?) -> String? {
+        guard let text = text?.trimmingCharacters(in: .whitespaces),
+              text.range(of: #"^\d{1,6}(\.\d{1,6}){0,3}$"#, options: .regularExpression) != nil else { return nil }
+        return text
     }
 
     /// How the app introduces itself. The server names the places where a person is signed in after it (the list of devices), and
@@ -112,6 +130,7 @@ public final class APIClient: Sendable {
         guard (200..<300).contains(http.statusCode) else {
             let error = Self.parseError(status: http.statusCode, data: data)
             if error.isSessionExpired, !Self.openPaths.contains(path) { onSessionExpired?() }
+            if error.isUpdateRequired { onUpdateRequired?(error) }
             throw error
         }
         return data
@@ -167,6 +186,9 @@ public final class APIClient: Sendable {
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        // Who is asking: the server refuses a version below its minimum with 426 (docs/mobile.md).
+        request.setValue("ios", forHTTPHeaderField: "X-Client-Platform")
+        if let version { request.setValue(version, forHTTPHeaderField: "X-Client-Version") }
         if method.isChange, let token = await csrf.current() {
             request.setValue(token, forHTTPHeaderField: "X-CSRF-Token")
         }
@@ -182,7 +204,7 @@ public final class APIClient: Sendable {
             return APIError(status: status, code: "unknown_error", message: APIError.unknown.message)
         }
         let e = envelope.error
-        return APIError(status: status, code: e.code, message: e.message, field: e.field, retryAfter: e.retryAfter)
+        return APIError(status: status, code: e.code, message: e.message, field: e.field, retryAfter: e.retryAfter, minVersion: e.minVersion, updateURL: e.updateUrl)
     }
 
     // MARK: - JSON

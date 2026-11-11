@@ -14,6 +14,7 @@ PUBLIC_ROUTES = {
     # health & docs
     ("GET", "/api/health"),
     ("GET", "/api/features"),
+    ("GET", "/api/app-config"),  # the minimum app version: an app that must update reads it before any sign-in (docs/mobile.md)
     ("POST", "/api/payments/yookassa/webhook"),  # called by ЮKassa; it believes nothing it is told (see the payments tests)
     # sign-up, sign-in and account recovery (these ARE the way in)
     ("POST", "/api/auth/register"),

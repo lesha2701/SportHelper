@@ -56,6 +56,11 @@ public final class AuthService: Sendable {
         try await client.send(.get, "/api/features")
     }
 
+    /// The minimum version the server accepts and whether this one is current (never refused, even for an old version).
+    public func appConfig() async throws -> AppConfig {
+        try await client.send(.get, "/api/app-config")
+    }
+
     private struct PasswordBody: Encodable, Sendable { let password: String }
 
     /// Asks to delete the account (an App Store requirement). The server keeps it for a grace period and can still undo it;

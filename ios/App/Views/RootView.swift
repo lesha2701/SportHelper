@@ -13,6 +13,19 @@ struct RootView: View {
     }
 
     @ViewBuilder private var content: some View {
+        if let notice = auth.updateNotice, notice.isRequired {
+            // the server refuses this version: nothing else could work
+            UpdateRequiredView(notice: notice)
+        } else {
+            // the offer of a newer version sits above whatever is shown, at the top of the screen
+            VStack(spacing: 0) {
+                if let notice = auth.updateNotice { UpdateOfferBanner(notice: notice) { auth.dismissUpdateOffer() } }
+                signedInOrOut.frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    @ViewBuilder private var signedInOrOut: some View {
         switch auth.state {
         case .starting:
             ProgressView("Загрузка…")
