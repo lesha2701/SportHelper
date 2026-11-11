@@ -52,6 +52,15 @@ enum CancelWording {
         let day = date.serverDay
         return "\(day.day) \(months[max(0, min(11, day.month - 1))]), \(date.serverTime.display)"
     }
+
+    /// "18 ноября, 12:00" in the reader's own time zone: for a real moment (when something happened), not for a session's time.
+    static func realMoment(_ date: Date, timeZone: TimeZone) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let parts = calendar.dateComponents([.day, .month, .hour, .minute], from: date)
+        let month = months[max(0, min(11, (parts.month ?? 1) - 1))]
+        return String(format: "%d %@, %02d:%02d", parts.day ?? 1, month, parts.hour ?? 0, parts.minute ?? 0)
+    }
 }
 
 /// What cancelling the booking right now would mean (`GET /api/bookings/{id}/cancel-preview`). Asking changes nothing.
@@ -113,19 +122,18 @@ public struct Cancellation: Decodable, Equatable, Sendable {
     public var policy: CancelPolicy { CancelPolicy(raw: policyRaw) }
     public var refundStatus: CancelRefundStatus { CancelRefundStatus(raw: refundStatusRaw) }
 
-    /// «Отменена вами · 20 ноября, 10:00»
-    public func headline(side: CancelSide) -> String {
+    /// «Отменена вами · 20 ноября, 10:00» — the moment of the cancellation is real, so it is in the reader's own time.
+    public func headline(side: CancelSide, timeZone: TimeZone = .current) -> String {
         let mine = (cancelledByRole == "coach") == (side == .coach)
         let who = mine ? "вами" : (cancelledByRole == "coach" ? "тренером" : "игроком")
-        return "Отменена \(who) · \(CancelWording.moment(cancelledAt))"
+        return "Отменена \(who) · \(CancelWording.realMoment(cancelledAt, timeZone: timeZone))"
     }
 
     /// The line about the money, seen from the side of whoever reads it (nil where nothing was paid or there is nothing to say).
+    /// «unpaid» has no line of its own; when the athlete paid afterwards anyway, the refund of that payment is told like any other.
     public func refundLine(side: CancelSide) -> String? {
         let sum = Money.kopecks(refundAmountKopecks)
         switch policy {
-        case .unpaid:
-            return nil
         case .athleteLate:
             return side == .coach
                 ? "Отмена позже срока бесплатной отмены: оплата осталась у вас."

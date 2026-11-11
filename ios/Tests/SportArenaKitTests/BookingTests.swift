@@ -440,8 +440,10 @@ struct BookingCancellationTests {
 
     @Test func theCardOfACancelledBookingSaysWhoAndWhereTheMoneyIs() throws {
         let cancellation = try #require(try decode(cancelledJSON).cancellation)
-        #expect(cancellation.headline(side: .athlete) == "Отменена вами · 18 ноября, 09:00")
-        #expect(cancellation.headline(side: .coach) == "Отменена игроком · 18 ноября, 09:00")
+        let moscow = try #require(TimeZone(identifier: "Europe/Moscow"))
+        // 09:00 UTC is when it happened; the reader in Moscow sees their own 12:00 (a session's time stays on the server's clock)
+        #expect(cancellation.headline(side: .athlete, timeZone: moscow) == "Отменена вами · 18 ноября, 12:00")
+        #expect(cancellation.headline(side: .coach, timeZone: moscow) == "Отменена игроком · 18 ноября, 12:00")
         #expect(plain(cancellation.refundLine(side: .athlete) ?? "").contains("Возврат 2 500,00 ₽ обрабатывается"))
         #expect(plain(cancellation.refundLine(side: .coach) ?? "") == "Игроку возвращается 2 500,00 ₽.")
     }
@@ -460,7 +462,16 @@ struct BookingCancellationTests {
 
     @Test func nothingIsSaidAboutMoneyWhenNothingWasPaid() throws {
         let text = cancelledJSON.replacingOccurrences(of: "\"policy\":\"athlete_early\"", with: "\"policy\":\"unpaid\"")
+            .replacingOccurrences(of: "\"refund_status\":\"pending\"", with: "\"refund_status\":\"none\"")
         #expect(try #require(try decode(text).cancellation).refundLine(side: .athlete) == nil)
+    }
+
+    @Test func aPaymentMadeAfterTheCancellationIsToldAsItGoesBack() throws {
+        // nothing was paid when it was cancelled, the athlete paid on a page opened before, and the server returns it by itself
+        let text = cancelledJSON.replacingOccurrences(of: "\"policy\":\"athlete_early\"", with: "\"policy\":\"unpaid\"")
+        let cancellation = try #require(try decode(text).cancellation)
+        #expect(plain(cancellation.refundLine(side: .athlete) ?? "").contains("Возврат 2 500,00 ₽ обрабатывается"))
+        #expect(plain(cancellation.refundLine(side: .coach) ?? "") == "Игроку возвращается 2 500,00 ₽.")
     }
 
     @Test func theCoachMustGiveAReasonTheAthleteNeedNot() {

@@ -220,8 +220,15 @@ def test_a_payment_that_arrives_after_the_cancellation_is_returned_in_full(fin) 
     assert sql_value(fin.dsn, "SELECT status FROM payments") == "paid"
     assert len(fin.provider.refund_requests) == 1 and fin.provider.refund_requests[0]["amount_kopecks"] == 250000
     assert sql_value(fin.dsn, "SELECT count(*) FROM payment_incidents WHERE kind = 'paid_booking_closed'") == 1  # the administrator still sees it
+
+    def card() -> dict:
+        return next(b for b in player.ok("GET", "/api/bookings/me") if b["id"] == booking["id"])["cancellation"]
+
+    # the card tells the athlete about the money they paid after all; the record of the decision itself stays «unpaid»
+    assert card()["policy"] == "unpaid" and card()["refund_status"] == "pending" and card()["refund_amount_kopecks"] == 250000
     finish_refund(fin)
     assert sql_value(fin.dsn, "SELECT status FROM payments") == "refunded" and sql_value(fin.dsn, "SELECT status FROM trainer_earnings") == "reversed"
+    assert card()["refund_status"] == "succeeded"
     assert_books_are_sound(fin.dsn)
 
 
@@ -351,6 +358,8 @@ def test_a_refund_the_bank_refuses_is_shown_as_failed_and_the_money_is_not_stuck
     assert done.json()["cancellation"]["refund_status"] == "failed"
     assert sql_value(fin.dsn, "SELECT status FROM refunds") == "failed"
     assert sql_value(fin.dsn, "SELECT refund_reserved_kopecks FROM payments") == 0  # the reserve is released: an administrator can return it by hand
+    # nobody pressed a button and saw an error, so the administrator has to be told: the screen promises the athlete they will handle it
+    assert sql_value(fin.dsn, "SELECT count(*) FROM payment_incidents WHERE kind = 'refund_failed' AND status = 'open'") == 1
     assert player.ok("GET", f"/api/bookings/{booking['id']}/money")["refunds"][0]["status"] == "failed"
     assert fin.admin.call("POST", f"/api/admin/finance/payments/{payment_id}/refund", json={"amount_kopecks": 250000, "reason": "вручную"}).status_code == 200
 

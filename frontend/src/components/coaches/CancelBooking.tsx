@@ -12,8 +12,12 @@ export type CancelSide = "athlete" | "coach";
 
 const MIN_COACH_REASON = 3;
 
+/** A session's time: kept as the wall-clock time of the session, so it is shown as it is (UTC), like everywhere else in the bookings. */
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+
+/** A real moment (when the booking was cancelled): shown in the reader's own time. */
+const formatMoment = (iso: string) => new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
 /** What the person is told BEFORE pressing the button, from the server's own calculation (the screen never works out the money itself). */
 export function previewText(preview: CancelPreview, side: CancelSide): string {
@@ -35,7 +39,7 @@ export function previewText(preview: CancelPreview, side: CancelSide): string {
 /** The line about the money in the card of a cancelled booking, seen from the side of whoever reads it. */
 export function refundLine(c: Cancellation, side: CancelSide): string | null {
   const sum = formatKopecks(c.refundAmountKopecks);
-  if (c.policy === "unpaid") return null;
+  // «unpaid» needs no line of its own: nothing was charged, unless the athlete paid afterwards — then the refund of that payment is told below
   if (c.policy === "athlete_late") return side === "coach" ? "Отмена меньше чем за срок бесплатной отмены: оплата осталась у вас." : "Деньги не возвращены: отмена пришла позже срока бесплатной отмены.";
   switch (c.refundStatus) {
     case "pending":
@@ -57,7 +61,7 @@ export function CancellationNote({ cancellation, side }: { cancellation: Cancell
   return (
     <div className={styles.paymentBox}>
       <p className={styles.paymentDue}>
-        Отменена {who} · {formatDate(cancellation.cancelledAt)}
+        Отменена {who} · {formatMoment(cancellation.cancelledAt)}
       </p>
       {cancellation.reason && <p className={profileStyles.subtitle}>Причина: {cancellation.reason}</p>}
       {line && <p className={cancellation.refundStatus === "failed" ? profileStyles.error : profileStyles.subtitle}>{line}</p>}
