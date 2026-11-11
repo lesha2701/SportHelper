@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { listMyTeams } from "../../api/teams";
 import { getCalendar } from "../../api/calendar";
+import { listCoachPendingBookings } from "../../api/bookings";
 import { getTeamStats } from "../../api/stats";
 import { listTeamMatches } from "../../api/matches";
 import { ApiError } from "../../api/client";
@@ -53,7 +54,7 @@ function isoDatePlusDays(days: number): string {
 type LoadState =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "empty" }
+  | { status: "empty"; events: CalendarEvent[] }
   | { status: "ready"; teams: Team[]; events: CalendarEvent[] };
 
 type StatsState =
@@ -86,7 +87,7 @@ export function CoachDashboard({
       .then(([teams, events]) => {
         const coachTeams = teams.filter((t) => t.myRole && COACH_STAFF_ROLES.has(t.myRole));
         if (coachTeams.length === 0) {
-          setState({ status: "empty" });
+          setState({ status: "empty", events });
           return;
         }
         setState({ status: "ready", teams: coachTeams, events });
@@ -126,20 +127,7 @@ export function CoachDashboard({
     return <StateScreen kind="error" title="Не удалось загрузить главную" description={state.message} onRetry={load} />;
   }
   if (state.status === "empty") {
-    return (
-      <>
-        <StateScreen
-          kind="empty"
-          title="Пока нет команд"
-          description="Создайте команду, чтобы видеть здесь тренировки, нагрузку и задачи."
-        />
-        <div style={{ display: "flex", justifyContent: "center", paddingBottom: 24 }}>
-          <button type="button" className={profileStyles.buttonPrimary} style={{ width: "auto", padding: "13px 24px" }} onClick={() => navigateApp({ kind: "tab", tab: "teams" })}>
-            Создать команду
-          </button>
-        </div>
-      </>
-    );
+    return <CoachWithoutTeam token={token} events={state.events} onOpenEvent={onOpenEvent} />;
   }
 
   const { teams, events } = state;
@@ -197,36 +185,7 @@ export function CoachDashboard({
       )}
 
       <div className={styles.bento}>
-        <button type="button" className={`${styles.heroCard} ${styles.span7}`} onClick={() => nextEvent && onOpenEvent(nextEvent)} disabled={!nextEvent}>
-          <svg viewBox="0 0 400 120" preserveAspectRatio="none" className={styles.heroWave}>
-            <path d={WAVE_PATH} stroke="#ff3b3f" strokeWidth="26" fill="none" strokeLinecap="round" />
-          </svg>
-          {nextEvent ? (
-            <>
-              <div className={styles.heroBadgeRow}>
-                <span className={styles.heroBadge}>
-                  {parseIsoDateLocal(nextEvent.date).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })}
-                  {nextEvent.time ? ` · ${nextEvent.time.slice(0, 5)}` : ""}
-                </span>
-                {nextEvent.teamName && <span className={styles.heroBadgeMeta}>{nextEvent.teamName}</span>}
-              </div>
-              <div className={styles.heroTitleRow}>
-                <div>
-                  <h2 className={styles.heroMainTitle}>{nextEvent.title}</h2>
-                  <p className={styles.heroSubtitle}>Ближайшее событие</p>
-                </div>
-                <Icon name={CALENDAR_EVENT_ICONS[nextEvent.type]} size={28} />
-              </div>
-            </>
-          ) : (
-            <div className={styles.heroTitleRow}>
-              <div>
-                <h2 className={styles.heroMainTitle}>Нет ближайших событий</h2>
-                <p className={styles.heroSubtitle}>Запланируйте тренировку или матч</p>
-              </div>
-            </div>
-          )}
-        </button>
+        <NextEventCard nextEvent={nextEvent} onOpenEvent={onOpenEvent} />
 
         <div className={`${styles.kpiRow} ${styles.span5}`}>
           {statsState.status === "ready" ? (
@@ -376,4 +335,100 @@ function dedupeByUser(list: PlayerActivity[]): PlayerActivity[] {
     out.push(p);
   }
   return out.sort((a, b) => (a.attendanceRate ?? 1) - (b.attendanceRate ?? 1));
+}
+
+/** The card with the nearest event: the first thing a coach looks at, with a team or without one. */
+function NextEventCard({ nextEvent, onOpenEvent }: { nextEvent: CalendarEvent | undefined; onOpenEvent: (event: CalendarEvent) => void }) {
+  return (
+    <button type="button" className={`${styles.heroCard} ${styles.span7}`} onClick={() => nextEvent && onOpenEvent(nextEvent)} disabled={!nextEvent}>
+      <svg viewBox="0 0 400 120" preserveAspectRatio="none" className={styles.heroWave}>
+        <path d={WAVE_PATH} stroke="#ff3b3f" strokeWidth="26" fill="none" strokeLinecap="round" />
+      </svg>
+      {nextEvent ? (
+        <>
+          <div className={styles.heroBadgeRow}>
+            <span className={styles.heroBadge}>
+              {parseIsoDateLocal(nextEvent.date).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })}
+              {nextEvent.time ? ` · ${nextEvent.time.slice(0, 5)}` : ""}
+            </span>
+            {nextEvent.teamName && <span className={styles.heroBadgeMeta}>{nextEvent.teamName}</span>}
+          </div>
+          <div className={styles.heroTitleRow}>
+            <div>
+              <h2 className={styles.heroMainTitle}>{nextEvent.title}</h2>
+              <p className={styles.heroSubtitle}>Ближайшее событие</p>
+            </div>
+            <Icon name={CALENDAR_EVENT_ICONS[nextEvent.type]} size={28} />
+          </div>
+        </>
+      ) : (
+        <div className={styles.heroTitleRow}>
+          <div>
+            <h2 className={styles.heroMainTitle}>Нет ближайших событий</h2>
+            <p className={styles.heroSubtitle}>Запланируйте тренировку или матч</p>
+          </div>
+        </div>
+      )}
+    </button>
+  );
+}
+
+/** A coach who is not in a team yet (the marketplace coach): the nearest event, this week and their own numbers instead of an empty screen. */
+function CoachWithoutTeam({ token, events, onOpenEvent }: { token: string; events: CalendarEvent[]; onOpenEvent: (event: CalendarEvent) => void }) {
+  const [pending, setPending] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    listCoachPendingBookings(token)
+      .then((list) => !cancelled && setPending(list.length))
+      .catch(() => !cancelled && setPending(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const today = isoDatePlusDays(0);
+  const nextEvent = events.find((e) => e.date >= today && isStillAhead(e));
+  const weekStart = startOfWeek(new Date());
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+  const weekEnd = toIso(weekDays[6]!);
+  const ahead = events.filter((e) => e.date >= today && isStillAhead(e));
+  const thisWeek = ahead.filter((e) => e.date <= weekEnd);
+
+  return (
+    <div className={styles.screen}>
+      <div className={styles.hero}>
+        <Ornament tone="primary" intensity="subtle" />
+        <p className={styles.heroLabel}>Главная</p>
+        <h1 className={styles.heroTitle}>Тренерская панель</h1>
+      </div>
+
+      <div className={styles.bento}>
+        <NextEventCard nextEvent={nextEvent} onOpenEvent={onOpenEvent} />
+
+        <div className={`${styles.kpiRow} ${styles.span5}`}>
+          <StatTile value={thisWeek.length} label="Занятий на этой неделе" tone="dark" />
+          <StatTile value={ahead.length} label="Событий в ближайшие 2 недели" />
+          <StatTile value={pending ?? "—"} label="Новых заявок" />
+        </div>
+
+        <div className={`${styles.card} ${styles.span8}`}>
+          <WeekOverview weekDays={weekDays} events={events} today={today} onOpenEvent={onOpenEvent} />
+        </div>
+
+        <div className={`${styles.card} ${styles.span4}`}>
+          <div className={styles.cardHeader}>
+            <h3 className={styles.cardTitle}>Команда</h3>
+          </div>
+          <p className={styles.emptyHint}>Создайте команду, чтобы видеть здесь посещаемость, нагрузку и матчи.</p>
+          <button type="button" className={profileStyles.buttonPrimary} onClick={() => navigateApp({ kind: "tab", tab: "teams" })}>
+            Создать команду
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
