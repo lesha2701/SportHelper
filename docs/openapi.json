@@ -4167,6 +4167,62 @@
         }
       }
     },
+    "/api/admin/finance/payouts/automation": {
+      "get": {
+        "tags": [
+          "admin-finance"
+        ],
+        "summary": "Payouts Automation",
+        "description": "Whether automatic payouts are on, whether the system stopped them itself and why.",
+        "operationId": "payouts_automation_api_admin_finance_payouts_automation_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Payouts Automation Api Admin Finance Payouts Automation Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/finance/payouts/automation/resume": {
+      "post": {
+        "tags": [
+          "admin-finance"
+        ],
+        "summary": "Payouts Automation Resume",
+        "description": "After looking into why the system stopped: resumes automatic payouts. Audited.",
+        "operationId": "payouts_automation_resume_api_admin_finance_payouts_automation_resume_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Payouts Automation Resume Api Admin Finance Payouts Automation Resume Post"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/admin/finance/withdrawals/{withdrawal_id}/details": {
       "post": {
         "tags": [

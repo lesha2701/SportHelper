@@ -16,6 +16,7 @@ from app.repositories import bookings as bookings_repo
 from app.repositories import payments as payments_repo
 from app.repositories import refunds as refunds_repo
 from app.repositories import users as users_repo
+from app.services import auto_payouts
 from app.services import earnings as earnings_service
 from app.services import payments as payments_service
 from app.services import refunds as refunds_service
@@ -75,7 +76,8 @@ async def run_finance_tick(conn: asyncpg.Connection, settings: Settings) -> None
     """Everything the background loop does for the finance contour (each part isolated: one failure never blocks the rest)."""
     # the sessions confirmed by themselves after 48 hours come first, so their earnings can be released in the same tick
     for name, job in (("payments", reconcile_payments), ("confirmations", session_confirmation_service.auto_confirm_due),
-                      ("confirmation reminders", session_confirmation_service.remind_due), ("earnings", earnings_service.release_due_earnings)):
+                      ("confirmation reminders", session_confirmation_service.remind_due), ("earnings", earnings_service.release_due_earnings),
+                      ("payouts", auto_payouts.process_due)):
         try:
             await job(conn, settings)
         except Exception:  # noqa: BLE001 - a bad step must not stop the others

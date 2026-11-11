@@ -5,6 +5,7 @@ and a replayed event cannot send twice (one dedup key per business event). Notif
 Messages never contain payment details."""
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
@@ -122,3 +123,22 @@ async def session_disputed(conn: asyncpg.Connection, settings: Settings, booking
         await _send(conn, user_id=admin_id, category="finance_admin", title="Спор по занятию",
                     body="Сторона записи сообщила о проблеме с занятием, начисление тренеру заморожено — откройте раздел «Финансы» админ-панели.",
                     entity_type="booking", entity_id=booking_id, key=f"session_disputed:{booking_id}:{admin_id}")
+
+
+# --- automatic payouts --------------------------------------------------------------------------------------------------------
+
+
+async def payouts_halted(conn: asyncpg.Connection, settings: Settings, reason: str) -> None:
+    """Automation stopped itself: every finance administrator is told why (the same stop is announced once)."""
+    for admin_id in await finance_admin_ids(conn, settings):
+        await _send(conn, user_id=admin_id, category="finance_admin", title="Автоматические выплаты остановлены",
+                    body=f"Система остановила автоматические выплаты: {reason[:300]}. Откройте раздел «Финансы» админ-панели, проверьте и возобновите.",
+                    entity_type="withdrawal", entity_id=admin_id, key=f"payouts_halted:{hashlib.md5(reason.encode()).hexdigest()[:12]}:{datetime.now(timezone.utc):%Y%m%d%H}:{admin_id}")
+
+
+async def payout_unresolved(conn: asyncpg.Connection, settings: Settings, withdrawal_id: UUID, attempt_id: UUID) -> None:
+    """A transfer has had no final answer from the provider for too long: a person must look at it (it is never re-sent by the system)."""
+    for admin_id in await finance_admin_ids(conn, settings):
+        await _send(conn, user_id=admin_id, category="finance_admin", title="Выплата без ответа банка",
+                    body="По выплате нет окончательного ответа банка. Деньги не возвращаются автоматически: проверьте перевод в кабинете банка и откройте заявку.",
+                    entity_type="withdrawal", entity_id=withdrawal_id, key=f"payout_unresolved:{attempt_id}:{admin_id}")

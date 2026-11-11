@@ -41,16 +41,17 @@ async def get_encrypted_details(conn: asyncpg.Connection, withdrawal_id: UUID) -
 
 
 async def insert(
-    conn: asyncpg.Connection, *, coach_user_id: UUID, amount_kopecks: int, method: str, details_enc: str, details_hint: str, client_key: UUID
+    conn: asyncpg.Connection, *, coach_user_id: UUID, amount_kopecks: int, method: str, details_enc: str, details_hint: str, client_key: UUID,
+    details_fingerprint: str | None = None,
 ) -> dict[str, Any] | None:
     row = await conn.fetchrow(
         f"""
-        INSERT INTO withdrawal_requests (coach_user_id, amount_kopecks, method, details_enc, details_hint, client_key)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO withdrawal_requests (coach_user_id, amount_kopecks, method, details_enc, details_hint, client_key, details_fingerprint)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         ON CONFLICT (coach_user_id, client_key) DO NOTHING
         RETURNING {_FIELDS.replace('w.', '')}
         """,
-        coach_user_id, amount_kopecks, method, details_enc, details_hint, client_key,
+        coach_user_id, amount_kopecks, method, details_enc, details_hint, client_key, details_fingerprint,
     )
     return dict(row) if row else None
 

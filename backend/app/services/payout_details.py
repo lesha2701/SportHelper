@@ -115,3 +115,13 @@ def encrypt(details: dict[str, str], settings: Settings) -> str:
 def decrypt(token: str, settings: Settings) -> dict[str, str] | None:
     plain = totp.decrypt_secret(token, settings.jwt_secret)
     return json.loads(plain) if plain else None
+
+
+def fingerprint(method: str, details: dict[str, str], settings: Settings) -> str:
+    """A keyed hash of WHERE the money goes (the phone, or the bank + account): the same recipient always gives the same value, and nothing
+    can be read back from it. Used to notice requisites that are new, or shared between two trainers."""
+    import hashlib
+    import hmac
+
+    target = details["phone"] if method == "sbp" else f"{details['bik']}:{details['account']}"
+    return hmac.new(f"payout-details:{settings.jwt_secret}".encode(), f"{method}:{target}".encode(), hashlib.sha256).hexdigest()
