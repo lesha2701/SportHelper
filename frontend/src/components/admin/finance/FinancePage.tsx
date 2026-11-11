@@ -10,6 +10,7 @@ import {
   type FinanceOverview,
 } from "../../../api/adminFinance";
 import { ErrorBox, PageHead, Pager, Pill, ReasonDialog, formatDateTime, useAdminQuery } from "../adminUi";
+import { DisputesTab } from "./DisputesTab";
 import { EarningsTab } from "./EarningsTab";
 import { PaymentsTab } from "./PaymentsTab";
 import { WithdrawalsTab } from "./WithdrawalsTab";
@@ -20,6 +21,7 @@ const TABS = [
   { id: "overview", label: "Обзор" },
   { id: "withdrawals", label: "Выводы" },
   { id: "earnings", label: "Начисления" },
+  { id: "disputes", label: "Споры" },
   { id: "payments", label: "Платежи" },
   { id: "refunds", label: "Возвраты" },
   { id: "incidents", label: "Инциденты" },
@@ -43,6 +45,7 @@ export function FinancePage() {
       {tab === "overview" && <OverviewTab onOpen={setTab} />}
       {tab === "withdrawals" && <WithdrawalsTab />}
       {tab === "earnings" && <EarningsTab />}
+      {tab === "disputes" && <DisputesTab />}
       {tab === "payments" && <PaymentsTab />}
       {tab === "refunds" && <RefundsTab />}
       {tab === "incidents" && <IncidentsTab />}
@@ -109,7 +112,7 @@ function OverviewTab({ onOpen }: { onOpen: (tab: TabId) => void }) {
         <button type="button" className={styles.card} style={{ textAlign: "left", cursor: "pointer" }} onClick={() => onOpen("earnings")}>
           <div className={styles.muted}>Начислений к проверке</div>
           <div style={{ fontSize: 22, fontWeight: 700 }}>{o.earnings.pending?.sessionConfirmed ?? 0}</div>
-          <div className={styles.muted}>тренер отметил занятие проведённым</div>
+          <div className={styles.muted}>занятие подтверждено</div>
         </button>
         <button type="button" className={styles.card} style={{ textAlign: "left", cursor: "pointer" }} onClick={() => onOpen("incidents")}>
           <div className={styles.muted}>Открытые инциденты</div>

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "../../api/adminFinance";
 import { getAdminSession } from "../../api/admin";
 import AdminApp from "./AdminApp";
+import { DisputesTab } from "./finance/DisputesTab";
 import { EarningsTab } from "./finance/EarningsTab";
 import { WithdrawalsTab } from "./finance/WithdrawalsTab";
 
@@ -23,6 +24,8 @@ vi.mock("../../api/adminFinance", async (importOriginal) => {
     releaseEarning: vi.fn(),
     holdEarning: vi.fn(),
     unholdEarning: vi.fn(),
+    listFinanceDisputes: vi.fn(),
+    resolveFinanceDispute: vi.fn(),
   };
 });
 vi.mock("../../context/AuthContext", () => ({ useAuth: () => ({ state: { status: "ready", user: { id: "me", email: "boss@example.com", isAdmin: true } } }) }));
@@ -151,7 +154,7 @@ describe("releasing earnings", () => {
     listingTitle: "Персональная тренировка", startsAt: "2026-10-21T10:00:00Z", trainingStatus: "scheduled", athleteFullName: "Игрок Один", coachFullName: "Анна Тренер", coachEmail: "anna@example.com", ...over,
   });
 
-  it("cannot open money for a session the trainer has not marked as conducted", async () => {
+  it("cannot open money for a session that is not confirmed yet", async () => {
     vi.mocked(api.listFinanceEarnings).mockResolvedValue(page([earning()]));
     render(<EarningsTab />);
     const button = (await screen.findByRole("button", { name: "Открыть тренеру" })) as HTMLButtonElement;
@@ -167,5 +170,39 @@ describe("releasing earnings", () => {
     vi.mocked(api.releaseEarning).mockResolvedValue(earning({ status: "available" }));
     fireEvent.click(within(dialog).getByRole("button", { name: "Открыть" }));
     await waitFor(() => expect(api.releaseEarning).toHaveBeenCalledWith("e1", "занятие подтверждено"));
+  });
+});
+
+describe("deciding a dispute about a session", () => {
+  const dispute = (over: Partial<api.AdminDispute> = {}): api.AdminDispute => ({
+    bookingId: "b1", state: "disputed", coachMarkedAt: null, disputedAt: "2026-10-21T12:00:00Z", disputedByRole: "coach", disputeKind: "athlete_no_show",
+    disputeText: "Ждал 30 минут", resolvedAt: null, resolutionNote: null, startsAt: "2026-10-21T10:00:00Z", durationMinutes: 60, format: "offline",
+    listingTitle: "Персональная тренировка", coachFullName: "Анна Тренер", athleteFullName: "Игрок Один", paymentId: "p1", grossKopecks: 250_000,
+    paymentStatus: "paid", earningStatus: "held", trainerKopecks: 225_000, ...over,
+  });
+
+  it("shows who reported what and decides it once, with a note and an acknowledgement", async () => {
+    vi.mocked(api.listFinanceDisputes).mockResolvedValue(page([dispute()]));
+    render(<DisputesTab />);
+    expect(await screen.findByText("Тренер: Игрок не пришёл")).toBeTruthy();
+    expect(screen.getByText("«Ждал 30 минут»")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Вернуть игроку" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "Игрок прислал переписку" } });
+    const confirm = within(dialog).getByRole("button", { name: "Вернуть игроку" }) as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);  // the decision is final: it has to be acknowledged
+    fireEvent.click(within(dialog).getByRole("checkbox"));
+    vi.mocked(api.resolveFinanceDispute).mockResolvedValue({ bookingId: "b1", state: "resolved_refunded", refundId: "r1" });
+    fireEvent.click(confirm);
+    await waitFor(() => expect(api.resolveFinanceDispute).toHaveBeenCalledWith("b1", "refund", "Игрок прислал переписку"));
+  });
+
+  it("shows a decided dispute without the buttons", async () => {
+    vi.mocked(api.listFinanceDisputes).mockResolvedValue(page([dispute({ state: "resolved_released", resolutionNote: "Видео с корта", resolvedAt: "2026-10-22T10:00:00Z" })]));
+    render(<DisputesTab />);
+    expect(await screen.findByText("Оплата тренеру")).toBeTruthy();
+    expect(screen.getByText("Видео с корта")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Вернуть игроку" })).toBeNull();
   });
 });
