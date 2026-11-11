@@ -6,18 +6,6 @@ import { errorText } from "../adminUi";
 export const money = (kopecks: number | null | undefined): string =>
   kopecks === null || kopecks === undefined ? "—" : new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB" }).format(kopecks / 100);
 
-/** What the books say the platform holds right now, split by whose it is: the platform's own money (its commission) and the trainers'
- * (waiting for the session, available, in withdrawal requests - less what trainers owe after refunds). The bank balance itself is not
- * known to the site: this is what the account SHOULD hold for the payments received (the commission of ЮKassa is not taken off). */
-export function accountSplit(o: {
-  platformCommissionKopecks: number;
-  owedToTrainers: { pendingKopecks: number; availableKopecks: number; reservedKopecks: number };
-  trainerDebtsKopecks: number;
-}): { ours: number; trainers: number; total: number } {
-  const trainers = o.owedToTrainers.pendingKopecks + o.owedToTrainers.availableKopecks + o.owedToTrainers.reservedKopecks - o.trainerDebtsKopecks;
-  return { ours: o.platformCommissionKopecks, trainers, total: o.platformCommissionKopecks + trainers };
-}
-
 export const PAYMENT_STATUS_LABELS: Record<string, string> = {
   awaiting: "Ждёт оплаты",
   paid: "Оплачен",

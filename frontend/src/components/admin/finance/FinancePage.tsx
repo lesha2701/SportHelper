@@ -10,12 +10,13 @@ import {
   type FinanceOverview,
 } from "../../../api/adminFinance";
 import { ErrorBox, PageHead, Pager, Pill, ReasonDialog, formatDateTime, useAdminQuery } from "../adminUi";
+import { BankBalanceCard } from "./BankBalanceCard";
 import { CommissionCard } from "./CommissionCard";
 import { DisputesTab } from "./DisputesTab";
 import { EarningsTab } from "./EarningsTab";
 import { PaymentsTab } from "./PaymentsTab";
 import { WithdrawalsTab } from "./WithdrawalsTab";
-import { INCIDENT_KIND_LABELS, REFUND_STATUS_LABELS, accountSplit, money, useDoing } from "./financeUi";
+import { INCIDENT_KIND_LABELS, REFUND_STATUS_LABELS, money, useDoing } from "./financeUi";
 import styles from "../admin.module.css";
 
 const TABS = [
@@ -70,7 +71,6 @@ function OverviewTab({ onOpen }: { onOpen: (tab: TabId) => void }) {
   if (query.status === "error") return <ErrorBox message={query.message} onRetry={reload} />;
   if (query.status === "loading") return <p className={styles.pageHint}>Загрузка…</p>;
   const o = query.data;
-  const split = accountSplit(o);
   const flags: [string, boolean][] = [
     ["Онлайн-оплата", o.flags.payments],
     ["Баланс тренеров", o.flags.trainerBalance],
@@ -98,12 +98,8 @@ function OverviewTab({ onOpen }: { onOpen: (tab: TabId) => void }) {
         <Tile label="Долги тренеров" value={money(o.trainerDebtsKopecks)} tone={o.trainerDebtsKopecks > 0 ? "bad" : undefined} hint="возвраты после выплаты" />
       </div>
 
-      <h2 className={styles.cardTitle}>Деньги на счёте по книгам: наши и тренеров</h2>
-      <div className={styles.grid}>
-        <Tile label="Всего должно быть" value={money(split.total)} hint="столько должно лежать на счёте по полученным оплатам" />
-        <Tile label="Наши деньги" value={money(split.ours)} hint="комиссия платформы, без возвращённой" />
-        <Tile label="Деньги тренеров" value={money(split.trainers)} hint="ждут занятия + доступны + в заявках на вывод, минус долги тренеров" />
-      </div>
+      <h2 className={styles.cardTitle}>Расчётный счёт: тренерские и наши деньги</h2>
+      <BankBalanceCard />
 
       <h2 className={styles.cardTitle}>Что платформа должна тренерам</h2>
       <div className={styles.grid}>
@@ -136,7 +132,7 @@ function OverviewTab({ onOpen }: { onOpen: (tab: TabId) => void }) {
         />
       </div>
       <p className={styles.pageHint}>
-        Остаток на расчётном счёте сайт не знает: «должно быть» — это расчёт по книгам, без комиссии ЮKassa. Фактический остаток и комиссию ЮKassa берут из отчётов ЮKassa и банковской выписки.
+        Остаток расчётного счёта вводит администратор по выписке: сайт его не видит. Комиссия ЮKassa снимается только с нашей части, поэтому тренерские деньги всегда точные.
       </p>
     </>
   );

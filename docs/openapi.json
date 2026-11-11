@@ -3073,6 +3073,80 @@
         ]
       }
     },
+    "/api/admin/finance/bank-balance": {
+      "get": {
+        "tags": [
+          "admin-finance"
+        ],
+        "summary": "Get Bank Balance",
+        "description": "The last balance of the settlement account that someone entered, split into the trainers' money (exact, by the books at that\nmoment) and ours (the rest), next to what the trainers are owed now.",
+        "operationId": "get_bank_balance_api_admin_finance_bank_balance_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Bank Balance Api Admin Finance Bank Balance Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "admin-finance"
+        ],
+        "summary": "Enter Bank Balance",
+        "description": "Records the balance copied from the bank statement. The trainers' money is read from the books in the same transaction, so the\nsplit is exact for this moment. Nothing moves: this is a note of what the bank shows.",
+        "operationId": "enter_bank_balance_api_admin_finance_bank_balance_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankBalanceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Enter Bank Balance Api Admin Finance Bank Balance Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/admin/finance/integrity": {
       "get": {
         "tags": [
@@ -14123,6 +14197,34 @@
           "lifted_by"
         ],
         "title": "BanRecordOut"
+      },
+      "BankBalanceIn": {
+        "properties": {
+          "balance_kopecks": {
+            "type": "integer",
+            "maximum": 10000000000000.0,
+            "minimum": 0.0,
+            "title": "Balance Kopecks"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "balance_kopecks"
+        ],
+        "title": "BankBalanceIn",
+        "description": "The balance of the settlement account as the bank shows it, in kopecks (the browser converts roubles exactly)."
       },
       "BlockIn": {
         "properties": {

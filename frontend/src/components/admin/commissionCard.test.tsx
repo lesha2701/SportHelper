@@ -82,15 +82,3 @@ describe("the commission card", () => {
     expect(onChanged).not.toHaveBeenCalled();
   });
 });
-
-describe("the split of the money on the account", () => {
-  it("is ours plus the trainers', where a trainer's debt takes from the trainers' part", async () => {
-    const { accountSplit } = await import("./finance/financeUi");
-    const split = accountSplit({
-      platformCommissionKopecks: 100_000,
-      owedToTrainers: { pendingKopecks: 400_000, availableKopecks: 300_000, reservedKopecks: 150_000 },
-      trainerDebtsKopecks: 50_000,
-    });
-    expect(split).toEqual({ ours: 100_000, trainers: 800_000, total: 900_000 });
-  });
-});

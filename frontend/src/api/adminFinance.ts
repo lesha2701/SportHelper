@@ -269,3 +269,26 @@ export interface Commission {
 
 export const getCommission = () => get<Commission>("/api/admin/finance/commission");
 export const setCommission = (percent: string, reason: string) => put<Commission>("/api/admin/finance/commission", { percent, reason });
+
+export interface BankBalanceEntry {
+  id: number;
+  balanceKopecks: number;
+  /** The trainers' money by the books at the moment of the entry: exact. */
+  trainersKopecks: number;
+  /** The rest of the account: the platform's own money (negative when the account holds less than the trainers are owed). */
+  oursKopecks: number;
+  note: string | null;
+  enteredByEmail: string | null;
+  createdAt: string;
+}
+
+export interface BankBalance {
+  latest: BankBalanceEntry | null;
+  /** What the trainers are owed by the books right now. */
+  trainersNowKopecks: number;
+  history: BankBalanceEntry[];
+}
+
+export const getBankBalance = () => get<BankBalance>("/api/admin/finance/bank-balance");
+export const enterBankBalance = (balanceKopecks: number, note?: string) =>
+  post<BankBalance>("/api/admin/finance/bank-balance", { balance_kopecks: balanceKopecks, note: note || null });

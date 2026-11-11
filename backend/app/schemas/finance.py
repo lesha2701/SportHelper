@@ -29,6 +29,12 @@ class CommissionIn(BaseModel):
     reason: str = Field(min_length=1, max_length=500)
 
 
+class BankBalanceIn(BaseModel):
+    """The balance of the settlement account as the bank shows it, in kopecks (the browser converts roubles exactly)."""
+    balance_kopecks: int = Field(ge=0, le=100_000_000_000_00)
+    note: str | None = Field(default=None, max_length=500)
+
+
 class OptionalNoteIn(BaseModel):
     note: str | None = Field(default=None, max_length=500)
 
