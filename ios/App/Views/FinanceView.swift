@@ -1,14 +1,17 @@
 import SportArenaKit
 import SwiftUI
 
-/// «Финансы» of a coach: the balance, the requests for a payout and the money history. Only reading: asking for a payout (it needs
-/// the account password and the bank details) stays on the site.
+/// «Финансы» of a coach: the balance, the requests for a payout (asking for one and taking one back) and the money history.
 struct FinanceView: View {
     @Environment(AuthStore.self) private var auth
 
     @State private var summary = LoadState<FinanceSummary>.loading
     @State private var withdrawals = FinanceList<Withdrawal>()
     @State private var operations = FinanceList<FinanceOperation>()
+    @State private var asking = false
+    @State private var notice: String?
+    @State private var cancelling: Withdrawal?
+    @State private var actionError: String?
 
     var body: some View {
         Group {
@@ -32,6 +35,20 @@ struct FinanceView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await reload() }
         .refreshable { await reload() }
+        .sheet(isPresented: $asking) {
+            if case .loaded(let value) = summary {
+                WithdrawalFormView(summary: value) { created in
+                    notice = "Заявка на \(created.amountText) создана. Выплата — после проверки."
+                    Task { await reload() }
+                }
+            }
+        }
+        .confirmationDialog("Отменить заявку?", isPresented: Binding(get: { cancelling != nil }, set: { if !$0 { cancelling = nil } }), titleVisibility: .visible) {
+            Button("Да, отменить", role: .destructive) { if let item = cancelling { Task { await cancel(item) } } }
+            Button("Не отменять", role: .cancel) {}
+        } message: {
+            Text("Деньги вернутся на баланс и снова будут доступны к выводу.")
+        }
     }
 
     private func content(_ value: FinanceSummary) -> some View {
@@ -50,22 +67,33 @@ struct FinanceView: View {
             if let debt = value.debtNote {
                 Section { Label(debt, systemImage: "exclamationmark.triangle").foregroundStyle(Theme.danger).accessibilityIdentifier("finance.debt") }
             }
+            withdrawSection(value)
             infoSection(value)
             withdrawalsSection
             operationsSection
         }
     }
 
+    private func withdrawSection(_ value: FinanceSummary) -> some View {
+        Section {
+            if let notice { AuthNotice(kind: .success, text: notice).accessibilityIdentifier("finance.notice") }
+            if let actionError { AuthNotice(kind: .danger, text: actionError).accessibilityIdentifier("finance.actionError") }
+            Button("Вывести средства") { notice = nil; actionError = nil; asking = true }
+                .disabled(!value.canWithdraw)
+                .accessibilityIdentifier("finance.withdraw")
+            if let note = value.withdrawalNote { Text(note).font(.footnote).foregroundStyle(Theme.textSecondary).accessibilityIdentifier("finance.withdrawNote") }
+        }
+    }
+
     private func infoSection(_ value: FinanceSummary) -> some View {
         Section(sag: "Как это работает") {
-            if let note = value.withdrawalNote { Text(note).foregroundStyle(Theme.textSecondary) }
             Text(
                 "Деньги за занятие становятся доступными к выводу после того, как вы отметите занятие проведённым и платформа его подтвердит. "
                     + "Комиссия платформы — \(value.commissionPercent)% с каждой оплаты. Выплаты выполняются вручную, после проверки заявки."
             )
             .font(.footnote).foregroundStyle(Theme.textSecondary)
         } footer: {
-            Text("Заявку на вывод средств можно создать на сайте: для неё нужен пароль от аккаунта и реквизиты.")
+            Text("Для заявки нужны реквизиты и пароль от аккаунта. Заявку можно отменить, пока она не передана на выплату.")
         }
     }
 
@@ -76,17 +104,25 @@ struct FinanceView: View {
             }
             ForEach(withdrawals.items) { item in
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(item.amountText).font(Theme.body(16, weight: .bold))
-                        Spacer()
-                        Text(item.status.title).font(.caption.weight(.semibold)).foregroundStyle(item.status == .paid ? Theme.success : Theme.textSecondary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(item.amountText).font(Theme.body(16, weight: .bold))
+                            Spacer()
+                            Text(item.status.title).font(.caption.weight(.semibold)).foregroundStyle(item.status == .paid ? Theme.success : Theme.textSecondary)
+                        }
+                        Text(item.detailsHint).font(.footnote).foregroundStyle(Theme.textSecondary)
+                        Text(Self.date(item.createdAt)).font(.footnote).foregroundStyle(Theme.textTertiary)
+                        if let reason = item.decidedReason { Text("Причина: \(reason)").font(.footnote).foregroundStyle(Theme.textSecondary) }
                     }
-                    Text(item.detailsHint).font(.footnote).foregroundStyle(Theme.textSecondary)
-                    Text(Self.date(item.createdAt)).font(.footnote).foregroundStyle(Theme.textTertiary)
-                    if let reason = item.decidedReason { Text("Причина: \(reason)").font(.footnote).foregroundStyle(Theme.textSecondary) }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("finance.withdrawal")
+                    // Outside the combined text: a button inside it would not be a button for VoiceOver or for a test.
+                    if item.isCancelable {
+                        Button("Отменить заявку", role: .destructive) { cancelling = item }
+                            .font(.footnote).padding(.top, 2)
+                            .accessibilityIdentifier("finance.cancelWithdrawal")
+                    }
                 }
-                .accessibilityElement(children: .combine)
-                .accessibilityIdentifier("finance.withdrawal")
             }
             more(withdrawals, id: "finance.moreWithdrawals") { await loadWithdrawals() }
         }
@@ -143,6 +179,21 @@ struct FinanceView: View {
         async let first: Void = loadWithdrawals()
         async let second: Void = loadOperations()
         _ = await (first, second)
+    }
+
+    private func cancel(_ item: Withdrawal) async {
+        cancelling = nil
+        notice = nil
+        actionError = nil
+        do {
+            _ = try await auth.finance.cancelWithdrawal(item.id)
+            notice = "Заявка отменена, деньги вернулись на баланс."
+        } catch let error as APIError {
+            actionError = error.message
+        } catch {
+            actionError = APIError.unknown.message
+        }
+        await reload()
     }
 
     private func loadWithdrawals() async {
