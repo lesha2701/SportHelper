@@ -10,13 +10,16 @@ from uuid import UUID
 import asyncpg
 
 from app.config import Settings
+from app.core import session_time
 from app.repositories import notifications as notifications_repo
 from app.repositories import teams as teams_repo
 from app.repositories import users as users_repo
 
 
 def _combine_date_time(training_date: Any, start_time: Any) -> datetime:
-    return datetime.combine(training_date, start_time, tzinfo=timezone.utc)
+    """The session's wall-clock date and time, for the text of a message ("в 10:00"). Not a real instant: a send_at
+    comes from session_time.instant_of()."""
+    return datetime.combine(training_date, start_time)
 
 
 async def _notify_recipients(
@@ -59,7 +62,10 @@ async def schedule_training_reminders(conn: asyncpg.Connection, training: dict[s
         return
 
     training_at = _combine_date_time(training["training_date"], training["start_time"])
-    send_at = training_at - timedelta(minutes=training["reminder_minutes_before"])
+    # The real moment the platform's clock shows the training's time (REF-19: it used to be read as UTC, 3 hours late in Moscow).
+    send_at = session_time.instant_of(training["training_date"], training["start_time"]) - timedelta(
+        minutes=training["reminder_minutes_before"]
+    )
 
     if training["type"] == "personal":
         recipient_ids = [training["created_by"]]

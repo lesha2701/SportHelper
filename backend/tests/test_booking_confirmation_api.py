@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
+from app.core import session_time
 from app.services import background
 
 from tests.test_bookings_api import _list_coach_with_slot
@@ -244,7 +245,7 @@ def test_confirm_rejects_booking_whose_session_time_has_passed(logged_in_client,
     listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890401)
 
     record = client.bookings_store[UUID(booking["id"])]
-    record["starts_at"] = datetime.now(timezone.utc) - timedelta(minutes=1)
+    record["starts_at"] = session_time.wall_now() - timedelta(minutes=1)
 
     resp = client.post(
         f"/api/bookings/{booking['id']}/confirm",
@@ -272,7 +273,7 @@ async def test_sweep_also_expires_pending_booking_whose_session_time_has_passed_
     listing_id, athlete_token, booking = _create_pending_booking(client, coach_token, login_as, telegram_id=890402)
 
     record = client.bookings_store[UUID(booking["id"])]
-    record["starts_at"] = datetime.now(timezone.utc) - timedelta(minutes=1)
+    record["starts_at"] = session_time.wall_now() - timedelta(minutes=1)
 
     from app.repositories import bookings as bookings_repo
 

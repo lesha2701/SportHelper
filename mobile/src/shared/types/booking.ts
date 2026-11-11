@@ -30,6 +30,7 @@ export interface BookingDto {
   has_player_review: boolean;
   payment_status?: PaymentStatus;
   paid_at?: string | null;
+  has_started?: boolean;
 }
 
 export interface Booking {
@@ -58,6 +59,9 @@ export interface Booking {
   hasPlayerReview: boolean;
   paymentStatus: PaymentStatus;
   paidAt: string | null;
+  /** The session's start has come on the platform's clock. The server decides: startsAt is the session's wall-clock time
+   * (Moscow) with a UTC label, not a real instant, so the device's clock can't tell (it would say so three hours late). */
+  hasStarted: boolean;
 }
 
 export function mapBookingDto(dto: BookingDto): Booking {
@@ -85,6 +89,8 @@ export function mapBookingDto(dto: BookingDto): Booking {
     hasPlayerReview: dto.has_player_review ?? false,
     paymentStatus: dto.payment_status ?? "not_required",
     paidAt: dto.paid_at ?? null,
+    // only an older server that does not say it falls back to the device's clock
+    hasStarted: dto.has_started ?? Date.parse(dto.starts_at) <= Date.now(),
   };
 }
 

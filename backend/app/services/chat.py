@@ -68,7 +68,7 @@ async def _booking_access(conn: asyncpg.Connection, user: dict, booking: dict[st
     open_now, why = _booking_state(booking, summary)
     other = booking["coach_full_name"] if user["id"] == booking["athlete_user_id"] else booking["athlete_full_name"]
     when = booking["starts_at"].strftime("%d.%m.%Y %H:%M")
-    subtitle = f"{booking['listing_title'] or 'Индивидуальная тренировка'} · {when} (UTC)"
+    subtitle = f"{booking['listing_title'] or 'Индивидуальная тренировка'} · {when}"
     return ChatAccess(
         conversation=conversation or {}, title=other, subtitle=subtitle, can_send=open_now, send_blocked_reason=why, can_moderate=False, booking=booking
     )

@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.core.session_time import WALL_CLOCK_DOC
+
 
 class AdminSessionOut(BaseModel):
     """What the signed-in administrator may do right now - never the allowlist itself."""
@@ -294,7 +296,7 @@ class TrainingParticipantOut(BaseModel):
 class TrainingBookingOut(BaseModel):
     id: UUID
     status: str
-    starts_at: datetime
+    starts_at: datetime = Field(description=WALL_CLOCK_DOC)
     format: str
     coach: str
     athlete: str

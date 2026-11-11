@@ -24,8 +24,8 @@ export function CoachSessionActions({
 
   if (booking.status !== "confirmed" || booking.trainingStatus === "cancelled") return null;
 
-  const started = new Date(booking.startsAt).getTime() <= Date.now();
-  const canMarkConducted = booking.trainingStatus === "scheduled" && started;
+  // The server says whether the session has begun: startsAt is wall-clock time, so the device's clock can't tell (REF-19).
+  const canMarkConducted = booking.trainingStatus === "scheduled" && booking.hasStarted;
   // While "проведена" is still to be pressed, that button is the way in: it opens the review right after.
   const canReview = booking.isCompleted && !booking.hasPlayerReview && !canMarkConducted;
 
@@ -55,7 +55,7 @@ export function CoachSessionActions({
           </p>
         </>
       )}
-      {!canMarkConducted && booking.trainingStatus === "scheduled" && !started && (
+      {!canMarkConducted && booking.trainingStatus === "scheduled" && !booking.hasStarted && (
         <p className={profileStyles.subtitle}>Кнопка «Тренировка проведена» появится, когда занятие начнётся.</p>
       )}
       {canReview && (

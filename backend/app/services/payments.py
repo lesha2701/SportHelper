@@ -17,13 +17,14 @@ from __future__ import annotations
 
 import ipaddress
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
 import asyncpg
 
 from app.config import Settings
+from app.core import session_time
 from app.core.exceptions import APIError
 from app.integrations.yookassa import YooKassaError, get_client
 from app.repositories import bookings as bookings_repo
@@ -81,7 +82,8 @@ def payment_status_of(booking: dict[str, Any], summary: dict[str, Any] | None) -
 
 
 def ensure_payable(booking: dict[str, Any], *, now: datetime | None = None) -> None:
-    now = now or datetime.now(timezone.utc)
+    """`now` is the platform's wall clock (session_time.wall_now()), the form starts_at is kept in."""
+    now = now or session_time.wall_now()
     if booking["status"] != "confirmed":
         raise APIError("Оплатить можно только подтверждённую тренером запись.", code="booking_not_confirmed", status_code=409)
     ends_at = booking["starts_at"] + timedelta(minutes=booking["duration_minutes"] or 0)
@@ -116,7 +118,7 @@ def _receipt(settings: Settings, booking: dict[str, Any], user: dict[str, Any], 
 
 
 def _description(booking: dict[str, Any]) -> str:
-    return f"Тренировка «{booking.get('listing_title') or 'с тренером'}», {booking['starts_at'].strftime('%d.%m.%Y %H:%M')} (UTC)"
+    return f"Тренировка «{booking.get('listing_title') or 'с тренером'}», {booking['starts_at'].strftime('%d.%m.%Y %H:%M')}"
 
 
 # --- starting a payment ----------------------------------------------------------------------------------------------------

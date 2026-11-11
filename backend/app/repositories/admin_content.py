@@ -7,6 +7,8 @@ from uuid import UUID
 
 import asyncpg
 
+from app.core import session_time
+
 from app.repositories import coach_listings as listings_repo
 from app.repositories.admin_users import like_pattern
 
@@ -43,7 +45,8 @@ async def list_trainings(
         as_id = UUID(query.strip()) if query else None
     except ValueError:
         as_id = None
-    where = """
+    today = session_time.sql_wall_today()  # "upcoming" / "past" by the platform's day, not the database's (UTC) CURRENT_DATE
+    where = f"""
         WHERE t.deleted_at IS NULL
           AND ($1::text IS NULL OR t.description ILIKE $1 OR t.location ILIKE $1 OR tm.name ILIKE $1
                OR u.email ILIKE $1 OR u.first_name ILIKE $1 OR u.last_name ILIKE $1
@@ -51,7 +54,7 @@ async def list_trainings(
                OR ($2::uuid IS NOT NULL AND (t.id = $2::uuid OR t.created_by = $2::uuid OR t.team_id = $2::uuid)))
           AND ($3::text IS NULL OR t.status = $3)
           AND ($4::text IS NULL OR t.type = $4)
-          AND ($5::text IS NULL OR ($5 = 'upcoming' AND t.training_date >= CURRENT_DATE) OR ($5 = 'past' AND t.training_date < CURRENT_DATE))
+          AND ($5::text IS NULL OR ($5 = 'upcoming' AND t.training_date >= {today}) OR ($5 = 'past' AND t.training_date < {today}))
     """
     args = (like_pattern(query), as_id, status, kind, when)
     order = "t.training_date ASC, t.start_time ASC" if sort == "date_asc" else "t.training_date DESC, t.start_time DESC"
@@ -106,9 +109,14 @@ _LISTING_SELECT = f"""
     {_BANNED} AS coach_blocked,
     (cl.photo_file_id IS NOT NULL) AS has_photo, (cl.video_file_id IS NOT NULL) AS has_video,
     (SELECT count(*) FROM bookings b WHERE b.listing_id = cl.id AND (b.status = 'pending'
-        OR (b.status = 'confirmed' AND b.starts_at + (b.duration_minutes || ' minutes')::interval > now()))) AS active_bookings
+        OR (b.status = 'confirmed' AND b.starts_at + (b.duration_minutes || ' minutes')::interval > __WALL_NOW__))) AS active_bookings
 """
 _LISTING_FROM = "FROM coach_listings cl JOIN users cu ON cu.id = cl.coach_user_id LEFT JOIN users hb ON hb.id = cl.moderation_hidden_by"
+
+
+def _listing_select() -> str:
+    """_LISTING_SELECT with "the session is still ahead" measured on the platform's clock (app/core/session_time.py)."""
+    return _LISTING_SELECT.replace("__WALL_NOW__", session_time.sql_wall_now())
 
 
 async def list_listings(
@@ -131,13 +139,13 @@ async def list_listings(
     args = (like_pattern(query), as_id, state)
     total = await conn.fetchval(f"SELECT count(*) FROM coach_listings cl JOIN users cu ON cu.id = cl.coach_user_id {where}", *args)
     rows = await conn.fetch(
-        f"SELECT {_LISTING_SELECT} {_LISTING_FROM} {where} ORDER BY cl.created_at DESC, cl.id LIMIT $4 OFFSET $5", *args, limit, offset
+        f"SELECT {_listing_select()} {_LISTING_FROM} {where} ORDER BY cl.created_at DESC, cl.id LIMIT $4 OFFSET $5", *args, limit, offset
     )
     return total, [dict(r) for r in rows]
 
 
 async def get_listing(conn: asyncpg.Connection, listing_id: UUID) -> dict[str, Any] | None:
-    row = await conn.fetchrow(f"SELECT {_LISTING_SELECT} {_LISTING_FROM} WHERE cl.id = $1", listing_id)
+    row = await conn.fetchrow(f"SELECT {_listing_select()} {_LISTING_FROM} WHERE cl.id = $1", listing_id)
     if row is None:
         return None
     listing = dict(row)

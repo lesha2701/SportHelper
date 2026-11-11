@@ -1,3 +1,5 @@
+import { localDateKey } from "../lib/localDate";
+
 export type TrainingType = "team" | "personal" | "independent";
 export type TrainingStatus = "scheduled" | "completed" | "cancelled";
 export type AttendanceStatus = "present" | "absent";
@@ -9,7 +11,7 @@ export const TRAINING_STATUS_LABELS: Record<TrainingStatus, string> = {
 };
 
 export function isTrainingOverdue(training: Pick<Training, "status" | "trainingDate">): boolean {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey(new Date());
   return training.status === "scheduled" && training.trainingDate < today;
 }
 

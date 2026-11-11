@@ -1,7 +1,9 @@
 import Foundation
 
-/// The server's wall clock: bookings and slots are instants in UTC, and the site (and the calendar) show their UTC hours as the
-/// time of the session. These helpers read a booking time the same way, so a session never shows an hour that the calendar disagrees with.
+/// The platform's wall clock: a booking or slot time is the session's wall-clock time (Moscow) written with a UTC label
+/// (10:00Z = 10:00 in Moscow), and the site (and the calendar) show its UTC hours as the time of the session. These helpers read a
+/// booking time the same way, so a session never shows an hour that the calendar disagrees with. It is not a real instant: whether
+/// a session has begun comes from the server (`Booking.hasStarted`), never from comparing it with the device's clock.
 public extension Date {
     private static let utc: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
@@ -111,6 +113,7 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
     public let paymentStatusRaw: String?
     public let paidAt: Date?
     private let canCancelRaw: Bool?
+    private let hasStartedRaw: Bool?
     /// Set once the booking is cancelled: who, when, why and where the money is.
     public let cancellation: Cancellation?
 
@@ -118,6 +121,7 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
         case id, coachUserId, coachFullName, listingId, listingTitle, athleteUserId, athleteFullName, athleteNotes, startsAt
         case durationMinutes, format, pricePerSession, currency, isCompleted, trainingId, trainingPlanId, trainingPlanName, hasReview, paidAt, trainingStatus, cancellation
         case canCancelRaw = "canCancel"
+        case hasStartedRaw = "hasStarted"
         case hasPlayerReviewRaw = "hasPlayerReview"
         case statusRaw = "status"
         case paymentStatusRaw = "paymentStatus"
@@ -133,9 +137,14 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
     /// The athlete may review the coach once the session counts as held and no review was left.
     public var athleteCanReview: Bool { status == .confirmed && isCompleted && !hasReview }
 
+    /// Whether the session has begun. The server says it (`has_started`): `startsAt` is the session's wall-clock time on the
+    /// platform's clock with a UTC label (10:00Z = 10:00 in Moscow), so the device's clock cannot tell — compared with it, a
+    /// Moscow session would "begin" three hours late. Only an older server that does not say it falls back to `now`.
+    public func hasStarted(now: Date = Date()) -> Bool { hasStartedRaw ?? (startsAt <= now) }
+
     /// «Тренировка проведена»: the coach marks a session that has begun. (After that reviews open and the athlete is asked for one.)
     public func coachCanMarkConducted(now: Date = Date()) -> Bool {
-        status == .confirmed && trainingStatus == "scheduled" && startsAt <= now
+        status == .confirmed && trainingStatus == "scheduled" && hasStarted(now: now)
     }
 
     /// The coach's review of the athlete. While «проведена» is still to be pressed, that button is the way in.

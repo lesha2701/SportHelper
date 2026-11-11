@@ -10,6 +10,7 @@ import asyncpg
 import pytest
 
 from app.config import get_settings
+from app.core import session_time
 from app.repositories import ledger
 from app.repositories.ledger import Leg
 from app.services import earnings as earnings_service
@@ -49,7 +50,7 @@ def paid_booking(fin, n: int = 0):
 
 
 def conduct(fin, coach, booking) -> None:
-    sql(fin.dsn, "UPDATE bookings SET starts_at = now() - interval '2 hours' WHERE id = $1::uuid", booking["id"])
+    sql(fin.dsn, f"UPDATE bookings SET starts_at = {session_time.sql_wall_now()} - interval '2 hours' WHERE id = $1::uuid", booking["id"])
     coach.ok("POST", f"/api/bookings/{booking['id']}/complete")
 
 
@@ -86,7 +87,7 @@ def test_a_payment_alone_never_makes_money_withdrawable(fin) -> None:
     assert coach.call("POST", "/api/finance/withdrawals", json={"amount_kopecks": 225000, "method": "sbp", "details": SBP,
                                                                   "client_key": str(uuid.uuid4()), "password": PASSWORD}).status_code == 409
     # nor does the session time passing: the trainer has to mark it conducted, and an administrator releases it
-    sql(fin.dsn, "UPDATE bookings SET starts_at = now() - interval '5 days' WHERE id = $1::uuid", booking["id"])
+    sql(fin.dsn, f"UPDATE bookings SET starts_at = {session_time.sql_wall_now()} - interval '5 days' WHERE id = $1::uuid", booking["id"])
     assert fin.admin.call("POST", f"/api/admin/finance/earnings/{earning_of(fin, booking)}/release", json={}).json()["error"]["code"] == "session_not_confirmed"
     assert coach.ok("GET", "/api/finance/summary")["available_kopecks"] == 0
 

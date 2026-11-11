@@ -5,10 +5,12 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.core.session_time import WALL_CLOCK_DOC
+
 
 class BookingIn(BaseModel):
     listing_id: UUID
-    starts_at: datetime
+    starts_at: datetime = Field(description=WALL_CLOCK_DOC)
     format: str  # "online" | "offline"
     athlete_notes: str | None = Field(default=None, max_length=1000)
 
@@ -53,7 +55,7 @@ class CancelPreviewOut(BaseModel):
     cancelled_by_role: str
     policy: str
     hours_before_start: float
-    free_cancel_until: datetime | None
+    free_cancel_until: datetime | None = Field(description=WALL_CLOCK_DOC)
     paid_kopecks: int
     refund_percent: int
     refund_kopecks: int
@@ -103,7 +105,7 @@ class BookingOut(BaseModel):
     athlete_user_id: UUID
     athlete_full_name: str
     athlete_notes: str | None
-    starts_at: datetime
+    starts_at: datetime = Field(description=WALL_CLOCK_DOC)
     duration_minutes: int
     format: str
     price_per_session: float | None
@@ -123,6 +125,9 @@ class BookingOut(BaseModel):
     paid_at: datetime | None = None
     # The «Отменить» button is shown by this: the booking is confirmed and its session has not started, was not conducted and was not cancelled.
     can_cancel: bool = False
+    # The session's start has come on the platform's clock (SESSION_TIMEZONE). «Тренировка проведена» is offered by this, not by
+    # comparing starts_at with the device's clock: starts_at is the session's wall-clock time with a UTC label, not a real instant.
+    has_started: bool = Field(default=False, description="The session's start has come on the platform's clock.")
     cancellation: CancellationOut | None = None
 
 
@@ -138,7 +143,7 @@ class PendingBookingOut(BaseModel):
     athlete_user_id: UUID
     athlete_full_name: str
     athlete_notes: str | None
-    starts_at: datetime
+    starts_at: datetime = Field(description=WALL_CLOCK_DOC)
     duration_minutes: int
     format: str
     price_per_session: float | None

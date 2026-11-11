@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from uuid import UUID
 
 import asyncpg
@@ -63,6 +62,7 @@ async def _to_out(conn: asyncpg.Connection, booking: dict) -> BookingOut:
     return BookingOut(
         **booking,
         can_cancel=bookings_repo.can_cancel(booking),
+        has_started=bookings_repo.has_started(booking),
         cancellation=cancellation,
         payment_status=payments_service.payment_status_of(booking, payment),
         paid_at=payment["paid_at"] if payment and payment["status"] in ("paid", "partially_refunded", "refunded") else None,
@@ -353,7 +353,7 @@ async def complete_booking_session(
         return await _to_out(conn, booking)
     if booking["training_status"] == "cancelled":
         raise APIError("this session was cancelled", code="session_cancelled", status_code=409)
-    if booking["starts_at"] > datetime.now(timezone.utc):
+    if not bookings_repo.has_started(booking):
         raise APIError("the session has not started yet", code="session_not_started", status_code=409)
 
     await trainings_repo.update_training(conn, booking["training_id"], status="completed")

@@ -1,12 +1,13 @@
 """Data access for coach-marketplace bookings. All queries are parameterized."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
 import asyncpg
 
+from app.core import session_time
 from app.repositories import trainings as trainings_repo
 
 _BOOKING_FIELDS = (
@@ -183,14 +184,21 @@ def is_completed(booking: dict[str, Any]) -> bool:
     if booking.get("training_status") == "completed":
         return True
     ends_at = booking["starts_at"] + timedelta(minutes=booking["duration_minutes"])
-    return datetime.now(ends_at.tzinfo) > ends_at
+    return session_time.wall_now() > ends_at
+
+
+def has_started(booking: dict[str, Any], *, now: datetime | None = None) -> bool:
+    """Whether the session's start has come on the platform's clock (`now`: wall clock, see app/core/session_time.py).
+    Clients show «Тренировка проведена» by this instead of comparing starts_at with the device's clock."""
+    return booking["starts_at"] <= (now or session_time.wall_now())
 
 
 def can_cancel(booking: dict[str, Any], *, now: datetime | None = None) -> bool:
-    """Whether a confirmed booking can still be cancelled: its session has not started, was not conducted and was not cancelled."""
+    """Whether a confirmed booking can still be cancelled: its session has not started, was not conducted and was not cancelled.
+    `now` is the platform's wall clock (session_time.wall_now())."""
     if booking["status"] != "confirmed" or booking.get("training_status") in ("completed", "cancelled"):
         return False
-    return booking["starts_at"] > (now or datetime.now(timezone.utc))
+    return not has_started(booking, now=now)
 
 
 async def has_confirmed_booking_for_training(conn: asyncpg.Connection, training_id: UUID) -> bool:
@@ -245,7 +253,7 @@ async def confirm_booking(conn: asyncpg.Connection, *, booking_id: UUID, coach_u
         )
         if booking is None:
             return None
-        if booking["starts_at"] <= datetime.now(timezone.utc):
+        if has_started(booking):
             return None
         listing = await conn.fetchrow("SELECT location FROM coach_listings WHERE id = $1", booking["listing_id"])
         training = await trainings_repo.create_training(
@@ -289,7 +297,7 @@ async def sweep_expired(conn: asyncpg.Connection, *, older_than: datetime) -> li
     app.services.background.sweep_expired_bookings."""
     rows = await conn.fetch(
         "UPDATE bookings SET status = 'expired', responded_at = now() "
-        "WHERE status = 'pending' AND (created_at < $1 OR starts_at < now()) "
+        f"WHERE status = 'pending' AND (created_at < $1 OR starts_at < {session_time.sql_wall_now()}) "
         "RETURNING id, athlete_user_id",
         older_than,
     )

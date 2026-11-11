@@ -7,6 +7,8 @@ from uuid import UUID, uuid4
 
 import asyncpg
 
+from app.core import session_time
+
 _TRAINING_FIELDS = (
     "id, team_id, created_by, type, plan_id, training_date, start_time, "
     "duration_minutes, location, description, status, reminder_minutes_before, "
@@ -19,6 +21,8 @@ _ATTENDANCE_FIELDS = (
 # Upcoming trainings first (soonest at the very top), then past ones below
 # them (most recent past first) — this reads much more naturally as "what's
 # next" than a flat chronological or reverse-chronological order.
+# CURRENT_DATE in these templates is "today on the platform's clock": _on_platform_day() puts it in when the
+# query is built (the database's own CURRENT_DATE is the UTC date, a day behind Moscow between 00:00 and 03:00).
 _UPCOMING_FIRST_ORDER = """
     ORDER BY
         CASE WHEN training_date >= CURRENT_DATE THEN 0 ELSE 1 END,
@@ -111,7 +115,7 @@ async def list_team_trainings(conn: asyncpg.Connection, team_id: UUID) -> list[d
         f"""
         SELECT {_TRAINING_FIELDS} FROM trainings
         WHERE team_id = $1 AND deleted_at IS NULL
-        {_UPCOMING_FIRST_ORDER}
+        {_upcoming_first_order()}
         """,
         team_id,
     )
@@ -131,7 +135,7 @@ async def list_personal_trainings(conn: asyncpg.Connection, owner_id: UUID) -> l
         f"""
         SELECT {_TRAINING_FIELDS} FROM trainings
         WHERE type = 'personal' AND created_by = $1 AND deleted_at IS NULL
-        {_UPCOMING_FIRST_ORDER}
+        {_upcoming_first_order()}
         """,
         owner_id,
     )
@@ -188,19 +192,32 @@ HELD = "(status = 'completed' OR (status = 'scheduled' AND training_date <= CURR
 UPCOMING = "(status = 'scheduled' AND training_date > CURRENT_DATE)"
 
 
+def _on_platform_day(sql: str) -> str:
+    """The template with CURRENT_DATE read as today's date on the platform's clock (app/core/session_time.py)."""
+    return sql.replace("CURRENT_DATE", session_time.sql_wall_today())
+
+
 def _held(alias: str = "") -> str:
-    """HELD with every column qualified by `alias` ("t" -> t.status ...)."""
+    """HELD (on the platform's day) with every column qualified by `alias` ("t" -> t.status ...)."""
     if not alias:
-        return HELD
-    return HELD.replace("status", f"{alias}.status").replace("training_date", f"{alias}.training_date")
+        return _on_platform_day(HELD)
+    return _on_platform_day(HELD.replace("status", f"{alias}.status").replace("training_date", f"{alias}.training_date"))
+
+
+def _upcoming() -> str:
+    return _on_platform_day(UPCOMING)
+
+
+def _upcoming_first_order() -> str:
+    return _on_platform_day(_UPCOMING_FIRST_ORDER)
 
 
 async def count_team_trainings_summary(conn: asyncpg.Connection, team_id: UUID) -> dict[str, Any]:
     row = await conn.fetchrow(
         f"""
         SELECT
-            COUNT(*) FILTER (WHERE {HELD}) AS completed,
-            COUNT(*) FILTER (WHERE {UPCOMING}) AS upcoming,
+            COUNT(*) FILTER (WHERE {_held()}) AS completed,
+            COUNT(*) FILTER (WHERE {_upcoming()}) AS upcoming,
             COUNT(*) FILTER (WHERE type = 'independent' AND status <> 'cancelled') AS independent
         FROM trainings
         WHERE team_id = $1 AND deleted_at IS NULL AND type IN ('team', 'independent')
@@ -252,8 +269,8 @@ async def player_training_counts(conn: asyncpg.Connection, user_id: UUID) -> dic
     row = await conn.fetchrow(
         f"""
         SELECT
-            COUNT(*) FILTER (WHERE type = 'personal' AND {HELD}) AS personal_count,
-            COALESCE(SUM(duration_minutes) FILTER (WHERE type = 'personal' AND {HELD}), 0) AS personal_minutes
+            COUNT(*) FILTER (WHERE type = 'personal' AND {_held()}) AS personal_count,
+            COALESCE(SUM(duration_minutes) FILTER (WHERE type = 'personal' AND {_held()}), 0) AS personal_minutes
         FROM trainings
         WHERE created_by = $1 AND deleted_at IS NULL
         """,

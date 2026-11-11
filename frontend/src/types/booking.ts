@@ -91,6 +91,7 @@ export interface BookingDto {
   payment_status?: PaymentStatus;
   paid_at?: string | null;
   can_cancel?: boolean;
+  has_started?: boolean;
   cancellation?: CancellationDto | null;
 }
 
@@ -122,6 +123,9 @@ export interface Booking {
   paidAt: string | null;
   /** The «Отменить» button is shown by this: confirmed, not started, not conducted, not cancelled. */
   canCancel: boolean;
+  /** The session's start has come on the platform's clock (the server decides: startsAt is the session's wall-clock time
+   * with a UTC label, not a real instant, so it must not be compared with the device's clock). */
+  hasStarted: boolean;
   /** Set once the booking is cancelled. */
   cancellation: Cancellation | null;
 }
@@ -152,6 +156,7 @@ export function mapBookingDto(dto: BookingDto): Booking {
     paymentStatus: dto.payment_status ?? "not_required",
     paidAt: dto.paid_at ?? null,
     canCancel: dto.can_cancel ?? false,
+    hasStarted: dto.has_started ?? false,
     cancellation: dto.cancellation
       ? {
           cancelledByRole: dto.cancellation.cancelled_by_role,

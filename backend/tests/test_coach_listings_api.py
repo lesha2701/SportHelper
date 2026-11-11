@@ -4,6 +4,8 @@ import io
 from datetime import date, datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
+from app.core import session_time
+
 from tests.image_helpers import jpeg_bytes
 from tests.test_teams_api import _create_coach_profile
 
@@ -183,7 +185,7 @@ def test_cannot_delete_listing_with_active_booking(logged_in_client) -> None:
         "coach_user_id": UUID(listing["coach_user_id"]),
         "listing_id": UUID(listing["id"]),
         "athlete_user_id": uuid4(),
-        "starts_at": datetime.now(timezone.utc) + timedelta(days=1),
+        "starts_at": session_time.wall_now() + timedelta(days=1),
         "duration_minutes": 60,
         "format": "online",
         "price_per_session": 2000,

@@ -69,6 +69,7 @@ const booking = (overrides: Partial<Booking> = {}): Booking => ({
   paymentStatus: "not_required",
   paidAt: null,
   canCancel: false,
+  hasStarted: false,
   cancellation: null,
   ...overrides,
 });

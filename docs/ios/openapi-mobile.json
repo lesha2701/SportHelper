@@ -10950,7 +10950,8 @@
           "starts_at": {
             "type": "string",
             "format": "date-time",
-            "title": "Starts At"
+            "title": "Starts At",
+            "description": "The session's wall-clock time on the platform's clock (SESSION_TIMEZONE, Europe/Moscow) written with a UTC label: 10:00Z means 10:00 in Moscow. Show its UTC hours as they are; do not convert it to the device's time zone, and do not compare it with the device's clock (use has_started / can_cancel)."
           },
           "format": {
             "type": "string",
@@ -11232,7 +11233,8 @@
           "starts_at": {
             "type": "string",
             "format": "date-time",
-            "title": "Starts At"
+            "title": "Starts At",
+            "description": "The session's wall-clock time on the platform's clock (SESSION_TIMEZONE, Europe/Moscow) written with a UTC label: 10:00Z means 10:00 in Moscow. Show its UTC hours as they are; do not convert it to the device's time zone, and do not compare it with the device's clock (use has_started / can_cancel)."
           },
           "duration_minutes": {
             "type": "integer",
@@ -11340,6 +11342,12 @@
           "can_cancel": {
             "type": "boolean",
             "title": "Can Cancel",
+            "default": false
+          },
+          "has_started": {
+            "type": "boolean",
+            "title": "Has Started",
+            "description": "The session's start has come on the platform's clock.",
             "default": false
           },
           "cancellation": {
@@ -11520,7 +11528,8 @@
                 "type": "null"
               }
             ],
-            "title": "Free Cancel Until"
+            "title": "Free Cancel Until",
+            "description": "The session's wall-clock time on the platform's clock (SESSION_TIMEZONE, Europe/Moscow) written with a UTC label: 10:00Z means 10:00 in Moscow. Show its UTC hours as they are; do not convert it to the device's time zone, and do not compare it with the device's clock (use has_started / can_cancel)."
           },
           "paid_kopecks": {
             "type": "integer",
@@ -12140,7 +12149,8 @@
                 "type": "null"
               }
             ],
-            "title": "Next Available Slot"
+            "title": "Next Available Slot",
+            "description": "The session's wall-clock time on the platform's clock (SESSION_TIMEZONE, Europe/Moscow) written with a UTC label: 10:00Z means 10:00 in Moscow. Show its UTC hours as they are; do not convert it to the device's time zone, and do not compare it with the device's clock (use has_started / can_cancel)."
           }
         },
         "type": "object",
@@ -12525,7 +12535,8 @@
                 "type": "null"
               }
             ],
-            "title": "Next Available Slot"
+            "title": "Next Available Slot",
+            "description": "The session's wall-clock time on the platform's clock (SESSION_TIMEZONE, Europe/Moscow) written with a UTC label: 10:00Z means 10:00 in Moscow. Show its UTC hours as they are; do not convert it to the device's time zone, and do not compare it with the device's clock (use has_started / can_cancel)."
           },
           "coach_description": {
             "anyOf": [
@@ -15843,7 +15854,8 @@
           "starts_at": {
             "type": "string",
             "format": "date-time",
-            "title": "Starts At"
+            "title": "Starts At",
+            "description": "The session's wall-clock time on the platform's clock (SESSION_TIMEZONE, Europe/Moscow) written with a UTC label: 10:00Z means 10:00 in Moscow. Show its UTC hours as they are; do not convert it to the device's time zone, and do not compare it with the device's clock (use has_started / can_cancel)."
           },
           "duration_minutes": {
             "type": "integer",
@@ -15944,7 +15956,8 @@
           "starts_at": {
             "type": "string",
             "format": "date-time",
-            "title": "Starts At"
+            "title": "Starts At",
+            "description": "The session's wall-clock time on the platform's clock (SESSION_TIMEZONE, Europe/Moscow) written with a UTC label: 10:00Z means 10:00 in Moscow. Show its UTC hours as they are; do not convert it to the device's time zone, and do not compare it with the device's clock (use has_started / can_cancel)."
           },
           "duration_minutes": {
             "type": "integer",
@@ -20058,7 +20071,8 @@
           "starts_at": {
             "type": "string",
             "format": "date-time",
-            "title": "Starts At"
+            "title": "Starts At",
+            "description": "The session's wall-clock time on the platform's clock (SESSION_TIMEZONE, Europe/Moscow) written with a UTC label: 10:00Z means 10:00 in Moscow. Show its UTC hours as they are; do not convert it to the device's time zone, and do not compare it with the device's clock (use has_started / can_cancel)."
           },
           "format": {
             "type": "string",
