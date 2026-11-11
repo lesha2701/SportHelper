@@ -1,4 +1,4 @@
--- 0044: confirming that a booked session took place (docs/session-confirmation.md; TR-03, TR-04).
+-- 0045: confirming that a booked session took place (docs/session-confirmation.md; TR-03, TR-04).
 -- Additive: two new tables and their indexes, nothing existing is modified. A booking without a row here is simply «nothing recorded yet»:
 -- before its end it is scheduled, after it the window is open (awaiting), so the bookings made before this patch need no backfill.
 

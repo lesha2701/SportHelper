@@ -1,4 +1,4 @@
-"""Data access for confirming that a booked session took place (one row per booking, migration 0044). All queries are parameterized.
+"""Data access for confirming that a booked session took place (one row per booking, migration 0045). All queries are parameterized.
 
 No row means nothing has been recorded yet: before the session's end it is scheduled, after it the window is open. Every change moves the
 state forward only from where it must be (the WHERE of each UPDATE), so racing requests and repeated background passes change nothing twice."""
@@ -8,6 +8,8 @@ from typing import Any
 from uuid import UUID
 
 import asyncpg
+
+from app.core import session_time
 
 _FIELDS = (
     "booking_id, state, coach_marked_at, confirmed_at, confirmed_by, confirmed_method, disputed_at, disputed_by, disputed_by_role, "
@@ -80,14 +82,14 @@ async def resolve(conn: asyncpg.Connection, booking_id: UUID, *, by: UUID, outco
 
 
 async def due_for_auto_confirmation(conn: asyncpg.Connection, *, window_hours: int, limit: int) -> list[UUID]:
-    """Confirmed bookings whose session ended at least window_hours ago, was not cancelled, and whose window is still open."""
+    """Confirmed bookings whose session ended at least window_hours ago (on the platform's clock, app/core/session_time.py), was not cancelled, and whose window is still open."""
     rows = await conn.fetch(
-        """
+        f"""
         SELECT b.id FROM bookings b
           JOIN trainings t ON t.id = b.training_id
           LEFT JOIN session_confirmations c ON c.booking_id = b.id
          WHERE b.status = 'confirmed' AND t.status <> 'cancelled' AND t.deleted_at IS NULL
-           AND b.starts_at + make_interval(mins => b.duration_minutes) + make_interval(hours => $1) <= now()
+           AND b.starts_at + make_interval(mins => b.duration_minutes) + make_interval(hours => $1) <= {session_time.sql_wall_now()}
            AND (c.booking_id IS NULL OR c.state = 'awaiting')
          ORDER BY b.starts_at
          LIMIT $2
@@ -101,14 +103,14 @@ async def due_for_reminder(conn: asyncpg.Connection, *, hours_after_end: int, un
     """Open windows of sessions that ended between hours_after_end and until_hours ago (a later step takes over after that, so a late
     pass never sends two reminders at once), whose athlete has not been reminded at this step yet (the reminder's dedup key is session_confirm_<step>:<booking>:<athlete>)."""
     rows = await conn.fetch(
-        """
+        f"""
         SELECT b.id FROM bookings b
           JOIN trainings t ON t.id = b.training_id
           LEFT JOIN session_confirmations c ON c.booking_id = b.id
          WHERE b.status = 'confirmed' AND t.status <> 'cancelled' AND t.deleted_at IS NULL
            AND (c.booking_id IS NULL OR c.state = 'awaiting')
-           AND b.starts_at + make_interval(mins => b.duration_minutes) + make_interval(hours => $1) <= now()
-           AND b.starts_at + make_interval(mins => b.duration_minutes) + make_interval(hours => $2) > now()
+           AND b.starts_at + make_interval(mins => b.duration_minutes) + make_interval(hours => $1) <= {session_time.sql_wall_now()}
+           AND b.starts_at + make_interval(mins => b.duration_minutes) + make_interval(hours => $2) > {session_time.sql_wall_now()}
            AND NOT EXISTS (SELECT 1 FROM notifications n
                             WHERE n.dedup_key = 'session_confirm_' || $1 || ':' || b.id || ':' || b.athlete_user_id)
          ORDER BY b.starts_at

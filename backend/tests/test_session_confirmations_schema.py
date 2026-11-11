@@ -1,4 +1,4 @@
-"""Confirming a booked session (migration 0044) against a real PostgreSQL: the tables, their rules and the repositories (TR-03, TR-04).
+"""Confirming a booked session (migration 0045) against a real PostgreSQL: the tables, their rules and the repositories (TR-03, TR-04).
 
 What the database itself refuses is proved here, whatever the application does: the window closes once, confirming and disputing exclude each
 other, an automatic confirmation has no author, a dispute and its resolution are complete, and a verified code is never replaced."""
@@ -10,6 +10,7 @@ from uuid import UUID, uuid4
 import asyncpg
 import pytest
 
+from app.core import session_time
 from app.repositories import session_codes as codes
 from app.repositories import session_confirmations as confirmations
 from app.security import session_codes as code_security
@@ -30,7 +31,7 @@ async def _booking(conn: asyncpg.Connection, *, ended_hours_ago: float, training
     """A confirmed booking with its session (60 minutes) that ended the given number of hours ago (negative: in the future)."""
     coach, athlete = await _user(conn, "Тренер"), await _user(conn, "Игрок")
     await conn.execute("INSERT INTO coach_profiles (user_id, full_name, sport) VALUES ($1, 'Тренер', 'Теннис')", coach)
-    starts = datetime.now(timezone.utc) - timedelta(hours=ended_hours_ago, minutes=60)
+    starts = session_time.wall_now() - timedelta(hours=ended_hours_ago, minutes=60)  # starts_at is the platform's wall-clock time
     training = (await conn.fetchrow(
         "INSERT INTO trainings (created_by, type, training_date, start_time, duration_minutes, status) VALUES ($1, 'personal', $2, $3, 60, $4) RETURNING id",
         athlete, starts.date(), starts.time().replace(tzinfo=None), training_status,

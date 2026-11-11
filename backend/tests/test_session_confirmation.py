@@ -4,6 +4,7 @@ from __future__ import annotations
 import threading
 
 from app.config import get_settings
+from app.core import session_time
 from app.services import session_confirmation as service
 from tests.admin_world import live_client, pg, world  # noqa: F401  (fixtures)
 from tests.finance_helpers import assert_books_are_sound, confirmed_booking, run, webhook, with_conn
@@ -12,12 +13,12 @@ from tests.test_finance import earning_of, fin, paid_booking  # noqa: F401  (fix
 
 
 def _ended(fin, booking, hours_ago: float = 1) -> None:
-    """The session (60 minutes) ended the given number of hours ago."""
-    sql(fin.dsn, "UPDATE bookings SET starts_at = now() - make_interval(secs => $2) WHERE id = $1::uuid", booking["id"], (hours_ago + 1) * 3600)
+    """The session (60 minutes) ended the given number of hours ago on the platform's clock (starts_at is wall-clock time)."""
+    sql(fin.dsn, f"UPDATE bookings SET starts_at = {session_time.sql_wall_now()} - make_interval(secs => $2) WHERE id = $1::uuid", booking["id"], (hours_ago + 1) * 3600)
 
 
 def _starts_in(fin, booking, hours: float) -> None:
-    sql(fin.dsn, "UPDATE bookings SET starts_at = now() + make_interval(secs => $2) WHERE id = $1::uuid", booking["id"], hours * 3600)
+    sql(fin.dsn, f"UPDATE bookings SET starts_at = {session_time.sql_wall_now()} + make_interval(secs => $2) WHERE id = $1::uuid", booking["id"], hours * 3600)
 
 
 def _in_person(fin, booking) -> None:

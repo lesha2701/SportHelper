@@ -1,4 +1,4 @@
-"""Data access for the athlete's one-time code of an in-person session (migration 0044). Only the code's hash is stored.
+"""Data access for the athlete's one-time code of an in-person session (migration 0045). Only the code's hash is stored.
 
 All queries are parameterized. A code is replaced by issuing a new one; a verified booking never gets a new code."""
 from __future__ import annotations

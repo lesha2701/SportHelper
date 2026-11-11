@@ -20,6 +20,7 @@ from uuid import UUID
 import asyncpg
 
 from app.config import Settings
+from app.core import session_time
 from app.core.exceptions import APIError, ForbiddenError, NotFoundError
 from app.repositories import bookings as bookings_repo
 from app.repositories import earnings as earnings_repo
@@ -108,7 +109,7 @@ async def view_for(conn: asyncpg.Connection, booking: dict[str, Any], user_id: U
         return None
     row = await confirmations_repo.get(conn, booking["id"])
     code = await codes_repo.get(conn, booking["id"]) if booking["format"] == "offline" else None
-    return view(booking, row, code, role=role_of(booking, user_id), now=datetime.now(timezone.utc))
+    return view(booking, row, code, role=role_of(booking, user_id), now=session_time.wall_now())
 
 
 # --- the money --------------------------------------------------------------------------------------------------------------------
@@ -172,7 +173,7 @@ async def confirm_by_athlete(conn: asyncpg.Connection, settings: Settings, booki
         booking, role = await _locked(conn, booking_id, user["id"])
         if role != ATHLETE:
             raise ForbiddenError("only the athlete of this booking confirms the session")
-        now = datetime.now(timezone.utc)
+        now = session_time.wall_now()  # session times are the platform's wall clock (app/core/session_time.py)
         if now < ends_at(booking):
             raise APIError("Подтвердить занятие можно после его окончания.", code="session_not_finished", status_code=409)
         row = await confirmations_repo.confirm(conn, booking_id, by=user["id"], method="athlete")
@@ -200,7 +201,7 @@ async def issue_code(conn: asyncpg.Connection, settings: Settings, booking_id: U
             raise ForbiddenError("only the athlete of this booking gets the code")
         if booking["format"] != "offline":
             raise APIError("Код нужен только для очного занятия.", code="code_for_in_person_only", status_code=409)
-        now = datetime.now(timezone.utc)
+        now = session_time.wall_now()
         if now < booking["starts_at"]:
             raise APIError("Код появится, когда занятие начнётся.", code="session_not_started", status_code=409)
         row = await confirmations_repo.get(conn, booking_id)
@@ -210,7 +211,7 @@ async def issue_code(conn: asyncpg.Connection, settings: Settings, booking_id: U
         if current is not None and current["issued_count"] >= MAX_CODES:
             raise APIError("Новых кодов больше не будет: подтвердите занятие кнопкой «Подтвердить».", code="code_limit", status_code=429)
         code = code_security.generate()
-        expires = now + CODE_TTL
+        expires = datetime.now(timezone.utc) + CODE_TTL  # a real moment: the code's life is measured by the real clock
         stored = await codes_repo.issue(conn, booking_id, code_hash=code_security.digest(code, booking_id=booking_id, secret=settings.jwt_secret),
                                         expires_at=expires)
         if stored is None:
@@ -229,7 +230,7 @@ async def verify_code(conn: asyncpg.Connection, settings: Settings, booking_id: 
             raise ForbiddenError("only the coach of this booking enters the code")
         if booking["format"] != "offline":
             raise APIError("Код нужен только для очного занятия.", code="code_for_in_person_only", status_code=409)
-        now = datetime.now(timezone.utc)
+        now = session_time.wall_now()
         row = await confirmations_repo.get(conn, booking_id)
         code = await codes_repo.get(conn, booking_id, lock=True)
         if code is not None and code["verified_at"] is not None and typed is not None \
@@ -241,7 +242,7 @@ async def verify_code(conn: asyncpg.Connection, settings: Settings, booking_id: 
             raise APIError("Игрок ещё не получил код: попросите его открыть запись и нажать «Показать код».", code="code_not_issued", status_code=409)
         if code["attempts"] >= MAX_CODE_ATTEMPTS:
             raise APIError("Слишком много неверных попыток: попросите игрока показать новый код.", code="code_locked", status_code=429)
-        if code["expires_at"] <= now:
+        if code["expires_at"] <= datetime.now(timezone.utc):
             raise APIError("Срок кода истёк: попросите игрока показать новый код.", code="code_expired", status_code=409)
         if typed is None or not code_security.matches(typed, code["code_hash"], booking_id=booking_id, secret=settings.jwt_secret):
             wrong = await codes_repo.count_wrong(conn, booking_id)
@@ -272,8 +273,7 @@ async def report_problem(
             raise APIError("Опишите, что случилось.", code="reason_required", status_code=422)
         if text is not None and len(text) > MAX_DISPUTE_TEXT:
             raise APIError("Слишком длинное описание.", code="validation_error", status_code=422)
-        now = datetime.now(timezone.utc)
-        if now < booking["starts_at"]:
+        if session_time.wall_now() < booking["starts_at"]:
             raise APIError("Сообщить о проблеме можно, когда занятие начнётся.", code="session_not_started", status_code=409)
         row = await confirmations_repo.dispute(conn, booking_id, by=user["id"], role=role, kind=kind, text=text)
         if row is None:
@@ -298,7 +298,7 @@ async def auto_confirm_due(conn: asyncpg.Connection, settings: Settings, *, limi
                 await settle_earning(conn, settings, booking_id, method="auto")
                 booking = await bookings_repo.get_booking(conn, booking_id)
                 # a session that ended long ago (before this existed, or while the server was down) is closed without a message about it
-                if booking is not None and ends_at(booking) >= datetime.now(timezone.utc) - QUIET_AFTER:
+                if booking is not None and ends_at(booking) >= session_time.wall_now() - QUIET_AFTER:
                     await notifications_service.schedule_session_confirmed_notification(conn, booking, method="auto")
                 closed += 1
     return closed
