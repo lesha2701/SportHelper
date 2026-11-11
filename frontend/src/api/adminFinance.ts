@@ -29,6 +29,7 @@ function queryString(params: Record<string, string | number | undefined>): strin
 }
 
 const get = async <T>(path: string) => camelize<T>(await apiRequest<Json>(path, QUIET));
+const put = async <T>(path: string, body: unknown = {}) => camelize<T>(await apiRequest<Json>(path, { method: "PUT", body, silent: true }));
 const post = async <T>(path: string, body: unknown = {}) => camelize<T>(await apiRequest<Json>(path, { method: "POST", body, silent: true }));
 
 export interface FinancePage<T> {
@@ -247,3 +248,24 @@ export const listFinanceDisputes = (q: { openOnly: boolean; limit: number; offse
   get<FinancePage<AdminDispute>>(`/api/admin/finance/disputes${queryString({ open_only: String(q.openOnly), limit: q.limit, offset: q.offset })}`);
 export const resolveFinanceDispute = (bookingId: string, outcome: "release" | "refund", note: string) =>
   post<{ bookingId: string; state: string; refundId: string | null }>(`/api/admin/finance/disputes/${bookingId}/resolve`, { outcome, note });
+
+export interface CommissionChange {
+  id: number;
+  percent: string;
+  previous: string | null;
+  reason: string;
+  changedByEmail: string | null;
+  createdAt: string;
+}
+
+export interface Commission {
+  percent: string;
+  /** "admin": set in this panel; "environment": nobody has changed it yet, the server's setting applies. */
+  source: "admin" | "environment";
+  environmentPercent: string;
+  maxPercent: string;
+  history: CommissionChange[];
+}
+
+export const getCommission = () => get<Commission>("/api/admin/finance/commission");
+export const setCommission = (percent: string, reason: string) => put<Commission>("/api/admin/finance/commission", { percent, reason });

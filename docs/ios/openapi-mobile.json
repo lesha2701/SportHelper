@@ -13117,6 +13117,36 @@
         ],
         "title": "CoachReviewOut"
       },
+      "CommissionIn": {
+        "properties": {
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 50.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Percent"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "percent",
+          "reason"
+        ],
+        "title": "CommissionIn",
+        "description": "A new commission percent for the payments created from now on (0-50, at most two decimals) and why."
+      },
       "ComplaintCreatedOut": {
         "properties": {
           "id": {

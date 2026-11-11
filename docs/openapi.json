@@ -2999,6 +2999,80 @@
         ]
       }
     },
+    "/api/admin/finance/commission": {
+      "get": {
+        "tags": [
+          "admin-finance"
+        ],
+        "summary": "Get Commission",
+        "description": "The commission in force, where it comes from and the history of its changes.",
+        "operationId": "get_commission_api_admin_finance_commission_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Commission Api Admin Finance Commission Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "admin-finance"
+        ],
+        "summary": "Set Commission",
+        "description": "Changes the commission for the payments created from now on. Payments that already exist keep the percent they were created\nwith, so the earnings, refunds and payouts under them are untouched. Needs the second factor entered a moment ago; audited.",
+        "operationId": "set_commission_api_admin_finance_commission_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommissionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Set Commission Api Admin Finance Commission Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/admin/finance/integrity": {
       "get": {
         "tags": [
@@ -16259,6 +16333,36 @@
           "created_at"
         ],
         "title": "CoachReviewOut"
+      },
+      "CommissionIn": {
+        "properties": {
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 50.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Percent"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "percent",
+          "reason"
+        ],
+        "title": "CommissionIn",
+        "description": "A new commission percent for the payments created from now on (0-50, at most two decimals) and why."
       },
       "ComplaintCreatedOut": {
         "properties": {

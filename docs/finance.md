@@ -80,7 +80,7 @@ Fernet (как у TOTP). Старого платёжного кода не бы�
 | `YOOKASSA_WEBHOOK_IP_CHECK` | `true` | принимать webhook только с адресов ЮKassa |
 | `YOOKASSA_SEND_RECEIPT`, `YOOKASSA_VAT_CODE` | `false`, `1` | данные чека 54-ФЗ (только при подключённой кассе; НДС — у бухгалтера) |
 | `YOOKASSA_FISCALIZATION_CONFIRMED` | `false` | письменное подтверждение, что вопрос с чеками решён без передачи чека сайтом; без него (или `YOOKASSA_SEND_RECEIPT=true`) боевой backend с `YOOKASSA_ENABLED=true` не стартует |
-| `PLATFORM_COMMISSION_PERCENT` | `10` | комиссия платформы, %; замораживается в платеже при его создании |
+| `PLATFORM_COMMISSION_PERCENT` | `10` | комиссия платформы, %, пока её никто не менял в админке; замораживается в платеже при его создании. Финансовый администратор меняет её в «Финансы → Обзор → Изменить комиссию» (0–50 %, с причиной, свежий код второго фактора, запись в журнал, история в `commission_changes`, патч 0046): новый процент действует только для оплат, созданных после изменения |
 | `TRAINER_MIN_WITHDRAWAL_RUB` | `10000` | минимальная сумма вывода, ₽ |
 | `TRAINER_BALANCE_ENABLED`, `TRAINER_WITHDRAWALS_ENABLED`, `TRAINER_PAYOUT_CONFIRMATION_ENABLED` | `false` | см. «Флаги» |
 | `FINANCE_ADMIN_EMAILS` | пусто | кто видит и меняет деньги в админке; пусто = никто |

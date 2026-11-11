@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
@@ -19,6 +20,12 @@ class WithdrawalCreateIn(BaseModel):
 
 
 class ReasonIn(BaseModel):
+    reason: str = Field(min_length=1, max_length=500)
+
+
+class CommissionIn(BaseModel):
+    """A new commission percent for the payments created from now on (0-50, at most two decimals) and why."""
+    percent: Decimal = Field(ge=0, le=50, decimal_places=2)
     reason: str = Field(min_length=1, max_length=500)
 
 
