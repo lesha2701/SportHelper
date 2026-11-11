@@ -75,7 +75,7 @@ async def run_finance_tick(conn: asyncpg.Connection, settings: Settings) -> None
     """Everything the background loop does for the finance contour (each part isolated: one failure never blocks the rest)."""
     # the sessions confirmed by themselves after 48 hours come first, so their earnings can be released in the same tick
     for name, job in (("payments", reconcile_payments), ("confirmations", session_confirmation_service.auto_confirm_due),
-                      ("earnings", earnings_service.release_due_earnings)):
+                      ("confirmation reminders", session_confirmation_service.remind_due), ("earnings", earnings_service.release_due_earnings)):
         try:
             await job(conn, settings)
         except Exception:  # noqa: BLE001 - a bad step must not stop the others

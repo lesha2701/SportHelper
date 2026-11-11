@@ -18131,6 +18131,31 @@
         ],
         "title": "ResolveComplaintIn"
       },
+      "ResolveDisputeIn": {
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "release",
+              "refund"
+            ],
+            "title": "Outcome"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 3,
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "outcome",
+          "note"
+        ],
+        "title": "ResolveDisputeIn",
+        "description": "The administrator's decision on a disputed session: the trainer keeps the payment, or the athlete gets back what is left of it."
+      },
       "ResolveIncidentIn": {
         "properties": {
           "resolution": {

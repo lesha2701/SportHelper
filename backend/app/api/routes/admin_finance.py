@@ -21,12 +21,14 @@ from app.repositories import finance_views
 from app.repositories import ledger
 from app.repositories import payments as payments_repo
 from app.repositories import refunds as refunds_repo
+from app.repositories import session_confirmations as confirmations_repo
 from app.repositories import withdrawals as withdrawals_repo
-from app.schemas.finance import MarkPaidIn, OptionalNoteIn, ReasonIn, RefundIn, RejectIn, ResolveIncidentIn
+from app.schemas.finance import MarkPaidIn, OptionalNoteIn, ReasonIn, RefundIn, RejectIn, ResolveDisputeIn, ResolveIncidentIn
 from app.services import admin_audit
 from app.services import earnings as earnings_service
 from app.services import payout_details
 from app.services import refunds as refunds_service
+from app.services import session_confirmation as session_confirmation_service
 from app.services import withdrawals as withdrawals_service
 
 router = APIRouter(prefix="/api/admin/finance", tags=["admin-finance"])
@@ -131,6 +133,37 @@ async def refunds(
 ) -> dict[str, Any]:
     total, rows = await refunds_repo.list_for_admin(conn, limit=limit, offset=offset)
     return _page(limit, offset, total, rows)
+
+
+# --- disputes about whether a booked session took place (docs/session-confirmation.md) -------------------------------------------
+
+
+@router.get("/disputes")
+async def disputes(
+    open_only: bool = Query(True), limit: int = Query(25, ge=1, le=100), offset: int = Query(0, ge=0, le=100_000),
+    ctx: AuthContext = Depends(require_finance_admin), conn: asyncpg.Connection = Depends(get_db),
+) -> dict[str, Any]:
+    total, rows = await confirmations_repo.list_disputes(conn, open_only=open_only, limit=limit, offset=offset)
+    return _page(limit, offset, total, rows)
+
+
+@router.post("/disputes/{booking_id}/resolve")
+async def resolve_dispute(
+    booking_id: UUID, payload: ResolveDisputeIn,
+    ctx: AuthContext = Depends(require_finance_recent_mfa), conn: asyncpg.Connection = Depends(get_db), settings: Settings = Depends(get_settings_dep),
+) -> dict[str, Any]:
+    """release: the trainer keeps the payment; refund: what is left of it goes back to the athlete. Decided once."""
+    try:
+        result = await session_confirmation_service.resolve_dispute(
+            conn, settings, booking_id, admin_id=ctx.user["id"], outcome=payload.outcome, note=payload.note.strip()
+        )
+    except APIError as exc:
+        await admin_audit.record(conn, ctx.user["id"], "finance.dispute.resolve", target_type="booking", target_id=booking_id, reason=payload.note,
+                                 extra={"outcome": payload.outcome, "error": exc.code}, result="denied")
+        raise
+    await admin_audit.record(conn, ctx.user["id"], "finance.dispute.resolve", target_type="booking", target_id=booking_id, reason=payload.note,
+                             extra={"outcome": payload.outcome, "refund_id": str(result["refund_id"]) if result["refund_id"] else None})
+    return result
 
 
 # --- incidents ---------------------------------------------------------------------------------------------------------------

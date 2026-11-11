@@ -3296,6 +3296,139 @@
         }
       }
     },
+    "/api/admin/finance/disputes": {
+      "get": {
+        "tags": [
+          "admin-finance"
+        ],
+        "summary": "Disputes",
+        "operationId": "disputes_api_admin_finance_disputes_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "open_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Open Only"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Disputes Api Admin Finance Disputes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/finance/disputes/{booking_id}/resolve": {
+      "post": {
+        "tags": [
+          "admin-finance"
+        ],
+        "summary": "Resolve Dispute",
+        "description": "release: the trainer keeps the payment; refund: what is left of it goes back to the athlete. Decided once.",
+        "operationId": "resolve_dispute_api_admin_finance_disputes__booking_id__resolve_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Booking Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveDisputeIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Resolve Dispute Api Admin Finance Disputes  Booking Id  Resolve Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/finance/incidents": {
       "get": {
         "tags": [
@@ -21140,6 +21273,31 @@
           "resolution"
         ],
         "title": "ResolveComplaintIn"
+      },
+      "ResolveDisputeIn": {
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "release",
+              "refund"
+            ],
+            "title": "Outcome"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 3,
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "outcome",
+          "note"
+        ],
+        "title": "ResolveDisputeIn",
+        "description": "The administrator's decision on a disputed session: the trainer keeps the payment, or the athlete gets back what is left of it."
       },
       "ResolveIncidentIn": {
         "properties": {

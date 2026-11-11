@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -48,3 +48,10 @@ class RefundIn(BaseModel):
 
 class ResolveIncidentIn(BaseModel):
     resolution: str = Field(min_length=1, max_length=500)
+
+
+class ResolveDisputeIn(BaseModel):
+    """The administrator's decision on a disputed session: the trainer keeps the payment, or the athlete gets back what is left of it."""
+
+    outcome: Literal["release", "refund"]
+    note: str = Field(min_length=3, max_length=1000)

@@ -95,3 +95,52 @@ async def due_for_auto_confirmation(conn: asyncpg.Connection, *, window_hours: i
         window_hours, limit,
     )
     return [r["id"] for r in rows]
+
+
+async def due_for_reminder(conn: asyncpg.Connection, *, hours_after_end: int, until_hours: int, limit: int) -> list[UUID]:
+    """Open windows of sessions that ended between hours_after_end and until_hours ago (a later step takes over after that, so a late
+    pass never sends two reminders at once), whose athlete has not been reminded at this step yet (the reminder's dedup key is session_confirm_<step>:<booking>:<athlete>)."""
+    rows = await conn.fetch(
+        """
+        SELECT b.id FROM bookings b
+          JOIN trainings t ON t.id = b.training_id
+          LEFT JOIN session_confirmations c ON c.booking_id = b.id
+         WHERE b.status = 'confirmed' AND t.status <> 'cancelled' AND t.deleted_at IS NULL
+           AND (c.booking_id IS NULL OR c.state = 'awaiting')
+           AND b.starts_at + make_interval(mins => b.duration_minutes) + make_interval(hours => $1) <= now()
+           AND b.starts_at + make_interval(mins => b.duration_minutes) + make_interval(hours => $2) > now()
+           AND NOT EXISTS (SELECT 1 FROM notifications n
+                            WHERE n.dedup_key = 'session_confirm_' || $1 || ':' || b.id || ':' || b.athlete_user_id)
+         ORDER BY b.starts_at
+         LIMIT $3
+        """,
+        hours_after_end, until_hours, limit,
+    )
+    return [r["id"] for r in rows]
+
+
+async def list_disputes(conn: asyncpg.Connection, *, open_only: bool, limit: int, offset: int) -> tuple[int, list[dict[str, Any]]]:
+    """Disputes for the finance administrator: open ones first, with what is needed to decide (who, what, the money)."""
+    where = "WHERE c.disputed_at IS NOT NULL" + (" AND c.state = 'disputed'" if open_only else "")
+    total = await conn.fetchval(f"SELECT count(*) FROM session_confirmations c {where}")
+    rows = await conn.fetch(
+        f"""
+        SELECT c.booking_id, c.state, c.coach_marked_at, c.disputed_at, c.disputed_by_role, c.dispute_kind, c.dispute_text,
+               c.resolved_at, c.resolution_note,
+               b.starts_at, b.duration_minutes, b.format, cl.title AS listing_title,
+               cp.full_name AS coach_full_name, au.first_name || COALESCE(' ' || au.last_name, '') AS athlete_full_name,
+               p.id AS payment_id, p.gross_kopecks, p.status AS payment_status, e.status AS earning_status, e.trainer_kopecks
+          FROM session_confirmations c
+          JOIN bookings b ON b.id = c.booking_id
+          LEFT JOIN coach_listings cl ON cl.id = b.listing_id
+          LEFT JOIN coach_profiles cp ON cp.user_id = b.coach_user_id
+          JOIN users au ON au.id = b.athlete_user_id
+          LEFT JOIN payments p ON p.booking_id = b.id
+          LEFT JOIN trainer_earnings e ON e.booking_id = b.id
+          {where}
+         ORDER BY (c.state = 'disputed') DESC, c.disputed_at DESC
+         LIMIT $1 OFFSET $2
+        """,
+        limit, offset,
+    )
+    return int(total), [dict(r) for r in rows]

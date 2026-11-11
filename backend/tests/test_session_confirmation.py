@@ -246,3 +246,122 @@ def test_releasing_by_the_administrator_needs_the_confirmation_not_the_coachs_ma
     assert fin.admin.call("POST", release, json={}).json()["error"]["code"] == "session_not_confirmed"
     player.ok("POST", f"/api/bookings/{booking['id']}/session/confirm")
     assert fin.admin.call("POST", release, json={}).status_code == 200
+
+
+# --- reminders (TR-10, TR-11) and the messages about the result (TR-14) -----------------------------------------------------------
+
+def _remind(fin) -> int:
+    return run(with_conn(fin.dsn, lambda c: service.remind_due(c, get_settings())))
+
+
+def _notes(fin, user_id: str) -> list[tuple[str, str]]:
+    rows = sql(fin.dsn, "SELECT title, body FROM notifications WHERE user_id = $1::uuid AND category IN ('booking_decided', 'finance_admin') "
+                        "AND (title LIKE '%одтвер%' OR title LIKE 'Спор%') ORDER BY created_at", user_id)
+    return [(r["title"], r["body"]) for r in rows]
+
+
+def _ids(fin, booking) -> tuple[str, str]:
+    row = sql(fin.dsn, "SELECT athlete_user_id::text AS a, coach_user_id::text AS c FROM bookings WHERE id = $1::uuid", booking["id"])[0]
+    return row["a"], row["c"]
+
+
+def test_the_athlete_is_reminded_at_24_and_47_hours_once_each(fin) -> None:
+    coach, player, booking, _ = paid_booking(fin)
+    athlete, trainer = _ids(fin, booking)
+    _ended(fin, booking, hours_ago=23)
+    assert _remind(fin) == 0
+    _ended(fin, booking, hours_ago=25)
+    assert _remind(fin) == 1 and _remind(fin) == 0
+    _ended(fin, booking, hours_ago=47.5)
+    assert _remind(fin) == 1 and _remind(fin) == 0
+    titles = [t for t, _ in _notes(fin, athlete)]
+    assert titles == ["Подтвердите тренировку", "Тренировка подтвердится через час"]
+    assert _notes(fin, trainer) == []  # only the athlete can confirm
+
+
+def test_a_late_pass_sends_only_the_last_reminder_and_nobody_is_reminded_of_a_closed_window(fin) -> None:
+    coach, player, booking, _ = paid_booking(fin)
+    athlete, _ = _ids(fin, booking)
+    _ended(fin, booking, hours_ago=47.5)  # the 24-hour step was missed (the server was down)
+    assert _remind(fin) == 1
+    assert [t for t, _ in _notes(fin, athlete)] == ["Тренировка подтвердится через час"]
+
+    coach2, player2, booking2, _ = paid_booking(fin, 2)
+    _ended(fin, booking2, hours_ago=25)
+    player2.ok("POST", f"/api/bookings/{booking2['id']}/session/confirm")
+    assert _remind(fin) == 0
+
+
+def test_each_side_hears_about_the_result(fin) -> None:
+    coach, player, booking, _ = paid_booking(fin)
+    athlete, trainer = _ids(fin, booking)
+    _ended(fin, booking)
+    player.ok("POST", f"/api/bookings/{booking['id']}/session/confirm")
+    assert _notes(fin, trainer)[-1][0] == "Игрок подтвердил тренировку" and _notes(fin, athlete) == []
+
+    coach2, player2, booking2, _ = paid_booking(fin, 2)
+    athlete2, trainer2 = _ids(fin, booking2)
+    _ended(fin, booking2, hours_ago=49)
+    assert _auto(fin) == 1
+    assert "автоматически" in _notes(fin, athlete2)[-1][1] and "автоматически" in _notes(fin, trainer2)[-1][1]
+
+
+def test_a_dispute_is_told_to_the_other_side_and_to_the_finance_administrators(fin) -> None:
+    coach, player, booking, _ = paid_booking(fin)
+    athlete, trainer = _ids(fin, booking)
+    admin = sql_value(fin.dsn, "SELECT id::text FROM users WHERE lower(email) = lower($1)", get_settings().finance_admin_emails_list[0])
+    _ended(fin, booking)
+    player.ok("POST", f"/api/bookings/{booking['id']}/session/problem", json={"kind": "coach_no_show", "text": None})
+
+    title, body = _notes(fin, trainer)[-1]
+    assert title == "Спор по тренировке" and body.startswith("Игрок сообщил, что вы не пришли на тренировку") and "заморожена" in body
+    assert _notes(fin, athlete) == []
+    assert _notes(fin, admin)[-1][0] == "Спор по занятию"
+
+
+# --- the administrator decides (TR-13) ----------------------------------------------------------------------------------------------
+
+def _resolve(fin, booking, outcome: str, note: str = "Посмотрел переписку"):
+    return fin.admin.call("POST", f"/api/admin/finance/disputes/{booking['id']}/resolve", json={"outcome": outcome, "note": note})
+
+
+def test_the_administrator_gives_the_payment_to_the_trainer(fin) -> None:
+    coach, player, booking, _ = paid_booking(fin)
+    athlete, trainer = _ids(fin, booking)
+    _ended(fin, booking)
+    coach.ok("POST", f"/api/bookings/{booking['id']}/session/problem", json={"kind": "athlete_no_show", "text": "Не пришёл"})
+
+    listed = fin.admin.ok("GET", "/api/admin/finance/disputes")
+    assert listed["total"] == 1 and listed["items"][0]["dispute_kind"] == "athlete_no_show" and listed["items"][0]["earning_status"] == "held"
+    assert _resolve(fin, booking, "release", note="ok").status_code == 422  # a decision is explained
+    done = _resolve(fin, booking, "release")
+    assert done.status_code == 200 and done.json()["state"] == "resolved_released"
+    earning = _earning(fin, booking)
+    assert earning["status"] == "pending" and earning["session_confirmed_at"] is not None and earning["at_once"] is True
+    assert _error(_resolve(fin, booking, "refund")) == (409, "dispute_already_resolved")
+    assert fin.admin.ok("GET", "/api/admin/finance/disputes")["total"] == 0  # open ones only by default
+    assert _card(player, booking)["state"] == "resolved_released"
+    assert _notes(fin, athlete)[-1][0] == _notes(fin, trainer)[-1][0] == "Спор решён"
+    assert sql_value(fin.dsn, "SELECT count(*) FROM admin_audit_log WHERE action = 'finance.dispute.resolve' AND result = 'success'") == 1
+
+
+def test_the_administrator_returns_the_money_to_the_athlete(fin) -> None:
+    coach, player, booking, payment_id = paid_booking(fin)
+    _ended(fin, booking)
+    player.ok("POST", f"/api/bookings/{booking['id']}/session/problem", json={"kind": "coach_no_show", "text": None})
+
+    done = _resolve(fin, booking, "refund")
+    assert done.status_code == 200 and done.json()["refund_id"] is not None
+    assert len(fin.provider.refund_requests) == 1 and fin.provider.refund_requests[0]["amount_kopecks"] == 250000
+    rid = next(iter(fin.provider.refunds))
+    fin.provider.finish_refund(rid, "succeeded")
+    assert webhook(fin.world, rid, "refund.succeeded").status_code == 200
+
+    assert sql_value(fin.dsn, "SELECT status FROM payments") == "refunded"
+    assert _earning(fin, booking)["status"] == "reversed"
+    assert_books_are_sound(fin.dsn)
+
+
+def test_there_is_nothing_to_decide_without_a_dispute(fin) -> None:
+    coach, player, booking, _ = paid_booking(fin)
+    assert _resolve(fin, booking, "release").status_code == 404

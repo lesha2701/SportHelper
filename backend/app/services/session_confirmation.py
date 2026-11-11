@@ -23,9 +23,12 @@ from app.config import Settings
 from app.core.exceptions import APIError, ForbiddenError, NotFoundError
 from app.repositories import bookings as bookings_repo
 from app.repositories import earnings as earnings_repo
+from app.repositories import payments as payments_repo
 from app.repositories import session_codes as codes_repo
 from app.repositories import session_confirmations as confirmations_repo
 from app.security import session_codes as code_security
+from app.services import finance_notifications as finance_notify
+from app.services import notifications as notifications_service
 
 logger = logging.getLogger("teamflow.bookings")
 
@@ -37,6 +40,7 @@ MAX_CODE_ATTEMPTS = 5   # wrong entries of one code
 MAX_CODES = 5           # codes a booking may be issued: with the attempts, at most 25 guesses of a million
 DISPUTE_KINDS = {ATHLETE: ("coach_no_show", "not_conducted", "other"), COACH: ("athlete_no_show", "other")}
 MAX_DISPUTE_TEXT = 1000
+REMINDER_STEPS = ((24, 47), (47, WINDOW_HOURS))  # hours after the end: «confirm it», then «it confirms itself in an hour»
 
 
 def ends_at(booking: dict[str, Any]) -> datetime:
@@ -178,6 +182,7 @@ async def confirm_by_athlete(conn: asyncpg.Connection, settings: Settings, booki
                 return booking  # already confirmed (by this press, the code or the 48 hours): nothing to change
             raise _closed_error(current)
         await settle_earning(conn, settings, booking_id, method="athlete")
+        await notifications_service.schedule_session_confirmed_notification(conn, booking, method="athlete")
     return booking
 
 
@@ -247,6 +252,7 @@ async def verify_code(conn: asyncpg.Connection, settings: Settings, booking_id: 
             confirmed = await confirmations_repo.confirm(conn, booking_id, by=user["id"], method="code")
             assert confirmed is not None  # the window was open under the lock
             await settle_earning(conn, settings, booking_id, method="code")
+            await notifications_service.schedule_session_confirmed_notification(conn, booking, method="code")
     if error is not None:
         raise error  # after the commit: the wrong attempt stays counted
     return booking
@@ -276,6 +282,8 @@ async def report_problem(
                 return booking  # the same report again
             raise _closed_error(current)
         await _freeze(conn, booking_id)
+        await notifications_service.schedule_session_disputed_notification(conn, booking, by_role=role, kind=kind)
+        await finance_notify.session_disputed(conn, settings, booking_id)
     return booking
 
 
@@ -287,5 +295,64 @@ async def auto_confirm_due(conn: asyncpg.Connection, settings: Settings, *, limi
             await bookings_repo.lock_booking(conn, booking_id)
             if await confirmations_repo.confirm(conn, booking_id, by=None, method="auto") is not None:
                 await settle_earning(conn, settings, booking_id, method="auto")
+                booking = await bookings_repo.get_booking(conn, booking_id)
+                if booking is not None:
+                    await notifications_service.schedule_session_confirmed_notification(conn, booking, method="auto")
                 closed += 1
     return closed
+
+
+async def remind_due(conn: asyncpg.Connection, settings: Settings, *, limit: int = 50) -> int:
+    """TR-10 / TR-11: the background pass reminds the athlete 24 and 47 hours after the end, once per step (the reminder's own dedup key
+    is what marks it as done)."""
+    sent = 0
+    for hours, until in REMINDER_STEPS:
+        for booking_id in await confirmations_repo.due_for_reminder(conn, hours_after_end=hours, until_hours=until, limit=limit):
+            booking = await bookings_repo.get_booking(conn, booking_id)
+            if booking is not None:
+                await notifications_service.schedule_session_confirmation_reminder(conn, booking, hours_after_end=hours)
+                sent += 1
+    return sent
+
+
+# --- the administrator decides a dispute (TR-13) ---------------------------------------------------------------------------------
+
+async def resolve_dispute(
+    conn: asyncpg.Connection, settings: Settings, booking_id: UUID, *, admin_id: UUID, outcome: str, note: str
+) -> dict[str, Any]:
+    """release: the trainer keeps the payment (unfrozen, releasable at once — a person decided). refund: everything that is left of the
+    payment goes back to the athlete through the usual refund machinery (the trainer's share comes off the frozen earning)."""
+    from app.services import refunds as refunds_service  # local: refunds imports payments, which imports this module
+
+    refund: dict[str, Any] | None = None
+    async with conn.transaction():
+        if not await bookings_repo.lock_booking(conn, booking_id):
+            raise NotFoundError("dispute not found")
+        row = await confirmations_repo.get(conn, booking_id, lock=True)
+        if row is None or row["disputed_at"] is None:
+            raise NotFoundError("dispute not found")
+        if row["state"] != "disputed":
+            raise APIError("Спор уже решён.", code="dispute_already_resolved", status_code=409)
+        booking = await bookings_repo.get_booking(conn, booking_id)
+        assert booking is not None
+        if outcome == "release":
+            earning = await earnings_repo.get_for_booking(conn, booking_id, lock=True)
+            if earning is not None and earning["status"] == "held":
+                await earnings_repo.unhold(conn, earning["id"])
+            await earnings_repo.confirm_session(conn, booking_id, release_after=datetime.now(timezone.utc))
+            state = "resolved_released"
+        else:
+            payment = await payments_repo.get_for_booking(conn, booking_id, lock=True)
+            if payment is not None and payment["status"] in ("paid", "partially_refunded"):
+                room = payment["gross_kopecks"] - payment["refund_reserved_kopecks"]
+                if room >= refunds_service.MIN_REFUND_KOPECKS:
+                    refund = await refunds_service.reserve_payment_refund(
+                        conn, settings, payment, amount_kopecks=room, requested_by=admin_id, reason="Спор по занятию: решение администратора"
+                    )
+            state = "resolved_refunded"
+        resolved = await confirmations_repo.resolve(conn, booking_id, by=admin_id, outcome=state, note=note)
+        assert resolved is not None
+        await notifications_service.schedule_session_dispute_resolved_notification(conn, booking, refunded=state == "resolved_refunded")
+    if refund is not None:
+        await refunds_service.dispatch_reserved_refund(conn, settings, refund)
+    return {"booking_id": booking_id, "state": state, "refund_id": refund["id"] if refund else None}
