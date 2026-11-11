@@ -365,3 +365,59 @@ def test_the_administrator_returns_the_money_to_the_athlete(fin) -> None:
 def test_there_is_nothing_to_decide_without_a_dispute(fin) -> None:
     coach, player, booking, _ = paid_booking(fin)
     assert _resolve(fin, booking, "release").status_code == 404
+
+
+# --- races and money safety (TR-20, TR-21) ----------------------------------------------------------------------------------------
+
+def test_the_right_code_entered_twice_at_once_confirms_once(fin) -> None:
+    coach, player, booking, _ = paid_booking(fin)
+    _in_person(fin, booking)
+    _starts_in(fin, booking, -0.25)
+    code = _post(player, booking, "code").json()["code"]
+    statuses: list[int] = []
+    go = [threading.Thread(target=lambda: statuses.append(_post(coach, booking, "code/verify", code=code).status_code)) for _ in range(2)]
+    [t.start() for t in go]
+    [t.join() for t in go]
+
+    assert statuses == [200, 200]
+    assert sql_value(fin.dsn, "SELECT count(*) FROM session_confirmations WHERE state = 'confirmed' AND confirmed_method = 'code'") == 1
+    assert sql_value(fin.dsn, "SELECT count(*) FROM session_codes WHERE verified_at IS NOT NULL") == 1
+    assert sql_value(fin.dsn, "SELECT attempts FROM session_codes") == 0  # neither entry was counted as wrong
+
+
+def test_the_athletes_confirmation_and_the_48_hours_at_once_close_the_window_once(fin) -> None:
+    coach, player, booking, _ = paid_booking(fin)
+    _ended(fin, booking, hours_ago=49)
+    results: dict[str, object] = {}
+    go = [threading.Thread(target=lambda: results.__setitem__("athlete", _post(player, booking, "confirm").status_code)),
+          threading.Thread(target=lambda: results.__setitem__("auto", _auto(fin)))]
+    [t.start() for t in go]
+    [t.join() for t in go]
+
+    state, method = sql(fin.dsn, "SELECT state, confirmed_method FROM session_confirmations")[0]
+    assert results["athlete"] == 200
+    assert (state, method, results["auto"]) in {("confirmed", "athlete", 0), ("auto_confirmed", "auto", 1)}
+    assert _earning(fin, booking)["session_confirmed_at"] is not None
+
+
+def test_a_confirmed_earning_is_released_once_however_often_it_is_asked(fin) -> None:
+    coach, player, booking, _ = paid_booking(fin)
+    _ended(fin, booking)
+    player.ok("POST", f"/api/bookings/{booking['id']}/session/confirm")
+    release = f"/api/admin/finance/earnings/{earning_of(fin, booking)}/release"
+    assert fin.admin.call("POST", release, json={}).status_code == 200
+    assert fin.admin.call("POST", release, json={}).status_code == 200  # the same earning, already released
+    assert player.call("POST", f"/api/bookings/{booking['id']}/session/confirm").status_code == 200
+    assert sql_value(fin.dsn, "SELECT count(*) FROM ledger_transactions WHERE kind = 'earning_released'") == 1
+    assert coach.ok("GET", "/api/finance/summary")["available_kopecks"] == 225000
+    assert_books_are_sound(fin.dsn)
+
+
+def test_old_sessions_are_confirmed_silently_when_the_feature_arrives(fin) -> None:
+    """Sessions that ended long before this was released are closed by the first pass without messages about weeks-old training."""
+    coach, player, booking, _ = paid_booking(fin)
+    athlete, trainer = _ids(fin, booking)
+    _ended(fin, booking, hours_ago=24 * 30)
+    assert _auto(fin) == 1
+    assert sql_value(fin.dsn, "SELECT state FROM session_confirmations") == "auto_confirmed"
+    assert _notes(fin, athlete) == [] and _notes(fin, trainer) == []

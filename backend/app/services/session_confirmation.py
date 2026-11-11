@@ -40,6 +40,7 @@ MAX_CODE_ATTEMPTS = 5   # wrong entries of one code
 MAX_CODES = 5           # codes a booking may be issued: with the attempts, at most 25 guesses of a million
 DISPUTE_KINDS = {ATHLETE: ("coach_no_show", "not_conducted", "other"), COACH: ("athlete_no_show", "other")}
 MAX_DISPUTE_TEXT = 1000
+QUIET_AFTER = timedelta(hours=WINDOW_HOURS + 24)  # older sessions are confirmed without telling anyone
 REMINDER_STEPS = ((24, 47), (47, WINDOW_HOURS))  # hours after the end: «confirm it», then «it confirms itself in an hour»
 
 
@@ -296,7 +297,8 @@ async def auto_confirm_due(conn: asyncpg.Connection, settings: Settings, *, limi
             if await confirmations_repo.confirm(conn, booking_id, by=None, method="auto") is not None:
                 await settle_earning(conn, settings, booking_id, method="auto")
                 booking = await bookings_repo.get_booking(conn, booking_id)
-                if booking is not None:
+                # a session that ended long ago (before this existed, or while the server was down) is closed without a message about it
+                if booking is not None and ends_at(booking) >= datetime.now(timezone.utc) - QUIET_AFTER:
                     await notifications_service.schedule_session_confirmed_notification(conn, booking, method="auto")
                 closed += 1
     return closed
