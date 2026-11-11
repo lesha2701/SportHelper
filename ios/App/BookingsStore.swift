@@ -104,6 +104,51 @@ final class BookingsStore {
         }
     }
 
+    // MARK: confirming that the session took place (docs/session-confirmation.md)
+
+    /// The athlete confirms the session. The confirmed booking replaces the old one; a refusal reads the lists again (the other side may
+    /// have reported a problem, or the 48 hours closed it meanwhile).
+    func confirmSession(_ id: UUID) async -> Result<Booking, APIError> {
+        await changing { try await self.service.confirmSession(id) }
+    }
+
+    /// A new one-time code for the coach (in-person sessions). The previous code stops working.
+    func sessionCode(_ id: UUID) async -> Result<SessionCode, APIError> {
+        do {
+            return .success(try await service.sessionCode(id))
+        } catch let error as APIError {
+            return .failure(error)
+        } catch {
+            return .failure(.unknown)
+        }
+    }
+
+    /// The coach enters the athlete's code. A wrong code is the coach's to retype, so the lists are not read again for it.
+    func verifySessionCode(_ id: UUID, code: String) async -> Result<Booking, APIError> {
+        await changing(reloadOnFailure: false) { try await self.service.verifySessionCode(id, code: code) }
+    }
+
+    /// Either side reports a problem; the coach's money waits for an administrator.
+    func reportProblem(_ id: UUID, kind: SessionProblemKind, text: String?) async -> Result<Booking, APIError> {
+        await changing { try await self.service.reportProblem(id, kind: kind, text: text) }
+    }
+
+    private func changing(reloadOnFailure: Bool = true, _ call: @escaping () async throws -> Booking) async -> Result<Booking, APIError> {
+        do {
+            let booking = try await call()
+            replace(booking)
+            return .success(booking)
+        } catch let error as APIError {
+            if reloadOnFailure {
+                await reloadMine()
+                await reloadCoachBookings()
+            }
+            return .failure(error)
+        } catch {
+            return .failure(.unknown)
+        }
+    }
+
     // MARK: cancelling
 
     /// What cancelling right now would mean for the money, or the server's text.
