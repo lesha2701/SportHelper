@@ -19,6 +19,7 @@ from app.repositories import users as users_repo
 from app.services import earnings as earnings_service
 from app.services import payments as payments_service
 from app.services import refunds as refunds_service
+from app.services import session_confirmation as session_confirmation_service
 
 logger = logging.getLogger("teamflow.payments")
 
@@ -72,7 +73,9 @@ async def _retry_creation(conn: asyncpg.Connection, settings: Settings, attempt:
 
 async def run_finance_tick(conn: asyncpg.Connection, settings: Settings) -> None:
     """Everything the background loop does for the finance contour (each part isolated: one failure never blocks the rest)."""
-    for name, job in (("payments", reconcile_payments), ("earnings", earnings_service.release_due_earnings)):
+    # the sessions confirmed by themselves after 48 hours come first, so their earnings can be released in the same tick
+    for name, job in (("payments", reconcile_payments), ("confirmations", session_confirmation_service.auto_confirm_due),
+                      ("earnings", earnings_service.release_due_earnings)):
         try:
             await job(conn, settings)
         except Exception:  # noqa: BLE001 - a bad step must not stop the others

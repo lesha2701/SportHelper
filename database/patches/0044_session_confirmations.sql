@@ -59,3 +59,8 @@ CREATE TABLE IF NOT EXISTS session_codes (
     CONSTRAINT session_codes_verified_complete CHECK ((verified_at IS NULL) = (verified_by IS NULL)),
     CONSTRAINT session_codes_expires_after_issue CHECK (expires_at > issued_at)
 );
+
+-- When a confirmed earning may be released automatically (EARNING_RELEASE_MODE=auto_after_hold). Confirmed by the athlete or by the code:
+-- at once; confirmed automatically after 48 hours: after the usual hold. NULL (every earning made before this patch, and the trainer's
+-- payment kept after a late cancellation) keeps the old rule: session_confirmed_at + EARNING_HOLD_HOURS.
+ALTER TABLE trainer_earnings ADD COLUMN IF NOT EXISTS release_after TIMESTAMPTZ;

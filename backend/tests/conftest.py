@@ -2532,6 +2532,20 @@ def client(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(bookings_module_ai, "has_confirmed_booking_for_training", fake_has_confirmed_booking_for_training)
     monkeypatch.setattr(bookings_module_ai, "is_booked_session", fake_has_confirmed_booking_for_training)
+
+    # confirming that a booked session took place: the in-memory world records nothing (tests/test_session_confirmation.py runs on PostgreSQL)
+    import app.repositories.session_codes as session_codes_module
+    import app.repositories.session_confirmations as session_confirmations_module
+
+    async def fake_nothing_recorded(conn, booking_id, *, lock=False):
+        return None
+
+    async def fake_mark_by_coach(conn, booking_id):
+        return None
+
+    monkeypatch.setattr(session_confirmations_module, "get", fake_nothing_recorded)
+    monkeypatch.setattr(session_confirmations_module, "mark_by_coach", fake_mark_by_coach)
+    monkeypatch.setattr(session_codes_module, "get", fake_nothing_recorded)
     monkeypatch.setattr(analyses_module, "upsert", fake_analyses_upsert)
     monkeypatch.setattr(analyses_module, "get_for_training", fake_analyses_get)
     monkeypatch.setattr(analyses_module, "delete_for_player", fake_analyses_delete_for_player)

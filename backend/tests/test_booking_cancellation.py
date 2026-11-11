@@ -141,7 +141,7 @@ def test_a_session_that_started_or_was_conducted_cannot_be_cancelled(fin) -> Non
     assert player.call("GET", f"/api/bookings/{booking['id']}/cancel-preview").status_code == 409
     assert player.ok("GET", "/api/bookings/me")[0]["can_cancel"] is False
 
-    conduct(fin, coach, booking)
+    conduct(fin, coach, booking, player)
     refused = cancel(coach, booking, reason=REASON)
     assert refused.status_code == 409 and refused.json()["error"]["code"] == "session_completed"
     assert sql_value(fin.dsn, "SELECT count(*) FROM refunds") == 0
