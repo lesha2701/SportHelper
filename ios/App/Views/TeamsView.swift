@@ -79,7 +79,7 @@ struct TeamsView: View {
 
     private func row(_ team: Team) -> some View {
         HStack(spacing: 12) {
-            TeamAvatar(name: team.name, size: 48)
+            TeamAvatar(name: team.name, size: 48, logoFileId: team.logoFileId)
             VStack(alignment: .leading, spacing: 2) {
                 Text(team.name).font(Theme.body(16, weight: .semibold, relativeTo: .headline)).foregroundStyle(Theme.text)
                 Text(subtitle(team)).font(Theme.body(13, relativeTo: .subheadline)).foregroundStyle(Theme.textSecondary)

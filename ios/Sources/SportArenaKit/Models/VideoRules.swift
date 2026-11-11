@@ -6,6 +6,8 @@ public enum VideoRules {
     public static let maxBytes = 100 * 1024 * 1024
     /// The site's limit for the video of an exercise (MAX_VIDEO_DURATION_SECONDS); a video handed in with a task has none.
     public static let maxExerciseSeconds = 60
+    /// The site's limit for a video of the gallery of achievements: the same setting as for an exercise.
+    public static let maxAchievementSeconds = 60
     /// What a video is sent as: the app always makes an MP4 of the picked video.
     public static let mimeType = "video/mp4"
 
@@ -33,6 +35,8 @@ public enum VideoRules {
         switch code {
         case "unsupported_media_type": "Такой файл не подходит: нужно видео (MP4, MOV или WebM)."
         case "file_too_large": "Видео слишком большое: не больше \(maxBytes / 1024 / 1024) МБ."
+        case "video_too_long": "Видео слишком длинное: не больше \(maxAchievementSeconds) секунд."
+        case "invalid_video": "Не удалось прочитать это видео. Выберите другое."
         default: nil
         }
     }
