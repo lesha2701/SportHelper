@@ -13,6 +13,8 @@ import {
   type PendingBookingDto,
   type ReviewDto,
   type ReviewInput,
+  type SessionCode,
+  type SessionProblemKind,
 } from "@/shared/types/booking";
 
 export async function createBooking(input: BookingInput): Promise<Booking> {
@@ -94,6 +96,40 @@ export async function cancelBooking(bookingId: string, reason: string | null): P
     method: "POST",
     successMessage: "Запись отменена",
     body: { reason },
+  });
+  return mapBookingDto(dto);
+}
+
+// --- confirming that the session took place (docs/session-confirmation.md) ---
+
+/** The athlete confirms that the session took place (after its end). */
+export async function confirmSession(bookingId: string): Promise<Booking> {
+  const dto = await apiRequest<BookingDto>(`/api/bookings/${bookingId}/session/confirm`, { method: "POST", successMessage: "Тренировка подтверждена" });
+  return mapBookingDto(dto);
+}
+
+/** A new one-time code for an in-person session (the athlete shows it to the coach). Asking again replaces the previous code. */
+export async function getSessionCode(bookingId: string): Promise<SessionCode> {
+  const dto = await apiRequest<{ code: string; expires_at: string }>(`/api/bookings/${bookingId}/session/code`, { method: "POST" });
+  return { code: dto.code, expiresAt: dto.expires_at };
+}
+
+/** The coach enters the athlete's code. */
+export async function verifySessionCode(bookingId: string, code: string): Promise<Booking> {
+  const dto = await apiRequest<BookingDto>(`/api/bookings/${bookingId}/session/code/verify`, {
+    method: "POST",
+    body: { code },
+    successMessage: "Код принят — тренировка подтверждена",
+  });
+  return mapBookingDto(dto);
+}
+
+/** Either side reports a problem with the session; the money waits for an administrator. */
+export async function reportSessionProblem(bookingId: string, kind: SessionProblemKind, text: string | null): Promise<Booking> {
+  const dto = await apiRequest<BookingDto>(`/api/bookings/${bookingId}/session/problem`, {
+    method: "POST",
+    body: { kind, text },
+    successMessage: "Сообщение отправлено администратору",
   });
   return mapBookingDto(dto);
 }

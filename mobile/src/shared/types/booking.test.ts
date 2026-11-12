@@ -46,3 +46,27 @@ describe("cancellation of a booking", () => {
     expect(mapBookingDto(dto({})).cancellation).toBeNull();
   });
 });
+
+describe("whether the session took place", () => {
+  const confirmation = {
+    state: "awaiting", window_closes_at: "2026-11-13T11:00:00Z", coach_marked_at: null, confirmed_at: null, confirmed_method: null,
+    disputed_by_role: null, dispute_kind: null, dispute_text: null, resolved_at: null,
+    can_confirm: true, can_report_problem: true, can_get_code: false, can_enter_code: false,
+  };
+
+  it("reads the state and the buttons the server allows", () => {
+    const c = mapBookingDto(dto({ session_confirmation: confirmation })).sessionConfirmation!;
+    expect(c.state).toBe("awaiting");
+    expect(c.windowClosesAt).toBe("2026-11-13T11:00:00Z");
+    expect([c.canConfirm, c.canReportProblem, c.canGetCode, c.canEnterCode]).toEqual([true, true, false, false]);
+  });
+
+  it("has no block for an older server or a booking that is not confirmed yet", () => {
+    expect(mapBookingDto(dto({})).sessionConfirmation).toBeNull();
+    expect(mapBookingDto(dto({ session_confirmation: null })).sessionConfirmation).toBeNull();
+  });
+
+  it("shows a state it does not know as waiting, never as an error", () => {
+    expect(mapBookingDto(dto({ session_confirmation: { ...confirmation, state: "something_new" } })).sessionConfirmation!.state).toBe("awaiting");
+  });
+});

@@ -1,6 +1,7 @@
 import { Stack, router } from "expo-router";
 import { CancelBooking, CancellationNote } from "@/booking/CancelBooking";
 import { CoachSessionActions, PlanPicker, ReviewSheet } from "@/booking/SessionParts";
+import { SessionConfirmation } from "@/booking/SessionConfirmation";
 import { useState } from "react";
 import { useChatUnread } from "@/lib/useChatUnread";
 import { bookingHasChat } from "@/shared/types/chat";
@@ -81,6 +82,7 @@ function PlayerBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => 
       <ChatButton b={b} label="Чат с тренером" unread={unread} />
       {b.trainingId && b.status !== "cancelled" ? <Button title="Открыть тренировку" variant="secondary" onPress={() => router.push({ pathname: "/training/[id]", params: { id: b.trainingId! } })} /> : null}
       {b.isCompleted && !b.hasReview ? <Button title="Оставить отзыв" variant="secondary" onPress={() => setReviewing(true)} /> : null}
+      <SessionConfirmation booking={b} side="athlete" onChange={onChanged} />
       <CancelBooking booking={b} side="athlete" onCancelled={onChanged} />
       <CancellationNote cancellation={b.cancellation} side="athlete" />
       <ReviewSheet
@@ -160,6 +162,7 @@ function CoachBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => v
       {b.status !== "cancelled" ? <CoachSessionActions booking={b} onChange={onChanged} /> : null}
       {b.status !== "cancelled" ? <PlanPicker booking={b} onChange={onChanged} /> : null}
       {b.trainingId && b.status !== "cancelled" ? <Button title="Открыть тренировку" variant="secondary" onPress={() => router.push({ pathname: "/training/[id]", params: { id: b.trainingId! } })} /> : null}
+      <SessionConfirmation booking={b} side="coach" onChange={onChanged} />
       <CancelBooking booking={b} side="coach" onCancelled={onChanged} />
       <CancellationNote cancellation={b.cancellation} side="coach" />
       <Button title="Профиль игрока" variant="ghost" onPress={() => router.push({ pathname: "/player/[id]", params: { id: b.athleteUserId } })} />
