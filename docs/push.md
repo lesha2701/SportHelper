@@ -51,3 +51,21 @@ Notifications для `ru.sportarenaglobal.app`. В `ios/project.yml` уже ес
 маршруты). Клиенты: `mobile/src/shared/lib/pushData.test.ts`, `ios/Tests/SportArenaKitTests/PushTests.swift`.
 Вручную: войти на телефоне (токен появится в таблице `push_devices`), создать уведомление, которое должно прийти сразу (например,
 заявка на тренировку тренеру), и дождаться его — задача фоновая, проходит раз в несколько секунд.
+
+## Что осталось сделать
+
+Код написан, но push ещё ни разу не дошёл до настоящего телефона. По порядку:
+
+1. [ ] **Ключ APNs.** В аккаунте Apple Developer создать ключ (Keys → Apple Push Notifications service), включить Push Notifications
+   для `ru.sportarenaglobal.app`; заполнить `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY` в `.env` сервера. Для сборок из Xcode `APNS_SANDBOX=true`.
+2. [ ] **Проект Firebase.** Создать проект с приложением `ru.sportarena.app`, скачать `google-services.json` в `mobile/`, прописать
+   `android.googleServicesFile` в `app.json`; ключ сервисного аккаунта — в `FCM_SERVICE_ACCOUNT_JSON` на сервере. Файл не коммитить.
+3. [ ] **Собрать iPhone-приложение на Mac.** Swift-код push писался без Mac и не компилировался: `xcodegen generate`, сборка, тесты
+   `PushTests` (при необходимости поправить сигнатуры делегата `UNUserNotificationCenterDelegate` под Swift 6).
+4. [ ] **Собрать Android-приложение** (`eas build` / `expo run:android`; в Expo Go push не работает) и проверить: разрешение, токен в
+   `push_devices`, приход push при закрытом и открытом приложении, переход по нажатию, снятие токена при выходе.
+5. [ ] **Проверить на сервере** после деплоя: миграция 0049 применилась, `httpx[http2]` установился в образ, в логах `teamflow.push` нет
+   ошибок подписи (`APNs refused` / `FCM refused`).
+6. [ ] **Решить по мелочам:** значок на иконке (badge) и звук — сейчас звук по умолчанию, бейджа нет; показывать ли баннер, пока приложение
+   открыто (на iPhone показывается, на Android нет); нужны ли отдельные настройки «push вкл/выкл» поверх категорий.
+7. [ ] **Отметить в ARCHITECTURE.md** (таблица готовности) клиенты как ✅ после проверки на устройствах и закрыть задачу #29 в проекте.
