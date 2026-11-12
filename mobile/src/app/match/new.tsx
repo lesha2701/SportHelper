@@ -1,7 +1,9 @@
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { createMatch, getMatch, updateMatch } from "@/api/matches";
+import { getTeam } from "@/api/teams";
 import { toFormError } from "@/lib/formError";
+import { matchPlaceFor } from "@/lib/tournaments";
 import type { Match } from "@/shared/types/match";
 import { formatRuDate, parseRuDate, parseTime } from "@/shared/lib/dates";
 import { Button } from "@/ui/Button";
@@ -9,6 +11,7 @@ import { Choice } from "@/ui/Choice";
 import { DateField, TimeField } from "@/ui/DateTimeFields";
 import { Notice } from "@/ui/Notice";
 import { Screen } from "@/ui/Screen";
+import { Text } from "@/ui/Text";
 import { TextField } from "@/ui/TextField";
 
 export default function NewMatchScreen() {
@@ -23,6 +26,10 @@ export default function NewMatchScreen() {
   const [location, setLocation] = useState("");
   const [home, setHome] = useState<"home" | "away">("home");
   const [tournament, setTournament] = useState("");
+  // What the team's settings offer: its tournaments to pick from, and the venue a home match takes as its place.
+  const [tournaments, setTournaments] = useState<string[]>([]);
+  const [homeVenue, setHomeVenue] = useState<string | null>(null);
+  const [placeTouched, setPlaceTouched] = useState(false);
   const [errors, setErrors] = useState<{ opponent?: string; date?: string; time?: string; form?: string }>({});
   const [busy, setBusy] = useState(false);
 
@@ -40,6 +47,22 @@ export default function NewMatchScreen() {
       })
       .catch((e: unknown) => setLoadError(toFormError(e).message));
   }, [id]);
+
+  useEffect(() => {
+    if (!teamId) return;
+    getTeam(teamId)
+      .then((t) => {
+        setTournaments(t.tournaments);
+        setHomeVenue(t.homeVenue);
+      })
+      .catch(() => undefined); // the lists are a convenience: the form still works without them
+  }, [teamId]);
+
+  // A new match takes the home venue as its place for a home game, until the place is typed by hand.
+  useEffect(() => {
+    if (editing || placeTouched) return;
+    setLocation(matchPlaceFor(home === "home", homeVenue));
+  }, [editing, placeTouched, home, homeVenue]);
 
   async function submit() {
     const found: typeof errors = {};
@@ -99,8 +122,29 @@ export default function NewMatchScreen() {
           value={home}
           onChange={setHome}
         />
-        <TextField label="Место" value={location} onChangeText={setLocation} maxLength={200} />
-        <TextField label="Турнир" value={tournament} onChangeText={setTournament} maxLength={200} />
+        <TextField
+          label="Место"
+          value={location}
+          onChangeText={(text) => {
+            setPlaceTouched(true);
+            setLocation(text);
+          }}
+          maxLength={200}
+        />
+        {homeVenue && !editing ? <Text variant="caption" muted>Для домашнего матча подставляется домашняя площадка команды: {homeVenue}.</Text> : null}
+        {tournaments.length > 0 ? (
+          <Choice
+            label="Турнир команды"
+            layout="chips"
+            options={tournaments.map((name) => ({ value: name, title: name }))}
+            value={tournaments.includes(tournament) ? tournament : null}
+            onChange={(name) => setTournament(tournament === name ? "" : name)}
+          />
+        ) : null}
+        <TextField label="Турнир" value={tournament} onChangeText={setTournament} maxLength={150} />
+        <Text variant="caption" muted>
+          {tournaments.length > 0 ? "Выберите из турниров команды или впишите свой." : "Турниры команды можно задать в настройках команды, тогда их можно будет выбирать здесь."}
+        </Text>
         <Button title={editing ? "Сохранить" : "Создать матч"} onPress={submit} loading={busy} />
       </Screen>
     </>

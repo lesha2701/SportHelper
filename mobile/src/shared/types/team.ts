@@ -19,6 +19,10 @@ export interface Team {
   sport: string;
   ageCategory: string | null;
   level: SkillLevel | null;
+  /** The tournaments the team plays in (the match form offers them). */
+  tournaments: string[];
+  /** The home venue: a home match takes it as its place. */
+  homeVenue: string | null;
   status: TeamStatus;
   createdBy: string;
   logoFileId: string | null;
@@ -66,6 +70,9 @@ export interface TeamDto {
   sport: string;
   age_category: string | null;
   level: SkillLevel | null;
+  /** Absent on a server that does not know them yet. */
+  tournaments?: string[];
+  home_venue?: string | null;
   status: TeamStatus;
   created_by: string;
   logo_file_id: string | null;
@@ -116,6 +123,8 @@ export function mapTeamDto(dto: TeamDto): Team {
     sport: dto.sport,
     ageCategory: dto.age_category,
     level: dto.level,
+    tournaments: dto.tournaments ?? [],
+    homeVenue: dto.home_venue ?? null,
     status: dto.status,
     createdBy: dto.created_by,
     logoFileId: dto.logo_file_id,
@@ -169,4 +178,7 @@ export interface TeamInput {
   sport: string;
   age_category: string | null;
   level: SkillLevel | null;
+  /** Left out = unchanged on the server. */
+  tournaments?: string[];
+  home_venue?: string | null;
 }
