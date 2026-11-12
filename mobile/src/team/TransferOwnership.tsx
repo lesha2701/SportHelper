@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { listMembers, transferOwnership } from "@/api/teams";
 import { toFormError } from "@/lib/formError";
+import { transferPhrase } from "@/lib/transferPhrase";
 import { useLoad } from "@/lib/useLoad";
 import type { Team } from "@/shared/types/team";
 import { BottomSheet } from "@/ui/BottomSheet";
@@ -19,7 +20,7 @@ export function TransferOwnership({ team, visible, onClose, onDone }: { team: Te
   const [busy, setBusy] = useState(false);
   const candidates = members.data ?? [];
   const chosen = candidates.find((c) => c.userId === selected) ?? candidates[0];
-  const expected = chosen ? `Я передаю роль главного тренера команды «${team.name}» пользователю ${chosen.firstName} ${chosen.lastName ?? ""}`.trim() : "";
+  const expected = chosen ? transferPhrase(team.name, chosen.firstName, chosen.lastName) : "";
 
   async function submit() {
     if (!chosen) return;
