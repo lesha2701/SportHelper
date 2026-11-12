@@ -53,3 +53,9 @@ export async function uploadExerciseVideo(exerciseId: string, file: UploadFile):
   const dto = await apiUpload<ExerciseDto>(`/api/exercises/${exerciseId}/video`, { formData });
   return mapExerciseDto(dto);
 }
+
+/** The exercises the coach opened to this team (readable by any member). */
+export async function listTeamExercises(teamId: string): Promise<Exercise[]> {
+  const dtos = await apiRequest<ExerciseDto[]>(`/api/teams/${teamId}/exercises`);
+  return dtos.map(mapExerciseDto);
+}

@@ -2,7 +2,9 @@ import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 import { deleteExercise, getExercise, shareExercise, unshareExercise } from "@/api/exercises";
+import { useAuth } from "@/auth/AuthProvider";
 import { ShareWithTeams } from "@/library/ShareWithTeams";
+import { isLibraryOwner } from "@/lib/teamLibrary";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
 import { SKILL_LEVEL_LABELS } from "@/shared/types/profile";
@@ -31,6 +33,7 @@ function Row({ label, value }: { label: string; value: string | number | null | 
 export default function ExerciseScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const toast = useToast();
+  const { user } = useAuth();
   const exercise = useLoad(() => getExercise(id), [id]);
   const [deleting, setDeleting] = useState(false);
   const reload = exercise.reload;
@@ -40,6 +43,8 @@ export default function ExerciseScreen() {
   if (exercise.loading && !exercise.data) return <LoadingView />;
   if (exercise.error || !exercise.data) return <ErrorView message={exercise.error ?? "Упражнение не найдено"} onRetry={exercise.reload} />;
   const e = exercise.data;
+  // The exercise of another coach, opened to a team, is only read: the author's tools are not shown.
+  const owner = isLibraryOwner(user?.id, e.ownerId);
 
   async function remove() {
     setDeleting(false);
@@ -73,9 +78,13 @@ export default function ExerciseScreen() {
           <Row label="Комментарий тренера" value={e.coachComment} />
         </Card>
         {e.videoFileId ? <AuthVideo fileId={e.videoFileId} /> : null}
-        <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/library/exercise/new", params: { id: e.id } })} />
-        <ShareWithTeams key={e.sharedTeamIds.join()} sharedTeamIds={e.sharedTeamIds} share={(t) => shareExercise(e.id, t)} unshare={(t) => unshareExercise(e.id, t)} what="это упражнение" />
-        <Button title="Удалить упражнение" variant="ghost" onPress={() => setDeleting(true)} />
+        {owner ? (
+          <>
+            <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/library/exercise/new", params: { id: e.id } })} />
+            <ShareWithTeams key={e.sharedTeamIds.join()} sharedTeamIds={e.sharedTeamIds} share={(t) => shareExercise(e.id, t)} unshare={(t) => unshareExercise(e.id, t)} what="это упражнение" />
+            <Button title="Удалить упражнение" variant="ghost" onPress={() => setDeleting(true)} />
+          </>
+        ) : null}
         <ConfirmModal visible={deleting} title="Удалить упражнение?" confirmLabel="Удалить" destructive onCancel={() => setDeleting(false)} onConfirm={() => void remove()} />
       </Screen>
     </>

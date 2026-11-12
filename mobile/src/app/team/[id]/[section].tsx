@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { getTeam } from "@/api/teams";
 import { useLoad } from "@/lib/useLoad";
 import { InvitesSection } from "@/team/InvitesSection";
+import { LibrarySection } from "@/team/LibrarySection";
 import { MatchesSection } from "@/team/MatchesSection";
 import { MembersSection } from "@/team/MembersSection";
 import { StatsSection } from "@/team/StatsSection";
@@ -15,6 +16,7 @@ const TITLES: Record<string, string> = {
   trainings: "Тренировки",
   matches: "Матчи",
   tasks: "Задания",
+  library: "Упражнения и планы",
   stats: "Статистика",
   invites: "Приглашения",
 };
@@ -38,6 +40,7 @@ export default function TeamSectionScreen() {
         {section === "trainings" ? <TrainingsSection team={t} staff={staff} /> : null}
         {section === "matches" ? <MatchesSection team={t} staff={staff} /> : null}
         {section === "tasks" ? <TasksSection team={t} staff={staff} /> : null}
+        {section === "library" ? <LibrarySection team={t} staff={staff} /> : null}
         {section === "stats" ? <StatsSection team={t} staff={staff} /> : null}
         {section === "invites" && staff ? <InvitesSection team={t} /> : null}
       </Screen>

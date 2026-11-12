@@ -23,7 +23,7 @@ import { ErrorView, LoadingView } from "@/ui/StateViews";
 import { Text } from "@/ui/Text";
 import { useToast } from "@/ui/Toast";
 
-export type TeamSection = "members" | "trainings" | "matches" | "tasks" | "stats" | "invites";
+export type TeamSection = "members" | "trainings" | "matches" | "tasks" | "library" | "stats" | "invites";
 
 function Tag({ text }: { text: string }) {
   const { colors } = useTheme();
@@ -116,6 +116,7 @@ export default function TeamScreen() {
           <TeamTile icon="barbell-outline" title="Тренировки" subtitle={staff ? "Расписание и посещаемость" : "Расписание команды"} onPress={() => open("trainings")} />
           <TeamTile icon="football-outline" title="Матчи" subtitle={staff ? "Составы и итоги" : "Игры и результаты"} onPress={() => open("matches")} />
           <TeamTile icon="clipboard-outline" title="Задания" subtitle={staff ? "Задания и отчёты" : "Что задал тренер"} onPress={() => open("tasks")} />
+          <TeamTile icon="book-outline" title="Упражнения и планы" subtitle={staff ? "Открыть команде материалы" : "Материалы тренера"} onPress={() => open("library")} />
           <TeamTile icon="stats-chart-outline" title="Статистика" subtitle="Посещаемость, задания, матчи" onPress={() => open("stats")} />
           {staff ? <TeamTile icon="person-add-outline" title="Приглашения" subtitle="Ссылка и заявки" badge={requests} onPress={() => open("invites")} /> : null}
         </View>

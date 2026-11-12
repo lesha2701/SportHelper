@@ -3,7 +3,9 @@ import { useCallback, useState } from "react";
 import { View } from "react-native";
 import { listMyExercises } from "@/api/exercises";
 import { addPlanExercise, deletePlan, duplicatePlan, getPlan, removePlanExercise, sharePlan, unsharePlan } from "@/api/plans";
+import { useAuth } from "@/auth/AuthProvider";
 import { ShareWithTeams } from "@/library/ShareWithTeams";
+import { isLibraryOwner } from "@/lib/teamLibrary";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
 import { PLAN_SECTIONS, PLAN_SECTION_LABELS, type PlanSection } from "@/shared/types/plan";
@@ -20,6 +22,7 @@ import { useToast } from "@/ui/Toast";
 export default function PlanScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const toast = useToast();
+  const { user } = useAuth();
   const plan = useLoad(() => getPlan(id), [id]);
   const exercises = useLoad(listMyExercises);
   const [adding, setAdding] = useState(false);
@@ -33,6 +36,8 @@ export default function PlanScreen() {
   if (plan.loading && !plan.data) return <LoadingView />;
   if (plan.error || !plan.data) return <ErrorView message={plan.error ?? "План не найден"} onRetry={plan.reload} />;
   const p = plan.data;
+  // The plan of another coach, opened to a team, is only read: the author's tools are not shown.
+  const owner = isLibraryOwner(user?.id, p.ownerId);
 
   async function add() {
     if (!exerciseId) return setError("Выберите упражнение.");
@@ -95,7 +100,7 @@ export default function PlanScreen() {
                 <View key={e.id} style={{ gap: 4 }}>
                   <Text variant="label">{e.exerciseName ?? "Упражнение"}</Text>
                   <Text muted>{[e.sets && e.reps ? `${e.sets}×${e.reps}` : null, e.durationSeconds ? `${e.durationSeconds} с` : null].filter(Boolean).join(" · ")}</Text>
-                  <Button title="Убрать из плана" variant="ghost" onPress={() => void removeItem(e.id)} />
+                  {owner ? <Button title="Убрать из плана" variant="ghost" onPress={() => void removeItem(e.id)} /> : null}
                 </View>
               ))}
             </Card>
@@ -103,7 +108,7 @@ export default function PlanScreen() {
         })}
         {p.exercises.length === 0 ? <Text muted>В плане пока нет упражнений.</Text> : null}
 
-        {adding ? (
+        {!owner ? null : adding ? (
           <Card>
             <Text variant="heading">Добавить упражнение</Text>
             {exercises.data?.length === 0 ? <Text muted>Сначала создайте упражнения в библиотеке.</Text> : null}
@@ -116,8 +121,8 @@ export default function PlanScreen() {
         ) : (
           <Button title="Добавить упражнение" variant="secondary" onPress={() => setAdding(true)} />
         )}
-        <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/library/plan/new", params: { id: p.id } })} />
-        <Button
+        {owner ? <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/library/plan/new", params: { id: p.id } })} /> : null}
+        {owner ? <Button
           title="Сделать копию"
           variant="secondary"
           onPress={async () => {
@@ -128,9 +133,9 @@ export default function PlanScreen() {
               toast.error(toFormError(e).message);
             }
           }}
-        />
-        <ShareWithTeams key={p.sharedTeamIds.join()} sharedTeamIds={p.sharedTeamIds} share={(t) => sharePlan(p.id, t)} unshare={(t) => unsharePlan(p.id, t)} what="этот план" />
-        <Button title="Удалить план" variant="ghost" onPress={() => setDeleting(true)} />
+        /> : null}
+        {owner ? <ShareWithTeams key={p.sharedTeamIds.join()} sharedTeamIds={p.sharedTeamIds} share={(t) => sharePlan(p.id, t)} unshare={(t) => unsharePlan(p.id, t)} what="этот план" /> : null}
+        {owner ? <Button title="Удалить план" variant="ghost" onPress={() => setDeleting(true)} /> : null}
         <ConfirmModal visible={deleting} title="Удалить план?" confirmLabel="Удалить" destructive onCancel={() => setDeleting(false)} onConfirm={() => void removePlan()} />
       </Screen>
     </>
