@@ -3,6 +3,7 @@ import SportArenaKit
 
 @main
 struct SportArenaApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var auth = AuthStore(environment: .current)
     @State private var appearance = AppearanceStore()
 

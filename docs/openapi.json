@@ -10349,6 +10349,86 @@
         ]
       }
     },
+    "/api/devices": {
+      "put": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Register Device",
+        "description": "The app calls this after sign-in and whenever the system gives it a new token (idempotent).",
+        "operationId": "register_device_api_devices_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushDeviceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/devices/remove": {
+      "post": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Remove Device",
+        "description": "The app calls this on sign-out, before the session ends, so that a person who left does not keep getting pushes on this phone.",
+        "operationId": "remove_device_api_devices_remove_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushDeviceRemoveIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/calendar": {
       "get": {
         "tags": [
@@ -21183,6 +21263,58 @@
           "created_at"
         ],
         "title": "ProfileMediaOut"
+      },
+      "PushDeviceIn": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "title": "Platform"
+          },
+          "token": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 8,
+            "title": "Token"
+          },
+          "app_version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "token"
+        ],
+        "title": "PushDeviceIn",
+        "description": "What the app gives the server after the system issued it a token: `ios` for an APNs token, `android` for an FCM token."
+      },
+      "PushDeviceRemoveIn": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 8,
+            "title": "Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "title": "PushDeviceRemoveIn"
       },
       "RefundIn": {
         "properties": {

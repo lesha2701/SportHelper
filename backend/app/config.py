@@ -90,6 +90,19 @@ class Settings(BaseSettings):
     # Native mobile app: POST /api/auth/mobile/login returns the session token and Bearer is
     # accepted for it, independently of BEARER_AUTH_ENABLED. Off by default.
     mobile_auth_enabled: bool = Field(default=False, alias="MOBILE_AUTH_ENABLED")
+    # --- Push notifications (docs/push.md). Each side is switched on by having its credentials; without them nothing is sent
+    # and the bell inside the app still shows everything. ---
+    # APNs (iPhone): the .p8 key of the Apple developer account (the PEM text; "\n" written as \n is accepted).
+    apns_key_id: str = Field(default="", alias="APNS_KEY_ID")
+    apns_team_id: str = Field(default="", alias="APNS_TEAM_ID")
+    apns_bundle_id: str = Field(default="", alias="APNS_BUNDLE_ID")
+    apns_private_key: str = Field(default="", alias="APNS_PRIVATE_KEY")
+    # A build run from Xcode gets sandbox tokens; the App Store and TestFlight builds get production ones.
+    apns_sandbox: bool = Field(default=False, alias="APNS_SANDBOX")
+    # FCM (Android): the service-account JSON of the Firebase project, as the JSON text itself.
+    fcm_service_account_json: str = Field(default="", alias="FCM_SERVICE_ACCOUNT_JSON")
+    push_timeout_seconds: float = Field(default=10.0, gt=0, le=60, alias="PUSH_TIMEOUT_SECONDS")
+
     # Swagger/ReDoc/openapi.json. Default: on for sandbox, off when APP_MODE=main.
     api_docs_enabled: bool | None = Field(default=None, alias="API_DOCS_ENABLED")
 

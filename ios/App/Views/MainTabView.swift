@@ -58,6 +58,13 @@ struct MainTabView: View {
         .task(id: scenePhase == .active) {
             if scenePhase == .active { await auth.notifications.keepFresh() }
         }
+        .task { await auth.startPush() }
+        // A tapped push opens what it is about (it may have been tapped before these screens existed, hence `initial`).
+        .onChange(of: PushCenter.shared.pendingTap, initial: true) { _, payload in
+            guard let payload else { return }
+            PushCenter.shared.pendingTap = nil
+            auth.router.open(push: payload.target)
+        }
     }
 
     @ViewBuilder private func content(of tab: AppTab) -> some View {

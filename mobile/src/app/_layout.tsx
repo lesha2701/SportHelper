@@ -5,6 +5,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "@/auth/AuthProvider";
+import { usePush } from "@/notifications/usePush";
 import { UnreadProvider } from "@/notifications/UnreadProvider";
 import { ProfileProvider } from "@/profile/ProfileProvider";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
@@ -18,6 +19,7 @@ function Routes() {
   const { colors, dark } = useTheme();
   const signedIn = status === "signedIn";
   useActivityPing(signedIn);
+  usePush(signedIn);
   // Until the saved sign-in is checked, no route can be matched: mounting the navigator now would drop a deep link
   // (a notification, an invitation) onto the start page. Wait, then open exactly what was asked for.
   if (status === "loading") return <LoadingView />;

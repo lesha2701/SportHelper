@@ -21,6 +21,11 @@ targets:
       - path: App
     dependencies:
       - package: SportArenaKit
+    # Push notifications (docs/push.md). Xcode switches to the production environment when the app is signed for the App Store.
+    entitlements:
+      path: App/SportArena.entitlements
+      properties:
+        aps-environment: development
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ru.sportarenaglobal.app

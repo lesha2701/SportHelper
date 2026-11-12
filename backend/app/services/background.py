@@ -38,6 +38,7 @@ from app.services import email as email_service
 from app.services import email_templates
 from app.services import reconcile as reconcile_service
 from app.services import notifications as notifications_service
+from app.services import push as push_service
 from app.services import nudges as nudges_service
 
 logger = logging.getLogger("teamflow.background")
@@ -72,6 +73,10 @@ async def send_due_notifications(conn: asyncpg.Connection, bot: Bot | None, sett
             continue
 
         await _email_copy(user, notification, settings)
+        # A push to the phones the person is signed in on: best effort and independent of Telegram below.
+        # Only on the first attempt: a Telegram retry must not ring the phone again.
+        if notification["attempts"] == 0:
+            await push_service.push_notification(conn, notification, settings)
 
         # Telegram is an optional extra channel. A user who never linked it
         # (or a server without a bot) still sees every notification in the

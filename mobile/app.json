@@ -11,7 +11,8 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
-      "expo-video"
+      "expo-video",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

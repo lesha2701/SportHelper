@@ -49,6 +49,9 @@ final class AuthStore {
     let search: SearchService
     let router = Router()
     private let service: AuthService
+    private let devices: DevicesService
+    /// The token this installation gave the server for the signed-in person; taken back on sign-out.
+    private var registeredPushToken: String?
     private let persistence: SessionPersistence
 
     /// The site's admin panel (the same host as the server; administrators sign in there separately, with a second step).
@@ -83,6 +86,7 @@ final class AuthStore {
         self.finance = FinanceService(client: client)
         self.search = SearchService(client: client)
         self.service = AuthService(client: client)
+        self.devices = DevicesService(client: client)
         self.persistence = SessionPersistence(
             store: KeychainSecretStore(service: "ru.sportarenaglobal.app", account: "session-cookie"), baseURL: environment.baseURL
         )
@@ -168,7 +172,25 @@ final class AuthStore {
         await refreshUser()
     }
 
+    /// For the signed-in person: ask permission for push, and give the server this phone's token (now, and again whenever the system replaces it).
+    func startPush() async {
+        PushCenter.shared.onToken = { [weak self] token in Task { await self?.registerPushToken(token) } }
+        if let token = PushCenter.shared.token { await registerPushToken(token) }
+        await PushCenter.shared.start()
+    }
+
+    private func registerPushToken(_ token: String) async {
+        guard case .signedIn = state else { return }
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        if (try? await devices.register(token: token, appVersion: version)) != nil { registeredPushToken = token }
+    }
+
     func logout() async {
+        // While the session still lives: this phone stops receiving this person's notifications.
+        if let token = registeredPushToken {
+            registeredPushToken = nil
+            try? await devices.remove(token: token)
+        }
         try? await service.logout()
         persistence.clear()
         profile.reset()

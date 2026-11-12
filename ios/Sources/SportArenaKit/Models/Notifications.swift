@@ -91,6 +91,25 @@ public enum NotificationTarget: Equatable, Sendable {
     case none
 }
 
+extension NotificationTarget {
+    /// Where a notification of this category about this entity leads (the same for the feed and for a tapped push).
+    public init(category: NotificationCategory, entityId: UUID) {
+        self = switch category {
+        case .trainingReminder, .newTraining: .training(entityId)
+        case .newMatch: .match(entityId)
+        case .taskDeadline, .newTask: .task(entityId)
+        case .bookingRequested: .incomingBookings
+        case .bookingDecided, .paymentUpdate: .myBookings
+        case .reviewRequested: .reviewBooking(entityId)
+        case .trainingNudge: .newPersonalTraining
+        case .chatBooking: .bookingChat(entityId)
+        case .chatTeam: .teamChat(entityId)
+        case .earningUpdate, .withdrawalUpdate: .finance
+        case .financeAdmin, .other: .none
+        }
+    }
+}
+
 public struct NotificationItem: Decodable, Equatable, Identifiable, Sendable {
     public let id: UUID
     public let category: NotificationCategory
@@ -117,21 +136,7 @@ public struct NotificationItem: Decodable, Equatable, Identifiable, Sendable {
 
     public var isUnread: Bool { readAt == nil }
 
-    public var target: NotificationTarget {
-        switch category {
-        case .trainingReminder, .newTraining: .training(entityId)
-        case .newMatch: .match(entityId)
-        case .taskDeadline, .newTask: .task(entityId)
-        case .bookingRequested: .incomingBookings
-        case .bookingDecided, .paymentUpdate: .myBookings
-        case .reviewRequested: .reviewBooking(entityId)
-        case .trainingNudge: .newPersonalTraining
-        case .chatBooking: .bookingChat(entityId)
-        case .chatTeam: .teamChat(entityId)
-        case .earningUpdate, .withdrawalUpdate: .finance
-        case .financeAdmin, .other: .none
-        }
-    }
+    public var target: NotificationTarget { NotificationTarget(category: category, entityId: entityId) }
 
     /// The same notification marked as read.
     public func read(at date: Date) -> NotificationItem {

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import * as authApi from "@/api/auth";
 import { ApiError, onSessionExpired } from "@/api/client";
 import { clearToken, getToken, setToken } from "@/api/tokenStore";
+import { unregisterFromPush } from "@/notifications/push";
 import type { User } from "@/shared/types/user";
 
 type Status = "loading" | "signedOut" | "signedIn";
@@ -70,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    await unregisterFromPush(); // while the session still lives
     try {
       await authApi.logout(); // revokes the session on the server
     } catch {
