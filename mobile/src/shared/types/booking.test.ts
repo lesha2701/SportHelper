@@ -19,3 +19,30 @@ describe("whether a booked session has begun", () => {
     expect(mapBookingDto(dto({ starts_at: "2999-01-01T10:00:00Z" })).hasStarted).toBe(false);
   });
 });
+
+describe("cancellation of a booking", () => {
+  it("shows the cancel button only when the server says so", () => {
+    expect(mapBookingDto(dto({ can_cancel: true })).canCancel).toBe(true);
+    expect(mapBookingDto(dto({ can_cancel: false })).canCancel).toBe(false);
+    expect(mapBookingDto(dto({})).canCancel).toBe(false); // an older server that does not say it
+  });
+
+  it("reads who cancelled, why, by which rule and where the money is", () => {
+    const booking = mapBookingDto(
+      dto({
+        status: "cancelled",
+        cancellation: {
+          cancelled_by_role: "coach", cancelled_at: "2026-11-12T08:00:00Z", reason: "Заболел", policy: "coach",
+          refund_percent: 100, refund_amount_kopecks: 150000, refund_status: "pending",
+        },
+      }),
+    );
+
+    expect(booking.status).toBe("cancelled");
+    expect(booking.cancellation).toEqual({
+      cancelledByRole: "coach", cancelledAt: "2026-11-12T08:00:00Z", reason: "Заболел", policy: "coach",
+      refundPercent: 100, refundAmountKopecks: 150000, refundStatus: "pending",
+    });
+    expect(mapBookingDto(dto({})).cancellation).toBeNull();
+  });
+});

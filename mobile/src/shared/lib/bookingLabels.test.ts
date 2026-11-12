@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { canPay, dayChip, groupSlotsByDay, timeOf } from "./bookingLabels";
+import { bookingStatusLabel, canPay, dayChip, groupSlotsByDay, timeOf } from "./bookingLabels";
 
 describe("canPay", () => {
   it("allows paying a confirmed session that is not paid yet, or whose payment failed", () => {
@@ -33,5 +33,16 @@ describe("free times by day", () => {
   it("labels a day chip and a time", () => {
     expect(dayChip("2026-11-06")).toEqual({ weekday: "пт", date: "6 ноя" });
     expect(timeOf("2026-11-06T10:00:00Z")).toBe("10:00");
+  });
+});
+
+describe("the status of a booking in a list", () => {
+  it("names the known ones, including a cancelled booking", () => {
+    expect(bookingStatusLabel("confirmed")).toBe("Подтверждена");
+    expect(bookingStatusLabel("cancelled")).toBe("Отменена");
+  });
+
+  it("never breaks on a status this version does not know", () => {
+    expect(bookingStatusLabel("rescheduled")).toBe("Статус обновляется");
   });
 });

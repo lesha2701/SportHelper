@@ -1,4 +1,5 @@
 import { Stack, router } from "expo-router";
+import { CancelBooking, CancellationNote } from "@/booking/CancelBooking";
 import { CoachSessionActions, PlanPicker, ReviewSheet } from "@/booking/SessionParts";
 import { useState } from "react";
 import { useChatUnread } from "@/lib/useChatUnread";
@@ -9,7 +10,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { useFeatures } from "@/lib/useFeatures";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
-import { BOOKING_STATUS_LABELS, PAYMENT_STATUS_LABELS, canPay, formatStart } from "@/shared/lib/bookingLabels";
+import { PAYMENT_STATUS_LABELS, bookingStatusLabel, canPay, formatStart } from "@/shared/lib/bookingLabels";
 import type { Booking, PendingBooking } from "@/shared/types/booking";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
@@ -67,8 +68,8 @@ function PlayerBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => 
         {b.coachFullName} · {formatStart(b.startsAt)} · {b.durationMinutes} мин · {b.format === "online" ? "онлайн" : "очно"}
       </Text>
       <Text variant="caption">
-        {BOOKING_STATUS_LABELS[b.status]}
-        {b.status === "confirmed" ? ` · ${PAYMENT_STATUS_LABELS[b.paymentStatus]}` : ""}
+        {bookingStatusLabel(b.status)}
+        {b.status === "confirmed" ? ` · ${PAYMENT_STATUS_LABELS[b.paymentStatus] ?? ""}` : ""}
       </Text>
       {b.pricePerSession !== null ? <Text variant="caption" muted>{b.pricePerSession} {b.currency}</Text> : null}
       {features.payments && canPay(b.status, b.paymentStatus) ? (
@@ -78,8 +79,10 @@ function PlayerBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => 
         </>
       ) : null}
       <ChatButton b={b} label="Чат с тренером" unread={unread} />
-      {b.trainingId ? <Button title="Открыть тренировку" variant="secondary" onPress={() => router.push({ pathname: "/training/[id]", params: { id: b.trainingId! } })} /> : null}
+      {b.trainingId && b.status !== "cancelled" ? <Button title="Открыть тренировку" variant="secondary" onPress={() => router.push({ pathname: "/training/[id]", params: { id: b.trainingId! } })} /> : null}
       {b.isCompleted && !b.hasReview ? <Button title="Оставить отзыв" variant="secondary" onPress={() => setReviewing(true)} /> : null}
+      <CancelBooking booking={b} side="athlete" onCancelled={onChanged} />
+      <CancellationNote cancellation={b.cancellation} side="athlete" />
       <ReviewSheet
         visible={reviewing}
         title={`Отзыв о тренере ${b.coachFullName}`}
@@ -144,8 +147,8 @@ function CoachBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => v
       </Text>
       {b.athleteNotes ? <Text>{b.athleteNotes}</Text> : null}
       <Text variant="caption">
-        {BOOKING_STATUS_LABELS[b.status]}
-        {b.status === "confirmed" ? ` · ${PAYMENT_STATUS_LABELS[b.paymentStatus]}` : ""}
+        {bookingStatusLabel(b.status)}
+        {b.status === "confirmed" ? ` · ${PAYMENT_STATUS_LABELS[b.paymentStatus] ?? ""}` : ""}
       </Text>
       {b.status === "pending" ? (
         <>
@@ -154,9 +157,11 @@ function CoachBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => v
         </>
       ) : null}
       <ChatButton b={b} label="Чат с игроком" unread={unread} />
-      <CoachSessionActions booking={b} onChange={onChanged} />
-      <PlanPicker booking={b} onChange={onChanged} />
-      {b.trainingId ? <Button title="Открыть тренировку" variant="secondary" onPress={() => router.push({ pathname: "/training/[id]", params: { id: b.trainingId! } })} /> : null}
+      {b.status !== "cancelled" ? <CoachSessionActions booking={b} onChange={onChanged} /> : null}
+      {b.status !== "cancelled" ? <PlanPicker booking={b} onChange={onChanged} /> : null}
+      {b.trainingId && b.status !== "cancelled" ? <Button title="Открыть тренировку" variant="secondary" onPress={() => router.push({ pathname: "/training/[id]", params: { id: b.trainingId! } })} /> : null}
+      <CancelBooking booking={b} side="coach" onCancelled={onChanged} />
+      <CancellationNote cancellation={b.cancellation} side="coach" />
       <Button title="Профиль игрока" variant="ghost" onPress={() => router.push({ pathname: "/player/[id]", params: { id: b.athleteUserId } })} />
     </Card>
   );
@@ -176,7 +181,12 @@ export default function BookingsScreen() {
   if (data.loading && !data.data) return <LoadingView />;
   if (data.error || !data.data) return <ErrorView message={data.error ?? "Нет данных"} onRetry={data.reload} />;
   const { pending, bookings } = data.data;
-  const items = [...bookings].sort((a, b) => b.startsAt.localeCompare(a.startsAt));
+  const sorted = [...bookings].sort((a, b) => b.startsAt.localeCompare(a.startsAt));
+  // A cancelled session is history: it moves to its own list, so the active ones stay in front.
+  const items = sorted.filter((b) => b.status !== "cancelled");
+  const cancelled = sorted.filter((b) => b.status === "cancelled");
+  const card = (b: Booking) =>
+    isCoach ? <CoachBooking key={b.id} b={b} onChanged={data.reload} unread={chats.booking[b.id] ?? 0} /> : <PlayerBooking key={b.id} b={b} onChanged={data.reload} unread={chats.booking[b.id] ?? 0} />;
 
   return (
     <>
@@ -188,8 +198,10 @@ export default function BookingsScreen() {
           <PendingRequest key={b.id} b={b} onChanged={data.reload} />
         ))}
         {pending.length > 0 && items.length > 0 ? <Text variant="heading">Записи</Text> : null}
-        {items.length === 0 && pending.length === 0 ? <Text muted>{isCoach ? "Записей пока нет." : "Вы ещё ни на что не записывались."}</Text> : null}
-        {items.map((b) => (isCoach ? <CoachBooking key={b.id} b={b} onChanged={data.reload} unread={chats.booking[b.id] ?? 0} /> : <PlayerBooking key={b.id} b={b} onChanged={data.reload} unread={chats.booking[b.id] ?? 0} />))}
+        {items.length === 0 && cancelled.length === 0 && pending.length === 0 ? <Text muted>{isCoach ? "Записей пока нет." : "Вы ещё ни на что не записывались."}</Text> : null}
+        {items.map(card)}
+        {cancelled.length > 0 ? <Text variant="heading">Отменённые</Text> : null}
+        {cancelled.map(card)}
       </Screen>
     </>
   );

@@ -8,6 +8,11 @@ export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   cancelled: "Отменена",
 };
 
+/** A status this version does not know yet must not break a list: it is shown as an update in progress, never as an error. */
+export function bookingStatusLabel(status: string): string {
+  return (BOOKING_STATUS_LABELS as Record<string, string>)[status] ?? "Статус обновляется";
+}
+
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   not_required: "Бесплатно",
   unpaid: "Ждёт оплаты",
