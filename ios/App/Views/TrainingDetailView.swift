@@ -36,6 +36,8 @@ struct TrainingDetailView: View {
     @State private var sessionChat: UUID?
     /// The booking behind a personal training the person was booked for as the coach (none otherwise).
     @State private var sessionBooking: Booking?
+    /// The booking behind the person's own personal training, when it is a session they booked with a coach (it is the booking's, not the calendar's).
+    @State private var bookedWith: Booking?
 
     /// A workout being done: a list of exercises with sets to fill in, or a circuit on the clock.
     private enum Session: Identifiable {
@@ -77,7 +79,7 @@ struct TrainingDetailView: View {
             await fetch()
         }
         .navigationDestination(item: $sessionChat) { ChatView(store: auth.chatStore(for: .booking($0))) }
-        .sheet(item: $editing) { training in TrainingFormView(mode: .edit(training)) { Task { await fetch() } } }
+        .sheet(item: $editing) { training in TrainingFormView(mode: .edit(training), bookedWith: bookedWith) { Task { await fetch() } } }
         .onChange(of: doing?.id) { hasDraft = WorkoutRunner.hasDraft(for: trainingId) }
         .fullScreenCover(item: $doing) { session in
             switch session {
@@ -118,7 +120,10 @@ struct TrainingDetailView: View {
     private func actionsMenu(_ training: Training) -> some View {
         Menu {
             Button("Изменить", systemImage: "pencil") { editing = training }.accessibilityIdentifier("training.edit")
-            if training.status == "scheduled" {
+            // A session booked with a coach is moved, held and cancelled through the booking: the server refuses all of it here.
+            if bookedWith != nil {
+                // nothing else to offer
+            } else if training.status == "scheduled" {
                 Button("Отметить проведённой", systemImage: "checkmark.circle") { Task { await setStatus(training, .completed) } }
                     .accessibilityIdentifier("training.complete")
                 Button("Отменить тренировку", systemImage: "xmark.circle") { Task { await setStatus(training, .cancelled) } }
@@ -126,10 +131,12 @@ struct TrainingDetailView: View {
             } else if training.status == "cancelled" {
                 Button("Запланировать снова", systemImage: "arrow.uturn.backward") { Task { await setStatus(training, .scheduled) } }
             }
-            if training.recurrenceGroupId != nil {
+            if bookedWith == nil, training.recurrenceGroupId != nil {
                 Button("Отменить всю серию", systemImage: "calendar.badge.minus") { confirming = .cancelSeries }
             }
-            Button("Удалить", systemImage: "trash", role: .destructive) { confirming = .delete }.accessibilityIdentifier("training.delete")
+            if bookedWith == nil {
+                Button("Удалить", systemImage: "trash", role: .destructive) { confirming = .delete }.accessibilityIdentifier("training.delete")
+            }
         } label: {
             Image(systemName: "ellipsis.circle")
         }
@@ -344,6 +351,10 @@ struct TrainingDetailView: View {
             }
             if training.type == "personal", training.createdBy != auth.user?.id {
                 sessionBooking = await auth.bookings.coachBooking(forTraining: trainingId)
+            }
+            if training.type == "personal", training.createdBy == auth.user?.id {
+                await auth.bookings.reloadMine()
+                if case .loaded(let all) = auth.bookings.mine { bookedWith = Booking.session(ofTraining: trainingId, in: all) }
             }
             if training.type == "personal", training.createdBy == auth.user?.id, case .success(let saved) = await auth.trainings.workout(of: trainingId) {
                 workout = saved
