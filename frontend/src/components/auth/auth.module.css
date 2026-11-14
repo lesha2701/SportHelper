@@ -255,7 +255,7 @@
 
 .hint {
   font-size: 13px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   line-height: 1.4;
 }
 
@@ -433,7 +433,7 @@
 }
 
 .linkButton:disabled {
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   cursor: default;
 }
 
@@ -605,7 +605,7 @@
 
 .statusIconDanger {
   background: var(--color-danger-bg);
-  color: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
 .address {

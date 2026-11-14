@@ -93,7 +93,7 @@
 .searchEmpty {
   padding: 16px 12px;
   font-size: 13.5px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   text-align: center;
 }
 
@@ -105,7 +105,7 @@
   padding: 6px 10px 4px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .searchItem {
@@ -157,7 +157,7 @@
 
 .searchItemSub {
   font-size: 12px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

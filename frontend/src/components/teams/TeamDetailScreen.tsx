@@ -264,7 +264,8 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
                       key={i}
                       className={styles.teamHeroFormBadge}
                       style={{
-                        background: r === "В" ? "var(--color-success)" : r === "П" ? "var(--color-danger)" : "var(--color-text-tertiary)",
+                        background: r === "В" ? "var(--color-success-bg)" : r === "П" ? "var(--color-danger-bg)" : "var(--color-surface-alt)",
+                        color: r === "В" ? "var(--color-success)" : r === "П" ? "var(--color-danger-text)" : "var(--color-text-secondary)",
                       }}
                     >
                       {r}

@@ -283,15 +283,15 @@
   border: 2px solid var(--color-border-strong);
   border-radius: 50%;
   background: transparent;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .doneButtonOn {
   border-color: var(--color-success);
-  background: var(--color-success);
-  color: var(--color-on-fill);
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .setActions {

@@ -157,7 +157,7 @@
 
 .dangerButton {
   color: var(--color-on-fill);
-  background: var(--color-danger);
+  background: var(--color-primary-fill);
   border: none;
 }
 

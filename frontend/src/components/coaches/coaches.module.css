@@ -121,7 +121,7 @@
   margin-left: auto;
   background: transparent;
   border: none;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 6px;
   min-height: var(--control-height);
@@ -197,7 +197,7 @@
 }
 
 .priceDash {
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .priceValueRow {
@@ -790,7 +790,7 @@
   height: 20px;
   padding: 0 6px;
   border-radius: var(--radius-pill);
-  background: var(--color-danger);
+  background: var(--color-primary-fill);
   color: var(--color-on-fill);
   font-size: 12px;
   font-weight: 700;
@@ -844,7 +844,7 @@
 .ratingChipLow {
   background: var(--color-danger-bg);
   border-color: var(--color-danger);
-  color: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
 .reviewItem {

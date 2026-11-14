@@ -101,7 +101,7 @@
 .who {
   padding: 4px 12px;
   font-size: 12px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -199,14 +199,14 @@
 
 .kpiNote {
   font-size: 12px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .sectionLabel {
   margin: 26px 0 10px;
   font-size: 11px;
   font-weight: 700;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .charts {
@@ -225,7 +225,7 @@
   place-items: center;
   min-height: 150px;
   font-size: 13px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   border: 1px dashed var(--color-border-strong);
   border-radius: var(--radius-md);
 }
@@ -337,7 +337,7 @@
 .buttonDanger {
   background: var(--color-danger-bg);
   border-color: var(--color-danger);
-  color: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
 .buttonGhost {
@@ -434,7 +434,7 @@
 .pillBad {
   composes: pill;
   background: var(--color-danger-bg);
-  color: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
 .pager {
@@ -460,7 +460,7 @@
   background: var(--color-danger-bg);
   border: 1px solid var(--color-danger);
   border-radius: var(--radius-md);
-  color: var(--color-danger);
+  color: var(--color-danger-text);
   font-size: 13px;
 }
 
@@ -725,7 +725,7 @@
 .counter {
   align-self: flex-end;
   font-size: 11px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .timeline {

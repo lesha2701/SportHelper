@@ -56,7 +56,7 @@
 
 .statusAbsent {
   background: var(--color-danger-bg);
-  color: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
 .exerciseRow {

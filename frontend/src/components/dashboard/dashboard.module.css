@@ -328,7 +328,7 @@
 }
 
 .heroCard .heroBadgeMeta {
-  color: var(--color-on-fill-muted);
+  color: var(--color-on-fill);
 }
 
 .heroTitleRow {
@@ -352,7 +352,7 @@
 .heroSubtitle {
   margin: 8px 0 0;
   font-size: 14px;
-  color: var(--color-on-fill-muted);
+  color: var(--color-on-fill);
 }
 
 /* Week overview: seven columns separated by hairlines; today is a red-filled number. */
@@ -585,7 +585,7 @@
 
 .matchResultLoss {
   background: var(--color-danger-bg);
-  color: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
 .matchResultDraw {

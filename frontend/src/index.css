@@ -48,6 +48,8 @@
   --color-success-bg: rgba(52, 199, 120, 0.14);
   --color-danger: #ff3b3f;
   --color-danger-bg: rgba(255, 59, 63, 0.14);
+  /* Red text on the soft red background: a touch lighter / darker than --color-danger so it keeps 4.5:1. */
+  --color-danger-text: #ff7a7d;
   --color-warning: #f5a623;
   --color-warning-bg: rgba(245, 166, 35, 0.14);
 
@@ -108,6 +110,7 @@
   --color-success-bg: #eafaf1;
   --color-danger: #d91e2b;
   --color-danger-bg: #fbeae9;
+  --color-danger-text: #b8121e;
   --color-warning: #8f5f0a;
   --color-warning-bg: #fdf3e0;
 
@@ -339,7 +342,7 @@ button.ui-card:hover {
 
 .ui-badge-bad {
   background: var(--color-danger-bg);
-  color: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
 .ui-badge-ink {

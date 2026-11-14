@@ -50,7 +50,7 @@
 .resultCount {
   margin-left: auto;
   font-size: 13px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
@@ -83,7 +83,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .detailMediaFill {
@@ -149,14 +149,14 @@
 
 .detailStatLabel {
   font-size: 11px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .detailSharedLabel {
   font-family: var(--font-body);
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .detailSharedRow {
@@ -180,7 +180,7 @@
   border-radius: var(--radius-pill);
   border: 1px dashed var(--color-border-strong);
   background: none;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 600;
@@ -221,7 +221,7 @@
 .detailDropdownEmpty {
   padding: 8px 10px;
   font-size: 13px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .detailActions {
@@ -306,7 +306,7 @@
   align-items: center;
   gap: 6px;
   font-size: 11.5px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .detailExerciseList {
@@ -334,7 +334,7 @@
   flex-shrink: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .detailExerciseName {
@@ -451,7 +451,7 @@
 
 .exerciseCardShared {
   font-size: 11.5px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .exerciseVideo {
@@ -509,7 +509,7 @@
   align-items: center;
   padding: 5px 10px;
   font-size: 12px;
-  color: var(--color-danger);
+  color: var(--color-danger-text);
   background: var(--color-danger-bg);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);

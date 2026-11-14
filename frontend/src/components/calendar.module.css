@@ -52,7 +52,7 @@
   font-family: var(--font-body);
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .weekHeadNum {
@@ -90,7 +90,7 @@
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 500;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .weekDayCol {
