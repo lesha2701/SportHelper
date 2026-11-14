@@ -81,6 +81,7 @@ struct HomeView: View {
         if case .loading = auth.teams.mine { await auth.teams.reloadMine() } else { await auth.teams.reloadMine() }
         async let events: Void = home.loadEvents()
         if user.isCoach {
+            if staffTeams.isEmpty { await auth.bookings.reloadPending() }
             if let team = selectedTeam { home.select(team.id); await home.loadTeam(team.id) }
         } else {
             await home.loadPlayer(user: user.id)
@@ -155,13 +156,7 @@ struct HomeView: View {
         if case .loading = auth.teams.mine {
             ProgressView().frame(maxWidth: .infinity).padding()
         } else if staffTeams.isEmpty {
-            ContentUnavailableView {
-                Label("Пока нет команд", systemImage: "trophy")
-            } description: {
-                Text("Создайте команду, чтобы видеть здесь тренировки, нагрузку и задания.")
-            } actions: {
-                Button("Создать команду") { auth.router.tab = .teams }.buttonStyle(.sag).accessibilityIdentifier("home.createTeam")
-            }
+            coachWithoutTeam
         } else {
             if staffTeams.count > 1 { teamSwitcher }
             nextEventCard
@@ -177,6 +172,27 @@ struct HomeView: View {
                 )
             })
             quickActions
+        }
+    }
+
+    /// A coach who is not in a team yet (a coach of the marketplace): the nearest event, this week and their own numbers, like on the
+    /// site, instead of an empty screen. Starting a team stays one tap away.
+    @ViewBuilder private var coachWithoutTeam: some View {
+        nextEventCard
+        if let events = home.events.value {
+            let today = LocalDate.today()
+            let pending: String = if case .loaded(let list) = auth.bookings.pending { "\(list.count)" } else { "—" }
+            StatTiles([
+                ("\(HomeLogic.comingThisWeek(events, today: today).count)", "Занятий на этой неделе"),
+                ("\(HomeLogic.upcoming(events, today: today).count)", "Событий в ближайшие 2 недели"),
+                (pending, "Новых заявок"),
+            ])
+        }
+        weekCard
+        upcomingCard
+        DashboardCard("Команда") {
+            Text("Создайте команду, чтобы видеть здесь посещаемость, нагрузку и матчи.").foregroundStyle(.secondary)
+            Button("Создать команду") { auth.router.tab = .teams }.buttonStyle(.sag).accessibilityIdentifier("home.createTeam")
         }
     }
 
