@@ -11,6 +11,9 @@ struct TrainingFormView: View {
     @Environment(AuthStore.self) private var auth
     @Environment(\.dismiss) private var dismiss
     let mode: Mode
+    /// The booking behind this training when it is a session booked with a coach: date, time, length, place and description are read-only,
+    /// only the reminder is the person's own.
+    var bookedWith: Booking?
     let onDone: () -> Void
 
     @State private var date = Date()
@@ -60,18 +63,29 @@ struct TrainingFormView: View {
     var body: some View {
         NavigationStack {
             Form {
+                if let booking = bookedWith {
+                    Section {
+                        Label("Занятие с тренером \(booking.coachFullName). Дату, время, длительность и место меняет запись, а не календарь. Здесь можно изменить только напоминание.", systemImage: "person.2.fill")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                            .accessibilityIdentifier("trainingForm.booked")
+                    }
+                }
                 Section {
-                    DatePicker("Дата", selection: $date, displayedComponents: .date).accessibilityIdentifier("trainingForm.date")
-                    DatePicker("Начало", selection: $time, displayedComponents: .hourAndMinute).accessibilityIdentifier("trainingForm.time")
-                    Stepper("Длительность: \(duration) мин", value: $duration, in: 5...TrainingLimits.maxDurationMinutes, step: 5)
-                        .accessibilityIdentifier("trainingForm.duration")
-                    TextField("Место (необязательно)", text: $location).accessibilityIdentifier("trainingForm.location")
+                    Group {
+                        DatePicker("Дата", selection: $date, displayedComponents: .date).accessibilityIdentifier("trainingForm.date")
+                        DatePicker("Начало", selection: $time, displayedComponents: .hourAndMinute).accessibilityIdentifier("trainingForm.time")
+                        Stepper("Длительность: \(duration) мин", value: $duration, in: 5...TrainingLimits.maxDurationMinutes, step: 5)
+                            .accessibilityIdentifier("trainingForm.duration")
+                        TextField("Место (необязательно)", text: $location).accessibilityIdentifier("trainingForm.location")
+                    }
+                    .disabled(bookedWith != nil)
                     Picker("Напоминание", selection: $reminder) {
                         ForEach(TrainingReminder.options, id: \.self) { Text(TrainingReminder.title($0)).tag($0) }
                     }
                 }
                 Section(sag: "Описание") {
                     TextField("Что будет на тренировке (необязательно)", text: $details, axis: .vertical).lineLimit(3...8)
+                        .disabled(bookedWith != nil)
                 }
                 if !isPersonal { planSection }
                 if isSchedule { repeatSection }
