@@ -51,7 +51,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 const expand = async () => {
-  fireEvent.click(screen.getByRole("button", { name: /Пригласительная ссылка/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Приглашения и заявки/ }));
   await act(async () => {});
 };
 
@@ -59,7 +59,7 @@ describe("inviting players from the roster", () => {
   it("shows only the title above the members until it is pressed", async () => {
     await open("head_coach");
 
-    const heading = screen.getByText("Пригласительная ссылка");
+    const heading = screen.getByText("Приглашения и заявки");
     const firstMember = screen.getByText(/Игорь/);
     expect(heading.compareDocumentPosition(firstMember) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Создать новую ссылку" })).toBeNull();
@@ -71,7 +71,7 @@ describe("inviting players from the roster", () => {
     await open("head_coach");
 
     await expand();
-    expect(screen.getByRole("button", { name: /Пригласительная ссылка/ }).getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("button", { name: /Приглашения и заявки/ }).getAttribute("aria-expanded")).toBe("true");
     expect(screen.getByText("https://example.com/?invite=tok")).not.toBeNull();
 
     await expand();
@@ -95,14 +95,14 @@ describe("inviting players from the roster", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Настройки" }));
 
-    expect(screen.queryByText("Пригласительная ссылка")).toBeNull();
+    expect(screen.queryByText("Приглашения и заявки")).toBeNull();
     expect(screen.queryByRole("button", { name: "Создать новую ссылку" })).toBeNull();
   });
 
   it("isn't shown to a player", async () => {
     await open("player");
 
-    expect(screen.queryByText("Пригласительная ссылка")).toBeNull();
+    expect(screen.queryByText("Приглашения и заявки")).toBeNull();
     expect(screen.getByText(/Игорь/)).not.toBeNull();
   });
 
@@ -111,7 +111,7 @@ describe("inviting players from the roster", () => {
       vi.mocked(listApplications).mockResolvedValue([request("r1", "Олег"), request("r2", "Мария")]);
       await open("head_coach");
 
-      const header = screen.getByRole("button", { name: /Пригласительная ссылка/ });
+      const header = screen.getByRole("button", { name: /Приглашения и заявки/ });
       expect(header.getAttribute("aria-expanded")).toBe("false");
       expect(screen.getByLabelText("Новых заявок: 2").textContent).toBe("2");
       expect(screen.queryByText(/Олег/)).toBeNull();
@@ -135,7 +135,7 @@ describe("inviting players from the roster", () => {
       expect(acceptApplication).toHaveBeenCalledWith("t", "team1", "r1");
       expect(screen.queryByText(/Олег/)).toBeNull();
       expect(screen.getByLabelText("Новых заявок: 1")).not.toBeNull();
-      expect(screen.getByRole("button", { name: /Пригласительная ссылка/ }).getAttribute("aria-expanded")).toBe("true");
+      expect(screen.getByRole("button", { name: /Приглашения и заявки/ }).getAttribute("aria-expanded")).toBe("true");
     });
 
     it("rejects a request", async () => {
