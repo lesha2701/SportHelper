@@ -3,10 +3,11 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 12px 14px;
-  background: var(--color-surface-alt);
+  min-height: var(--control-height);
+  padding: 16px;
+  background: transparent;
   border: 1.5px dashed var(--color-border-strong);
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   position: relative;
   transition: border-color var(--transition-fast), background-color var(--transition-fast);
 }
@@ -27,12 +28,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
   border-radius: var(--radius-sm);
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
 }
 
 .pickerText {
@@ -65,7 +66,7 @@
   margin: 0;
   opacity: 0;
   cursor: pointer;
-  border-radius: var(--radius-md);
+  border-radius: 14px;
 }
 
 .hiddenInput:disabled {

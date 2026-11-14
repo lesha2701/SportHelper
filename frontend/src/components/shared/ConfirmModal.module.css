@@ -13,14 +13,24 @@
   width: 100%;
   max-width: 480px;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-bottom: none;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: 20px 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
+  padding: 28px 20px calc(env(safe-area-inset-bottom, 0px) + 20px);
   display: flex;
   flex-direction: column;
   gap: 10px;
   animation: slideUp var(--transition-base);
+}
+
+@media (min-width: 600px) {
+  .backdrop {
+    align-items: center;
+    padding: 24px;
+  }
+
+  .sheet {
+    border-radius: var(--radius-lg);
+    padding: var(--card-padding);
+  }
 }
 
 @keyframes fadeIn {
@@ -39,8 +49,9 @@
 .title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.2;
   color: var(--color-text);
 }
 
@@ -54,19 +65,17 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
 .confirmButton,
 .dangerButton,
 .cancelButton {
   width: 100%;
-  padding: 13px 16px;
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  border-radius: var(--radius-md);
+  min-height: var(--control-height);
+  padding: 0 20px;
+  font: 600 14px/1.2 var(--font-body);
+  border-radius: var(--radius-pill);
   cursor: pointer;
   border: none;
   transition: transform var(--transition-fast), background-color var(--transition-fast);
@@ -79,18 +88,28 @@
 
 .dangerButton {
   color: #ffffff;
-  background: var(--color-danger);
+  background: var(--color-primary-fill);
+}
+
+.confirmButton:hover:not(:disabled),
+.dangerButton:hover:not(:disabled) {
+  background: var(--color-primary-fill-hover);
 }
 
 .cancelButton {
   color: var(--color-text);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+}
+
+.cancelButton:hover:not(:disabled) {
   background: var(--color-surface-alt);
 }
 
 .confirmButton:active:not(:disabled),
 .dangerButton:active:not(:disabled),
 .cancelButton:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 .confirmButton:disabled,

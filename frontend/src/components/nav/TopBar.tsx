@@ -110,8 +110,8 @@ function SearchBox({ search }: { search: NonNullable<TopBarConfig["search"]> }) 
 
   return (
     <div className={styles.searchWrap} ref={rootRef}>
-      <div className={styles.search}>
-        <Icon name="search" size={17} />
+      <label className={styles.search}>
+        <Icon name="search" size={19} />
         <input
           ref={inputRef}
           className={styles.searchInput}
@@ -131,7 +131,7 @@ function SearchBox({ search }: { search: NonNullable<TopBarConfig["search"]> }) 
             }
           }}
         />
-      </div>
+      </label>
       {showPanel && (
         <div className={styles.searchPanel}>
           {failed && <div className={styles.searchEmpty}>Не удалось выполнить поиск</div>}
@@ -171,22 +171,16 @@ function SearchBox({ search }: { search: NonNullable<TopBarConfig["search"]> }) 
   );
 }
 
-/** Desktop-only page header: section kicker + title, the global search, the notification bell, and the
- * screen's primary action. Persistent chrome next to SideNav, not
- * per-screen content — see AppShell. */
-export function TopBar({ kicker, title, cta, unreadNotifications, onOpenNotifications, onOpenFinance, search }: TopBarConfig) {
+/** The round buttons on the right of the desktop header: search, finance (trainers), notifications. Rendered next to the
+ * section pills by AppShell; the wrapper is `display: contents`, so the header lays the buttons out itself. */
+export function TopBarActions({ unreadNotifications, onOpenNotifications, onOpenFinance, search }: TopBarConfig) {
   return (
-    <div className={styles.bar}>
-      <div className={styles.heading}>
-        <span className={styles.kicker}>{kicker}</span>
-        <span className={styles.title}>{title}</span>
-      </div>
-      <div className={styles.spacer} />
+    <div className={styles.actions}>
       {search && <SearchBox search={search} />}
       {onOpenFinance && (
         <button type="button" className={styles.financeButton} title="Баланс, выплаты и история платежей" onClick={onOpenFinance}>
           <Icon name="wallet" size={18} />
-          Финансы
+          <span className={styles.financeLabel}>Финансы</span>
         </button>
       )}
       <button type="button" className={styles.bell} title="Уведомления" onClick={onOpenNotifications}>
@@ -195,6 +189,18 @@ export function TopBar({ kicker, title, cta, unreadNotifications, onOpenNotifica
           <span className={styles.bellBadge}>{unreadNotifications > 9 ? "9+" : unreadNotifications}</span>
         )}
       </button>
+    </div>
+  );
+}
+
+/** Desktop-only page heading: the title with the section kicker under it, and the screen's primary action on the right. */
+export function PageHeading({ kicker, title, cta }: TopBarConfig) {
+  return (
+    <div className={styles.heading}>
+      <div className={styles.headingText}>
+        <span className={styles.kicker}>{kicker}</span>
+        <span className={styles.title}>{title}</span>
+      </div>
       {cta && (
         <button type="button" className={styles.cta} onClick={cta.onClick}>
           <Icon name={cta.icon} size={16} strokeWidth={2.4} />
@@ -202,5 +208,15 @@ export function TopBar({ kicker, title, cta, unreadNotifications, onOpenNotifica
         </button>
       )}
     </div>
+  );
+}
+
+/** Both halves together (the header buttons and the page heading), for callers and tests that render the whole bar. */
+export function TopBar(config: TopBarConfig) {
+  return (
+    <>
+      <TopBarActions {...config} />
+      <PageHeading {...config} />
+    </>
   );
 }

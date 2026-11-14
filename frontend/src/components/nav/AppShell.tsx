@@ -3,7 +3,7 @@ import { useIsDesktop } from "../../hooks/useIsDesktop";
 import { SiteFooter } from "../shared/SiteFooter";
 import { BottomNav, type NavItem } from "./BottomNav";
 import { SideNav, type SideNavTeam, type SideNavUser } from "./SideNav";
-import { TopBar, type TopBarConfig } from "./TopBar";
+import { PageHeading, TopBarActions, type TopBarConfig } from "./TopBar";
 import styles from "./AppShell.module.css";
 
 interface AppShellProps<T extends string> {
@@ -23,19 +23,19 @@ interface AppShellProps<T extends string> {
   onOpenSettings?: () => void;
   /** Desktop only, administrators only: the sidebar's "Админ-панель" button. */
   onOpenAdmin?: () => void;
-  /** Desktop only: the page header (kicker/title/search/bell/CTA) shown
-   * above `children`. Omitted for screens (mostly overlays) that still
+  /** Desktop only: the header buttons (search/finance/bell) and the page
+   * heading (title/kicker/CTA) shown above `children`. Omitted for screens (mostly overlays) that still
    * render their own in-content header. */
   topBar?: TopBarConfig;
   children: ReactNode;
 }
 
-/** Mobile (<900px, see useIsDesktop): bottom tab bar; an open overlay
+/** Mobile (<900px, see useIsDesktop): a pill-shaped tab bar pinned to the bottom; an open overlay
  * replaces the whole screen and hides the bar — unchanged push-navigation
- * behavior. Desktop (>=900px): a persistent sidebar (with team switcher and
- * user row) plus a persistent top bar replace the bar and stay mounted even
- * while an overlay is open, so switching sections never rebuilds the nav
- * chrome. See docs/superpowers/specs/2026-09-05-web-desktop-layout-design.md
+ * behavior. Desktop (>=900px): one persistent header (logo, pill of sections,
+ * team chip, search/finance/notification buttons, profile) replaces the bar
+ * and stays mounted even while an overlay is open, so switching sections
+ * never rebuilds the nav chrome; the page heading sits under it. See docs/superpowers/specs/2026-09-05-web-desktop-layout-design.md
  * and docs/superpowers/specs/2026-09-22-bento-redesign-design.md. */
 export function AppShell<T extends string>({
   navItems,
@@ -56,23 +56,28 @@ export function AppShell<T extends string>({
   if (isDesktop) {
     return (
       <div className={styles.desktopShell}>
-        <SideNav
-          items={navItems}
-          active={activeTab}
-          onChange={onChangeTab}
-          team={sideTeam}
-          onOpenTeam={onOpenTeam}
-          user={sideUser}
-          onOpenProfile={onOpenProfile}
-          onOpenSettings={onOpenSettings}
-          onOpenAdmin={onOpenAdmin}
-        />
-        <div className={styles.desktopMain}>
-          {topBar && <TopBar {...topBar} />}
-          <div className={styles.desktopContent}>
-            <div className={styles.desktopContentInner}>{children}</div>
-            <SiteFooter />
+        <header className={styles.header}>
+          <div className={styles.headerInner}>
+            <SideNav
+              items={navItems}
+              active={activeTab}
+              onChange={onChangeTab}
+              team={sideTeam}
+              onOpenTeam={onOpenTeam}
+              user={sideUser}
+              onOpenProfile={onOpenProfile}
+              onOpenSettings={onOpenSettings}
+              onOpenAdmin={onOpenAdmin}
+            />
+            {topBar && <TopBarActions {...topBar} />}
           </div>
+        </header>
+        <div className={styles.desktopContent}>
+          <div className={styles.desktopContentInner}>
+            {topBar && <PageHeading {...topBar} />}
+            {children}
+          </div>
+          <SiteFooter />
         </div>
       </div>
     );

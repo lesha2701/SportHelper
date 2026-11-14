@@ -51,15 +51,15 @@
 .close {
   top: 14px;
   right: 14px;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
 }
 
 .nav {
   top: 50%;
   transform: translateY(-50%);
-  width: 46px;
-  height: 46px;
+  width: 48px;
+  height: 48px;
 }
 
 .navPrev {
@@ -88,7 +88,7 @@
   }
 
   .nav {
-    width: 38px;
-    height: 38px;
+    width: 44px;
+    height: 44px;
   }
 }

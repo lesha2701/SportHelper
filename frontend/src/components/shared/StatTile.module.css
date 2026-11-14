@@ -1,50 +1,41 @@
+/* Calm bento tile: one big tabular number, a plain sentence label under it. Both tones look the same now
+   (the old fully-dark accent panel is gone); `tileDark` only keeps the number slightly stronger. */
 .tile {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 18px 16px;
+  gap: 8px;
+  padding: var(--card-padding);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-}
-
-.tileDark {
-  background: var(--panel-bg);
-  border-color: var(--panel-border);
-}
-
-.tileDark .value {
-  color: var(--color-primary);
-}
-
-.tileDark .label {
-  color: var(--panel-muted);
+  box-shadow: var(--shadow-card);
 }
 
 .value {
   font-family: var(--font-display);
   font-size: 40px;
-  font-weight: 800;
+  font-weight: 500;
   line-height: 1;
-  color: var(--color-primary);
+  color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
 
+.tileDark .value {
+  color: var(--color-text);
+}
+
 .label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-size: 13px;
   color: var(--color-text-secondary);
 }
 
 .delta {
-  margin-top: 2px;
   font-size: 12px;
   font-weight: 600;
   color: var(--color-text-secondary);
 }
 
-.tileDark .delta {
-  color: var(--panel-muted);
+@media (max-width: 760px) {
+  .value {
+    font-size: 32px;
+  }
 }

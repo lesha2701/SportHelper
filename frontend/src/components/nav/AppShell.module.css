@@ -21,17 +21,27 @@
 
 .desktopShell {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   height: 100svh;
   overflow: hidden;
 }
 
-.desktopMain {
-  flex: 1;
-  min-width: 0;
+/* One header for the whole app: logo, pill of sections, team chip, round buttons, profile. */
+.header {
+  flex-shrink: 0;
+  background: var(--color-bg);
+}
+
+.headerInner {
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 20px 32px;
 }
 
 .desktopContent {
@@ -46,14 +56,18 @@
 .desktopContentInner {
   flex: 1 0 auto;
   width: 100%;
-  max-width: 1280px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 36px 48px 56px;
+  padding: 0 32px 64px;
 }
 
-@media (min-width: 1360px) {
+@media (max-width: 1179px) {
+  /* The brand name is hidden, so the logo takes the left edge and the buttons the right one. */
+  .headerInner {
+    padding: 16px 24px;
+  }
+
   .desktopContentInner {
-    max-width: 1400px;
-    padding: 40px 56px 64px;
+    padding: 0 24px 48px;
   }
 }

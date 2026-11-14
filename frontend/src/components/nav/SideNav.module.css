@@ -1,55 +1,121 @@
-.nav {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: 248px;
-  flex-shrink: 0;
-  padding: 20px 14px;
-  border-right: 1px solid var(--color-border);
-  background: var(--color-surface);
-  overflow-y: auto;
+/* The left and middle of the desktop header: logo, the pill of sections, the team chip, the profile. The root vanishes
+   (display: contents); the header in AppShell.module.css is the flex row and `order` fixes the sequence
+   (logo 0, pills 1, team 2, search 3, finance 4, bell 5, profile 6). */
+.root {
+  display: contents;
 }
 
 .brandRow {
+  order: 0;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 6px;
+  flex-shrink: 0;
 }
 
 .brandMark {
   display: block;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   object-fit: contain;
 }
 
 .brandName {
   min-width: 0;
-  line-height: 1.05;
+  line-height: 1;
   font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--color-text);
+  white-space: nowrap;
+}
+
+.pills {
+  order: 1;
+  display: flex;
+  gap: 2px;
+  margin: 0 auto;
+  padding: 4px;
+  min-width: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.item,
+.itemActive {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--control-height);
+  padding: 0 18px;
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  font: 500 14px/1.2 var(--font-body);
+  white-space: nowrap;
+  transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.item:active,
+.itemActive:active {
+  transform: scale(0.97);
+}
+
+.itemLabel {
+  min-width: 0;
+}
+
+.item {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.item:hover {
+  color: var(--color-text);
+}
+
+.itemActive {
+  color: var(--color-text);
+  background: var(--color-surface-alt);
+}
+
+.itemBadge {
+  flex-shrink: 0;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-fill);
+  color: #fff;
+  font: 700 11px var(--font-body);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .teamCard {
+  order: 2;
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 100%;
-  padding: 10px;
-  border-radius: 14px;
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+  max-width: 220px;
+  height: var(--control-height);
+  padding: 0 14px 0 6px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   cursor: pointer;
   text-align: left;
   font: inherit;
   color: inherit;
-  transition: border-color var(--transition-fast);
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
 }
 
 .teamCard:disabled {
@@ -57,24 +123,28 @@
 }
 
 .teamCard:not(:disabled):hover {
-  border-color: var(--color-border-strong);
+  background: var(--color-surface-alt);
+}
+
+.teamCard:not(:disabled):active {
+  transform: scale(0.98);
 }
 
 .teamCardAvatar {
   position: relative;
   overflow: hidden;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
-  border-radius: 10px;
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  border-radius: 50%;
+  background: var(--color-ink-soft);
+  color: var(--color-link);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .teamCardLogo {
@@ -93,12 +163,9 @@
 }
 
 .teamCardName {
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
   color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -107,126 +174,43 @@
 
 .teamCardRole {
   font-size: 11.5px;
-  color: var(--color-text-tertiary);
-}
-
-.teamCardChevron {
-  flex-shrink: 0;
-  display: flex;
-  color: var(--color-text-tertiary);
-}
-
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.sectionLabel {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-tertiary);
-  padding: 0 10px 6px;
-}
-
-.item,
-.itemActive {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  text-align: left;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
-}
-
-.itemLabel {
-  flex: 1;
-  min-width: 0;
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  line-height: 1.2;
+  color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.item {
-  background: transparent;
-  color: var(--color-text-secondary);
-}
-
-.item:hover {
-  background: var(--color-surface-alt);
-  color: var(--color-text);
-}
-
-.itemActive {
-  color: var(--color-text);
-  background: var(--color-primary-glow);
-}
-
-.itemBadge {
-  flex-shrink: 0;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: var(--radius-pill);
-  background: var(--color-primary-fill);
-  color: #fff;
-  font: 700 11px var(--font-body);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .userRow {
-  margin-top: auto;
+  order: 6;
   display: flex;
   align-items: center;
-  gap: 4px;
-  width: 100%;
-  padding: 4px;
-  border-radius: 14px;
-  border: 1px solid var(--color-border);
-  transition: border-color var(--transition-fast);
-}
-
-.userRow:hover {
-  border-color: var(--color-border-strong);
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .userMain {
-  flex: 1;
-  min-width: 0;
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px;
+  padding: 0;
   border: none;
-  border-radius: 10px;
+  border-radius: 50%;
   background: transparent;
   cursor: pointer;
-  text-align: left;
   font: inherit;
   color: inherit;
+  transition: transform var(--transition-fast);
 }
 
-.userMain:hover {
-  background: var(--color-surface-alt);
+.userMain:active {
+  transform: scale(0.96);
 }
 
 .userAvatar,
 .userAvatarPlaceholder {
-  width: 36px;
-  height: 36px;
+  width: var(--control-height);
+  height: var(--control-height);
   flex-shrink: 0;
   border-radius: 50%;
 }
@@ -236,54 +220,81 @@
 }
 
 .userAvatarPlaceholder {
-  background: var(--color-surface-alt);
+  background: var(--color-ink-soft);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--color-text);
-}
-
-.userText {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.userName {
-  font-size: 13.5px;
   font-weight: 600;
-  color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 14px;
+  color: var(--color-link);
 }
 
+/* The name stays in the accessible name of the profile button; the header shows the avatar only. */
+.userText {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.userName,
 .userSub {
-  font-size: 11.5px;
-  color: var(--color-text-tertiary);
+  display: block;
 }
 
 .userSettings {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: var(--control-height);
+  height: var(--control-height);
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 10px;
-  background: transparent;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   cursor: pointer;
-  color: var(--color-text-secondary);
-  transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-base);
+  color: var(--color-text);
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
 }
 
 .userSettings:hover {
   background: var(--color-surface-alt);
-  color: var(--color-primary);
-  transform: rotate(45deg);
+}
+
+.userSettings:active {
+  transform: scale(0.96);
+}
+
+@media (max-width: 1179px) {
+  .brandName {
+    display: none;
+  }
+
+  .teamCard {
+    width: var(--control-height);
+    padding: 0;
+    justify-content: center;
+  }
+
+  .teamCardText {
+    display: none;
+  }
+
+  /* Not enough width for the pills next to the buttons: they take their own row under the header. */
+  .pills {
+    order: 10;
+    flex-basis: 100%;
+    margin: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .item,
+  .itemActive {
+    flex: 1 0 auto;
+    justify-content: center;
+  }
 }

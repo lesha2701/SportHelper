@@ -33,18 +33,41 @@ interface SideNavProps<T extends string> {
   onOpenAdmin?: () => void;
 }
 
-/** Desktop-width counterpart to BottomNav — same NavItem data, vertical
- * layout, persistent (AppShell keeps it mounted even while an overlay/detail
- * screen is open, unlike the mobile bottom bar). Also carries the brand
- * mark, an optional primary-team switcher card, and the signed-in user row
- * — see docs/superpowers/specs/2026-09-22-bento-redesign-design.md. */
+/** Desktop-width counterpart to BottomNav — same NavItem data, shown as a "pill" of sections in the persistent header.
+ * AppShell keeps it mounted even while an overlay/detail screen is open, unlike the mobile bottom bar. Also carries the
+ * brand mark, an optional primary-team switcher chip and the signed-in user (avatar + settings). The root vanishes
+ * (display: contents) so the header can lay everything out in one row together with the TopBar buttons. */
 export function SideNav<T extends string>({ items, active, onChange, team, onOpenTeam, user, onOpenProfile, onOpenSettings, onOpenAdmin }: SideNavProps<T>) {
   return (
-    <nav className={styles.nav}>
+    <div className={styles.root}>
       <div className={styles.brandRow}>
         <BrandLogo className={styles.brandMark} />
         <span className={styles.brandName}>SportArenaGlobal</span>
       </div>
+
+      <nav className={styles.pills} aria-label="Разделы">
+        {items.map((item) => {
+          const isActive = item.key === active;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              className={isActive ? styles.itemActive : styles.item}
+              onClick={() => onChange(item.key)}
+              aria-current={isActive ? "page" : undefined}
+            >
+              <span className={styles.itemLabel}>{item.label}</span>
+              {!!item.badge && <span className={styles.itemBadge}>{item.badge}</span>}
+            </button>
+          );
+        })}
+        {onOpenAdmin && (
+          <button type="button" className={styles.item} onClick={onOpenAdmin}>
+            <Icon name="shield" size={16} strokeWidth={1.8} />
+            <span className={styles.itemLabel}>Админ-панель</span>
+          </button>
+        )}
+      </nav>
 
       {team && (
         <button type="button" className={styles.teamCard} onClick={onOpenTeam} disabled={!onOpenTeam}>
@@ -58,39 +81,8 @@ export function SideNav<T extends string>({ items, active, onChange, team, onOpe
             <span className={styles.teamCardName}>{team.name}</span>
             <span className={styles.teamCardRole}>{team.roleLabel}</span>
           </div>
-          {onOpenTeam && (
-            <span className={styles.teamCardChevron}>
-              <Icon name="chevron-right" size={16} />
-            </span>
-          )}
         </button>
       )}
-
-      <div className={styles.section}>
-        <span className={styles.sectionLabel}>Меню</span>
-        {items.map((item) => {
-          const isActive = item.key === active;
-          return (
-            <button
-              key={item.key}
-              type="button"
-              className={isActive ? styles.itemActive : styles.item}
-              onClick={() => onChange(item.key)}
-              aria-current={isActive ? "page" : undefined}
-            >
-              <Icon name={item.icon} size={20} strokeWidth={isActive ? 2.1 : 1.8} />
-              <span className={styles.itemLabel}>{item.label}</span>
-              {!!item.badge && <span className={styles.itemBadge}>{item.badge}</span>}
-            </button>
-          );
-        })}
-        {onOpenAdmin && (
-          <button type="button" className={styles.item} onClick={onOpenAdmin}>
-            <Icon name="shield" size={20} strokeWidth={1.8} />
-            <span className={styles.itemLabel}>Админ-панель</span>
-          </button>
-        )}
-      </div>
 
       <div className={styles.userRow}>
         <button type="button" className={styles.userMain} onClick={onOpenProfile}>
@@ -108,6 +100,6 @@ export function SideNav<T extends string>({ items, active, onChange, team, onOpe
           <Icon name="settings" size={18} />
         </button>
       </div>
-    </nav>
+    </div>
   );
 }
