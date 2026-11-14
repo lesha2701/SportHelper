@@ -233,7 +233,7 @@ async def count_team_trainings_summary(conn: asyncpg.Connection, team_id: UUID) 
 
 
 async def team_player_attendance(conn: asyncpg.Connection, team_id: UUID) -> list[dict[str, Any]]:
-    """Per-member present/absent counts across the team's own team/independent
+    """Per-player present/absent counts (the coaching staff is not a player) across the team's own team/independent
     trainings that took place (see HELD)."""
     rows = await conn.fetch(
         f"""
@@ -245,7 +245,7 @@ async def team_player_attendance(conn: asyncpg.Connection, team_id: UUID) -> lis
         LEFT JOIN trainings t ON t.team_id = m.team_id AND t.deleted_at IS NULL
             AND t.type IN ('team', 'independent') AND {_held('t')}
         LEFT JOIN training_attendance a ON a.training_id = t.id AND a.user_id = m.user_id
-        WHERE m.team_id = $1
+        WHERE m.team_id = $1 AND m.role IN ('player', 'captain')
         GROUP BY m.user_id, u.first_name, u.last_name
         ORDER BY u.first_name
         """,
@@ -337,6 +337,7 @@ async def initialize_held_attendance(conn: asyncpg.Connection) -> int:
         SELECT t.id, m.user_id, 'present'
         FROM trainings t
         JOIN team_members m ON m.team_id = t.team_id AND m.joined_at::date <= t.training_date
+            AND m.role IN ('player', 'captain')
         WHERE t.deleted_at IS NULL AND t.type IN ('team', 'independent') AND {_held('t')}
           AND NOT EXISTS (SELECT 1 FROM training_attendance a WHERE a.training_id = t.id AND a.user_id = m.user_id)
         ON CONFLICT DO NOTHING
@@ -346,14 +347,14 @@ async def initialize_held_attendance(conn: asyncpg.Connection) -> int:
 
 
 async def ensure_attendance_initialized(conn: asyncpg.Connection, training_id: UUID, team_id: UUID) -> None:
-    """Creates a 'present' attendance row for every current team member who
+    """Creates a 'present' attendance row for every current PLAYER of the team (captain included, coaching staff not) who
     doesn't have one yet, so the coach only has to flip absentees."""
     await conn.execute(
         """
         INSERT INTO training_attendance (training_id, user_id, status)
         SELECT $1, m.user_id, 'present'
         FROM team_members m
-        WHERE m.team_id = $2
+        WHERE m.team_id = $2 AND m.role IN ('player', 'captain')
         ON CONFLICT (training_id, user_id) DO NOTHING
         """,
         training_id,
@@ -367,7 +368,12 @@ async def list_attendance(conn: asyncpg.Connection, training_id: UUID) -> list[d
         SELECT {_ATTENDANCE_FIELDS}
         FROM training_attendance a
         JOIN users u ON u.id = a.user_id
+        JOIN trainings t ON t.id = a.training_id
+        LEFT JOIN team_members m ON m.team_id = t.team_id AND m.user_id = a.user_id
         WHERE a.training_id = $1
+          -- a coach's mark saved before coaches stopped being counted stays in the table but is not shown;
+          -- someone who has left the team (no row) keeps theirs
+          AND (m.user_id IS NULL OR m.role IN ('player', 'captain'))
         ORDER BY u.first_name
         """,
         training_id,

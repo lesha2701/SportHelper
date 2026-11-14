@@ -73,7 +73,7 @@ async def create_team(
             status_code=409,
         )
     team = await teams_repo.create_team(conn, user["id"], payload.model_dump())
-    return _team_out(team, my_role="head_coach", members_count=1)
+    return _team_out(team, my_role="head_coach", members_count=0)
 
 
 @router.get("/mine", response_model=list[TeamOut])
@@ -93,7 +93,7 @@ async def get_team(
 ) -> TeamOut:
     team = await _get_team_or_404(conn, team_id)
     member = await _get_membership_or_403(conn, team_id, user["id"])
-    members_count = await teams_repo.count_members(conn, team_id)
+    members_count = await teams_repo.count_players(conn, team_id)
     return _team_out(team, my_role=member["role"], members_count=members_count)
 
 
@@ -110,7 +110,7 @@ async def update_team(
         raise ForbiddenError("only the head coach or an assistant coach can edit the team")
     # a request that leaves tournaments / home_venue out keeps what the team has
     team = await teams_repo.update_team(conn, team_id, payload.model_dump(exclude_unset=True))
-    members_count = await teams_repo.count_members(conn, team_id)
+    members_count = await teams_repo.count_players(conn, team_id)
     return _team_out(team, my_role=member["role"], members_count=members_count)
 
 
@@ -380,7 +380,7 @@ async def preview_invite(
         raise APIError("this invite link has expired", code="invite_expired", status_code=410)
 
     team = await _get_team_or_404(conn, invite["team_id"])
-    members_count = await teams_repo.count_members(conn, team["id"])
+    members_count = await teams_repo.count_players(conn, team["id"])
     member = await teams_repo.get_member(conn, team["id"], user["id"])
     return _team_out(team, my_role=member["role"] if member else None, members_count=members_count)
 

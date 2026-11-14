@@ -177,7 +177,7 @@ async def build_training_plan_draft(
     level = payload.level or (team["level"] if team else None)
     player_count = payload.player_count
     if player_count is None and team is not None:
-        player_count = await teams_repo.count_members(conn, team["id"])
+        player_count = await teams_repo.count_players(conn, team["id"])
     duration_minutes = payload.duration_minutes or 60
 
     owned_exercises = await exercises_repo.list_owned(conn, coach_id)
@@ -410,7 +410,7 @@ async def build_report_analysis(conn: asyncpg.Connection, settings: Settings, *,
 
 async def build_attendance_analysis(conn: asyncpg.Connection, settings: Settings, *, team: dict) -> str:
     rows = await trainings_repo.team_player_attendance(conn, team["id"])
-    members_count = await teams_repo.count_members(conn, team["id"])
+    members_count = await teams_repo.count_players(conn, team["id"])
     if rows:
         attendance_table = "\n".join(
             f"{(row['first_name'] + ' ' + (row['last_name'] or '')).strip()} — "
