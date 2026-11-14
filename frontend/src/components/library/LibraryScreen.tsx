@@ -11,15 +11,15 @@ export function LibraryScreen({ token }: { token: string }) {
 
   return (
     <>
-      <div style={{ padding: "16px 16px 0" }}>
-        <div className={styles.tabs}>
-          <button type="button" className={tab === "exercises" ? styles.tabActive : styles.tab} onClick={() => setTab("exercises")}>
+      <div className={styles.pageTabsWrap}>
+        <div className={styles.realTabBar}>
+          <button type="button" className={tab === "exercises" ? styles.realTabActive : styles.realTab} onClick={() => setTab("exercises")}>
             Упражнения
           </button>
-          <button type="button" className={tab === "plans" ? styles.tabActive : styles.tab} onClick={() => setTab("plans")}>
+          <button type="button" className={tab === "plans" ? styles.realTabActive : styles.realTab} onClick={() => setTab("plans")}>
             Планы
           </button>
-          <button type="button" className={tab === "tasks" ? styles.tabActive : styles.tab} onClick={() => setTab("tasks")}>
+          <button type="button" className={tab === "tasks" ? styles.realTabActive : styles.realTab} onClick={() => setTab("tasks")}>
             Задания
           </button>
         </div>

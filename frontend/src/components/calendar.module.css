@@ -50,7 +50,7 @@
 
 .weekHeadWd {
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text-secondary);
 }
@@ -164,7 +164,7 @@
 }
 
 .weekNoTimeChip {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 700;
   padding: 2px 7px;
   border-radius: var(--radius-pill);

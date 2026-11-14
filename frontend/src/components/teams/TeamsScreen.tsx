@@ -63,7 +63,7 @@ export function TeamsScreen({ token }: { token: string }) {
   return (
     <div className={styles.screen}>
       <div className={styles.headerRow}>
-        <h1 className={styles.heading}>Команды</h1>
+        <h1 className={`${styles.heading} ${styles.headingDup}`}>Команды</h1>
         <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })}>
           <Icon name="plus" size={16} />
           Создать

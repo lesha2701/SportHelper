@@ -55,7 +55,7 @@ export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () =
     <div className={styles.error} role="alert">
       {message}{" "}
       {onRetry && (
-        <button type="button" className={styles.button} onClick={onRetry} style={{ marginLeft: 8, height: 28 }}>
+        <button type="button" className={styles.button} onClick={onRetry} style={{ marginLeft: 8 }}>
           Повторить
         </button>
       )}

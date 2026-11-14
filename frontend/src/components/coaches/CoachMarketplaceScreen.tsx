@@ -399,7 +399,7 @@ export function CoachMarketplaceScreen({
   return (
     <div className={teamStyles.screen}>
       <div className={teamStyles.headerRow}>
-        <h1 className={teamStyles.heading}>Тренеры</h1>
+        <h1 className={`${teamStyles.heading} ${teamStyles.headingDup}`}>Тренеры</h1>
         {canCreateListing && (
           <button type="button" className={teamStyles.addButton} onClick={() => setView({ screen: "createListing" })}>
             <Icon name="plus" size={16} />

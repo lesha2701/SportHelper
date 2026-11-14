@@ -25,11 +25,8 @@
 
 .teamHero {
   position: relative;
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
   color: var(--color-text);
-  padding: var(--card-padding);
+  padding: 8px 0 12px;
   display: flex;
   align-items: center;
   gap: 24px;
@@ -105,7 +102,7 @@
 
 .teamHeroStatLabel {
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text-secondary);
 }
@@ -130,7 +127,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -196,7 +193,7 @@
 
 .nextTrainingLabel {
   font-family: var(--font-body);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text-secondary);
 }
@@ -239,13 +236,16 @@
 .searchInput {
   font: inherit;
   font-size: 15px;
-  padding: 11px 14px;
-  border-radius: var(--radius-md);
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
   border: 1px solid transparent;
-  background: var(--color-surface-alt);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   color: var(--color-text);
   transition: border-color var(--transition-fast);
-  min-height: var(--field-height);
+  min-height: var(--control-height);
+  width: 100%;
+  max-width: 360px;
 }
 
 .searchInput:focus {
@@ -299,7 +299,7 @@
   gap: 6px;
   background: var(--color-surface);
   border: none;
-  border-left: 3px solid var(--event-color, var(--color-border));
+  border-left: 3px solid var(--event-color, transparent);
   box-shadow: var(--shadow-card);
   border-radius: var(--radius-lg);
   padding: var(--card-padding);
@@ -393,7 +393,7 @@
   padding: 3px 9px;
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   background: var(--color-ink-soft);
   color: var(--color-link);
@@ -406,7 +406,9 @@
 }
 
 .tabs {
-  display: flex;
+  display: inline-flex;
+  align-self: flex-start;
+  max-width: 100%;
   gap: 2px;
   background: var(--color-surface-alt);
   border-radius: var(--radius-pill);
@@ -416,7 +418,7 @@
 
 .tab,
 .tabActive {
-  flex: 1;
+  flex: 0 0 auto;
   min-height: var(--control-height);
   padding: 0 14px;
   text-align: center;
@@ -511,7 +513,7 @@
   border-radius: var(--radius-pill);
   background: var(--color-ink-soft);
   color: var(--color-link);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -521,9 +523,9 @@
   align-items: center;
   gap: 6px;
   padding: 7px 12px;
-  font-family: var(--font-display);
-  font-size: 13.5px;
-  font-weight: 500;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
   color: var(--color-text);
   background: var(--color-surface-alt);
   border: none;
@@ -613,7 +615,7 @@
 }
 
 .statLabel {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text-secondary);
 }
@@ -800,4 +802,84 @@
 /* Roster rows are soft blocks, so the photo placeholder sits on the card colour. */
 .memberRow .avatar {
   background: var(--color-surface);
+}
+
+/* Roster: one card, rows separated by hairlines (the "table" of the team page). */
+.rosterList {
+  display: flex;
+  flex-direction: column;
+  padding: 8px var(--card-padding);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.rosterList .memberRow {
+  padding: 14px 0;
+  border-radius: 0;
+  background: transparent;
+  border-top: 1px solid var(--color-border);
+  min-height: var(--control-height);
+}
+
+.rosterList .memberRow:first-child {
+  border-top: 0;
+}
+
+.rosterList .avatar {
+  background: var(--color-surface-alt);
+}
+
+/* The "Назад" at the top of a detail screen is a quiet text link, as in the mockups. */
+.headerRow > .iconButton:only-child {
+  padding: 0;
+  min-height: var(--control-height);
+  background: none;
+  box-shadow: none;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.headerRow > .iconButton:only-child:hover {
+  background: none;
+  color: var(--color-text);
+}
+
+/* Tab strip above a section screen (library): the screen's own margin on a phone, none on desktop. */
+.pageTabsWrap {
+  padding: 16px 16px 0;
+}
+
+@media (min-width: 900px) {
+  .pageTabsWrap {
+    padding: 0;
+  }
+}
+
+/* On desktop the page heading under the header already names the screen: keep this one for assistive technology only,
+   and let the action button of the row sit on the right. */
+@media (min-width: 900px) {
+  .headingDup {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .headingDup + * {
+    margin-left: auto;
+  }
+}
+
+/* Scrollable tab strips: no visible scrollbar, the cut-off tab is the hint. */
+.realTabBar,
+.tabs {
+  scrollbar-width: none;
+}
+
+.realTabBar::-webkit-scrollbar,
+.tabs::-webkit-scrollbar {
+  display: none;
 }

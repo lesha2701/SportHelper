@@ -314,7 +314,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
                 <ApplicationsList {...applications} />
               </InviteSection>
             )}
-            <div className={styles.cardGrid}>
+            <div className={styles.rosterList}>
               {members.map((member) => (
                 <button
                   key={member.userId}

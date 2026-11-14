@@ -29,16 +29,17 @@
 
 .sportChip,
 .sportChipActive {
-  padding: 7px 12px;
+  padding: 0 16px;
   border-radius: var(--radius-pill);
-  font-size: 12.5px;
-  font-weight: 700;
-  border: 1px solid var(--color-border);
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
   background: var(--color-surface);
   color: var(--color-text-secondary);
   cursor: pointer;
   white-space: nowrap;
   min-height: var(--control-height);
+  box-shadow: var(--shadow-card);
 }
 
 .sportChipActive {
@@ -103,7 +104,7 @@
 
 .detailCategory {
   font-family: var(--font-body);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-link);
 }
@@ -148,13 +149,13 @@
 }
 
 .detailStatLabel {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
 .detailSharedLabel {
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text-secondary);
 }
@@ -266,7 +267,7 @@
 }
 
 .libCard:hover {
-  border-color: var(--color-border-strong);
+  transform: translateY(-2px);
 }
 
 .libCardIcon {
@@ -305,7 +306,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 6px;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -374,7 +375,7 @@
 }
 
 .exerciseCard:hover {
-  border-color: var(--color-border-strong);
+  transform: translateY(-2px);
 }
 
 .exerciseCardMedia {
@@ -444,13 +445,13 @@
 
 .exerciseCardCategory {
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-link);
 }
 
 .exerciseCardShared {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 

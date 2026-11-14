@@ -226,7 +226,7 @@ export function PlansScreen({ token }: { token: string }) {
   return (
     <div className={styles.screen}>
       <div className={styles.headerRow}>
-        <h1 className={styles.heading}>Планы тренировок</h1>
+        <h1 className={`${styles.heading} ${styles.headingDup}`}>Планы тренировок</h1>
         <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })}>
           <Icon name="plus" size={16} />
           Создать

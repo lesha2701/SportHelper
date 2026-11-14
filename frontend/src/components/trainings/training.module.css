@@ -42,7 +42,7 @@
   align-items: center;
   gap: 4px;
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   padding: 4px 10px;
   border-radius: var(--radius-pill);
@@ -155,7 +155,7 @@
 }
 
 .exerciseFieldLabel {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text-secondary);
 }

@@ -10,7 +10,7 @@
 }
 
 .notificationCardUnread {
-  border-left: 3px solid var(--color-primary);
+  border-left-color: transparent;
 }
 
 .notificationTop {
@@ -43,7 +43,7 @@
 }
 
 .notificationTitle {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text);
 }
 

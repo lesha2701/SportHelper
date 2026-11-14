@@ -69,7 +69,7 @@
   height: 44px;
   padding: 0 14px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
   font-family: var(--font-body);
   font-size: 14px;
@@ -111,9 +111,9 @@
   border: 1px solid var(--color-border-strong);
   border-radius: 50%;
   background: var(--color-surface);
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 500;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
   color: var(--color-text-secondary);
   cursor: pointer;
 }
@@ -179,7 +179,7 @@
 
 .setsHead {
   padding: 0 10px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--color-text-secondary);
 }
@@ -223,7 +223,7 @@
 .stepButton {
   height: 44px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
   background: var(--color-surface-alt);
   font-size: 22px;
   font-weight: 700;
@@ -308,7 +308,7 @@
   min-height: var(--control-height);
   padding: 0 14px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
   font: inherit;
   font-size: 13.5px;
@@ -384,9 +384,8 @@
 }
 
 .restChoiceOn {
-  border-color: var(--color-primary);
-  background: var(--color-ink-soft);
-  color: var(--color-link);
+  background: var(--color-graphite);
+  color: var(--color-inverse-text);
 }
 
 .notes {
@@ -485,7 +484,7 @@
 }
 
 .tileLabel {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--color-text-secondary);
 }

@@ -66,22 +66,22 @@
 .formatChip,
 .formatChipActive {
   flex: 1;
-  padding: 10px;
+  padding: 0 16px;
   text-align: center;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  border: none;
   background: var(--color-surface);
   color: var(--color-text-secondary);
-  font-family: var(--font-display);
   font-weight: 500;
   cursor: pointer;
   min-height: var(--control-height);
+  font-size: 14px;
+  box-shadow: var(--shadow-card);
 }
 
 .formatChipActive {
-  border-color: var(--color-primary);
-  background: var(--color-ink-soft);
-  color: var(--color-link);
+  background: var(--color-graphite);
+  color: var(--color-inverse-text);
 }
 
 .weekdayRow {
@@ -214,7 +214,7 @@
 
 .priceSlider {
   width: 100%;
-  accent-color: var(--color-primary);
+  accent-color: var(--color-link);
 }
 
 .ratingPillRow {
@@ -226,11 +226,11 @@
 .ratingPill,
 .ratingPillActive {
   padding: 8px 0;
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
   text-align: center;
-  font-family: var(--font-display);
-  font-size: 12.5px;
-  font-weight: 500;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   border: 1px solid var(--color-border);
   background: transparent;
@@ -316,9 +316,8 @@
 }
 
 .layoutToggleButtonActive {
-  border-color: var(--color-primary);
-  background: var(--color-ink-soft);
-  color: var(--color-link);
+  background: var(--color-graphite);
+  color: var(--color-inverse-text);
   min-height: var(--control-height);
 }
 
@@ -416,7 +415,6 @@
 }
 
   .coachCard:hover {
-    border-color: var(--color-border-strong);
     box-shadow: var(--shadow-raised);
     transform: translateY(-2px);
   }
@@ -592,16 +590,17 @@
 .dateChip,
 .dateChipActive {
   flex-shrink: 0;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  border: none;
   background: var(--color-surface);
   color: var(--color-text-secondary);
-  font-family: var(--font-display);
   font-weight: 500;
   cursor: pointer;
   text-align: center;
   min-height: var(--control-height);
+  font-size: 14px;
+  box-shadow: var(--shadow-card);
 }
 
 .dateChipActive {
@@ -629,9 +628,8 @@
 }
 
 .slotButtonActive {
-  border-color: var(--color-primary);
-  background: var(--color-ink-soft);
-  color: var(--color-link);
+  background: var(--color-primary-fill);
+  color: var(--color-on-fill);
 }
 
 .confirmSummary {
@@ -719,10 +717,9 @@
 }
 
 .bookingStatus {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
   border-radius: var(--radius-pill);
   background: var(--color-surface-alt);
   color: var(--color-text-secondary);
@@ -910,7 +907,7 @@
 .ownBadge {
   display: inline-block;
   margin-bottom: 2px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--color-link);
 }

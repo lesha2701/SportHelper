@@ -135,7 +135,7 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
   return (
     <div className={styles.screen}>
       <div className={styles.headerRow}>
-        <h1 className={styles.heading}>Календарь</h1>
+        <h1 className={`${styles.heading} ${styles.headingDup}`}>Календарь</h1>
         {onCreateTraining && (
           <button type="button" className={styles.iconButton} onClick={onCreateTraining}>
             + Добавить тренировку

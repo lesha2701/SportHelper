@@ -111,7 +111,6 @@
   composes: bubble;
   border-radius: var(--radius-pill);
   background: var(--color-primary-fill);
-  border-color: var(--color-primary);
   color: var(--color-on-fill);
 }
 
@@ -149,13 +148,13 @@
   align-items: center;
   gap: 10px;
   justify-content: flex-end;
-  font-size: 11px;
+  font-size: 12px;
   opacity: 0.75;
 }
 
 .linkButton {
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   background: none;
   border: none;
   padding: 0;
@@ -189,8 +188,8 @@
   resize: none;
   min-height: 44px;
   max-height: 140px;
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
+  padding: 11px 18px;
+  border-radius: 24px;
   border: 1px solid transparent;
   background: var(--color-surface-alt);
   color: var(--color-text);
@@ -208,9 +207,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
+  border-radius: 50%;
+  border: none;
+  background: var(--color-surface-alt);
   color: var(--color-text);
   cursor: pointer;
 }
@@ -223,7 +222,6 @@
 .sendButton {
   composes: iconButton;
   background: var(--color-primary-fill);
-  border-color: var(--color-primary);
   color: var(--color-on-fill);
 }
 
@@ -235,9 +233,10 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
+  padding: 8px;
+  border: none;
+  background: var(--color-surface-alt);
+  border-radius: 14px;
 }
 
 .previewMedia {
@@ -282,6 +281,6 @@
   border-radius: 999px;
   background: var(--color-primary-fill);
   color: var(--color-on-fill);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
