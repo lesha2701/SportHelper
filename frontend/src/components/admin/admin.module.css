@@ -48,16 +48,13 @@
 .brandName {
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  font-weight: 500;
 }
 
 .brandSub {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-primary);
+  color: var(--color-link);
 }
 
 .navItem {
@@ -133,9 +130,8 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: 34px;
-  font-weight: 800;
+  font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.01em;
 }
 
 .pageHint {
@@ -153,9 +149,9 @@
 }
 
 .card {
-  padding: 18px;
+  padding: var(--card-padding);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   min-width: 0;
@@ -165,17 +161,18 @@
   margin: 0 0 12px;
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .kpi {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 16px;
+  padding: var(--card-padding);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
 .kpiAccent {
@@ -185,7 +182,7 @@
 }
 
 .kpiAccent .kpiValue {
-  color: var(--color-primary);
+  color: var(--color-link);
 }
 
 .kpiAccent .kpiLabel {
@@ -195,7 +192,7 @@
 .kpiValue {
   font-family: var(--font-display);
   font-size: 36px;
-  font-weight: 800;
+  font-weight: 500;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -203,8 +200,6 @@
 .kpiLabel {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--color-text-secondary);
 }
 
@@ -217,8 +212,6 @@
   margin: 26px 0 10px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--color-text-tertiary);
 }
 
@@ -278,9 +271,9 @@
 .select {
   height: 38px;
   padding: 0 12px;
-  background: var(--color-surface);
+  background: var(--color-surface-alt);
   color: var(--color-text);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
   font: inherit;
   font-size: 14px;
@@ -302,9 +295,9 @@
   width: 100%;
   min-height: 84px;
   padding: 10px 12px;
-  background: var(--color-surface);
+  background: var(--color-surface-alt);
   color: var(--color-text);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
   font: inherit;
   font-size: 14px;
@@ -375,8 +368,9 @@
 .tableWrap {
   overflow-x: auto;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
 .table {
@@ -390,8 +384,6 @@
   text-align: left;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--color-text-secondary);
   background: var(--color-surface-alt);
   white-space: nowrap;
@@ -549,14 +541,15 @@
   display: flex;
   flex-direction: column;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
   text-align: left;
-  padding: 0;
+  padding: var(--card-padding);
   font: inherit;
   color: inherit;
+  box-shadow: var(--shadow-card);
 }
 
 .mediaThumb {
@@ -705,9 +698,9 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 20px;
+  padding: var(--card-padding);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
 }
@@ -716,7 +709,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .dialogText {
@@ -748,9 +741,9 @@
 
 .timelineItem {
   padding: 10px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
+  border: none;
+  border-radius: 14px;
+  background: var(--color-surface-alt);
   font-size: 13px;
 }
 
@@ -773,7 +766,7 @@
 }
 
 .link {
-  color: var(--color-primary);
+  color: var(--color-link);
   font-weight: 600;
   text-decoration: none;
 }
@@ -810,8 +803,8 @@
 }
 
 :root[data-theme="dark"] .chipActive {
-  background: var(--color-primary-fill);
-  border-color: var(--color-primary);
+  background: var(--color-graphite);
+  color: var(--color-inverse-text);
 }
 
 .mediaTilePlaceholder {

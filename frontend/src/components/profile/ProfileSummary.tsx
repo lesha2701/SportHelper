@@ -242,7 +242,7 @@ export function ProfileSummary({
           <div className={styles.heroRingWrap}>
             {mode === "player" && (
               <svg width="120" height="120" viewBox="0 0 120 120" className={styles.heroRingSvg}>
-                <circle cx="60" cy="60" r={RING_RADIUS} fill="none" stroke="var(--panel-divider)" strokeWidth="5" />
+                <circle cx="60" cy="60" r={RING_RADIUS} fill="none" stroke="var(--color-border-strong)" strokeWidth="5" />
                 <circle
                   cx="60"
                   cy="60"

@@ -119,7 +119,7 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
         <div className={`${statsStyles.ringCard} ${dashStyles.span5}`}>
           <div className={statsStyles.ringWrap}>
             <svg width="150" height="150" viewBox="0 0 150 150" className={statsStyles.ringSvg}>
-              <circle cx="75" cy="75" r={RING_RADIUS} fill="none" stroke="var(--panel-divider)" strokeWidth="14" />
+              <circle cx="75" cy="75" r={RING_RADIUS} fill="none" stroke="var(--color-border-strong)" strokeWidth="14" />
               <circle
                 cx="75"
                 cy="75"

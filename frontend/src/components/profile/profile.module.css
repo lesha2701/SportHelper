@@ -18,6 +18,8 @@
     max-width: 640px;
     margin: 0 auto;
     width: 100%;
+    padding: 0 0 32px;
+    gap: 20px;
   }
 }
 
@@ -55,16 +57,16 @@
 .heroIdentity {
   position: relative;
   overflow: hidden;
-  border-radius: 24px;
-  background: var(--panel-bg);
-  color: var(--panel-text);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
   padding: 28px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 14px;
   text-align: center;
-  border: 1px solid var(--panel-border);
+  border: none;
 }
 
 .heroRingWrap {
@@ -85,14 +87,14 @@
   inset: 10px;
   border-radius: 50%;
   overflow: hidden;
-  background: var(--panel-text);
-  color: var(--panel-bg);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
   font-size: 38px;
-  font-weight: 800;
+  font-weight: 500;
 }
 
 .heroRingAvatarImg {
@@ -110,7 +112,7 @@
   border-radius: 50%;
   background: var(--color-primary-fill);
   color: var(--color-primary-text);
-  border: 2px solid var(--panel-bg);
+  border: 2px solid var(--color-surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -197,8 +199,7 @@
   font-family: var(--font-display);
   font-size: 28px;
   line-height: 1.05;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: 500;
   max-width: 100%;
   overflow-wrap: anywhere;
 }
@@ -208,13 +209,13 @@
   max-width: 100%;
   overflow-wrap: anywhere;
   font-size: 13px;
-  color: var(--panel-muted);
+  color: var(--color-text-secondary);
 }
 
 .heroStatsRow {
   align-self: stretch;
   display: grid;
-  border-top: 1px solid var(--panel-divider);
+  border-top: 1px solid var(--color-border-strong);
   padding-top: 16px;
 }
 
@@ -227,16 +228,14 @@
   font-family: var(--font-display);
   font-size: 26px;
   line-height: 1;
-  font-weight: 800;
+  font-weight: 500;
 }
 
 .heroStatLabel {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--panel-muted);
+  font-weight: 600;
+  color: var(--color-text-secondary);
 }
 
 .modePill {
@@ -253,11 +252,9 @@
 .modePillOptionActive {
   padding: 10px 0;
   text-align: center;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-weight: 600;
   border-radius: 11px;
   border: none;
   cursor: pointer;
@@ -266,27 +263,26 @@
 }
 
 .modePillOptionActive {
-  background: var(--color-primary-fill);
-  color: #fff;
+  background: var(--color-graphite);
+  color: var(--color-inverse-text);
 }
 
 .goalCard {
   min-width: 0;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  padding: 16px;
+  border: none;
+  padding: var(--card-padding);
   display: flex;
   flex-direction: column;
   gap: 6px;
+  box-shadow: var(--shadow-card);
 }
 
 .goalCardLabel {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 600;
   color: var(--color-text-tertiary);
 }
 
@@ -299,11 +295,11 @@
 }
 
 .factsCard {
-  border-radius: 22px;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   box-shadow: var(--shadow-card);
-  padding: 20px;
+  padding: var(--card-padding);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -319,16 +315,14 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: 19px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
+  font-weight: 500;
   color: var(--color-text);
 }
 
 .factsCardEdit {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-link);
   background: none;
   border: none;
   cursor: pointer;
@@ -366,9 +360,9 @@
 }
 
 .actionRowList {
-  border-radius: 22px;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   box-shadow: var(--shadow-card);
   overflow: hidden;
   display: flex;
@@ -403,8 +397,8 @@
   height: 34px;
   flex-shrink: 0;
   border-radius: 10px;
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  background: var(--color-ink-soft);
+  color: var(--color-link);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -450,10 +444,10 @@
 
 .card {
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  padding: 16px;
+  padding: var(--card-padding);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -462,7 +456,7 @@
 .title {
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-text);
   margin: 0;
 }
@@ -474,19 +468,15 @@
 .pageHeading {
   font-family: var(--font-display);
   font-size: 28px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-weight: 500;
   color: var(--color-text);
   margin: 0;
 }
 
 .fieldSectionLabel {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 600;
   color: var(--color-text-secondary);
   margin: 10px 0 -4px;
 }
@@ -594,14 +584,14 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  background: var(--color-ink-soft);
+  color: var(--color-link);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 500;
   flex-shrink: 0;
 }
 
@@ -643,16 +633,16 @@
   gap: 8px;
   width: 100%;
   padding: 13px 16px;
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
   color: var(--color-primary-text);
   background: var(--color-primary-fill);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   cursor: pointer;
   transition: background-color var(--transition-fast), transform var(--transition-fast);
+  min-height: var(--control-height);
 }
 
 .buttonPrimary:hover:not(:disabled) {
@@ -677,7 +667,7 @@
   padding: 13px 16px;
   font-family: var(--font-display);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-text);
   background: var(--color-surface-alt);
   border: 1px solid var(--color-border);
@@ -725,8 +715,8 @@
   font: inherit;
   font-size: 16px;
   padding: 11px 13px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
   background: var(--color-surface-alt);
   color: var(--color-text);
   transition: border-color var(--transition-fast);
@@ -787,7 +777,7 @@
   padding: 9px 8px;
   font-family: var(--font-display);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -808,8 +798,6 @@
   margin: 8px 0 0;
   font-family: var(--font-display);
   font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 500;
   color: var(--color-text-secondary);
 }

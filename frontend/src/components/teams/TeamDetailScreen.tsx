@@ -50,8 +50,6 @@ const TAB_LABELS: Record<Tab, string> = {
   settings: "Настройки",
 };
 
-const WAVE_PATH = "M-20 90 C 60 40, 140 140, 220 60 S 380 20, 440 70";
-
 function parseIsoDateLocal(iso: string): Date {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y!, m! - 1, d!);
@@ -218,9 +216,6 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
       </div>
 
       <div className={styles.teamHero}>
-        <svg viewBox="0 0 400 120" preserveAspectRatio="none" className={styles.teamHeroWave}>
-          <path d={WAVE_PATH} stroke="#ff3b3f" strokeWidth="26" fill="none" strokeLinecap="round" />
-        </svg>
         <div className={styles.teamHeroLogo}>
           {team.logoFileId ? (
             <AuthenticatedImage token={token} fileId={team.logoFileId} alt="" className={styles.teamHeroLogoImg} zoomable />

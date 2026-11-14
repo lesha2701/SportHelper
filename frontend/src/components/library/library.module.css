@@ -33,8 +33,6 @@
   border-radius: var(--radius-pill);
   font-size: 12.5px;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-secondary);
@@ -56,9 +54,9 @@
 }
 
 .detailPanel {
-  border-radius: 22px;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   box-shadow: var(--shadow-card);
   overflow: hidden;
   display: flex;
@@ -72,7 +70,9 @@
     max-height: calc(100vh - 40px);
     max-height: calc(100svh - 40px);
     overflow-y: auto;
-  }
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
 }
 
 .detailMedia {
@@ -101,12 +101,10 @@
 }
 
 .detailCategory {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-primary);
+  font-weight: 600;
+  color: var(--color-link);
 }
 
 .detailTitle {
@@ -114,8 +112,7 @@
   font-family: var(--font-display);
   font-size: 24px;
   line-height: 1.1;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: 500;
   color: var(--color-text);
 }
 
@@ -145,7 +142,7 @@
   font-family: var(--font-display);
   font-size: 20px;
   line-height: 1;
-  font-weight: 800;
+  font-weight: 500;
   color: var(--color-text);
 }
 
@@ -155,11 +152,9 @@
 }
 
 .detailSharedLabel {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 600;
   color: var(--color-text-tertiary);
 }
 
@@ -172,13 +167,11 @@
 .detailSharedChip {
   padding: 5px 10px;
   border-radius: var(--radius-pill);
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
-  font-family: var(--font-display);
+  background: var(--color-ink-soft);
+  color: var(--color-link);
+  font-family: var(--font-body);
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .detailAddTeamChip {
@@ -187,11 +180,9 @@
   border: 1px dashed var(--color-border-strong);
   background: none;
   color: var(--color-text-tertiary);
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -202,9 +193,10 @@
   max-height: 160px;
   overflow-y: auto;
   padding: 8px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
+  border: 1px solid transparent;
+  min-height: var(--field-height);
 }
 
 .detailDropdownItem {
@@ -247,8 +239,8 @@
 }
 
 .reqChipActive {
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  background: var(--color-ink-soft);
+  color: var(--color-link);
 }
 
 /* Icon-header card used by Plans/Task-templates grids — same shell as
@@ -259,10 +251,10 @@
   gap: 10px;
   height: 100%;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   box-shadow: var(--shadow-card);
   border-radius: var(--radius-lg);
-  padding: 14px 16px;
+  padding: var(--card-padding);
   text-align: left;
   cursor: pointer;
   color: inherit;
@@ -279,8 +271,8 @@
   height: 40px;
   flex-shrink: 0;
   border-radius: var(--radius-md);
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  background: var(--color-ink-soft);
+  color: var(--color-link);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -338,7 +330,7 @@
 .detailExerciseIndex {
   flex-shrink: 0;
   font-family: var(--font-display);
-  font-weight: 800;
+  font-weight: 500;
   color: var(--color-text-tertiary);
 }
 
@@ -367,7 +359,7 @@
   flex-direction: column;
   height: 100%;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   box-shadow: var(--shadow-card);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -416,7 +408,7 @@
   color: #fff;
   font-family: var(--font-display);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .exerciseCardBody {
@@ -448,12 +440,10 @@
 }
 
 .exerciseCardCategory {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-primary);
+  font-weight: 600;
+  color: var(--color-link);
 }
 
 .exerciseCardShared {
@@ -481,7 +471,7 @@
   margin: 4px 0 0;
   font-family: var(--font-display);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-text);
 }
 
@@ -537,9 +527,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  border: none;
+  border-radius: 14px;
   padding: 6px 8px 6px 4px;
   margin-bottom: 6px;
   touch-action: none;
@@ -568,7 +558,7 @@
 
 .dragHandle:active {
   cursor: grabbing;
-  color: var(--color-primary);
+  color: var(--color-link);
 }
 
 .dragRowContent {

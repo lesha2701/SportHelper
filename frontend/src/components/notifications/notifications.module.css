@@ -26,8 +26,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  background: var(--color-ink-soft);
+  color: var(--color-link);
 }
 
 .notificationBody {
@@ -76,7 +76,7 @@
 .markAllLink {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-link);
   background: none;
   border: none;
   cursor: pointer;

@@ -2,10 +2,10 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  border: none;
   box-shadow: var(--shadow-card);
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   padding: 10px 12px;
   width: 100%;
   text-align: left;
@@ -40,11 +40,9 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-weight: 600;
   padding: 4px 10px;
   border-radius: var(--radius-pill);
   flex-shrink: 0;
@@ -66,8 +64,8 @@
   gap: 8px;
   padding: 12px;
   background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: none;
+  border-radius: 14px;
   margin-bottom: 8px;
 }
 
@@ -113,8 +111,8 @@
   gap: 4px;
   padding: 4px;
   margin-bottom: 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border: none;
+  border-radius: 14px;
   background: var(--color-surface-alt);
 }
 
@@ -195,7 +193,7 @@
   background: var(--color-surface-alt);
   font-family: var(--font-display);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-text-secondary);
 }
 
@@ -227,18 +225,14 @@
 .sessionProgress {
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--color-text-secondary);
 }
 
 .sessionPhaseLabel {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 14px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--color-primary);
+  font-weight: 600;
+  color: var(--color-link);
 }
 
 .sessionPhaseLabelRest {
@@ -248,7 +242,7 @@
 .sessionExerciseName {
   font-family: var(--font-display);
   font-size: 26px;
-  font-weight: 800;
+  font-weight: 500;
   color: var(--color-text);
   max-width: 320px;
 }
@@ -256,7 +250,7 @@
 .sessionTimer {
   font-family: var(--font-display);
   font-size: 76px;
-  font-weight: 800;
+  font-weight: 500;
   line-height: 1;
   color: var(--color-text);
 }

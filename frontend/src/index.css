@@ -40,18 +40,6 @@
   --color-warning: #f5a623;
   --color-warning-bg: rgba(245, 166, 35, 0.14);
 
-  /* Legacy feature-panel tokens: no solid panels any more, they follow the surface. Removed with the last user. */
-  --panel-bg: var(--color-surface);
-  --panel-text: var(--color-text);
-  --panel-muted: var(--color-text-secondary);
-  --panel-lead: var(--color-text-secondary);
-  --panel-border: transparent;
-  --panel-divider: var(--color-border);
-  --panel-eyebrow: var(--color-primary);
-  --panel-ghost-bg: var(--color-surface-alt);
-  --panel-ghost-border: var(--color-border-strong);
-  --panel-ghost-hover: var(--color-surface-alt);
-
   /* Shape. Cards 20px without borders; buttons, chips and search are pills 44px; form fields 48px / 12px. */
   --radius-lg: 20px;
   --radius-md: 12px;

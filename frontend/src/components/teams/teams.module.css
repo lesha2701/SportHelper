@@ -6,6 +6,14 @@
   padding-bottom: 32px;
 }
 
+/* On desktop the page itself (AppShell) provides the margins and the heading. */
+@media (min-width: 900px) {
+  .screen {
+    gap: 20px;
+    padding: 0;
+  }
+}
+
 .teamLogo {
   width: 72px;
   height: 72px;
@@ -17,39 +25,30 @@
 
 .teamHero {
   position: relative;
-  overflow: hidden;
-  border-radius: 24px;
-  background: var(--panel-bg);
-  color: var(--panel-text);
-  padding: 22px 24px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
+  padding: var(--card-padding);
   display: flex;
   align-items: center;
   gap: 24px;
   flex-wrap: wrap;
-  border: 1px solid var(--panel-border);
-}
-
-.teamHeroWave {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.12;
-  pointer-events: none;
 }
 
 .teamHeroLogo {
   position: relative;
   width: 80px;
   height: 80px;
-  border-radius: 22px;
-  background: var(--color-primary-fill);
+  border-radius: 20px;
+  background: var(--color-ink-soft);
+  color: var(--color-link);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
   font-size: 36px;
-  font-weight: 800;
+  font-weight: 500;
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -74,8 +73,7 @@
   font-family: var(--font-display);
   font-size: 32px;
   line-height: 1;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -83,7 +81,7 @@
 
 .teamHeroMeta {
   font-size: 13px;
-  color: var(--panel-muted);
+  color: var(--color-text-secondary);
 }
 
 .teamHeroStats {
@@ -102,16 +100,14 @@
   font-family: var(--font-display);
   font-size: 32px;
   line-height: 1;
-  font-weight: 800;
+  font-weight: 500;
 }
 
 .teamHeroStatLabel {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--panel-muted);
+  font-weight: 600;
+  color: var(--color-text-secondary);
 }
 
 .teamHeroForm {
@@ -135,7 +131,7 @@
   justify-content: center;
   font-family: var(--font-display);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 500;
   color: #fff;
 }
 
@@ -149,11 +145,9 @@
 .realTab,
 .realTabActive {
   padding: 10px 14px;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-weight: 600;
   border: none;
   background: none;
   cursor: pointer;
@@ -190,21 +184,20 @@
 }
 
 .nextTrainingCard {
-  border-radius: 22px;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  padding: 18px;
+  border: none;
+  padding: var(--card-padding);
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-shadow: var(--shadow-card);
 }
 
 .nextTrainingLabel {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 600;
   color: var(--color-text-tertiary);
 }
 
@@ -213,8 +206,7 @@
   font-family: var(--font-display);
   font-size: 22px;
   line-height: 1.05;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: 500;
   color: var(--color-text);
 }
 
@@ -240,9 +232,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: 28px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-weight: 500;
   color: var(--color-text);
 }
 
@@ -250,11 +240,12 @@
   font: inherit;
   font-size: 15px;
   padding: 11px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: var(--color-surface-alt);
   color: var(--color-text);
   transition: border-color var(--transition-fast);
+  min-height: var(--field-height);
 }
 
 .searchInput:focus {
@@ -268,16 +259,16 @@
   align-items: center;
   gap: 6px;
   padding: 9px 16px;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-weight: 600;
   color: var(--color-primary-text);
   background: var(--color-primary-fill);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   cursor: pointer;
   transition: background-color var(--transition-fast), transform var(--transition-fast);
+  min-height: var(--control-height);
 }
 
 .addButton:active {
@@ -307,11 +298,11 @@
   flex-direction: column;
   gap: 6px;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   border-left: 3px solid var(--event-color, var(--color-border));
   box-shadow: var(--shadow-card);
   border-radius: var(--radius-lg);
-  padding: 14px 16px;
+  padding: var(--card-padding);
   text-align: left;
   cursor: pointer;
   color: inherit;
@@ -339,11 +330,11 @@
   justify-content: center;
   overflow: hidden;
   border-radius: var(--radius-md);
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  background: var(--color-ink-soft);
+  color: var(--color-link);
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 500;
 }
 
 .teamAvatarImg {
@@ -371,7 +362,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-text);
   flex: 1;
   min-width: 0;
@@ -394,18 +385,17 @@
 }
 
 .badge {
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 3px 9px;
   border-radius: var(--radius-sm);
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  font-weight: 600;
+  background: var(--color-ink-soft);
+  color: var(--color-link);
   white-space: nowrap;
 }
 
@@ -418,23 +408,22 @@
   display: flex;
   gap: 2px;
   background: var(--color-surface-alt);
-  border-radius: var(--radius-md);
-  padding: 3px;
+  border-radius: var(--radius-pill);
+  padding: 4px;
   overflow-x: auto;
 }
 
 .tab,
 .tabActive {
   flex: 1;
-  padding: 9px 6px;
+  min-height: var(--control-height);
+  padding: 0 14px;
   text-align: center;
-  font-family: var(--font-display);
-  font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   cursor: pointer;
   white-space: nowrap;
   transition: color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
@@ -451,32 +440,27 @@
 }
 
 .tabActive {
-  color: var(--color-primary-text);
-  background: var(--color-primary-fill);
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .memberRow {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-card);
-  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  border: none;
+  border-radius: 14px;
   padding: 10px 12px;
   width: 100%;
 }
 
 @media (min-width: 900px) {
   .memberRow {
-    border-radius: var(--radius-lg);
+    border-radius: 14px;
     padding: 14px 16px;
     gap: 12px;
-    transition: border-color var(--transition-fast);
-  }
-
-  .memberRow:hover {
-    border-color: var(--color-border-strong);
   }
 }
 
@@ -524,12 +508,10 @@
   display: inline-flex;
   padding: 2px 8px;
   border-radius: var(--radius-pill);
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  background: var(--color-ink-soft);
+  color: var(--color-link);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
 }
 
 .iconButton {
@@ -540,14 +522,16 @@
   padding: 7px 12px;
   font-family: var(--font-display);
   font-size: 13.5px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-text);
   background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border: none;
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  min-height: var(--control-height);
   cursor: pointer;
   white-space: nowrap;
-  transition: border-color var(--transition-fast), transform var(--transition-fast);
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
 }
 
 .iconButton:active {
@@ -559,10 +543,11 @@
   align-items: center;
   gap: 12px;
   width: 100%;
+  min-height: var(--control-height);
   padding: 13px 14px;
   background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: none;
+  border-radius: 14px;
   font: inherit;
   font-size: 14.5px;
   font-weight: 600;
@@ -585,8 +570,8 @@
   height: 34px;
   flex-shrink: 0;
   border-radius: var(--radius-sm);
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  background: var(--color-ink-soft);
+  color: var(--color-link);
 }
 
 .navRowLabel {
@@ -612,16 +597,16 @@
   gap: 2px;
   padding: 14px;
   background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: none;
+  border-radius: 14px;
 }
 
 .statValue {
   font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 32px;
+  font-weight: 500;
   line-height: 1.15;
-  color: var(--color-primary);
+  color: var(--color-text);
   overflow-wrap: break-word;
   font-variant-numeric: tabular-nums;
 }
@@ -629,8 +614,6 @@
 .statLabel {
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--color-text-secondary);
 }
 
@@ -676,8 +659,8 @@
   flex-direction: column;
   gap: 8px;
   background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: none;
+  border-radius: 14px;
   padding: 12px;
 }
 
@@ -703,9 +686,9 @@
   flex-direction: column;
   gap: 10px;
   align-items: flex-start;
-  padding: 16px;
+  padding: var(--card-padding);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   cursor: pointer;
@@ -736,14 +719,14 @@
   height: 40px;
   flex-shrink: 0;
   border-radius: var(--radius-md);
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  background: var(--color-ink-soft);
+  color: var(--color-link);
 }
 
 .hubTileTitle {
   font-family: var(--font-display);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-text);
 }
 
@@ -788,7 +771,7 @@
   color: #fff;
   font-family: var(--font-display);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1;
 }
 
@@ -796,7 +779,7 @@
   margin: 4px 0 8px;
   font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .chevron,
@@ -808,4 +791,9 @@
 
 .chevronOpen {
   transform: rotate(90deg);
+}
+
+/* Roster rows are soft blocks, so the photo placeholder sits on the card colour. */
+.memberRow .avatar {
+  background: var(--color-surface);
 }

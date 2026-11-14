@@ -9,6 +9,8 @@
   max-width: 640px;
   margin: 0 auto;
   background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
 .top {
@@ -43,8 +45,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: 22px;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: 500;
   color: var(--color-text);
 }
 
@@ -70,10 +71,9 @@
   border: 1px solid var(--color-border-strong);
   border-radius: 12px;
   background: var(--color-surface);
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 14px;
-  font-weight: 700;
-  text-transform: uppercase;
+  font-weight: 600;
   color: var(--color-text);
   cursor: pointer;
 }
@@ -113,15 +113,14 @@
   background: var(--color-surface);
   font-family: var(--font-display);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-text-secondary);
   cursor: pointer;
 }
 
 .chipActive {
-  border-color: var(--color-primary);
-  background: var(--color-primary-fill);
-  color: var(--color-primary-text);
+  background: var(--color-graphite);
+  color: var(--color-inverse-text);
 }
 
 .chipDone:not(.chipActive) {
@@ -140,8 +139,6 @@
 .step {
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--color-text-secondary);
 }
 
@@ -150,8 +147,7 @@
   font-family: var(--font-display);
   font-size: 30px;
   line-height: 1.1;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: 500;
   color: var(--color-text);
   overflow-wrap: anywhere;
 }
@@ -177,14 +173,14 @@
   grid-template-columns: 28px minmax(0, 1fr) 76px 48px;
   align-items: center;
   gap: 8px;
+  background: var(--color-surface-alt);
+  border-radius: 14px;
 }
 
 .setsHead {
   padding: 0 10px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--color-text-secondary);
 }
 
@@ -198,9 +194,9 @@
 
 .setRow {
   padding: 8px 10px;
-  border: 1px solid var(--color-border);
+  border: none;
   border-radius: 14px;
-  background: var(--color-surface);
+  background: var(--color-surface-alt);
   transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
@@ -212,7 +208,7 @@
 .setNumber {
   font-family: var(--font-display);
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 500;
   text-align: center;
   color: var(--color-text-secondary);
 }
@@ -251,7 +247,7 @@
   font: inherit;
   font-family: var(--font-display);
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 500;
   text-align: center;
   color: var(--color-text);
   -moz-appearance: textfield;
@@ -325,13 +321,13 @@
   text-align: center;
   font-family: var(--font-display);
   font-size: 26px;
-  font-weight: 800;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--color-text);
 }
 
 .timeValueRunning {
-  color: var(--color-primary);
+  color: var(--color-link);
 }
 
 .stopwatch {
@@ -365,8 +361,6 @@
 .restLabel {
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--color-text-secondary);
 }
 
@@ -391,8 +385,8 @@
 
 .restChoiceOn {
   border-color: var(--color-primary);
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  background: var(--color-ink-soft);
+  color: var(--color-link);
 }
 
 .notes {
@@ -425,11 +419,10 @@
 }
 
 .restTitle {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 14px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--color-primary);
+  font-weight: 600;
+  color: var(--color-link);
 }
 
 .restTime {
@@ -472,26 +465,25 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 14px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
+  padding: var(--card-padding);
+  border: none;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .tileValue {
   font-family: var(--font-display);
   font-size: 30px;
   line-height: 1;
-  font-weight: 800;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  color: var(--color-primary);
+  color: var(--color-link);
 }
 
 .tileLabel {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--color-text-secondary);
 }
 
@@ -499,11 +491,12 @@
   display: flex;
   flex-direction: column;
   margin: 0;
-  padding: 0;
+  padding: var(--card-padding);
   list-style: none;
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border: none;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .recapRow {
@@ -546,8 +539,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: 30px;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: 500;
   color: var(--color-text);
 }
 
@@ -560,10 +552,11 @@
   .screen {
     min-height: 0;
     margin-top: 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 20px;
+    border: none;
+    border-radius: var(--radius-lg);
     overflow: hidden;
-  }
+  box-shadow: var(--shadow-card);
+}
 
   .top,
   .bar {

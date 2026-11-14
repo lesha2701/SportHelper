@@ -24,9 +24,7 @@
 .title {
   font-family: var(--font-display);
   font-size: 22px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-weight: 500;
   margin: 0;
   overflow-wrap: anywhere;
 }
@@ -42,9 +40,10 @@
   display: flex;
   flex-direction: column;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg, 16px);
+  border: none;
+  border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-card);
 }
 
 .list {
@@ -109,7 +108,7 @@
 
 .bubbleMine {
   composes: bubble;
-  border-radius: 14px 14px 4px 14px;
+  border-radius: var(--radius-pill);
   background: var(--color-primary-fill);
   border-color: var(--color-primary);
   color: var(--color-primary-text, #fff);
@@ -118,7 +117,7 @@
 .sender {
   font-size: 12px;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-link);
 }
 
 .text {
@@ -187,8 +186,8 @@
   min-height: 44px;
   max-height: 140px;
   padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
   background: var(--color-surface-alt);
   color: var(--color-text);
 }

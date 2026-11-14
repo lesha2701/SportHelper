@@ -398,9 +398,9 @@ function compareUpcomingFirst(a: CalendarEvent, b: CalendarEvent, todayIso: stri
 }
 
 const EVENT_COLORS: Record<CalendarEventType, string> = {
-  training: "var(--color-primary)",
-  match: "var(--color-accent-blue)",
-  task_deadline: "var(--color-warning)",
+  training: "var(--color-ink)",
+  match: "var(--color-primary)",
+  task_deadline: "var(--color-text-tertiary)",
 };
 
 function isEventOverdue(event: CalendarEvent, todayIso: string): boolean {

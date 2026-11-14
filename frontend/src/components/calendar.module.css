@@ -16,9 +16,9 @@
 }
 
 .weekCard {
-  border-radius: 22px;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   box-shadow: var(--shadow-card);
   overflow: hidden;
   display: flex;
@@ -49,23 +49,28 @@
 }
 
 .weekHeadWd {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 600;
   color: var(--color-text-tertiary);
 }
 
 .weekHeadNum {
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 500;
   color: var(--color-text);
 }
 
 .weekHeadNumToday {
-  color: var(--color-primary);
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-primary-fill);
+  color: #fff;
+  line-height: 1;
 }
 
 .weekBody {
@@ -84,7 +89,7 @@
   text-align: right;
   font-family: var(--font-display);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text-tertiary);
 }
 
@@ -105,8 +110,8 @@
   border-radius: 10px;
   padding: 6px 8px;
   border: none;
-  border-left: 3px solid var(--event-color, var(--color-primary));
-  background: var(--event-bg, var(--color-primary-glow));
+  border-left: 3px solid var(--event-color, var(--color-ink));
+  background: var(--event-bg, var(--color-ink-soft));
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -119,34 +124,27 @@
 
 .weekEventBlock[data-type="training"],
 .weekNoTimeChip[data-type="training"] {
-  --event-color: var(--color-primary);
-  --event-bg: var(--color-primary-glow);
+  --event-color: var(--color-ink);
+  --event-bg: var(--color-ink-soft);
 }
 
 .weekEventBlock[data-type="match"],
 .weekNoTimeChip[data-type="match"] {
-  --event-color: var(--color-accent-blue);
+  --event-color: var(--color-primary);
   --event-bg: var(--color-primary-glow);
-}
-
-@supports (background: color-mix(in srgb, red 50%, blue)) {
-  .weekEventBlock[data-type="match"],
-  .weekNoTimeChip[data-type="match"] {
-    --event-bg: color-mix(in srgb, var(--color-accent-blue) 18%, transparent);
-  }
 }
 
 .weekEventBlock[data-type="task_deadline"],
 .weekNoTimeChip[data-type="task_deadline"] {
-  --event-color: var(--color-warning);
-  --event-bg: var(--color-warning-bg);
+  --event-color: var(--color-text-tertiary);
+  --event-bg: var(--color-surface-alt);
 }
 
 .weekEventTime {
   font-family: var(--font-display);
   font-size: 12px;
-  font-weight: 700;
-  color: var(--event-color, var(--color-primary));
+  font-weight: 500;
+  color: var(--color-text);
 }
 
 .weekEventTitle {
@@ -170,8 +168,8 @@
   font-weight: 700;
   padding: 2px 7px;
   border-radius: var(--radius-pill);
-  background: var(--event-bg, var(--color-primary-glow));
-  color: var(--event-color, var(--color-primary));
+  background: var(--event-bg, var(--color-ink-soft));
+  color: var(--color-text);
   cursor: pointer;
   border: none;
   max-width: 100%;
@@ -181,11 +179,11 @@
 }
 
 .sideCard {
-  border-radius: 22px;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   box-shadow: var(--shadow-card);
-  padding: 18px;
+  padding: var(--card-padding);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -201,8 +199,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: 500;
   color: var(--color-text);
 }
 
