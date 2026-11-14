@@ -224,11 +224,16 @@ def test_members_are_marked_present_on_trainings_that_took_place_and_only_on_tho
                 past_cancelled = await training(-1, "cancelled")
                 corrected = await training(-2, "completed")
                 await conn.execute("INSERT INTO training_attendance (training_id, user_id, status) VALUES ($1, $2, 'absent')", corrected, early)
+                # a mark of the head coach saved before coaches stopped being counted as players
+                await conn.execute("INSERT INTO training_attendance (training_id, user_id, status) VALUES ($1, $2, 'present')", corrected, coach)
 
                 await background.sweep_attendance(conn)
                 again = await background.sweep_attendance(conn)  # idempotent
 
                 rows = await conn.fetch("SELECT training_id, user_id, status FROM training_attendance")
+                from app.repositories import trainings as trainings_repo
+                shown = [r["user_id"] for r in await trainings_repo.list_attendance(conn, corrected)]
+                assert shown == [early], "the old mark of the coach stays in the table but is not shown"
                 return {(r["training_id"], r["user_id"]): r["status"] for r in rows}, again, (
                     future_held, past_unmarked, future_planned, past_cancelled, corrected), (coach, early, late)
         finally:
@@ -236,7 +241,8 @@ def test_members_are_marked_present_on_trainings_that_took_place_and_only_on_tho
 
     rows, again, (future_held, past_unmarked, future_planned, past_cancelled, corrected), (coach, early, late) = asyncio.run(scenario())
 
-    assert rows[(future_held, early)] == "present" and rows[(future_held, coach)] == "present"
+    assert rows[(future_held, early)] == "present"
+    assert (future_held, coach) not in rows, "the head coach is not a player: no attendance row is made for them"
     assert rows[(past_unmarked, early)] == "present"
     assert not any(t in (future_planned, past_cancelled) for t, _ in rows)  # didn't happen -> nothing recorded
     assert (future_held, late) not in rows  # joined after the training date
