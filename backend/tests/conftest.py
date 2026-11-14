@@ -1294,6 +1294,16 @@ def client(monkeypatch: pytest.MonkeyPatch):
                 ),
                 None,
             )
+            own_booking = next(
+                (
+                    b
+                    for b in bookings_store.values()
+                    if b.get("training_id") == record["id"]
+                    and b["athlete_user_id"] == user_id
+                    and b["status"] == "confirmed"
+                ),
+                None,
+            )
             if booking is not None:
                 pass
             elif record["type"] == "personal":
@@ -1305,6 +1315,8 @@ def client(monkeypatch: pytest.MonkeyPatch):
             result.append(
                 {
                     "booked_athlete_name": "Booked Athlete" if booking is not None else None,
+                    "is_booked_with_coach": own_booking is not None,
+                    "booked_coach_name": coach_store[own_booking["coach_user_id"]]["full_name"] if own_booking is not None else None,
                     "id": record["id"],
                     "type": record["type"],
                     "training_date": record["training_date"],
