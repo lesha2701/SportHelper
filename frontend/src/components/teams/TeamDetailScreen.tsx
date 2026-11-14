@@ -311,7 +311,7 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
                 token={token}
                 teamId={teamId}
                 kind="join"
-                title="Пригласительная ссылка"
+                title="Приглашения и заявки"
                 collapsible
                 badge={applications.applications.length}
               >
