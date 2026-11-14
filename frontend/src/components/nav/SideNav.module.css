@@ -31,6 +31,12 @@
   text-transform: uppercase;
   color: var(--color-text);
   white-space: nowrap;
+  /* The emblem is the brand in the header; the name stays for assistive technology. */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 
 .pills {
@@ -51,7 +57,7 @@
   align-items: center;
   gap: 8px;
   min-height: var(--control-height);
-  padding: 0 18px;
+  padding: 0 16px;
   border: none;
   border-radius: var(--radius-pill);
   cursor: pointer;
@@ -106,7 +112,9 @@
   flex-shrink: 0;
   max-width: 220px;
   height: var(--control-height);
-  padding: 0 14px 0 6px;
+  padding: 0;
+  justify-content: center;
+  width: var(--control-height);
   border: none;
   border-radius: var(--radius-pill);
   background: var(--color-surface);
@@ -158,7 +166,7 @@
 .teamCardText {
   flex: 1;
   min-width: 0;
-  display: flex;
+  display: none;
   flex-direction: column;
 }
 
@@ -268,22 +276,22 @@
   transform: scale(0.96);
 }
 
-@media (max-width: 1179px) {
-  .brandName {
-    display: none;
-  }
-
+/* The team name joins the chip only where the row has room for it. */
+@media (min-width: 1500px) {
   .teamCard {
-    width: var(--control-height);
-    padding: 0;
-    justify-content: center;
+    width: auto;
+    max-width: 220px;
+    padding: 0 14px 0 6px;
+    justify-content: flex-start;
   }
 
   .teamCardText {
-    display: none;
+    display: flex;
   }
+}
 
-  /* Not enough width for the pills next to the buttons: they take their own row under the header. */
+/* Not enough width for the pills next to the buttons: they take their own row under the header. */
+@media (max-width: 1179px) {
   .pills {
     order: 10;
     flex-basis: 100%;

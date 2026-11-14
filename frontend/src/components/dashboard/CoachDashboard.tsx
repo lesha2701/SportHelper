@@ -8,7 +8,6 @@ import { listTeamMatches } from "../../api/matches";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
-import { Ornament } from "../shared/Ornament";
 import { StatTile } from "../shared/StatTile";
 import { CALENDAR_EVENT_ICONS, isStillAhead, type CalendarEvent } from "../../types/calendar";
 import type { Team } from "../../types/team";
@@ -22,8 +21,6 @@ import { WeekOverview } from "./WeekOverview";
 import { count } from "../../lib/plural";
 
 const COACH_STAFF_ROLES = new Set<string>(["head_coach", "assistant_coach"]);
-const WAVE_PATH = "M-20 90 C 60 40, 140 140, 220 60 S 380 20, 440 70";
-
 function toIso(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -164,7 +161,6 @@ export function CoachDashboard({
   return (
     <div className={styles.screen}>
       <div className={styles.hero}>
-        <Ornament tone="primary" intensity="subtle" />
         <p className={styles.heroLabel}>Главная</p>
         <h1 className={styles.heroTitle}>Тренерская панель</h1>
       </div>
@@ -341,9 +337,6 @@ function dedupeByUser(list: PlayerActivity[]): PlayerActivity[] {
 function NextEventCard({ nextEvent, onOpenEvent }: { nextEvent: CalendarEvent | undefined; onOpenEvent: (event: CalendarEvent) => void }) {
   return (
     <button type="button" className={`${styles.heroCard} ${styles.span7}`} onClick={() => nextEvent && onOpenEvent(nextEvent)} disabled={!nextEvent}>
-      <svg viewBox="0 0 400 120" preserveAspectRatio="none" className={styles.heroWave}>
-        <path d={WAVE_PATH} stroke="#ff3b3f" strokeWidth="26" fill="none" strokeLinecap="round" />
-      </svg>
       {nextEvent ? (
         <>
           <div className={styles.heroBadgeRow}>
@@ -401,7 +394,6 @@ function CoachWithoutTeam({ token, events, onOpenEvent }: { token: string; event
   return (
     <div className={styles.screen}>
       <div className={styles.hero}>
-        <Ornament tone="primary" intensity="subtle" />
         <p className={styles.heroLabel}>Главная</p>
         <h1 className={styles.heroTitle}>Тренерская панель</h1>
       </div>

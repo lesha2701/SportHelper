@@ -5,7 +5,6 @@ import { getProgressAnalysis } from "../../api/ai";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { Icon } from "../shared/Icon";
-import { Ornament } from "../shared/Ornament";
 import { StatTile } from "../shared/StatTile";
 import { CALENDAR_EVENT_ICONS, isStillAhead, type CalendarEvent } from "../../types/calendar";
 import { MATCH_RESULT_LABELS } from "../../types/match";
@@ -13,8 +12,6 @@ import { formatRate, type PlayerStats } from "../../types/stats";
 import styles from "./dashboard.module.css";
 import aiStyles from "../stats/stats.module.css";
 import { WeekOverview } from "./WeekOverview";
-
-const WAVE_PATH = "M-20 90 C 60 40, 140 140, 220 60 S 380 20, 440 70";
 
 function toIso(d: Date): string {
   const y = d.getFullYear();
@@ -133,16 +130,12 @@ export function PlayerDashboard({
   return (
     <div className={styles.screen}>
       <div className={styles.hero}>
-        <Ornament tone="primary" intensity="subtle" />
         <p className={styles.heroLabel}>Главная</p>
         <h1 className={styles.heroTitle}>Твой прогресс</h1>
       </div>
 
       <div className={styles.bento}>
         <button type="button" className={`${styles.heroCard} ${styles.span7}`} onClick={() => nextEvent && onOpenEvent(nextEvent)} disabled={!nextEvent}>
-          <svg viewBox="0 0 400 120" preserveAspectRatio="none" className={styles.heroWave}>
-            <path d={WAVE_PATH} stroke="#ff3b3f" strokeWidth="26" fill="none" strokeLinecap="round" />
-          </svg>
           {nextEvent ? (
             <>
               <div className={styles.heroBadgeRow}>

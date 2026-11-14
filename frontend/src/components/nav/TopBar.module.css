@@ -167,10 +167,12 @@
   order: 4;
   flex-shrink: 0;
   height: var(--control-height);
+  width: var(--control-height);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 0 18px;
+  padding: 0;
   border: none;
   border-radius: var(--radius-pill);
   background: var(--color-surface);
@@ -290,19 +292,27 @@
   transform: scale(0.97);
 }
 
-@media (max-width: 1179px) {
-  .financeLabel {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+/* The label is read by screen readers always, and shown beside the icon where the header has room. */
+.financeLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (min-width: 1360px) {
+  .financeButton {
+    width: auto;
+    padding: 0 18px;
   }
 
-  .financeButton {
-    width: var(--control-height);
-    padding: 0;
-    justify-content: center;
+  .financeLabel {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
   }
 }

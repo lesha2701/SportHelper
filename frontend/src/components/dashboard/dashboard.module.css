@@ -1,9 +1,10 @@
 /* frontend/src/components/dashboard/dashboard.module.css
-   Shared between CoachDashboard and PlayerDashboard. */
+   Shared between CoachDashboard and PlayerDashboard. Calm bento: borderless 20px cards, one red card (the nearest
+   event), numbers in Oswald 40px, ink-blue for links and event marks. */
 .screen {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   padding: 16px;
   padding-bottom: 32px;
 }
@@ -11,23 +12,16 @@
 @media (min-width: 900px) {
   .screen {
     padding: 0;
+    gap: 20px;
   }
 }
 
-/* Desktop gets the same title from AppShell's TopBar, so the in-content
-   hero banner (title + label) is mobile-only there — kept exactly as
-   before for the phone/bottom-nav layout. */
+/* Desktop gets the same title from the page heading under the header, so this title is phone-only. */
 .hero {
-  position: relative;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 20px 18px;
-  border-radius: var(--radius-lg);
-  background: var(--panel-bg);
-  color: var(--panel-text);
-  border: 1px solid var(--panel-border);
+  padding: 8px 0 12px;
 }
 
 @media (min-width: 900px) {
@@ -37,22 +31,18 @@
 }
 
 .heroLabel {
-  position: relative;
   margin: 0;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--panel-muted);
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
 .heroTitle {
-  position: relative;
   margin: 0;
   font-family: var(--font-display);
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--color-text);
 }
 
 .nextEventCard {
@@ -60,21 +50,20 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 14px 16px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-primary);
+  min-height: var(--control-height);
+  padding: 16px 20px;
+  background: var(--color-ink-soft);
+  border: none;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  color: var(--color-primary);
+  color: var(--color-text);
   cursor: pointer;
   text-align: left;
   font: inherit;
   transition: transform var(--transition-fast);
 }
 
-.nextEventCard:active {
-  transform: scale(0.99);
+.nextEventCard:hover {
+  transform: translateY(-2px);
 }
 
 .nextEventText {
@@ -86,36 +75,40 @@
 }
 
 .nextEventLabel {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--color-text-secondary);
 }
 
 .nextEventTitle {
   font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 500;
   color: var(--color-text);
 }
 
 .nextEventMeta {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--color-text-secondary);
 }
 
 .emptyHint {
   margin: 0;
   padding: 12px 4px;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--color-text-secondary);
 }
 
 .kpiRow {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .kpiRow {
+    gap: 20px;
+  }
 }
 
 .teamSwitcher {
@@ -127,31 +120,34 @@
 .chip,
 .chipActive {
   flex-shrink: 0;
-  padding: 7px 14px;
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
+  min-height: var(--control-height);
+  padding: 0 16px;
+  font: 500 14px/1.2 var(--font-body);
   border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border);
+  border: none;
   cursor: pointer;
   white-space: nowrap;
-  transition: transform var(--transition-fast);
+  transition: transform var(--transition-fast), color var(--transition-fast);
 }
 
 .chip {
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   color: var(--color-text-secondary);
 }
 
+.chip:hover {
+  color: var(--color-text);
+}
+
 .chipActive {
-  background: var(--color-primary-fill);
-  border-color: var(--color-primary);
-  color: var(--color-primary-text);
+  background: var(--color-graphite);
+  color: var(--color-inverse-text);
 }
 
 .chip:active,
 .chipActive:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 
 .recommendationCard {
@@ -159,11 +155,11 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 14px 16px;
-  background: var(--color-primary-glow);
-  border: 1px solid var(--color-primary);
+  padding: 16px 20px;
+  background: var(--color-ink-soft);
+  border: none;
   border-radius: var(--radius-lg);
-  color: var(--color-primary);
+  color: var(--color-link);
   cursor: pointer;
   text-align: left;
   font: inherit;
@@ -173,23 +169,29 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 12px;
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: var(--color-primary-text);
+  gap: 8px;
+  min-height: var(--control-height);
+  padding: 0 20px;
+  font: 600 14px/1.2 var(--font-body);
+  color: #fff;
   background: var(--color-primary-fill);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   cursor: pointer;
   transition: transform var(--transition-fast), background-color var(--transition-fast);
 }
 
+.quickAction:hover {
+  background: var(--color-primary-fill-hover);
+}
+
 .quickAction:active {
   transform: scale(0.97);
-  background: var(--color-primary-hover);
+}
+
+.quickAction:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 /* ---- Desktop bento grid (coach dashboard) ----
@@ -198,7 +200,7 @@
 .bento {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 @media (min-width: 900px) {
@@ -206,49 +208,53 @@
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     grid-auto-rows: minmax(0, auto);
-    gap: 16px;
+    gap: 20px;
     align-items: stretch;
   }
 }
 
 .card {
-  border-radius: 22px;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
   box-shadow: var(--shadow-card);
-  padding: 20px;
+  padding: var(--card-padding);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
   min-width: 0;
 }
 
 .cardHeader {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
 }
 
 .cardTitle {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0;
   color: var(--color-text);
 }
 
 .cardAction {
+  min-height: var(--control-height);
   font-size: 13px;
-  font-weight: 600;
-  color: var(--color-primary);
+  font-weight: 500;
+  color: var(--color-link);
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
+}
+
+.cardAction:hover {
+  text-decoration: underline;
 }
 
 @media (min-width: 900px) {
@@ -272,143 +278,152 @@
   }
 }
 
-/* Hero: next-training card, dark, spans the wide column. */
+/* The nearest event: the one red card of the screen. White text only here, on the #d91e2b fill. */
 .heroCard {
   position: relative;
-  overflow: hidden;
-  border-radius: 24px;
-  background: var(--panel-bg);
-  color: var(--panel-text);
-  padding: 24px;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-fill);
+  color: #fff;
+  padding: var(--card-padding);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 20px;
-  border: 1px solid var(--panel-border);
-  min-height: 220px;
+  border: none;
+  min-height: 232px;
   cursor: pointer;
   text-align: left;
   font: inherit;
   width: 100%;
+  transition: transform var(--transition-fast);
 }
 
-.heroWave {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.14;
-  pointer-events: none;
+.heroCard:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.heroCard:disabled {
+  cursor: default;
 }
 
 .heroBadgeRow {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .heroBadge {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 5px 10px;
-  border-radius: var(--radius-pill);
-  background: var(--color-primary-fill);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: #fff;
 }
 
 .heroBadgeMeta {
   font-size: 13px;
-  color: var(--panel-muted);
+  color: var(--color-text-secondary);
+}
+
+.heroCard .heroBadgeMeta {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .heroTitleRow {
-  position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+  margin-top: auto;
 }
 
 .heroMainTitle {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 34px;
-  line-height: 1;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-size: 32px;
+  line-height: 1.15;
+  font-weight: 500;
+  overflow-wrap: anywhere;
 }
 
 .heroSubtitle {
-  margin: 4px 0 0;
-  font-size: 13.5px;
-  color: var(--panel-muted);
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
 }
 
-/* Week overview */
+/* Week overview: seven columns separated by hairlines; today is a red-filled number. */
 .weekGrid {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
   min-height: 0;
 }
 
 .weekCol {
-  border-radius: 14px;
-  padding: 10px;
+  padding: 0 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   min-width: 0;
-  background: transparent;
-  border: 1px solid var(--color-border);
+  min-height: 124px;
+  border-left: 1px solid var(--color-border);
+}
+
+.weekCol:first-child {
+  padding-left: 0;
+  border-left: 0;
 }
 
 .weekColToday {
-  background: var(--color-surface-alt);
-  border-color: var(--color-primary);
+  background: transparent;
 }
 
 .weekColHead {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
 }
 
 .weekColWd {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .weekColNum {
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 500;
+  line-height: 1;
   color: var(--color-text);
 }
 
 .weekColNumToday {
-  color: var(--color-primary);
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-primary-fill);
+  color: #fff;
 }
 
 .weekEvent {
-  border-radius: 8px;
-  padding: 5px 6px;
+  min-height: var(--control-height);
+  padding: 0 0 0 10px;
   border: none;
-  border-left: 3px solid var(--color-primary);
-  background: var(--color-primary-glow);
+  border-left: 2px solid var(--color-ink);
+  background: transparent;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   min-width: 0;
   width: 100%;
   text-align: left;
@@ -417,23 +432,27 @@
   cursor: pointer;
 }
 
+.weekEvent:hover .weekEventTitle {
+  color: var(--color-text);
+}
+
 .weekEventTime {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
 }
 
 .weekEventTitle {
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.2;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Attention list */
+/* Lists */
 .rowList {
   display: flex;
   flex-direction: column;
@@ -442,26 +461,30 @@
 .attentionRow {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 0;
+  gap: 14px;
+  padding: 14px 0;
   border-top: 1px solid var(--color-border);
 }
 
 .attentionRow:first-child {
+  padding-top: 0;
   border-top: none;
 }
 
+.attentionRow:last-child {
+  padding-bottom: 0;
+}
+
 .attentionAvatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   flex-shrink: 0;
   background: var(--color-surface-alt);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 13px;
   color: var(--color-text);
 }
@@ -480,86 +503,94 @@
 }
 
 .attentionWhy {
-  font-size: 12px;
-  color: var(--color-warning);
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
 .attentionRate {
   font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--color-text-secondary);
+  font-size: 20px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-danger);
   flex-shrink: 0;
 }
 
-/* Workload summary */
+/* Workload summary: four plain numbers, no tiles inside the card. */
 .workloadGrid {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 28px 24px;
+  align-content: space-between;
 }
 
 .workloadTile {
-  border-radius: 16px;
-  background: var(--color-surface-alt);
-  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
   min-width: 0;
 }
 
 .workloadValue {
   font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 40px;
   line-height: 1;
-  font-weight: 800;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text);
 }
 
 .workloadLabel {
-  font-size: 11.5px;
-  color: var(--color-text-tertiary);
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
 /* Matches */
 .matchRow {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 0;
+  gap: 14px;
+  padding: 14px 0;
   border-top: 1px solid var(--color-border);
 }
 
 .matchRow:first-child {
+  padding-top: 0;
   border-top: none;
 }
 
+.matchRow:last-child {
+  padding-bottom: 0;
+}
+
 .matchResult {
-  width: 26px;
-  height: 26px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
-  border-radius: 8px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 800;
-  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
 }
 
 .matchResultWin {
-  background: var(--color-success);
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .matchResultLoss {
-  background: var(--color-danger);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .matchResultDraw {
-  background: var(--color-text-tertiary);
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
 }
 
 .matchText {
@@ -570,59 +601,67 @@
 }
 
 .matchOpp {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text);
 }
 
 .matchDate {
-  font-size: 11.5px;
-  color: var(--color-text-tertiary);
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
 .matchScore {
   font-family: var(--font-display);
-  font-size: 19px;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text);
   flex-shrink: 0;
 }
 
-/* Quick action tiles column */
+/* Quick action tiles column: link-cards that lift 2px on hover. */
 .quickTileCol {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .quickTileCol {
+    gap: 20px;
+  }
 }
 
 .quickTile {
   flex: 1;
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  padding: 0 16px;
-  min-height: 56px;
+  box-shadow: var(--shadow-card);
+  border: none;
+  padding: 0 24px;
+  min-height: 72px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   cursor: pointer;
   text-align: left;
   font: inherit;
   color: inherit;
-  transition: border-color var(--transition-fast);
+  transition: transform var(--transition-fast);
 }
 
 .quickTile:hover {
-  border-color: var(--color-border-strong);
+  transform: translateY(-2px);
 }
 
 .quickTileIcon {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
-  border-radius: 10px;
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  border-radius: 14px;
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -631,11 +670,7 @@
 .quickTileLabel {
   flex: 1;
   min-width: 0;
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font: 600 15px/1.3 var(--font-body);
   color: var(--color-text);
 }
 
@@ -643,7 +678,7 @@
 .todayBrief {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .todayDate {
@@ -662,16 +697,17 @@
 .todayList {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .todayRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border);
+  min-height: var(--control-height);
+  padding: 10px 14px;
+  border: none;
   border-radius: 14px;
   background: var(--color-surface-alt);
   color: var(--color-text);
@@ -682,14 +718,15 @@
 
 .todayRowIcon {
   display: flex;
-  color: var(--color-primary);
+  color: var(--color-link);
 }
 
 .todayRowTime {
   flex-shrink: 0;
   font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .todayRowTitle {
@@ -708,14 +745,31 @@
   justify-content: center;
   gap: 8px;
   width: 100%;
-  padding: 12px 16px;
+  min-height: var(--control-height);
+  padding: 0 20px;
   border: none;
-  border-radius: 14px;
+  border-radius: var(--radius-pill);
   background: var(--color-primary-fill);
-  color: var(--color-primary-text);
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  color: #fff;
+  font: 600 14px/1.2 var(--font-body);
   cursor: pointer;
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
+}
+
+.todayCalendarButton:hover {
+  background: var(--color-primary-fill-hover);
+}
+
+.todayCalendarButton:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 899px) {
+  .heroMainTitle {
+    font-size: 26px;
+  }
+
+  .workloadValue {
+    font-size: 32px;
+  }
 }
