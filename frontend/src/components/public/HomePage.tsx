@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { listListings } from "../../api/coachListings";
 import { Link } from "../Link";
 import { Icon } from "../shared/Icon";
-import { Ornament } from "../shared/Ornament";
 import type { CoachListingCard } from "../../types/coachListing";
 import { PublicShell } from "./PublicShell";
 import styles from "./public.module.css";
@@ -50,9 +49,6 @@ export function HomePage() {
   return (
     <PublicShell>
       <section className={styles.hero} aria-labelledby="hero-title">
-        <div className={styles.heroWaves} aria-hidden="true">
-          <Ornament tone="primary" intensity="bold" contained />
-        </div>
         <span className={styles.eyebrow}>Платформа для игроков и тренеров</span>
         <h1 id="hero-title" className={styles.heroTitle}>
           Тренируйся <em>с планом.</em> Расти <em>с командой.</em>

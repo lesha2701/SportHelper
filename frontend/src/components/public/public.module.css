@@ -10,29 +10,23 @@
 }
 
 .header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
   background: var(--color-bg);
-  background: color-mix(in srgb, var(--color-bg) 92%, transparent);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--color-border);
 }
 
 .headerInner {
-  max-width: 1160px;
+  max-width: 1240px;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 10px 16px;
+  gap: 12px;
+  padding: 20px 16px;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
+  min-height: var(--control-height);
   text-decoration: none;
   color: var(--color-text);
   border-radius: var(--radius-sm);
@@ -44,43 +38,44 @@
 .cta:focus-visible,
 .ctaGhost:focus-visible,
 .previewCard:focus-visible {
-  outline: 3px solid var(--color-primary-glow);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
 .brandMark {
   display: block;
   flex: none;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
 }
 
 .brandName {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 18px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   display: none;
 }
 
 .nav {
   display: flex;
-  gap: 4px;
-  margin-right: auto;
+  gap: 8px;
+  margin: 0 auto;
 }
 
 .navLink {
-  padding: 8px 12px;
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--color-text-secondary);
   text-decoration: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
+  transition: color var(--transition-fast);
 }
 
 .navLink:hover,
@@ -89,8 +84,8 @@
 }
 
 .navLinkActive {
-  box-shadow: inset 0 -2px 0 var(--color-primary);
-  border-radius: 0;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .headerActions {
@@ -103,39 +98,46 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
-  padding: 8px 16px;
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  min-height: var(--control-height);
+  padding: 0 20px;
+  font: 600 14px/1.2 var(--font-body);
   text-decoration: none;
   color: var(--color-text);
   background: transparent;
-  border: 1.5px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
+  border: none;
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+  border-radius: var(--radius-pill);
   cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
 }
 
 .headerButton:hover {
-  border-color: var(--color-text-tertiary);
+  background: var(--color-surface-alt);
+}
+
+.headerButton:active {
+  transform: scale(0.97);
 }
 
 .headerButtonPrimary {
-  color: var(--color-primary-text);
+  color: #fff;
   background: var(--color-primary-fill);
-  border-color: var(--color-primary);
+  box-shadow: none;
 }
 
 .headerButtonPrimary:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
+  background: var(--color-primary-fill-hover);
 }
 
 .themeButton {
-  width: 40px;
+  width: var(--control-height);
   padding: 0;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.themeButton:hover {
+  background: var(--color-surface-alt);
 }
 
 .hideOnPhone {
@@ -145,63 +147,32 @@
 .content {
   flex: 1;
   width: 100%;
-  max-width: 1160px;
+  max-width: 1240px;
   margin: 0 auto;
 }
 
 /* --- landing ---------------------------------------------------------------------------- */
 
-.hero > :not(.heroWaves) {
-  position: relative;
-  z-index: 1;
-}
-
 .hero {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  margin: 14px 16px 0;
-  border-radius: 20px;
-  background: var(--panel-bg);
-  color: var(--panel-text);
-  border: 1px solid var(--panel-border);
-  padding: 34px 22px 38px;
-}
-
-/* Decoration only: sits in the lower-right corner, behind the text, never under it. */
-.heroWaves {
-  position: absolute;
-  right: 4%;
-  bottom: 6%;
-  width: 44%;
-  height: 30%;
-  z-index: -1;
-  opacity: 0.9;
-  pointer-events: none;
+  padding: 24px 16px 56px;
 }
 
 .eyebrow {
   display: inline-block;
-  font-family: var(--font-display);
-  font-weight: 700;
   font-size: 14px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--panel-eyebrow);
-  margin-bottom: 14px;
+  font-weight: 600;
+  color: var(--color-link);
+  margin-bottom: 16px;
 }
 
 .heroTitle {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(46px, 11vw, 92px);
-  line-height: 1.06;
-  letter-spacing: 0.005em;
+  font-weight: 500;
+  font-size: clamp(40px, 6vw, 76px);
+  line-height: 1.04;
   text-transform: uppercase;
-  margin: 0 0 18px;
-  /* Sized in em (not ch, which follows the font's zero) so the title always breaks as
-     «Тренируйся / с планом. / Расти с / командой.» */
-  max-width: 6em;
+  margin: 0 0 24px;
+  max-width: 9em;
 }
 
 .heroTitle em {
@@ -210,17 +181,18 @@
 }
 
 .heroLead {
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1.55;
-  max-width: 44ch;
-  color: var(--panel-lead);
-  margin: 0 0 26px;
+  max-width: 28em;
+  color: var(--color-text-secondary);
+  margin: 0;
 }
 
 .ctaRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
+  margin-top: 36px;
 }
 
 .cta,
@@ -229,16 +201,18 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 50px;
-  padding: 12px 24px;
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  min-height: 52px;
+  padding: 0 26px;
+  font: 600 15px/1.2 var(--font-body);
   text-decoration: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.cta:active,
+.ctaGhost:active {
+  transform: scale(0.97);
 }
 
 .cta {
@@ -248,42 +222,46 @@
 }
 
 .cta:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-fill-hover);
 }
 
 .ctaGhost {
-  color: var(--panel-text);
-  background: var(--panel-ghost-bg);
-  border: 1.5px solid var(--panel-ghost-border);
+  color: var(--color-text);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
 }
 
 .ctaGhost:hover {
-  background: var(--panel-ghost-hover);
+  background: var(--color-surface-alt);
 }
 
 .section {
-  padding: 40px 16px 8px;
+  padding: 24px 16px 40px;
 }
 
 .sectionHead {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-bottom: 24px;
 }
 
 .sectionTitle {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 30px;
-  letter-spacing: 0.02em;
+  font-weight: 500;
+  font-size: clamp(30px, 3.2vw, 44px);
+  line-height: 1.1;
   text-transform: uppercase;
   color: var(--color-text);
   margin: 0;
 }
 
 .sectionLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
   font-weight: 600;
   font-size: 14px;
   color: var(--color-link);
@@ -305,10 +283,10 @@
 }
 
 .step {
-  position: relative;
-  padding: 18px 18px 18px 64px;
+  display: flex;
+  flex-direction: column;
+  padding: var(--card-padding);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   counter-increment: step;
@@ -316,32 +294,24 @@
 
 .step::before {
   content: counter(step);
-  position: absolute;
-  left: 16px;
-  top: 14px;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 20px;
+  font-weight: 500;
+  font-size: 56px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
   color: var(--color-primary);
-  background: var(--color-primary-glow);
-  border-radius: 10px;
 }
 
 .stepTitle {
   font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 32px 0 8px;
 }
 
 .stepText {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
   color: var(--color-text-secondary);
   margin: 0;
@@ -356,50 +326,47 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 16px;
+  padding: var(--card-padding);
   text-align: left;
   text-decoration: none;
   color: inherit;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  transition: transform var(--transition-fast);
 }
 
 .previewCard:hover {
   transform: translateY(-2px);
-  border-color: var(--color-border-strong);
 }
 
 .previewSport {
-  font-family: var(--font-display);
   font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-primary);
+  font-weight: 600;
+  color: var(--color-link);
 }
 
 .previewTitle {
   font-family: var(--font-display);
   font-size: 22px;
-  font-weight: 700;
-  line-height: 1.1;
-  margin: 0;
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 12px 0 0;
 }
 
 .previewMeta {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-text-secondary);
   margin: 0;
 }
 
 .previewPrice {
   margin-top: auto;
+  padding-top: 20px;
   font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 24px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text);
 }
 
@@ -409,32 +376,37 @@
 }
 
 .roleCard {
-  padding: 22px 20px;
+  padding: 32px 24px;
   border-radius: var(--radius-lg);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
   box-shadow: var(--shadow-card);
 }
 
+/* The second role card is the inverse card: light on dark, dark on light. */
 .roleCardDark {
-  background: var(--panel-bg);
-  color: var(--panel-text);
-  border-color: var(--panel-border);
+  background: var(--color-graphite);
+  color: var(--color-inverse-text);
+}
+
+.roleCard .stepTitle {
+  margin-top: 0;
+  text-transform: uppercase;
+  font-size: 30px;
 }
 
 .roleList {
-  margin: 12px 0 18px;
+  margin: 24px 0 8px;
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 8px;
-  font-size: 14px;
+  gap: 14px;
+  font-size: 16px;
   line-height: 1.45;
 }
 
 .roleList li {
   display: flex;
-  gap: 9px;
+  gap: 12px;
   align-items: flex-start;
 }
 
@@ -444,28 +416,30 @@
   color: var(--color-primary);
 }
 
+.roleCardDark .roleList svg {
+  color: #d91e2b;
+}
+
+/* The closing call to action: a plain card, the red is only the button. */
 .bottomCta {
-  margin: 40px 16px 32px;
-  padding: 28px 20px;
-  border-radius: 20px;
-  background: var(--color-primary-glow);
+  margin: 24px 16px 40px;
+  padding: 40px 24px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 20px;
   align-items: flex-start;
 }
 
 .bottomCta h2 {
   font-family: var(--font-display);
-  font-size: 32px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 500;
+  line-height: 1.1;
   text-transform: uppercase;
   margin: 0;
-}
-
-.bottomCta .cta {
-  color: #fff;
 }
 
 /* --- the coach catalogue page / legal documents ---------------------------------------------- */
@@ -477,28 +451,24 @@
 .legal {
   max-width: 760px;
   margin: 0 auto;
-  padding: 28px 18px 48px;
+  padding: 28px 0 48px;
   color: var(--color-text);
 }
 
 .legal h1 {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 30px;
-  line-height: 1.15;
-  text-align: center;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-weight: 500;
+  font-size: 38px;
+  line-height: 1.1;
+  text-align: left;
   margin: 0 0 6px;
 }
 
 .legal h2 {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 22px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  margin: 28px 0 8px;
+  font-weight: 500;
+  font-size: 24px;
+  margin: 32px 0 10px;
 }
 
 .legal p,
@@ -510,8 +480,6 @@
 
 .legal p {
   margin: 0 0 10px;
-  text-align: justify;
-  hyphens: auto;
 }
 
 .legal ul,
@@ -537,16 +505,17 @@
 
 .legal th,
 .legal td {
-  border: 1px solid var(--color-border);
-  padding: 7px 10px;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  padding: 10px 12px 10px 0;
   text-align: left;
   vertical-align: top;
   line-height: 1.5;
 }
 
 .legal th {
-  background: var(--color-surface-alt);
-  font-weight: 700;
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
 .legal a {
@@ -559,37 +528,54 @@
 }
 
 @media (min-width: 720px) {
-  .brandName,
-  .hideOnPhone {
+  .brandName {
     display: inline;
   }
 
+  .hideOnPhone {
+    display: inline-flex;
+  }
+
+  .headerInner {
+    padding: 20px 32px;
+  }
+
   .hero {
-    margin: 18px 24px 0;
-    padding: 64px 52px 68px;
+    padding: 48px 32px 96px;
   }
 
   .section {
-    padding: 56px 24px 8px;
+    padding: 24px 32px 64px;
   }
 
   .steps {
     grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
   }
 
   .previewGrid {
     grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
   }
 
   .roles {
     grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .roleCard {
+    padding: 40px;
   }
 
   .bottomCta {
-    margin: 56px 24px 40px;
-    padding: 36px 40px;
+    margin: 24px 32px 64px;
+    padding: 56px 48px;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+  }
+
+  .legal {
+    padding: 28px 32px 48px;
   }
 }

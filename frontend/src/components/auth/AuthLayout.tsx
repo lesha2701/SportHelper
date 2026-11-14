@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "../Link";
 import { BrandLogo } from "../shared/BrandLogo";
-import { Ornament } from "../shared/Ornament";
 import { SiteFooter } from "../shared/SiteFooter";
 import { Icon, type IconName } from "../shared/Icon";
 import styles from "./auth.module.css";
@@ -12,15 +11,12 @@ const POINTS: { icon: IconName; text: string }[] = [
   { icon: "award", text: "Статистика и прогресс — видно, куда вы растёте" },
 ];
 
-/** The shared frame of every sign-in / sign-up screen: a graphite brand panel
+/** The shared frame of every sign-in / sign-up screen: a plain brand panel
  * (collapsed to a slim bar on phones) next to the form card. */
 export function AuthLayout({ title, lead, children }: { title: string; lead?: ReactNode; children: ReactNode }) {
   return (
     <div className={styles.page}>
       <aside className={styles.brand}>
-        <div className={styles.waves} aria-hidden="true">
-          <Ornament tone="primary" intensity="bold" />
-        </div>
         <div className={styles.brandInner}>
           <Link to="/" className={styles.brandHome} aria-label="SportArenaGlobal — на главную">
             <BrandLogo className={styles.brandMark} />

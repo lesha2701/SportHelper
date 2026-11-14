@@ -1,6 +1,5 @@
-/* Sign-in / sign-up screens. Same tokens and type as the app (Oswald
-   display + Montserrat body, graphite + signal red); the wave
-   motif comes from the shared <Ornament />. */
+/* Sign-in / sign-up screens. Same tokens and type as the app (Oswald display + Montserrat body); the brand panel is a
+   plain surface card, the red is the primary button and the active role only. */
 
 .page {
   flex: 1;
@@ -16,16 +15,12 @@
 
 .brand {
   position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  background: #17181b;
-  color: #f2f1ef;
-  padding: 18px 20px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 16px;
 }
 
 .brandInner {
-  position: relative;
-  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -36,6 +31,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-height: var(--control-height);
   color: inherit;
   text-decoration: none;
   width: fit-content;
@@ -43,23 +39,23 @@
 }
 
 .brandHome:focus-visible {
-  outline: 2px solid #fff;
+  outline: 2px solid var(--color-primary);
   outline-offset: 3px;
 }
 
 .brandMark {
   display: block;
   flex: none;
-  width: 52px;
-  height: 52px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
 }
 
 .brandName {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 19px;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
@@ -69,12 +65,11 @@
 
 .pitchTitle {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(44px, 5.2vw, 76px);
-  line-height: 0.95;
-  letter-spacing: 0.01em;
+  font-weight: 500;
+  font-size: clamp(34px, 3.6vw, 56px);
+  line-height: 1.05;
   text-transform: uppercase;
-  margin: 0 0 22px;
+  margin: 0 0 20px;
 }
 
 .pitchTitle em {
@@ -83,11 +78,11 @@
 }
 
 .pitchLead {
-  max-width: 34ch;
-  font-size: 15px;
+  max-width: 27em;
+  font-size: 16px;
   line-height: 1.55;
-  color: rgba(242, 241, 239, 0.74);
-  margin: 0 0 30px;
+  color: var(--color-text-secondary);
+  margin: 0 0 36px;
 }
 
 .pitchList {
@@ -95,41 +90,26 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .pitchItem {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 14px;
-  font-weight: 500;
+  gap: 14px;
+  max-width: 26em;
+  font-size: 15px;
 }
 
 .pitchIcon {
   flex: none;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #fff;
-}
-
-/* Decoration only; the text column is stacked above it. Hidden on phones,
-   where the brand panel is just a slim bar. */
-.waves {
-  display: none;
-  position: absolute;
-  right: -12%;
-  bottom: -26%;
-  width: 70%;
-  height: 56%;
-  z-index: 0;
-  opacity: 0.9;
-  pointer-events: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--color-surface-alt);
+  color: var(--color-primary);
 }
 
 /* --- form side ----------------------------------------------------------- */
@@ -140,13 +120,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 28px;
-  padding: 24px 16px 0;
+  padding: 32px 16px 0;
 }
 
 .footerSlot {
   width: 100%;
-  max-width: 440px;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  max-width: 520px;
   overflow: hidden;
 }
 
@@ -155,55 +134,53 @@
   max-width: 440px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .title {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 34px;
-  line-height: 1.02;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-weight: 500;
+  font-size: 32px;
+  line-height: 1.1;
   color: var(--color-text);
   margin: 0;
 }
 
 .lead {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
   color: var(--color-text-secondary);
-  margin: -6px 0 2px;
+  margin: -10px 0 0;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 20px;
 }
 
 .row2 {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 14px;
+  gap: 20px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .labelRow {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
 }
 
 .label {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text-secondary);
 }
 
@@ -214,12 +191,14 @@
 
 .input {
   width: 100%;
+  height: var(--field-height);
   font: inherit;
   font-size: 16px; /* 16px stops iOS from zooming into the field */
-  padding: 12px 13px;
+  padding: 0 16px;
   border-radius: var(--radius-md);
-  border: 1.5px solid var(--color-border-strong);
+  border: 1px solid transparent;
   background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-border);
   color: var(--color-text);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -229,13 +208,13 @@
 }
 
 .input:hover:not(:disabled) {
-  border-color: var(--color-text-tertiary);
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
 }
 
 .input:focus-visible {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  box-shadow: none;
 }
 
 .input:disabled {
@@ -247,22 +226,21 @@
 }
 
 .inputWithToggle {
-  padding-right: 48px;
+  padding-right: 52px;
 }
 
 .reveal {
   position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
+  right: 2px;
+  top: 2px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   border: none;
   background: transparent;
   color: var(--color-text-secondary);
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   cursor: pointer;
 }
 
@@ -276,7 +254,7 @@
 }
 
 .hint {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--color-text-tertiary);
   line-height: 1.4;
 }
@@ -291,7 +269,7 @@
 .meter {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
 }
 
 .meterTrack {
@@ -320,37 +298,35 @@
 
 .meterText {
   font-size: 12px;
+  font-weight: 600;
   color: var(--color-text-secondary);
+  margin-left: 8px;
   min-width: 11ch;
   text-align: right;
 }
 
 .notice {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: flex-start;
-  padding: 11px 13px;
-  border-radius: var(--radius-md);
-  font-size: 13px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  font-size: 14px;
   line-height: 1.45;
   background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
   color: var(--color-text);
 }
 
 .noticeInfo {
-  background: var(--color-primary-glow);
-  border-color: transparent;
+  background: var(--color-ink-soft);
 }
 
 .noticeSuccess {
   background: var(--color-success-bg);
-  border-color: transparent;
 }
 
 .noticeDanger {
   background: var(--color-danger-bg);
-  border-color: transparent;
   color: var(--color-text);
 }
 
@@ -378,47 +354,45 @@
   justify-content: center;
   gap: 8px;
   width: 100%;
-  min-height: 48px;
-  padding: 12px 16px;
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  min-height: 52px;
+  padding: 0 26px;
+  font: 600 15px/1.2 var(--font-body);
   text-decoration: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   cursor: pointer;
-  transition: background-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
 }
 
 .primary {
-  color: var(--color-primary-text);
+  color: #fff;
   background: var(--color-primary-fill);
   border: none;
 }
 
 .primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-fill-hover);
 }
 
-.primary:active:not(:disabled) {
-  transform: scale(0.985);
+.primary:active:not(:disabled),
+.secondary:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .primary:focus-visible,
 .secondary:focus-visible {
-  outline: 3px solid var(--color-primary-glow);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
 .secondary {
   color: var(--color-text);
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-border-strong);
+  background: transparent;
+  border: none;
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
 }
 
 .secondary:hover:not(:disabled) {
-  border-color: var(--color-text-tertiary);
+  background: var(--color-surface-alt);
 }
 
 .primary:disabled,
@@ -446,6 +420,7 @@
   background: none;
   border: none;
   padding: 0;
+  min-height: var(--control-height);
   font: inherit;
   font-weight: 600;
   color: var(--color-link);
@@ -487,9 +462,9 @@
 
 .checkRow {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: flex-start;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -497,16 +472,16 @@
 
 .check {
   flex: none;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   margin: 1px 0 0;
-  accent-color: var(--color-primary);
+  accent-color: var(--color-primary-fill);
   cursor: pointer;
 }
 
 .check:focus-visible {
-  outline: 3px solid var(--color-primary-glow);
-  outline-offset: 1px;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* role cards ("Я игрок" / "Я тренер") */
@@ -520,7 +495,7 @@
 .roles {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -538,7 +513,7 @@
 
 .requiredHint {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.4;
   color: var(--color-text-secondary);
 }
@@ -547,7 +522,7 @@
   padding: 0;
   margin: 0;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text-secondary);
 }
 
@@ -556,21 +531,22 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 12px 13px;
-  border-radius: var(--radius-md);
-  border: 1.5px solid var(--color-border-strong);
+  gap: 6px;
+  padding: 16px;
+  border-radius: 16px;
+  border: none;
   background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
   cursor: pointer;
-  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+  transition: box-shadow var(--transition-fast), background-color var(--transition-fast);
 }
 
 .role:hover {
-  border-color: var(--color-text-tertiary);
+  box-shadow: inset 0 0 0 1px var(--color-text-tertiary);
 }
 
 .roleActive {
-  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 2px var(--color-primary);
   background: var(--color-primary-glow);
 }
 
@@ -588,24 +564,25 @@
 }
 
 .role:has(.roleInput:focus-visible) {
-  outline: 3px solid var(--color-primary-glow);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
 .roleName {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--color-text);
 }
 
+.roleActive .roleName svg {
+  color: var(--color-primary);
+}
+
 .roleHint {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.35;
   color: var(--color-text-secondary);
 }
@@ -614,11 +591,11 @@
 .statusIcon {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--color-ink-soft);
+  color: var(--color-link);
 }
 
 .statusIconSuccess {
@@ -640,7 +617,7 @@
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .srOnly {
@@ -668,7 +645,7 @@
     position: sticky;
     top: 0;
     align-self: start;
-    padding: 36px 44px;
+    padding: 36px 56px 56px;
     height: 100vh;
     height: 100svh;
   }
@@ -679,19 +656,10 @@
 
   .pitch {
     display: block;
-    margin-bottom: 14vh;
-  }
-
-  .waves {
-    display: block;
-    right: -22%;
-    bottom: -14%;
-    width: 120%;
-    height: 34%;
   }
 
   .main {
-    padding: 48px 32px 0;
+    padding: 56px 24px 0;
   }
 
   .title {
