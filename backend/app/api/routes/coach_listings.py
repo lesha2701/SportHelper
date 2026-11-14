@@ -133,6 +133,16 @@ async def get_listing_availability(
     return [AvailabilityWindowOut(**w) for w in windows]
 
 
+# «В понедельник», «Во вторник», «В среду»…: the weekday after the preposition, as people say it.
+_ON_WEEKDAY = ["В понедельник", "Во вторник", "В среду", "В четверг", "В пятницу", "В субботу", "В воскресенье"]
+
+
+def _overlap_message(a: dict, b: dict) -> str:
+    """Says which day and which two windows collide and what to do, instead of the bare «availability windows overlap»."""
+    first, second = (f"{w['start_time']:%H:%M}–{w['end_time']:%H:%M}" for w in (a, b))
+    return f"{_ON_WEEKDAY[a['weekday']]} два окна расписания пересекаются ({first} и {second}). Объедините их в одно или измените время."
+
+
 @router.put("/{listing_id}/availability", response_model=list[AvailabilityWindowOut])
 async def replace_listing_availability(
     listing_id: UUID,
@@ -142,8 +152,9 @@ async def replace_listing_availability(
 ) -> list[AvailabilityWindowOut]:
     await _get_owned_listing_or_404(conn, listing_id, user["id"])
     windows = [w.model_dump() for w in payload]
-    if listings_repo.has_overlap(windows):
-        raise APIError("availability windows overlap", code="overlapping_availability", status_code=400)
+    overlap = listings_repo.first_overlap(windows)
+    if overlap:
+        raise APIError(_overlap_message(*overlap), code="overlapping_availability", status_code=400)
     updated = await listings_repo.replace_availability(conn, listing_id, windows)
     return [AvailabilityWindowOut(**w) for w in updated]
 

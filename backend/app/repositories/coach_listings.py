@@ -122,8 +122,17 @@ def _windows_overlap(a: dict[str, Any], b: dict[str, Any]) -> bool:
     return a["weekday"] == b["weekday"] and a["start_time"] < b["end_time"] and b["start_time"] < a["end_time"]
 
 
+def first_overlap(windows: list[dict[str, Any]]) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """The first two windows of one weekday that overlap, or None."""
+    for i, a in enumerate(windows):
+        for b in windows[i + 1 :]:
+            if _windows_overlap(a, b):
+                return a, b
+    return None
+
+
 def has_overlap(windows: list[dict[str, Any]]) -> bool:
-    return any(_windows_overlap(a, b) for i, a in enumerate(windows) for b in windows[i + 1 :])
+    return first_overlap(windows) is not None
 
 
 async def list_availability(conn: asyncpg.Connection, listing_id: UUID) -> list[dict[str, Any]]:
