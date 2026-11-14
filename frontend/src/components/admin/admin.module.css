@@ -539,6 +539,13 @@
   color: var(--color-text-secondary);
 }
 
+/* .input is a row item (flex: 1 1 240px); in the column of a field that basis became the height, so one-line fields were 240px tall. */
+.field > .input,
+.field > .select {
+  flex: none;
+  width: 100%;
+}
+
 .mediaGrid {
   display: grid;
   gap: 12px;
