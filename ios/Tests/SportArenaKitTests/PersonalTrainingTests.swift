@@ -208,3 +208,38 @@ struct PersonalTrainingServiceTests {
         }
     }
 }
+
+struct WorkoutExerciseNameTests {
+    @Test func theUntouchedFirstLineIsFine() {
+        let workout = PersonalWorkout()
+        #expect(workout.unnamedRowIDs.isEmpty)
+        #expect(workout.problem == nil)
+    }
+
+    @Test func aSingleLineWithNumbersAndNoNameIsAProblem() {
+        let nameless = row("", .reps, reps: 10)
+        let workout = PersonalWorkout(rows: [nameless])
+        #expect(workout.unnamedRowIDs == [nameless.id])
+        #expect(workout.problem == "Укажите название каждого упражнения или уберите лишние строки.")
+    }
+
+    @Test func everyEmptyLineBesideOthersMustBeNamedOrRemoved() {
+        let named = row("Приседания", .reps, reps: 15)
+        let empty = row("", .reps)
+        var workout = PersonalWorkout(rows: [named, empty])
+        #expect(workout.unnamedRowIDs == [empty.id])
+        #expect(workout.problem != nil)
+        workout.removeRow(empty.id)
+        #expect(workout.unnamedRowIDs.isEmpty)
+        #expect(workout.problem == nil)
+    }
+
+    @Test func aNameOfOnlySpacesCountsAsNoName() {
+        let spaces = row("   ", .reps)
+        #expect(PersonalWorkout(rows: [row("Планка", .time, seconds: 45), spaces]).unnamedRowIDs == [spaces.id])
+    }
+
+    @Test func aFullyNamedListHasNoProblem() {
+        #expect(PersonalWorkout(rows: [row("Приседания", .reps, reps: 15), row("Планка", .time, seconds: 45)]).problem == nil)
+    }
+}

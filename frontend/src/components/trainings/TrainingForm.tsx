@@ -16,6 +16,7 @@ import styles from "./training.module.css";
 import aiStyles from "../stats/stats.module.css";
 import { navigateApp } from "../../appNav";
 import { toast } from "../../toast";
+import { rowsWithoutName } from "./exerciseNames";
 
 interface TrainingFormProps {
   token: string;
@@ -167,6 +168,8 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
   // the plain textarea instead of trying to re-parse it back into rows).
   const [trainingStyle, setTrainingStyle] = useState<PersonalTrainingStyle>("reps");
   const [exerciseRows, setExerciseRows] = useState<ExerciseRow[]>([newRow()]);
+  // Rows the person tried to save without a name: each gets its own message under the field until they type.
+  const [missingNames, setMissingNames] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [circuitRounds, setCircuitRounds] = useState("3");
   const [circuitRestSeconds, setCircuitRestSeconds] = useState("60");
@@ -252,6 +255,14 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    if (isPersonalCreate) {
+      const missing = rowsWithoutName(exerciseRows);
+      if (missing.length) {
+        setMissingNames(missing);
+        setError("Укажите название каждого упражнения или уберите лишние строки.");
+        return;
+      }
+    }
     setSaving(true);
     try {
       if (isEdit && initial) {
@@ -476,14 +487,16 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
                     className={`${profileStyles.input} ${styles.exerciseNameInput}`}
                     placeholder={`Упражнение ${index + 1}`}
                     value={row.exercise}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      if (missingNames.includes(row.key)) setMissingNames((keys) => keys.filter((k) => k !== row.key));
                       updateRow(row.key, {
                         exercise: e.target.value,
                         // The kind follows the name ("Бег" -> distance) until it is picked by hand.
                         ...(row.kindChosen ? {} : { kind: detectMetric(e.target.value).metric }),
-                      })
-                    }
+                      });
+                    }}
                     maxLength={150}
+                    aria-invalid={missingNames.includes(row.key) || undefined}
                   />
                   <button
                     type="button"
@@ -495,6 +508,11 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
                     <Icon name="x" size={16} />
                   </button>
                 </div>
+                {missingNames.includes(row.key) && (
+                  <span role="alert" className={profileStyles.error}>
+                    Укажите название упражнения.
+                  </span>
+                )}
 
                 {trainingStyle === "reps" ? (
                   <>

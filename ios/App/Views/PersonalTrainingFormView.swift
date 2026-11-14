@@ -144,7 +144,7 @@ struct PersonalTrainingFormView: View {
             ForEach($workout.rows) { $row in
                 WorkoutRowEditor(
                     row: $row, style: workout.style, index: workout.rows.firstIndex { $0.id == row.id } ?? 0, canRemove: workout.rows.count > 1,
-                    onRemove: { workout.removeRow(row.id) }
+                    unnamed: workout.unnamedRowIDs.contains(row.id), onRemove: { workout.removeRow(row.id) }
                 )
             }
             Button {
@@ -196,6 +196,8 @@ private struct WorkoutRowEditor: View {
     let style: WorkoutStyle
     let index: Int
     let canRemove: Bool
+    /// The line has no name: its message sits under the field.
+    let unnamed: Bool
     let onRemove: () -> Void
 
     var body: some View {
@@ -209,6 +211,9 @@ private struct WorkoutRowEditor: View {
                         .accessibilityLabel("Удалить упражнение")
                         .accessibilityIdentifier("personal.removeRow")
                 }
+            }
+            if unnamed {
+                Text("Укажите название упражнения.").font(.footnote).foregroundStyle(.red).accessibilityIdentifier("personal.exerciseError")
             }
             if style == .reps {
                 Picker("Чем измеряется", selection: Binding(get: { row.kind }, set: { row.choose($0) })) {
