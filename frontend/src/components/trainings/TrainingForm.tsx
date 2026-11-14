@@ -5,6 +5,7 @@ import { listMembers } from "../../api/teams";
 import { createPersonalTrainingDraft, type PersonalTrainingStyle } from "../../api/ai";
 import { ApiError } from "../../api/client";
 import { ConfirmModal } from "../shared/ConfirmModal";
+import { useBookedSession } from "./useBookedSession";
 import { Icon } from "../shared/Icon";
 import { detectMetric } from "../../lib/workout";
 import { CollapsibleSection } from "../shared/CollapsibleSection";
@@ -161,6 +162,9 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  // A session booked with a coach is read-only here (only the reminder is the athlete's own); the booking moves or cancels it.
+  const booked = useBookedSession(token, mode === "personal" && initial ? initial.id : null);
+  const locked = booked !== null;
 
   // Structured circuit/reps builder — personal-training creation only (see
   // "Доработки после итерации 15" README section for why edit mode keeps
@@ -308,7 +312,14 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
         <h1 className={profileStyles.pageHeading}>
           {isEdit ? "Редактировать тренировку" : mode === "team" ? "Новая тренировка команды" : "Новая личная тренировка"}
         </h1>
-        <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
+        {booked ? (
+          <p className={profileStyles.subtitle} role="note">
+            Это занятие с тренером {booked.coachFullName}: дату, время, длительность и место меняет запись, а не календарь. Здесь можно
+            изменить только напоминание. Отменить занятие можно в разделе записей.
+          </p>
+        ) : (
+          <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
+        )}
 
         {isPersonalCreate && !showAiPanel && (
           <button type="button" className={aiStyles.aiTeaser} style={{ cursor: "pointer", font: "inherit", textAlign: "left" }} onClick={() => setShowAiPanel(true)}>
@@ -368,13 +379,13 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
             <span className={profileStyles.label}>
               Дата<span className={profileStyles.requiredMark}>*</span>
             </span>
-            <input className={profileStyles.input} type="date" value={trainingDate} onChange={(e) => setTrainingDate(e.target.value)} required />
+            <input className={profileStyles.input} type="date" value={trainingDate} onChange={(e) => setTrainingDate(e.target.value)} required disabled={locked} />
           </label>
           <label className={profileStyles.field}>
             <span className={profileStyles.label}>
               Время<span className={profileStyles.requiredMark}>*</span>
             </span>
-            <input className={profileStyles.input} type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
+            <input className={profileStyles.input} type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required disabled={locked} />
           </label>
         </div>
 
@@ -390,12 +401,13 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
             value={durationMinutes}
             onChange={(e) => setDurationMinutes(e.target.value)}
             required
+            disabled={locked}
           />
         </label>
 
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Место</span>
-          <input className={profileStyles.input} value={location} onChange={(e) => setLocation(e.target.value)} maxLength={200} />
+          <input className={profileStyles.input} value={location} onChange={(e) => setLocation(e.target.value)} maxLength={200} disabled={locked} />
         </label>
 
         {mode === "team" && (
@@ -633,7 +645,7 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
         ) : (
           <label className={profileStyles.field}>
             <span className={profileStyles.label}>Описание</span>
-            <textarea className={profileStyles.textarea} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
+            <textarea className={profileStyles.textarea} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} disabled={locked} />
           </label>
         )}
 
@@ -708,7 +720,7 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
         </div>
       </div>
 
-      {isEdit && onDeleted && (
+      {isEdit && onDeleted && !locked && (
         <div className={profileStyles.card}>
           <button type="button" className={profileStyles.buttonSecondary} onClick={() => setDeleteConfirmOpen(true)} disabled={saving}>
             Удалить тренировку
