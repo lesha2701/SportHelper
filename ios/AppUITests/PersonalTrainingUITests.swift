@@ -24,6 +24,20 @@ final class PersonalTrainingUITests: PersonalTrainingUITestCase {
         deleteOpenTraining()
     }
 
+    func testAnExerciseWithoutANameIsNamedInTheFormAndBlocksSaving() throws {
+        try openForm()
+        typeText("Приседания", into: field("personal.exercise"))
+        scrollUntilVisible(element("personal.addRow"))
+        element("personal.addRow").tap()
+        // the new line is empty: the form says so under the field and does not let the training be created
+        XCTAssertTrue(element("personal.exerciseError").waitForExistence(timeout: 5), "the empty exercise is not pointed out")
+        XCTAssertFalse(element("personal.save").isEnabled, "a training with an unnamed exercise can be created")
+        // an unwanted line is removed with its button, and the form is fine again
+        element("personal.removeRow").firstMatch.tap()
+        XCTAssertFalse(element("personal.exerciseError").exists)
+        XCTAssertTrue(element("personal.save").isEnabled)
+    }
+
     func testACircuitKeepsItsRoundsAndRestAndCanBeHeld() throws {
         try openForm()
         let stamp = stamp()
