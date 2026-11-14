@@ -131,7 +131,7 @@
 }
 
 .kindOptionOn {
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: var(--color-primary-text);
 }
 

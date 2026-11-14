@@ -393,7 +393,7 @@
 
 .primary {
   color: var(--color-primary-text);
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   border: none;
 }
 

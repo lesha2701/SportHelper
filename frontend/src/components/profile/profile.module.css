@@ -108,7 +108,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: var(--color-primary-text);
   border: 2px solid var(--panel-bg);
   display: flex;
@@ -266,7 +266,7 @@
 }
 
 .modePillOptionActive {
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: #fff;
 }
 
@@ -562,7 +562,7 @@
 }
 
 .switchOn {
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
 }
 
 .switchKnob {
@@ -648,7 +648,7 @@
   font-weight: 700;
   letter-spacing: 0.01em;
   color: var(--color-primary-text);
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -801,7 +801,7 @@
 
 .themeOptionActive {
   color: var(--color-primary-text);
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
 }
 
 .actionGroupTitle {

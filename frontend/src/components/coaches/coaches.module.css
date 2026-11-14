@@ -40,7 +40,7 @@
 }
 
 .switchOn {
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
 }
 
 .switchKnob {
@@ -593,7 +593,7 @@
 
 .dateChipActive {
   border-color: var(--color-primary);
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: var(--color-primary-text);
 }
 

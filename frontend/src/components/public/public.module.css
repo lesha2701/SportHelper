@@ -124,7 +124,7 @@
 
 .headerButtonPrimary {
   color: var(--color-primary-text);
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   border-color: var(--color-primary);
 }
 
@@ -243,7 +243,7 @@
 
 .cta {
   color: #fff;
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   border: none;
 }
 

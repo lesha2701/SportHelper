@@ -89,7 +89,7 @@
 .progress span {
   display: block;
   height: 100%;
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   transition: width var(--transition-base);
 }
 
@@ -120,7 +120,7 @@
 
 .chipActive {
   border-color: var(--color-primary);
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: var(--color-primary-text);
 }
 
@@ -346,7 +346,7 @@
 
 .stopwatchOn {
   border-color: var(--color-primary);
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: var(--color-primary-text);
 }
 

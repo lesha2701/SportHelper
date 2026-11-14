@@ -179,7 +179,7 @@
   height: 20px;
   padding: 0 6px;
   border-radius: var(--radius-pill);
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   color: #fff;
   font: 700 11px var(--font-body);
   display: flex;

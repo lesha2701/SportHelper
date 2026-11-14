@@ -110,7 +110,7 @@
 .bubbleMine {
   composes: bubble;
   border-radius: 14px 14px 4px 14px;
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   border-color: var(--color-primary);
   color: var(--color-primary-text, #fff);
 }
@@ -219,7 +219,7 @@
 
 .sendButton {
   composes: iconButton;
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   border-color: var(--color-primary);
   color: var(--color-primary-text, #fff);
 }
