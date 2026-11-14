@@ -132,7 +132,7 @@
   font-family: var(--font-display);
   font-size: 11px;
   font-weight: 500;
-  color: #fff;
+  color: var(--color-on-fill);
 }
 
 .realTabBar {
@@ -155,6 +155,7 @@
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   color: var(--color-text-tertiary);
+  min-height: var(--control-height);
 }
 
 .realTabActive {
@@ -308,6 +309,7 @@
   color: inherit;
   font: inherit;
   transition: border-color var(--transition-fast), transform var(--transition-fast);
+  min-height: var(--control-height);
 }
 
 .teamCard:active {
@@ -635,6 +637,7 @@
   background: transparent;
   cursor: pointer;
   transition: background-color var(--transition-fast);
+  min-height: var(--control-height);
 }
 
 .eventRow:not(:last-child) {
@@ -697,6 +700,7 @@
   color: inherit;
   width: 100%;
   transition: border-color var(--transition-fast), transform var(--transition-fast);
+  min-height: var(--control-height);
 }
 
 .hubTile:active {
@@ -749,6 +753,7 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  min-height: var(--control-height);
 }
 
 .collapsibleHeader h2 {
@@ -768,7 +773,7 @@
   padding: 0 7px;
   border-radius: 11px;
   background: var(--color-primary-fill);
-  color: #fff;
+  color: var(--color-on-fill);
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 500;

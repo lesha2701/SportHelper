@@ -96,7 +96,7 @@
   padding: 0 6px;
   border-radius: var(--radius-pill);
   background: var(--color-primary-fill);
-  color: #fff;
+  color: var(--color-on-fill);
   font: 700 11px var(--font-body);
   font-variant-numeric: tabular-nums;
   display: flex;

@@ -77,7 +77,7 @@
 
 .smallButton {
   flex: none;
-  min-height: 36px;
+  min-height: var(--control-height);
   padding: 6px 12px;
   font: inherit;
   font-size: 13px;
@@ -106,6 +106,9 @@
   font-weight: 600;
   color: var(--color-link);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
 }
 
 .noticeAction {
@@ -143,6 +146,7 @@
   font-weight: 500;
   border-radius: var(--radius-md);
   cursor: pointer;
+  min-height: var(--control-height);
 }
 
 .dangerOutline {
@@ -152,7 +156,7 @@
 }
 
 .dangerButton {
-  color: #fff;
+  color: var(--color-on-fill);
   background: var(--color-danger);
   border: none;
 }

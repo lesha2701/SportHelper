@@ -18,6 +18,17 @@
   --color-graphite-elevated: #17181b;
   --color-inverse-text: #17181b;
 
+  /* Fixed colours that do not follow the theme: text on a red fill or a photo, scrims behind dialogs and media. */
+  --color-on-fill: #ffffff;
+  --color-on-fill-muted: rgba(255, 255, 255, 0.9);
+  --color-on-media-soft: rgba(255, 255, 255, 0.14);
+  --color-on-media-hover: rgba(255, 255, 255, 0.26);
+  --color-on-media-muted: rgba(255, 255, 255, 0.7);
+  --color-media-bg: #000000;
+  --color-scrim: rgba(3, 4, 6, 0.6);
+  --color-scrim-strong: rgba(0, 0, 0, 0.92);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.35);
+
   /* Red is for text, outlines and small marks. A red FILL (button, next-event card, today) is --color-primary-fill
      and the only background that may carry white text. Red never covers more than a tenth of a screen. */
   --color-primary: #ff3b3f;

@@ -89,12 +89,12 @@
 .action {
   flex-shrink: 0;
   align-self: center;
-  min-height: 36px;
+  min-height: var(--control-height);
   padding: 0 16px;
   border: none;
   border-radius: 999px;
   background: var(--color-primary-fill);
-  color: #fff;
+  color: var(--color-on-fill);
   font: inherit;
   font-size: 13px;
   font-weight: 600;

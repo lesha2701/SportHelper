@@ -120,7 +120,7 @@
 }
 
 .headerButtonPrimary {
-  color: #fff;
+  color: var(--color-on-fill);
   background: var(--color-primary-fill);
   box-shadow: none;
 }
@@ -216,7 +216,7 @@
 }
 
 .cta {
-  color: #fff;
+  color: var(--color-on-fill);
   background: var(--color-primary-fill);
   border: none;
 }
@@ -417,7 +417,7 @@
 }
 
 .roleCardDark .roleList svg {
-  color: #d91e2b;
+  color: var(--color-primary-fill);
 }
 
 /* The closing call to action: a plain card, the red is only the button. */

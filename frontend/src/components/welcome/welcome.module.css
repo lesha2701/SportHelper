@@ -27,7 +27,7 @@
 @media (min-width: 720px) {
   .backdrop {
     align-items: center;
-    background: rgba(0, 0, 0, 0.72);
+    background: var(--color-scrim);
   }
 
   .panel {
@@ -38,7 +38,7 @@
     border-radius: var(--radius-lg);
     background: var(--color-surface);
     border: none;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+    box-shadow: var(--shadow-pop);
   }
 }
 
@@ -80,7 +80,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 36px;
+  min-height: var(--control-height);
   min-width: 36px;
   padding: 0 12px;
   border: none;
@@ -286,7 +286,7 @@
   height: 108px;
   object-fit: contain;
   border-radius: 50%;
-  box-shadow: 0 0 0 10px var(--color-primary-glow), 0 12px 32px rgba(217, 30, 43, 0.25);
+  box-shadow: 0 0 0 10px var(--color-primary-glow);
 }
 
 .heroChips {

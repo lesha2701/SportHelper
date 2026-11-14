@@ -364,7 +364,7 @@
 }
 
 .primary {
-  color: #fff;
+  color: var(--color-on-fill);
   background: var(--color-primary-fill);
   border: none;
 }

@@ -12,6 +12,7 @@
   cursor: pointer;
   font: inherit;
   transition: border-color var(--transition-fast), transform var(--transition-fast);
+  min-height: var(--control-height);
 }
 
 .attendanceRow:active {
@@ -82,16 +83,16 @@
 
 .exerciseRemoveButton {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: var(--control-height);
+  height: var(--control-height);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   color: var(--color-text-secondary);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border: none;
+  border-radius: 50%;
   cursor: pointer;
   transition: border-color var(--transition-fast), transform var(--transition-fast);
 }
@@ -112,14 +113,14 @@
   padding: 4px;
   margin-bottom: 8px;
   border: none;
-  border-radius: 14px;
+  border-radius: var(--radius-pill);
   background: var(--color-surface-alt);
 }
 
 .kindOption {
-  min-height: 34px;
+  min-height: var(--control-height);
   border: none;
-  border-radius: 7px;
+  border-radius: var(--radius-pill);
   background: transparent;
   font: inherit;
   font-size: 12.5px;
@@ -129,8 +130,9 @@
 }
 
 .kindOptionOn {
-  background: var(--color-primary-fill);
-  color: var(--color-primary-text);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
 }
 
 .exerciseFieldsRow {

@@ -69,7 +69,7 @@
   place-items: center;
   border-radius: 50%;
   background: var(--color-primary-fill);
-  color: #fff;
+  color: var(--color-on-fill);
   line-height: 1;
 }
 
@@ -176,6 +176,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-height: var(--control-height);
 }
 
 .sideCard {
@@ -223,6 +224,7 @@
   font: inherit;
   color: inherit;
   cursor: pointer;
+  min-height: var(--control-height);
 }
 
 .overdueItemTitle {

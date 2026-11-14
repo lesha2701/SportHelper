@@ -17,13 +17,8 @@
   flex-direction: column;
   gap: 4px;
   padding: 20px 14px;
-  background: var(--color-graphite);
-  color: #f2f1ef;
-}
-
-:root[data-theme="dark"] .sidebar {
-  background: #0c0c0e;
-  border-right: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
 }
 
 .brand {
@@ -52,8 +47,8 @@
 }
 
 .brandSub {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--color-link);
 }
 
@@ -62,24 +57,24 @@
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
+  min-height: var(--control-height);
   border-radius: var(--radius-md);
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--color-text-secondary);
   text-decoration: none;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .navItem:hover {
-  background: rgba(255, 255, 255, 0.07);
-  color: #fff;
+  color: var(--color-text);
 }
 
 .navItemActive {
   composes: navItem;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  box-shadow: inset 3px 0 0 var(--color-primary);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
 }
 
 .navBadge {
@@ -88,7 +83,7 @@
   padding: 1px 7px;
   border-radius: var(--radius-pill);
   background: var(--color-primary-fill);
-  color: #fff;
+  color: var(--color-on-fill);
   font-size: 11px;
   font-weight: 700;
   text-align: center;
@@ -100,13 +95,13 @@
   flex-direction: column;
   gap: 6px;
   padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--color-border);
 }
 
 .who {
   padding: 4px 12px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--color-text-tertiary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -177,8 +172,7 @@
 
 .kpiAccent {
   composes: kpi;
-  background: var(--color-graphite-elevated);
-  border-color: var(--color-graphite-elevated);
+  background: var(--color-ink-soft);
 }
 
 .kpiAccent .kpiValue {
@@ -186,7 +180,7 @@
 }
 
 .kpiAccent .kpiLabel {
-  color: rgba(255, 255, 255, 0.64);
+  color: var(--color-text-secondary);
 }
 
 .kpiValue {
@@ -269,7 +263,7 @@
 
 .input,
 .select {
-  height: 38px;
+  height: var(--field-height);
   padding: 0 12px;
   background: var(--color-surface-alt);
   color: var(--color-text);
@@ -312,7 +306,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 36px;
+  height: var(--control-height);
   padding: 0 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-strong);
@@ -349,13 +343,14 @@
 .buttonGhost {
   border-color: transparent;
   background: transparent;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--color-text-secondary);
   justify-content: flex-start;
+  min-height: var(--control-height);
 }
 
 .buttonGhost:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.07);
+  color: var(--color-text);
+  background: var(--color-surface-alt);
 }
 
 .button:disabled,
@@ -397,6 +392,7 @@
 
 .rowClickable {
   cursor: pointer;
+  min-height: var(--control-height);
 }
 
 .rowClickable:hover td {
@@ -472,7 +468,7 @@
   position: fixed;
   inset: 0;
   z-index: 90;
-  background: rgba(3, 4, 6, 0.55);
+  background: var(--color-scrim);
   display: flex;
   justify-content: flex-end;
 }
@@ -550,6 +546,7 @@
   font: inherit;
   color: inherit;
   box-shadow: var(--shadow-card);
+  min-height: var(--control-height);
 }
 
 .mediaThumb {
@@ -572,7 +569,7 @@
   width: 100%;
   max-height: 60vh;
   object-fit: contain;
-  background: #000;
+  background: var(--color-media-bg);
   border-radius: var(--radius-md);
 }
 
@@ -608,6 +605,7 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  min-height: var(--control-height);
 }
 
 .tabActive {
@@ -690,7 +688,7 @@
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(3, 4, 6, 0.6);
+  background: var(--color-scrim);
 }
 
 .dialog {
@@ -783,7 +781,7 @@
 }
 
 .chip {
-  height: 32px;
+  height: var(--control-height);
   padding: 0 12px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--color-border-strong);
@@ -799,7 +797,7 @@
   composes: chip;
   background: var(--color-graphite);
   border-color: var(--color-graphite);
-  color: #fff;
+  color: var(--color-on-fill);
 }
 
 :root[data-theme="dark"] .chipActive {

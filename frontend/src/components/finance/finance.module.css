@@ -134,6 +134,9 @@
   padding: 4px 0;
   color: var(--color-link);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
 }
 
 .linkButton:disabled {

@@ -1,12 +1,12 @@
 /* Mobile section bar: a floating "pill" pinned to the bottom of the screen. */
 .nav {
   display: flex;
-  gap: 2px;
-  margin: 0 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  gap: 0;
+  margin: 0 8px calc(12px + env(safe-area-inset-bottom, 0px));
   padding: 4px;
   border-radius: var(--radius-pill);
   background: var(--color-surface);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-pop);
 }
 
 .item,
@@ -20,10 +20,11 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  font-family: var(--font-body);
+  font-family: var(--font-display);
+  overflow: hidden;
   /* Six tabs (a coach) must stay one word per line on a phone: shrink the text with the screen instead of breaking words. */
   font-size: 11px;
-  font-size: clamp(9px, 2.75vw, 12px);
+  font-size: clamp(8.5px, 2.65vw, 12.5px);
   font-weight: 500;
   text-align: center;
   white-space: nowrap;

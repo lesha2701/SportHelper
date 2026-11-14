@@ -1,7 +1,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(3, 4, 6, 0.6);
+  background: var(--color-scrim);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -87,7 +87,7 @@
 }
 
 .dangerButton {
-  color: #ffffff;
+  color: var(--color-on-fill);
   background: var(--color-primary-fill);
 }
 
