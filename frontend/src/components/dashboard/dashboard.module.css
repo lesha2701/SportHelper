@@ -45,53 +45,6 @@
   color: var(--color-text);
 }
 
-.nextEventCard {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: var(--control-height);
-  padding: 16px 20px;
-  background: var(--color-ink-soft);
-  border: none;
-  border-radius: var(--radius-lg);
-  color: var(--color-text);
-  cursor: pointer;
-  text-align: left;
-  font: inherit;
-  transition: transform var(--transition-fast);
-}
-
-.nextEventCard:hover {
-  transform: translateY(-2px);
-}
-
-.nextEventText {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.nextEventLabel {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
-.nextEventTitle {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 500;
-  color: var(--color-text);
-}
-
-.nextEventMeta {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
 .emptyHint {
   margin: 0;
   padding: 12px 4px;
@@ -159,21 +112,6 @@
 .chip:active,
 .chipActive:active {
   transform: scale(0.97);
-}
-
-.recommendationCard {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 16px 20px;
-  background: var(--color-ink-soft);
-  border: none;
-  border-radius: var(--radius-lg);
-  color: var(--color-link);
-  cursor: pointer;
-  text-align: left;
-  font: inherit;
 }
 
 .quickAction {
@@ -269,9 +207,6 @@
 }
 
 @media (min-width: 900px) {
-  .span3 {
-    grid-column: span 3;
-  }
   .span4 {
     grid-column: span 4;
   }

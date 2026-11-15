@@ -203,18 +203,6 @@
   color: var(--color-text-secondary);
 }
 
-.priceValueRow {
-  display: flex;
-  justify-content: space-between;
-}
-
-.priceValue {
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--color-text);
-}
-
 .priceSlider {
   width: 100%;
   accent-color: var(--color-link);
@@ -351,51 +339,6 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 20px;
-  }
-}
-
-.filterBar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 16px;
-  padding-bottom: 0;
-}
-
-.filterInput {
-  font: inherit;
-  font-size: 13.5px;
-  padding: 8px 12px;
-  border-radius: var(--radius-pill);
-  border: 1px solid transparent;
-  background: var(--color-surface-alt);
-  color: var(--color-text);
-  flex: 1;
-  min-width: 100px;
-  min-height: var(--field-height);
-}
-
-@media (min-width: 900px) {
-  .filterBar {
-    padding: 0 0 24px;
-    gap: 12px;
-    flex-wrap: nowrap;
-  }
-
-  .filterInput {
-    font-size: 14px;
-    padding: 12px 16px;
-    border-radius: var(--radius-md);
-    background: var(--color-surface-alt);
-    border-color: transparent;
-    flex: 1 1 220px;
-    min-width: 0;
-  }
-
-  .filterInput:focus {
-    background: var(--color-surface);
-    border-color: var(--color-primary);
-    outline: none;
   }
 }
 
@@ -787,21 +730,6 @@
   display: flex;
   gap: 8px;
   flex-shrink: 0;
-}
-
-.pendingCountBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: var(--radius-pill);
-  background: var(--color-primary-fill);
-  color: var(--color-on-fill);
-  font-size: 12px;
-  font-weight: 700;
-  margin-left: auto;
 }
 
 .listingCardPhoto {

@@ -535,11 +535,6 @@
   color: var(--color-link);
 }
 
-.legalDate {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
 @media (min-width: 720px) {
   .brandName {
     display: inline;

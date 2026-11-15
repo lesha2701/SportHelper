@@ -182,21 +182,6 @@
   }
 }
 
-.heroIdentity {
-  position: relative;
-  overflow: hidden;
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  color: var(--color-text);
-  padding: 28px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  text-align: center;
-  border: none;
-}
-
 .heroRingWrap {
   position: relative;
   width: 120px;
@@ -368,36 +353,6 @@
   color: var(--color-text-secondary);
 }
 
-.modePill {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px;
-  padding: 3px;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-}
-
-.modePillOption,
-.modePillOptionActive {
-  padding: 10px 0;
-  text-align: center;
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 600;
-  border-radius: var(--radius-pill);
-  border: none;
-  cursor: pointer;
-  background: none;
-  color: var(--color-text-secondary);
-  min-height: var(--control-height);
-}
-
-.modePillOptionActive {
-  background: var(--color-graphite);
-  color: var(--color-inverse-text);
-}
-
 .goalCard {
   min-width: 0;
   border-radius: var(--radius-lg);
@@ -448,17 +403,6 @@
   font-size: 20px;
   font-weight: 500;
   color: var(--color-text);
-}
-
-.factsCardEdit {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-link);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  min-height: var(--control-height);
 }
 
 .factsGrid {
@@ -635,25 +579,6 @@
   gap: 12px;
 }
 
-.settingsButton {
-  margin-left: auto;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--control-height);
-  height: var(--control-height);
-  border-radius: 50%;
-  color: var(--color-text);
-  background: var(--color-surface-alt);
-  border: none;
-  cursor: pointer;
-}
-
-.settingsButton:active {
-  transform: scale(0.94);
-}
-
 .toggleRow {
   display: flex;
   align-items: center;
@@ -723,21 +648,6 @@
   border-radius: 50%;
   object-fit: cover;
   background: var(--color-surface-alt);
-  flex-shrink: 0;
-}
-
-.avatarPlaceholder {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--color-ink-soft);
-  color: var(--color-link);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 500;
   flex-shrink: 0;
 }
 
