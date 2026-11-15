@@ -52,6 +52,8 @@
 
 .dots {
   display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
   gap: 6px;
   margin: 0;
   padding: 0;
@@ -59,7 +61,8 @@
 }
 
 .dot {
-  width: 28px;
+  flex: 0 1 28px;
+  min-width: 6px;
   height: 4px;
   border-radius: 4px;
   background: var(--color-border-strong);

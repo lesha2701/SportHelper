@@ -183,6 +183,13 @@
   gap: 12px;
 }
 
+.labelRow .link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  margin-block: -12px;
+}
+
 .label {
   font-size: 13px;
   font-weight: 500;
