@@ -141,6 +141,27 @@ def test_overlapping_availability_windows_rejected(logged_in_client) -> None:
     )
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "overlapping_availability"
+    # The message names the day and both windows and says what to do (it was the bare English «availability windows overlap»).
+    assert resp.json()["error"]["message"] == (
+        "В понедельник два окна расписания пересекаются (10:00–12:00 и 11:00–13:00). Объедините их в одно или измените время."
+    )
+
+
+def test_overlap_message_uses_the_right_weekday_form(logged_in_client) -> None:
+    client, token = logged_in_client
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token)
+    listing = client.post("/api/coach-listings", headers=headers, json=_listing_payload()).json()
+    resp = client.put(
+        f"/api/coach-listings/{listing['id']}/availability",
+        headers=headers,
+        json=[
+            {"weekday": 1, "start_time": "09:00:00", "end_time": "10:00:00"},
+            {"weekday": 1, "start_time": "09:00:00", "end_time": "10:00:00"},
+        ],
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["message"].startswith("Во вторник два окна")
 
 
 def test_other_coach_cannot_see_or_edit_a_listing_they_do_not_own(logged_in_client, login_as) -> None:

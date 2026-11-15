@@ -353,6 +353,15 @@ def test_confirmed_booking_appears_in_coach_calendar_and_is_viewable(logged_in_c
         events = client.get("/api/calendar", params=params, headers=headers).json()
         assert [e["id"] for e in events if e["type"] == "training"] == [confirmed["training_id"]]
 
+    # Each side sees whom the session is with, not "a personal training".
+    coach_title = next(e["title"] for e in client.get("/api/calendar", params=params, headers=coach_headers).json() if e["type"] == "training")
+    athlete_title = next(
+        e["title"] for e in client.get("/api/calendar", params=params, headers={"Authorization": f"Bearer {athlete_token}"}).json() if e["type"] == "training"
+    )
+    assert coach_title == "Сессия с Booked Athlete"
+    assert athlete_title.startswith("Занятие с тренером ") and len(athlete_title) > len("Занятие с тренером ")
+    assert "Личная" not in athlete_title
+
     # The coach can open it (read-only), but not edit the athlete's training.
     assert client.get(f"/api/trainings/{confirmed['training_id']}", headers=coach_headers).status_code == 200
     put = client.delete(f"/api/trainings/{confirmed['training_id']}", headers=coach_headers)

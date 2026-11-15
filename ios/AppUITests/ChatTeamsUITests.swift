@@ -103,8 +103,13 @@ final class ChatTeamsUITests: SignedInUITestCase {
         XCTAssertTrue(nameField.waitForExistence(timeout: 5))
         nameField.tap()
         nameField.typeText(name)
-        app.textFields["teamForm.sport"].tap()
-        app.textFields["teamForm.sport"].typeText("Футбол")
+        // The sport is chosen from the list (the same one as in the profile), not typed.
+        let sport = app.buttons["teamForm.sport"]
+        XCTAssertTrue(sport.waitForExistence(timeout: 5), "the sport is not a choice from a list")
+        sport.tap()
+        let football = app.buttons["Футбол"]
+        XCTAssertTrue(football.waitForExistence(timeout: 5), "the list of sports has no football")
+        football.tap()
         app.buttons["teamForm.save"].tap()
 
         XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 15), "the new team is not in the list")

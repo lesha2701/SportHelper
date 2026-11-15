@@ -92,6 +92,22 @@ struct HomeLogicTests {
         #expect(HomeLogic.nextEvent(in: [events[0], events[1], events[2]], today: today) == nil)
     }
 
+    @Test func whatIsComingThisWeekStopsAtSundayAndSkipsWhatIsOver() {
+        let sunday = today.startOfWeek.adding(days: 6)
+        let events = [
+            event("Сегодня", today, LocalTime(hour: 23, minute: 0)),
+            event("В воскресенье", sunday, nil),
+            event("Проведена", today, LocalTime(hour: 8, minute: 0), status: "completed"),
+            event("Отменена", sunday, LocalTime(hour: 9, minute: 0), status: "cancelled"),
+            event("Следующая неделя", sunday.adding(days: 1), nil),
+            event("Вчера", today.adding(days: -1), nil),
+        ]
+        let titles = HomeLogic.comingThisWeek(events, today: today).map(\.title)
+        #expect(Set(titles) == ["Сегодня", "В воскресенье"])
+        #expect(HomeLogic.comingThisWeek(events, today: today).count <= HomeLogic.upcoming(events, today: today).count)
+        #expect(HomeLogic.comingThisWeek([], today: today).isEmpty)
+    }
+
     @Test func theWeekIsMondayToSundayWithEachDaysEventsInOrder() {
         // the helper's «today» is some day; the week around it starts on Monday
         let monday = today.startOfWeek

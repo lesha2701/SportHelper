@@ -16,12 +16,32 @@ final class HomeUITests: SignedInUITestCase {
     func testACoachSeesTheNumbersOfTheTeamAndCanStartSomething() throws {
         try launchSignedIn()
         guard app.staticTexts["Тренерская панель"].waitForExistence(timeout: 10) else { throw XCTSkip("This needs a coach account.") }
+        if element("home.createTeam").waitForExistence(timeout: 5) { throw XCTSkip("This needs a coach who is in a team.") }
         XCTAssertTrue(app.staticTexts["Посещаемость"].waitForExistence(timeout: 15), "no attendance tile")
         XCTAssertTrue(element("stats.tile").exists)
         XCTAssertTrue(app.staticTexts["Нагрузка команды"].exists || app.staticTexts["Требуют внимания"].exists)
         scrollUntilVisible(element("home.quick.task"))
         element("home.quick.task").tap()
         XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 10), "the task form did not open")
+    }
+
+    /// A coach who has no team yet gets the same home as on the site: the nearest event, the week, three numbers of their own.
+    func testACoachWithoutATeamSeesTheirWeekAndNumbersNotAnEmptyScreen() throws {
+        try launchSignedIn()
+        guard app.staticTexts["Тренерская панель"].waitForExistence(timeout: 10) else { throw XCTSkip("This needs a coach account.") }
+        // a coach with a team has the team's numbers (attendance); this test is for the one who has none
+        if app.staticTexts["Посещаемость"].waitForExistence(timeout: 12) { throw XCTSkip("This needs a coach who is not in a team.") }
+        XCTAssertFalse(app.staticTexts["Пока нет команд"].exists, "the empty screen is back")
+        XCTAssertTrue(element("home.next").exists || element("home.noEvents").exists, "the nearest event (or the note that there is none) is missing")
+        for label in ["Занятий на этой неделе", "Событий в ближайшие 2 недели", "Новых заявок"] {
+            let tile = app.staticTexts[label]
+            scrollUntilVisible(tile, attempts: 4)
+            XCTAssertTrue(tile.exists, "no «\(label)» number")
+        }
+        scrollUntilVisible(element("home.weekDay"))
+        XCTAssertTrue(element("home.weekDay").exists, "no «Эта неделя»")
+        scrollUntilVisible(element("home.createTeam"))
+        XCTAssertTrue(element("home.createTeam").isHittable, "starting a team must stay one tap away")
     }
 
     func testAPlayerSeesTheirTasksAndOpensOne() throws {

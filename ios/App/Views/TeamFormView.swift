@@ -37,6 +37,10 @@ struct TeamFormView: View {
         if homeVenue.count > TeamInput.maxHomeVenue { return "Площадка не длиннее \(TeamInput.maxHomeVenue) символов." }
         return nil
     }
+    /// The common sports, plus the team's own value when an older team holds one that is not on the list.
+    private var sportOptions: [String] {
+        CommonSports.all + (sport.isEmpty || CommonSports.all.contains(sport) ? [] : [sport])
+    }
     private var isCreate: Bool { if case .create = mode { true } else { false } }
 
     var body: some View {
@@ -44,7 +48,11 @@ struct TeamFormView: View {
             Form {
                 Section {
                     TextField("Название", text: $name).accessibilityIdentifier("teamForm.name")
-                    TextField("Вид спорта", text: $sport).accessibilityIdentifier("teamForm.sport")
+                    Picker("Вид спорта", selection: $sport) {
+                        if sport.isEmpty { Text("Выберите").tag("") }
+                        ForEach(sportOptions, id: \.self) { Text($0).tag($0) }
+                    }
+                    .accessibilityIdentifier("teamForm.sport")
                     TextField("Возрастная группа (необязательно)", text: $age)
                     Picker("Уровень", selection: $level) {
                         Text("Не указан").tag(TeamLevel?.none)

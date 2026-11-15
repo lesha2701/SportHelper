@@ -99,6 +99,9 @@ public struct WorkoutRow: Equatable, Identifiable, Sendable {
     public var name: String { exercise.trimmingCharacters(in: .whitespacesAndNewlines) }
     public var isNamed: Bool { !name.isEmpty }
 
+    /// Any number of the plan is filled in (a row that is more than the empty line the form starts with).
+    var hasPlan: Bool { reps != nil || sets != nil || durationSeconds != nil || distanceMeters != nil || timeMinutes != nil }
+
     private static func positive(_ value: Int?) -> Int? { (value ?? 0) > 0 ? value : nil }
 
     /// "Приседания — 3 подх. x 15 повт.", "Планка — 3 подх. x 45 сек", "Бег — 3000 м x 900 сек": the plan with its units, as the site
@@ -147,6 +150,12 @@ public struct PersonalWorkout: Equatable, Sendable {
 
     public var hasExercises: Bool { rows.contains(where: \.isNamed) }
 
+    /// The rows that must get a name. Every exercise on the list needs one; the form starts with one empty line, which is fine while it is
+    /// untouched (a training without exercises), but a line with numbers and no name, or any empty line beside others, is not.
+    public var unnamedRowIDs: Set<UUID> {
+        Set(rows.filter { !$0.isNamed && (rows.count > 1 || $0.hasPlan) }.map(\.id))
+    }
+
     public mutating func addRow() { rows.append(WorkoutRow()) }
 
     /// The last row cannot be removed: the form always has a line to type in.
@@ -174,6 +183,7 @@ public struct PersonalWorkout: Equatable, Sendable {
 
     /// What is wrong with the exercises (Russian, for the form), or nil.
     public var problem: String? {
+        if !unnamedRowIDs.isEmpty { return "Укажите название каждого упражнения или уберите лишние строки." }
         if rows.contains(where: { $0.name.count > WorkoutRow.nameLimit }) { return "Название упражнения не длиннее \(WorkoutRow.nameLimit) знаков." }
         if notes.trimmingCharacters(in: .whitespacesAndNewlines).count > Self.notesLimit { return "Пометки не длиннее \(Self.notesLimit) знаков." }
         if style == .circuit {

@@ -17,6 +17,7 @@ import { checkVideo, usePreviewUrl } from "../shared/pendingMedia";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { AuthenticatedVideo } from "../shared/AuthenticatedVideo";
 import type { AvailabilityWindow, CoachListing } from "../../types/coachListing";
+import { overlapMessage } from "./scheduleOverlap";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
@@ -108,6 +109,8 @@ export function ListingEditScreen({
         return "В расписании время окончания должно быть позже времени начала.";
       }
     }
+    const overlap = overlapMessage(windows);
+    if (overlap) return overlap;
     if (isListed) {
       if (!(offersOnline || offersOffline)) return "Выберите формат тренировки (онлайн или очно), чтобы опубликовать объявление.";
       if (!price) return "Укажите цену, чтобы опубликовать объявление.";

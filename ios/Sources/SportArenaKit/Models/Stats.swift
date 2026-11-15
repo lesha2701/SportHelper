@@ -178,6 +178,12 @@ public enum HomeLogic {
         }
     }
 
+    /// What is still to come before the week `today` is in ends (Sunday): the «Занятий на этой неделе» number of a coach without a team.
+    public static func comingThisWeek(_ events: [CalendarEvent], today: LocalDate) -> [CalendarEvent] {
+        let last = today.startOfWeek.adding(days: 6)
+        return upcoming(events, today: today).filter { $0.date <= last }
+    }
+
     /// The seven days (Monday to Sunday) of the week `today` is in, each with its events: the soonest first, an entry without a time first.
     public static func week(_ events: [CalendarEvent], today: LocalDate) -> [WeekDay] {
         let byDay = Dictionary(grouping: events, by: \.date)

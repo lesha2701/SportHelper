@@ -41,6 +41,17 @@ def _personal_title(description: str | None) -> str:
     return f"Личная: {shown}" + (f" и ещё {len(names) - 2}" if len(names) > 2 else "")
 
 
+def _training_title(t: dict) -> str:
+    """What the calendar calls a training. A session booked with a coach says so on both sides: the coach sees the athlete's
+    name, the athlete sees the coach's — it is not "a personal training" the athlete can rearrange."""
+    if t.get("booked_athlete_name"):
+        return f"Сессия с {t['booked_athlete_name']}"
+    if t.get("is_booked_with_coach"):
+        coach = t.get("booked_coach_name")
+        return f"Занятие с тренером {coach}" if coach else "Занятие с тренером"
+    return _personal_title(t.get("description")) if t["type"] == "personal" else _TRAINING_TITLES[t["type"]]
+
+
 @router.get("", response_model=list[CalendarEventOut])
 async def get_calendar(
     date_from: date = Query(...),
@@ -65,11 +76,7 @@ async def get_calendar(
                 type="training",
                 date=t["training_date"],
                 time=t["start_time"],
-                title=(
-                    f"Сессия с {t['booked_athlete_name']}"
-                    if t.get("booked_athlete_name")
-                    else (_personal_title(t.get("description")) if t["type"] == "personal" else _TRAINING_TITLES[t["type"]])
-                ),
+                title=_training_title(t),
                 team_id=t["team_id"],
                 team_name=t["team_name"],
                 status=t["status"],

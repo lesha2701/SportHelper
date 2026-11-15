@@ -147,16 +147,21 @@ async def list_calendar_trainings(
 ) -> list[dict[str, Any]]:
     """Trainings on this user's calendar: their own personal ones, their
     teams' ones, and — for coaches — the personal sessions athletes booked
-    with them (`booked_athlete_name` is set for those)."""
+    with them (`booked_athlete_name` is set for those). The athlete's own session
+    booked with a coach carries that coach's name in `booked_coach_name`."""
     rows = await conn.fetch(
         """
         SELECT t.id, t.type, t.training_date, t.start_time, t.status, t.team_id, tm.name AS team_name, t.description,
                CASE WHEN bk.id IS NOT NULL
-                    THEN au.first_name || COALESCE(' ' || au.last_name, '') END AS booked_athlete_name
+                    THEN au.first_name || COALESCE(' ' || au.last_name, '') END AS booked_athlete_name,
+               ab.id IS NOT NULL AS is_booked_with_coach,
+               cp.full_name AS booked_coach_name
         FROM trainings t
         LEFT JOIN teams tm ON tm.id = t.team_id
         LEFT JOIN bookings bk ON bk.training_id = t.id AND bk.coach_user_id = $1 AND bk.status = 'confirmed'
         LEFT JOIN users au ON au.id = bk.athlete_user_id
+        LEFT JOIN bookings ab ON ab.training_id = t.id AND ab.athlete_user_id = $1 AND ab.status = 'confirmed'
+        LEFT JOIN coach_profiles cp ON cp.user_id = ab.coach_user_id
         WHERE t.deleted_at IS NULL
           AND t.training_date BETWEEN $2 AND $3
           AND (
