@@ -541,6 +541,14 @@
   transform: scale(0.96);
 }
 
+@media (max-width: 400px) {
+  .iconButton {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+  }
+}
+
 .navRow {
   display: flex;
   align-items: center;

@@ -114,16 +114,13 @@ export function NotificationsScreen({
         </div>
       )}
 
-      {state.status === "ready" &&
-        state.items.map((item) => (
+      {state.status === "ready" && state.items.length > 0 && (
+        <div className={`${profileStyles.card} ${styles.list}`}>
+        {state.items.map((item) => (
           <button
             key={item.id}
             type="button"
-            className={
-              item.readAt
-                ? `${profileStyles.card} ${styles.notificationCard}`
-                : `${profileStyles.card} ${styles.notificationCard} ${styles.notificationCardUnread}`
-            }
+            className={item.readAt ? styles.notificationCard : `${styles.notificationCard} ${styles.notificationCardUnread}`}
             onClick={() => handleOpen(item)}
           >
             <div className={styles.notificationTop}>
@@ -141,6 +138,8 @@ export function NotificationsScreen({
             </div>
           </button>
         ))}
+        </div>
+      )}
     </div>
   );
 }

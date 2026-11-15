@@ -201,7 +201,7 @@ export function CoachDashboard({
           )}
         </div>
 
-        <div className={`${styles.card} ${styles.span8}`}>
+        <div className={`${styles.card} ${styles.span12}`}>
           <WeekOverview weekDays={weekDays} events={events} today={today} onOpenEvent={onOpenEvent} />
         </div>
 
@@ -227,36 +227,6 @@ export function CoachDashboard({
                 </div>
               ))}
             </div>
-          )}
-        </div>
-
-        <div className={`${styles.card} ${styles.span5}`}>
-          <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Нагрузка команды</h3>
-          </div>
-          {statsState.status === "ready" ? (
-            <div className={styles.workloadGrid}>
-              <div className={styles.workloadTile}>
-                <span className={styles.workloadValue}>{statsState.stats.trainingsCompleted}</span>
-                <span className={styles.workloadLabel}>Тренировок проведено</span>
-              </div>
-              <div className={styles.workloadTile}>
-                <span className={styles.workloadValue}>
-                  {statsState.stats.tasksCompleted}/{statsState.stats.tasksTotal}
-                </span>
-                <span className={styles.workloadLabel}>Заданий выполнено</span>
-              </div>
-              <div className={styles.workloadTile}>
-                <span className={styles.workloadValue}>{statsState.stats.avgDifficulty ?? "—"}</span>
-                <span className={styles.workloadLabel}>Средняя сложность</span>
-              </div>
-              <div className={styles.workloadTile}>
-                <span className={styles.workloadValue}>{statsState.stats.avgWellbeing ?? "—"}</span>
-                <span className={styles.workloadLabel}>Самочувствие</span>
-              </div>
-            </div>
-          ) : (
-            <p className={styles.emptyHint}>Загрузка…</p>
           )}
         </div>
 
@@ -297,7 +267,37 @@ export function CoachDashboard({
           )}
         </div>
 
-        <div className={`${styles.quickTileCol} ${styles.span3}`}>
+        <div className={`${styles.card} ${styles.span4}`}>
+          <div className={styles.cardHeader}>
+            <h3 className={styles.cardTitle}>Нагрузка команды</h3>
+          </div>
+          {statsState.status === "ready" ? (
+            <div className={styles.workloadGrid}>
+              <div className={styles.workloadTile}>
+                <span className={styles.workloadValue}>{statsState.stats.trainingsCompleted}</span>
+                <span className={styles.workloadLabel}>Тренировок проведено</span>
+              </div>
+              <div className={styles.workloadTile}>
+                <span className={styles.workloadValue}>
+                  {statsState.stats.tasksCompleted}/{statsState.stats.tasksTotal}
+                </span>
+                <span className={styles.workloadLabel}>Заданий выполнено</span>
+              </div>
+              <div className={styles.workloadTile}>
+                <span className={styles.workloadValue}>{statsState.stats.avgDifficulty ?? "—"}</span>
+                <span className={styles.workloadLabel}>Средняя сложность</span>
+              </div>
+              <div className={styles.workloadTile}>
+                <span className={styles.workloadValue}>{statsState.stats.avgWellbeing ?? "—"}</span>
+                <span className={styles.workloadLabel}>Самочувствие</span>
+              </div>
+            </div>
+          ) : (
+            <p className={styles.emptyHint}>Загрузка…</p>
+          )}
+        </div>
+
+        <div className={`${styles.quickTileCol} ${styles.quickTileRow} ${styles.span12}`}>
           <button type="button" className={styles.quickTile} onClick={onCreateTraining}>
             <span className={styles.quickTileIcon}>
               <Icon name="dumbbell" size={18} />
