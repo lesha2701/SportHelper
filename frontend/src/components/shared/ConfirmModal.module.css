@@ -63,7 +63,8 @@
 
 .actions {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-top: 12px;
 }
@@ -71,7 +72,6 @@
 .confirmButton,
 .dangerButton,
 .cancelButton {
-  width: 100%;
   min-height: var(--control-height);
   padding: 0 20px;
   font: 600 14px/1.2 var(--font-body);
@@ -87,13 +87,17 @@
 }
 
 .dangerButton {
-  color: var(--color-on-fill);
-  background: var(--color-primary-fill);
+  color: var(--color-danger-text);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-danger);
 }
 
-.confirmButton:hover:not(:disabled),
-.dangerButton:hover:not(:disabled) {
+.confirmButton:hover:not(:disabled) {
   background: var(--color-primary-fill-hover);
+}
+
+.dangerButton:hover:not(:disabled) {
+  background: var(--color-danger-bg);
 }
 
 .cancelButton {

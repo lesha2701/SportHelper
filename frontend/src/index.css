@@ -347,7 +347,7 @@ button.ui-card:hover {
 
 .ui-badge-ink {
   background: var(--color-ink-soft);
-  color: var(--color-link);
+  color: var(--color-ink);
 }
 
 .ui-tabs {
@@ -454,6 +454,149 @@ textarea.ui-input {
   padding: 14px 12px 14px 0;
   border-top: 1px solid var(--color-border);
   vertical-align: middle;
+}
+
+.ui-btn-lg {
+  min-height: 52px;
+  padding: 0 26px;
+  font-size: 15px;
+}
+
+.ui-btn-sm {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.ui-btn-block {
+  width: 100%;
+}
+
+.ui-link {
+  color: var(--color-link);
+  font-weight: 600;
+}
+
+.ui-link:hover {
+  text-decoration: underline;
+}
+
+.ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ui-hint {
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.ui-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--color-ink-soft);
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.ui-notice-ok {
+  background: var(--color-success-bg);
+}
+
+.ui-notice-warn {
+  background: var(--color-warning-bg);
+}
+
+.ui-notice-bad {
+  background: var(--color-danger-bg);
+}
+
+.ui-skeleton {
+  height: 14px;
+  border-radius: 7px;
+  background: var(--color-surface-alt);
+}
+
+.ui-toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--color-graphite);
+  color: var(--color-inverse-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ui-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+}
+
+.ui-seg > button {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-text-secondary);
+  font: 500 14px/1.2 var(--font-body);
+  cursor: pointer;
+}
+
+.ui-seg > button[aria-pressed="true"],
+.ui-seg > button.is-active {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+}
+
+.ui-switch {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+  cursor: pointer;
+}
+
+.ui-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-text-secondary);
+  transition: transform var(--transition-fast);
+}
+
+.ui-switch[aria-checked="true"] {
+  background: var(--color-primary-fill);
+  box-shadow: none;
+}
+
+.ui-switch[aria-checked="true"]::after {
+  transform: translateX(18px);
+  background: #fff;
 }
 
 @media (max-width: 760px) {
