@@ -502,9 +502,11 @@ export function TaskDetail({
                 </div>
               )}
 
-              <button type="button" className={profileStyles.buttonPrimary} onClick={() => void handleSubmit()} disabled={busy}>
-                {myAssignment.status === "needs_revision" ? "Отправить повторно" : "Отметить выполненным"}
-              </button>
+              <div className={profileStyles.formActions}>
+                <button type="button" className={profileStyles.buttonPrimary} onClick={() => void handleSubmit()} disabled={busy}>
+                  {myAssignment.status === "needs_revision" ? "Отправить повторно" : "Отметить выполненным"}
+                </button>
+              </div>
             </>
           )}
         </div>
