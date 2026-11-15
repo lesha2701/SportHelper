@@ -116,7 +116,7 @@ export function TaskTemplateDetail({
         Чтобы назначить это задание команде, откройте вкладку «Задания» внутри нужной команды и выберите «Добавить задание из библиотеки».
       </p>
 
-      <div className={profileStyles.card}>
+      <div className={`${profileStyles.card} ${profileStyles.actionsCard}`}>
         <button type="button" className={profileStyles.buttonPrimary} onClick={() => onEdit(template)}>
           Редактировать
         </button>

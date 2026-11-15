@@ -233,7 +233,7 @@ export function PlanDetail({
                 key={team.id}
                 type="button"
                 className={shared ? styles.badge : styles.iconButton}
-                style={{ marginRight: 8, marginBottom: 8 }}
+                style={{ marginRight: 8, marginBottom: 8, minHeight: "var(--control-height)", padding: "0 16px", borderRadius: "var(--radius-pill)" }}
                 onClick={() => void toggleShare(team.id, shared)}
                 disabled={busy}
               >
@@ -246,7 +246,7 @@ export function PlanDetail({
       )}
 
       {isOwner && (
-        <div className={profileStyles.card}>
+        <div className={`${profileStyles.card} ${profileStyles.actionsCard}`}>
           <button type="button" className={profileStyles.buttonPrimary} onClick={() => onEdit?.(plan)}>
             Редактировать план
           </button>
