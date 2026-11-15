@@ -16,20 +16,17 @@ const props = {
   onOpenProfile: () => {},
 };
 
-describe("the admin button in the side navigation", () => {
+describe("the admin button in the side navigation (moved to the profile)", () => {
   it("is absent for everyone the server has not marked as an administrator", () => {
     render(<SideNav {...props} />);
 
     expect(screen.queryByRole("button", { name: "Админ-панель" })).toBeNull();
   });
 
-  it("opens the panel for an administrator", () => {
-    const open = vi.fn();
-    render(<SideNav {...props} onOpenAdmin={open} />);
+  it("is not in the header even for an administrator: the panel is opened from the profile list", () => {
+    render(<SideNav {...props} onOpenAdmin={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Админ-панель" }));
-
-    expect(open).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Админ-панель" })).toBeNull();
   });
 });
 

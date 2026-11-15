@@ -292,7 +292,7 @@
   transform: scale(0.97);
 }
 
-/* The label is read by screen readers always, and shown beside the icon where the header has room. */
+/* The finance button is only the wallet icon; the label is for screen readers. */
 .financeLabel {
   position: absolute;
   width: 1px;
@@ -302,17 +302,3 @@
   white-space: nowrap;
 }
 
-@media (min-width: 1360px) {
-  .financeButton {
-    width: auto;
-    padding: 0 18px;
-  }
-
-  .financeLabel {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip-path: none;
-  }
-}

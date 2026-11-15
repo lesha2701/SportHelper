@@ -29,7 +29,7 @@ interface SideNavProps<T extends string> {
   onOpenProfile: () => void;
   /** The gear next to the user row: opens the profile settings directly. */
   onOpenSettings?: () => void;
-  /** Present only for administrators (the server says who they are): opens /admin. */
+  /** Kept for callers; the admin panel is opened from the profile list, not from the header. */
   onOpenAdmin?: () => void;
 }
 
@@ -37,7 +37,7 @@ interface SideNavProps<T extends string> {
  * AppShell keeps it mounted even while an overlay/detail screen is open, unlike the mobile bottom bar. Also carries the
  * brand mark, an optional primary-team switcher chip and the signed-in user (avatar + settings). The root vanishes
  * (display: contents) so the header can lay everything out in one row together with the TopBar buttons. */
-export function SideNav<T extends string>({ items, active, onChange, team, onOpenTeam, user, onOpenProfile, onOpenSettings, onOpenAdmin }: SideNavProps<T>) {
+export function SideNav<T extends string>({ items, active, onChange, team, onOpenTeam, user, onOpenProfile, onOpenSettings }: SideNavProps<T>) {
   return (
     <div className={styles.root}>
       <div className={styles.brandRow}>
@@ -61,12 +61,6 @@ export function SideNav<T extends string>({ items, active, onChange, team, onOpe
             </button>
           );
         })}
-        {onOpenAdmin && (
-          <button type="button" className={styles.item} onClick={onOpenAdmin}>
-            <Icon name="shield" size={16} strokeWidth={1.8} />
-            <span className={styles.itemLabel}>Админ-панель</span>
-          </button>
-        )}
       </nav>
 
       {team && (
