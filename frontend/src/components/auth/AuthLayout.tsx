@@ -13,7 +13,7 @@ const POINTS: { icon: IconName; text: string }[] = [
 
 /** The shared frame of every sign-in / sign-up screen: a plain brand panel
  * (collapsed to a slim bar on phones) next to the form card. */
-export function AuthLayout({ title, lead, children }: { title: string; lead?: ReactNode; children: ReactNode }) {
+export function AuthLayout({ title, lead, wide, children }: { title: string; lead?: ReactNode; wide?: boolean; children: ReactNode }) {
   return (
     <div className={styles.page}>
       <aside className={styles.brand}>
@@ -47,7 +47,7 @@ export function AuthLayout({ title, lead, children }: { title: string; lead?: Re
       </aside>
 
       <main className={styles.main}>
-        <div className={styles.card}>
+        <div className={wide ? `${styles.card} ${styles.cardWide}` : styles.card}>
           <h1 className={styles.title}>{title}</h1>
           {lead && <p className={styles.lead}>{lead}</p>}
           {children}

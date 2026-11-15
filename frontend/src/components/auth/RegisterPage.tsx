@@ -120,7 +120,7 @@ export function RegisterPage() {
   };
 
   return (
-    <AuthLayout title="Создать аккаунт" lead="Выберите роль, заполните данные и отметьте согласия.">
+    <AuthLayout wide title="Создать аккаунт" lead="Выберите роль, заполните данные и отметьте согласия.">
       <form className={styles.form} onSubmit={submit} noValidate>
         {formError && <Notice kind="danger">{formError}</Notice>}
 
