@@ -360,6 +360,15 @@
   font-weight: 500;
 }
 
+.personAvatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--color-ink-soft);
+  color: var(--color-ink);
+  font-size: 22px;
+}
+
 .teamAvatarImg {
   width: 100%;
   height: 100%;

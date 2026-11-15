@@ -23,6 +23,13 @@
   }
 }
 
+/* A screen shown on its own, without the header (a team invite): keep it clear of the top edge. */
+@media (min-width: 900px) {
+  .standalone {
+    padding-top: 84px;
+  }
+}
+
 /* Profile tab hub only: a 380px identity column (dark hero card, mode
    switcher, goal/about card) next to a flexible column for the facts
    card and the action row list — matches the redesign's Profile frame. */

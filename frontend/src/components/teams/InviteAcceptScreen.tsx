@@ -47,7 +47,7 @@ export function InviteAcceptScreen({
 
   if (state.status === "done") {
     return (
-      <div className={profileStyles.screen}>
+      <div className={`${profileStyles.screen} ${profileStyles.standalone}`}>
         <div className={profileStyles.card}>
           <h1 className={profileStyles.pageHeading}>
             {state.result === "joined" ? "Вы присоединились к команде!" : "Заявка отправлена"}
@@ -85,7 +85,7 @@ export function InviteAcceptScreen({
 
   if (team.myRole) {
     return (
-      <div className={profileStyles.screen}>
+      <div className={`${profileStyles.screen} ${profileStyles.standalone}`}>
         <div className={profileStyles.card}>
           <h1 className={profileStyles.pageHeading}>Вы уже в этой команде</h1>
           <button type="button" className={profileStyles.buttonPrimary} onClick={() => onDone()}>
@@ -97,7 +97,7 @@ export function InviteAcceptScreen({
   }
 
   return (
-    <div className={profileStyles.screen}>
+    <div className={`${profileStyles.screen} ${profileStyles.standalone}`}>
       <div className={profileStyles.card}>
         <h1 className={profileStyles.title}>{team.name}</h1>
         {team.description && <p className={profileStyles.subtitle}>{team.description}</p>}

@@ -71,7 +71,7 @@ export function PlayerProfileView({
       {state.status === "ready" && (
         <div className={profileStyles.card}>
           <div className={styles.teamCardRow}>
-            <div className={styles.teamAvatar}>{displayName.trim().charAt(0).toUpperCase() || "?"}</div>
+            <div className={`${styles.teamAvatar} ${styles.personAvatar}`}>{displayName.trim().charAt(0).toUpperCase() || "?"}</div>
             <div className={styles.teamNameCol}>
               <h1 className={profileStyles.title}>{state.profile.fullName}</h1>
               <p className={profileStyles.subtitle} style={{ margin: 0 }}>
