@@ -75,6 +75,7 @@ export function AttendanceScreen({
         <p className={styles.teamMeta}>Нажмите на игрока, чтобы отметить отсутствие. Остальные считаются присутствовавшими.</p>
       )}
 
+      <div className={`${profileStyles.card} ${trainingStyles.attendanceList}`}>
       {state.attendance.map((a) => (
         <button
           key={a.userId}
@@ -95,6 +96,7 @@ export function AttendanceScreen({
           </span>
         </button>
       ))}
+      </div>
 
       {canEdit && (
         <>

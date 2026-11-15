@@ -534,7 +534,7 @@ export function TrainingDetail({
           <div className={styles.teamCardTop}>
             <h2 className={profileStyles.title}>Упражнения</h2>
             {!isBookedCoachViewer && (
-              <button type="button" className={profileStyles.buttonPrimary} style={{ flex: "0 0 auto", width: "auto", padding: "8px 16px" }} onClick={() => setSessionActive(true)}>
+              <button type="button" className={profileStyles.buttonPrimary} style={{ flex: "0 1 auto", width: "auto", padding: "0 16px", minHeight: "var(--control-height)" }} onClick={() => setSessionActive(true)}>
                 <Icon name="clock" size={15} />
                 {hasWorkoutDraft(training.id) ? "Продолжить тренировку" : workout ? "Тренироваться снова" : "Начать тренировку"}
               </button>
@@ -603,7 +603,7 @@ export function TrainingDetail({
       )}
 
       {(training.type === "team" || training.type === "independent") && happened && !(justCompleted && canMarkAttendance) && (
-        <div className={profileStyles.card} style={needsAttendance ? { border: "1px solid var(--color-primary)" } : undefined}>
+        <div className={`${profileStyles.card} ${profileStyles.actionsCard}`} style={needsAttendance ? { border: "1px solid var(--color-primary)" } : undefined}>
           {needsAttendance && (
             <p className={profileStyles.subtitle}>
               Занятие прошло — отметьте, кто отсутствовал. Неотмеченные считаются присутствовавшими.
@@ -621,7 +621,7 @@ export function TrainingDetail({
       )}
 
       {canEdit && (
-        <div className={profileStyles.card}>
+        <div className={`${profileStyles.card} ${profileStyles.actionsCard}`}>
           {training.status === "scheduled" ? (
             <>
               <button type="button" className={profileStyles.buttonSecondary} onClick={() => void handleSetStatus("completed")} disabled={busy}>

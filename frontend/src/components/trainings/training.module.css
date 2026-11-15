@@ -1,7 +1,28 @@
+.attendanceList {
+  gap: 0;
+}
+
+.attendanceList .attendanceRow {
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  border-top: 1px solid var(--color-border);
+  padding: 14px 0;
+}
+
+.attendanceList .attendanceRow:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.attendanceList .attendanceRow:last-child {
+  padding-bottom: 0;
+}
+
 .attendanceRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   background: var(--color-surface-alt);
   border: none;
   box-shadow: var(--shadow-card);
@@ -222,6 +243,13 @@
   justify-content: center;
   gap: 14px;
   text-align: center;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 40px var(--card-padding);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .sessionProgress {
@@ -243,16 +271,18 @@
 
 .sessionExerciseName {
   font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 36px;
+  line-height: 1.15;
   font-weight: 500;
   color: var(--color-text);
-  max-width: 320px;
+  max-width: 560px;
 }
 
 .sessionTimer {
   font-family: var(--font-display);
-  font-size: 76px;
+  font-size: clamp(72px, 12vw, 136px);
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
   color: var(--color-text);
 }
@@ -263,7 +293,15 @@
 
 .sessionControls {
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sessionControls > button {
+  width: auto;
+  min-height: 52px;
+  padding: 0 26px;
 }
 
 .sessionDone {

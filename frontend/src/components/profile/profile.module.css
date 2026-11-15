@@ -780,6 +780,24 @@
   color: var(--color-danger);
 }
 
+.actionsCard {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.actionsCard > .buttonPrimary,
+.actionsCard > .buttonSecondary {
+  width: auto;
+  min-height: var(--control-height);
+  padding: 0 24px;
+}
+
+.actionsCard > .subtitle {
+  flex-basis: 100%;
+}
+
 .formActions {
   display: flex;
   flex-direction: row;
