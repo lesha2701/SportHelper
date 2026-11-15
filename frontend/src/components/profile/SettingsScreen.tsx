@@ -20,7 +20,7 @@ export function SettingsScreen({
   const [showGuide, setShowGuide] = useState(false);
 
   return (
-    <div className={profileStyles.screen}>
+    <div className={`${profileStyles.screen} ${profileStyles.wideScreen}`}>
       <div className={sharedStyles.headerRow}>
         <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
           <Icon name="chevron-left" size={16} />
@@ -30,18 +30,25 @@ export function SettingsScreen({
 
       <h1 className={profileStyles.pageHeading}>Настройки</h1>
 
-      <ThemeToggle />
-      <NotificationSettings token={token} />
-      <PrivacySettings token={token} />
-      <AccountSecurity />
+      <div className={profileStyles.settingsGrid}>
+        <div className={profileStyles.settingsCol}>
+          <ThemeToggle />
+          <NotificationSettings token={token} />
+          <PrivacySettings token={token} />
 
-      <div className={profileStyles.card}>
-        <h2 className={profileStyles.title}>Знакомство с приложением</h2>
-        <p className={profileStyles.subtitle}>Короткий обзор возможностей SportArenaGlobal — можно пересмотреть в любой момент.</p>
-        <button type="button" className={profileStyles.buttonSecondary} onClick={() => setShowGuide(true)}>
-          <Icon name="sparkles" size={16} />
-          Как работает SportArenaGlobal
-        </button>
+          <div className={`${profileStyles.card} ${profileStyles.actionsCard}`}>
+            <h2 className={profileStyles.title}>Знакомство с приложением</h2>
+            <p className={profileStyles.subtitle}>Короткий обзор возможностей SportArenaGlobal — можно пересмотреть в любой момент.</p>
+            <button type="button" className={profileStyles.buttonSecondary} onClick={() => setShowGuide(true)}>
+              <Icon name="sparkles" size={16} />
+              Как работает SportArenaGlobal
+            </button>
+          </div>
+        </div>
+
+        <div className={profileStyles.settingsCol}>
+          <AccountSecurity />
+        </div>
       </div>
 
       {showGuide && <WelcomeGuide manual roles={roles} onFinish={() => setShowGuide(false)} />}

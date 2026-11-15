@@ -135,7 +135,7 @@ export function HelpScreen({
         </p>
       </div>
 
-      <div className={profileStyles.card}>
+      <div className={`${profileStyles.card} ${profileStyles.actionsCard}`}>
         <button type="button" className={profileStyles.buttonSecondary} onClick={() => setShowGuide(true)}>
           <Icon name="sparkles" size={16} />
           Как работает SportArenaGlobal

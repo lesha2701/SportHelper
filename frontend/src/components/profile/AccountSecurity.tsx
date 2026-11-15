@@ -32,7 +32,7 @@ function formatWhen(iso: string): string {
 
 function Section({ title, hint, children }: { title: string; hint?: ReactNode; children: ReactNode }) {
   return (
-    <section className={profileStyles.card}>
+    <section className={`${profileStyles.card} ${profileStyles.actionsCard}`}>
       <h2 className={profileStyles.title}>{title}</h2>
       {hint && <p className={profileStyles.subtitle}>{hint}</p>}
       {children}
