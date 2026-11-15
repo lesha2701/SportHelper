@@ -64,9 +64,7 @@
   }
 }
 
-/* Profile tab hub only: a 380px identity column (dark hero card, mode
-   switcher, goal/about card) next to a flexible column for the facts
-   card and the action row list — matches the redesign's Profile frame. */
+/* Profile tab hub: a header (avatar, name, buttons) over two columns — the story (2/3) and the sections list (1/3). */
 .summaryScreen {
   composes: screen;
 }
@@ -76,23 +74,112 @@
     max-width: none;
     margin: 0;
     width: 100%;
-    display: grid;
-    grid-template-columns: 380px minmax(0, 1fr);
-    align-items: start;
-    gap: 16px;
+    gap: 28px;
   }
 }
 
-.summaryIdentity {
+.summaryHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 20px;
+}
+
+.summaryHeadText {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.summaryHeadActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.summaryHeadActions > button {
+  width: auto;
+  min-height: var(--control-height);
+  padding: 0 20px;
+  font-size: 14px;
+}
+
+.summaryHeader .heroRingWrap {
+  width: 96px;
+  height: 96px;
+}
+
+.summaryHeader .heroRingAvatar {
+  inset: 8px;
+  font-family: var(--font-display);
+  font-size: 28px;
+}
+
+.summaryHeader .heroName {
+  font-size: 38px;
+  line-height: 1.1;
+}
+
+.summaryHeader .heroSub {
+  font-size: 15px;
+}
+
+.linkAction {
+  padding: 0;
+  min-height: var(--control-height);
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.summaryGrid {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.summaryActions {
+.summaryMain,
+.summarySide {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .summaryGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .summaryMain,
+  .summarySide {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 760px) {
+  .summaryHeader .heroName {
+    font-size: 30px;
+  }
+
+  .summaryHeadActions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .summaryHeadActions > button {
+    flex: 1 1 auto;
+  }
 }
 
 .heroIdentity {
@@ -120,6 +207,8 @@
 .heroRingSvg {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   transform: rotate(-90deg);
 }
 
@@ -356,7 +445,7 @@
 .factsCardTitle {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 500;
   color: var(--color-text);
 }

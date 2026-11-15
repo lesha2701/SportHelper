@@ -222,12 +222,7 @@ export function ProfileSummary({
   // The role is fixed at registration: only administrators get a switch or a second profile.
   if (canSwitchRole) {
     if (profile.player && profile.coach) {
-      actionRows.push({
-        key: "switch",
-        icon: "users",
-        label: `Переключиться на ${mode === "player" ? "тренера" : "игрока"}`,
-        onClick: () => onSwitchMode(mode === "player" ? "coach" : "player"),
-      });
+      // «Переключиться на …» is a button in the page header
     } else if (!profile.player) {
       actionRows.push({ key: "create-player", icon: "plus", label: "Завести профиль игрока", onClick: () => onCreateOther("player") });
     } else if (!profile.coach) {
@@ -235,156 +230,142 @@ export function ProfileSummary({
     }
   }
 
+  const canToggleRole = canSwitchRole && !!profile.player && !!profile.coach;
+  const switchLabel = `Переключиться на ${mode === "player" ? "тренера" : "игрока"}`;
+
   return (
     <div className={styles.summaryScreen}>
-      <div className={styles.summaryIdentity}>
-        <div className={styles.heroIdentity}>
-          <div className={styles.heroRingWrap}>
-            {mode === "player" && (
-              <svg width="120" height="120" viewBox="0 0 120 120" className={styles.heroRingSvg}>
-                <circle cx="60" cy="60" r={RING_RADIUS} fill="none" stroke="var(--color-border-strong)" strokeWidth="5" />
-                <circle
-                  cx="60"
-                  cy="60"
-                  r={RING_RADIUS}
-                  fill="none"
-                  stroke="var(--color-primary)"
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                  strokeDasharray={RING_CIRCUMFERENCE}
-                  strokeDashoffset={RING_CIRCUMFERENCE * (1 - (attendanceRate ?? 0))}
-                />
-              </svg>
-            )}
-            <div className={styles.heroRingAvatar}>
-              {avatarFileId ? (
-                <AuthenticatedImage token={token} fileId={avatarFileId} alt="" className={styles.heroRingAvatarImg} zoomable />
-              ) : photoUrl ? (
-                <img className={styles.heroRingAvatarImg} src={photoUrl} alt="" />
-              ) : (
-                initial
-              )}
-            </div>
-            <label className={styles.avatarEditButton} title="Изменить фото профиля">
-              <Icon name="edit" size={14} />
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                className={styles.avatarEditInput}
-                disabled={avatarBusy}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = "";
-                  if (file) void handleAvatarChange(file);
-                }}
+      <div className={styles.summaryHeader}>
+        <div className={styles.heroRingWrap}>
+          {mode === "player" && (
+            <svg viewBox="0 0 120 120" className={styles.heroRingSvg}>
+              <circle cx="60" cy="60" r={RING_RADIUS} fill="none" stroke="var(--color-border-strong)" strokeWidth="5" />
+              <circle
+                cx="60"
+                cy="60"
+                r={RING_RADIUS}
+                fill="none"
+                stroke="var(--color-primary)"
+                strokeWidth="5"
+                strokeLinecap="round"
+                strokeDasharray={RING_CIRCUMFERENCE}
+                strokeDashoffset={RING_CIRCUMFERENCE * (1 - (attendanceRate ?? 0))}
               />
-            </label>
-          </div>
-          <div>
-            <h1 className={styles.heroName}>{fullName ?? "—"}</h1>
-            <p className={styles.heroSub}>
-              {mode === "player"
-                ? [profile.player?.position, profile.player?.sport].filter(Boolean).join(" · ")
-                : [profile.coach?.specialization, profile.coach?.sport].filter(Boolean).join(" · ")}
-            </p>
-            {avatarFileId && (
-              <button
-                type="button"
-                onClick={() => void handleAvatarRemove()}
-                disabled={avatarBusy}
-                style={{ background: "none", border: "none", color: "var(--color-text-secondary)", fontSize: 12.5, padding: 0, cursor: "pointer" }}
-              >
-                Удалить фото
-              </button>
-            )}
-            {avatarError && (
-              <p className={styles.heroSub} style={{ margin: 0, color: "var(--color-danger)" }}>
-                {avatarError}
-              </p>
-            )}
-          </div>
-          {mode === "player" && attendanceRate !== null && (
-            <p className={styles.heroSub} style={{ margin: 0 }}>
-              Посещаемость: {formatRate(attendanceRate)}
-            </p>
+            </svg>
           )}
-          {heroStats.length > 0 && (
-            <div className={styles.heroStatsRow} style={{ gridTemplateColumns: `repeat(${heroStats.length}, 1fr)` }}>
-              {heroStats.map((s) => (
-                <div key={s.label} className={styles.heroStat}>
-                  <span className={styles.heroStatValue}>{s.value}</span>
-                  <span className={styles.heroStatLabel}>{s.label}</span>
-                </div>
-              ))}
-            </div>
+          <div className={styles.heroRingAvatar}>
+            {avatarFileId ? (
+              <AuthenticatedImage token={token} fileId={avatarFileId} alt="" className={styles.heroRingAvatarImg} zoomable />
+            ) : photoUrl ? (
+              <img className={styles.heroRingAvatarImg} src={photoUrl} alt="" />
+            ) : (
+              initial
+            )}
+          </div>
+          <label className={styles.avatarEditButton} title="Изменить фото профиля">
+            <Icon name="edit" size={14} />
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className={styles.avatarEditInput}
+              disabled={avatarBusy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void handleAvatarChange(file);
+              }}
+            />
+          </label>
+        </div>
+
+        <div className={styles.summaryHeadText}>
+          <h1 className={styles.heroName}>{fullName ?? "—"}</h1>
+          <p className={styles.heroSub}>
+            {mode === "player"
+              ? [profile.player?.position, profile.player?.sport].filter(Boolean).join(" · ")
+              : [profile.coach?.specialization, profile.coach?.sport].filter(Boolean).join(" · ")}
+          </p>
+          {mode === "player" && attendanceRate !== null && <p className={styles.heroSub}>Посещаемость: {formatRate(attendanceRate)}</p>}
+          {avatarFileId && (
+            <button type="button" className={styles.linkAction} onClick={() => void handleAvatarRemove()} disabled={avatarBusy}>
+              Удалить фото
+            </button>
+          )}
+          {avatarError && (
+            <p className={styles.heroSub} style={{ color: "var(--color-danger-text)" }}>
+              {avatarError}
+            </p>
           )}
         </div>
 
-        {canSwitchRole && profile.player && profile.coach && (
-          <div className={styles.modePill}>
-            <button
-              type="button"
-              className={mode === "player" ? styles.modePillOptionActive : styles.modePillOption}
-              onClick={() => mode !== "player" && onSwitchMode("player")}
-            >
-              Я игрок
+        <div className={styles.summaryHeadActions}>
+          {canToggleRole && (
+            <button type="button" className={styles.buttonSecondary} onClick={() => onSwitchMode(mode === "player" ? "coach" : "player")}>
+              {switchLabel}
             </button>
-            <button
-              type="button"
-              className={mode === "coach" ? styles.modePillOptionActive : styles.modePillOption}
-              onClick={() => mode !== "coach" && onSwitchMode("coach")}
-            >
-              Я тренер
-            </button>
-          </div>
-        )}
-
-        {goalText && (
-          <div className={styles.goalCard}>
-            <span className={styles.goalCardLabel}>{goalLabel}</span>
-            <p className={styles.goalCardText}>{goalText}</p>
-          </div>
-        )}
+          )}
+          <button type="button" className={styles.buttonPrimary} onClick={() => onEdit(mode)}>
+            Редактировать
+          </button>
+        </div>
       </div>
 
-      <div className={styles.summaryActions}>
-        {facts.length > 0 && (
-          <div className={styles.factsCard}>
-            <div className={styles.factsCardHead}>
-              <h2 className={styles.factsCardTitle}>{mode === "player" ? "Профиль игрока" : "Профиль тренера"}</h2>
-              <button type="button" className={styles.factsCardEdit} onClick={() => onEdit(mode)}>
-                Редактировать
-              </button>
-            </div>
-            <div className={styles.factsGrid}>
-              {facts.map((f) => (
-                <div key={f.k} className={styles.factTile}>
-                  <span className={styles.factTileLabel}>{f.k}</span>
-                  <span className={styles.factTileValue}>{f.v}</span>
+      <div className={styles.summaryGrid}>
+        <div className={styles.summaryMain}>
+          {(heroStats.length > 0 || facts.length > 0) && (
+            <div className={styles.factsCard}>
+              <div className={styles.factsCardHead}>
+                <h2 className={styles.factsCardTitle}>{mode === "player" ? "Профиль игрока" : "Профиль тренера"}</h2>
+              </div>
+              {heroStats.length > 0 && (
+                <div className={styles.heroStatsRow} style={{ gridTemplateColumns: `repeat(${heroStats.length}, minmax(0, 1fr))` }}>
+                  {heroStats.map((st) => (
+                    <div key={st.label} className={styles.heroStat}>
+                      <span className={styles.heroStatValue}>{st.value}</span>
+                      <span className={styles.heroStatLabel}>{st.label}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+              <div className={styles.factsGrid}>
+                {facts.map((f) => (
+                  <div key={f.k} className={styles.factTile}>
+                    <span className={styles.factTileLabel}>{f.k}</span>
+                    <span className={styles.factTileValue}>{f.v}</span>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
+
+          {goalText && (
+            <div className={styles.goalCard}>
+              <span className={styles.goalCardLabel}>{goalLabel}</span>
+              <p className={styles.goalCardText}>{goalText}</p>
+            </div>
+          )}
+
+          {myUserId && <AchievementsGallery token={token} userId={myUserId} editable />}
+        </div>
+
+        <div className={styles.summarySide}>
+          {offerRows.length > 0 && (
+            <>
+              <h2 className={styles.actionGroupTitle}>Объявления</h2>
+              <div className={styles.actionRowList}>
+                {offerRows.map((def) => (
+                  <ActionRow key={def.key} def={def} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {offerRows.length > 0 && <h2 className={styles.actionGroupTitle}>Тренировки</h2>}
+          <div className={styles.actionRowList}>
+            {actionRows.map((def) => (
+              <ActionRow key={def.key} def={def} />
+            ))}
           </div>
-        )}
-
-        {myUserId && <AchievementsGallery token={token} userId={myUserId} editable />}
-
-        {offerRows.length > 0 && (
-          <>
-            <h2 className={styles.actionGroupTitle}>Объявления</h2>
-            <div className={styles.actionRowList}>
-              {offerRows.map((def) => (
-                <ActionRow key={def.key} def={def} />
-              ))}
-            </div>
-          </>
-        )}
-
-        {offerRows.length > 0 && <h2 className={styles.actionGroupTitle}>Тренировки</h2>}
-        <div className={styles.actionRowList}>
-          {actionRows.map((def) => (
-            <ActionRow key={def.key} def={def} />
-          ))}
         </div>
       </div>
     </div>
