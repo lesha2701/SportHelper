@@ -43,7 +43,7 @@ function BookingCard({
   onOpenChat: (booking: Booking) => void;
 }) {
   return (
-    <div className={profileStyles.card}>
+    <div className={`${profileStyles.card} ${styles.bookingCard}`}>
       <div className={styles.bookingCardTop}>
         <div>
           <button type="button" className={styles.bookingAthleteName} onClick={() => onOpenPlayer(booking.athleteUserId)}>

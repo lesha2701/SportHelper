@@ -130,7 +130,7 @@ export function FinanceScreen({ token, onBack }: { token: string; onBack: () => 
         </p>
       )}
 
-      <div className={profileStyles.card}>
+      <div className={`${profileStyles.card} ${profileStyles.actionsCard}`}>
         <button type="button" className={profileStyles.buttonPrimary} disabled={!summary.canWithdraw} onClick={() => setFormOpen(true)}>
           Вывести средства
         </button>

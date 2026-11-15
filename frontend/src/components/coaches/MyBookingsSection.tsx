@@ -227,7 +227,7 @@ export function MyBookingsSection({
         <>
           <h2 className={profileStyles.title}>Ожидают подтверждения</h2>
           {pending.map((b) => (
-            <div className={profileStyles.card} key={b.id} {...focusProps(b)}>
+            <div className={`${profileStyles.card} ${styles.bookingCard}`} key={b.id} {...focusProps(b)}>
               <div className={styles.bookingCardTop}>
                 <div>
                   <CoachNameButton booking={b} onOpen={(coachUserId) => setCoachView({ screen: "profile", coachUserId })} />
@@ -256,7 +256,7 @@ export function MyBookingsSection({
       )}
       {upcoming.map((b) => (
         <div
-          className={profileStyles.card}
+          className={`${profileStyles.card} ${styles.bookingCard}`}
           key={b.id}
           ref={focusProps(b).ref}
           style={{ ...(b.trainingId ? { cursor: "pointer" } : {}), ...(focusProps(b).style ?? {}) }}
@@ -282,7 +282,7 @@ export function MyBookingsSection({
       {past.length === 0 && <p className={profileStyles.subtitle}>Пока нет прошедших броней.</p>}
       {past.map((b) => (
         <div
-          className={profileStyles.card}
+          className={`${profileStyles.card} ${styles.bookingCard}`}
           key={b.id}
           ref={focusProps(b).ref}
           style={{ ...(b.trainingId ? { cursor: "pointer" } : {}), ...(focusProps(b).style ?? {}) }}
@@ -318,7 +318,7 @@ export function MyBookingsSection({
         <>
           <h2 className={profileStyles.title}>Отклонённые</h2>
           {declinedOrExpired.map((b) => (
-            <div className={profileStyles.card} key={b.id} {...focusProps(b)}>
+            <div className={`${profileStyles.card} ${styles.bookingCard}`} key={b.id} {...focusProps(b)}>
               <div className={styles.bookingCardTop}>
                 <div>
                   <CoachNameButton booking={b} onOpen={(coachUserId) => setCoachView({ screen: "profile", coachUserId })} />
@@ -338,7 +338,7 @@ export function MyBookingsSection({
         <>
           <h2 className={profileStyles.title}>Отменённые</h2>
           {cancelled.map((b) => (
-            <div className={profileStyles.card} key={b.id} {...focusProps(b)}>
+            <div className={`${profileStyles.card} ${styles.bookingCard}`} key={b.id} {...focusProps(b)}>
               <div className={styles.bookingCardTop}>
                 <div>
                   <CoachNameButton booking={b} onOpen={(coachUserId) => setCoachView({ screen: "profile", coachUserId })} />

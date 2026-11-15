@@ -30,22 +30,25 @@
 .switch {
   position: relative;
   width: 46px;
-  height: 26px;
+  /* 26px track inside a 44px tap area: the padding is transparent (background-clip) */
+  height: var(--control-height);
+  padding: 9px 0;
   flex-shrink: 0;
   border-radius: var(--radius-pill);
   border: none;
-  background: var(--color-border-strong);
+  background-color: var(--color-border-strong);
+  background-clip: content-box;
   cursor: pointer;
   transition: background-color var(--transition-fast);
 }
 
 .switchOn {
-  background: var(--color-primary-fill);
+  background-color: var(--color-primary-fill);
 }
 
 .switchKnob {
   position: absolute;
-  top: 3px;
+  top: 12px;
   left: 3px;
   width: 20px;
   height: 20px;
@@ -325,7 +328,14 @@
 .listingsColumn {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
+}
+
+/* One card per row is already wide, so its photo band stays slim (the mockup's catalogue card has none). */
+@media (min-width: 900px) {
+  .listingsColumn .listingCardPhotoWrap {
+    aspect-ratio: 16 / 6;
+  }
 }
 
 /* "3 в ряд" — a fixed 3-column grid on desktop; still a single column on
@@ -340,7 +350,7 @@
   .listingsGrid3 {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
+    gap: 20px;
   }
 }
 
@@ -455,7 +465,7 @@
 .coachName {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -944,4 +954,25 @@
   content: "";
   position: absolute;
   inset: -10px -4px;
+}
+
+/* A booking card: the info rows take the full width, the action buttons sit side by side (mockups: my-bookings). */
+.bookingCard {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.bookingCard > * {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.bookingCard > button {
+  flex: 0 1 auto;
+  width: auto;
+  min-height: var(--control-height);
+  padding-left: 24px;
+  padding-right: 24px;
 }

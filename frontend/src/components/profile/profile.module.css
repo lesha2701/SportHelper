@@ -794,8 +794,9 @@
   padding: 0 24px;
 }
 
-.actionsCard > .subtitle {
+.actionsCard > p {
   flex-basis: 100%;
+  margin: 0;
 }
 
 .formActions {
