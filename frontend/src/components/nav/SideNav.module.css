@@ -276,20 +276,6 @@
   transform: scale(0.96);
 }
 
-/* The team name joins the chip only where the row has room for it. */
-@media (min-width: 1500px) {
-  .teamCard {
-    width: auto;
-    max-width: 220px;
-    padding: 0 14px 0 6px;
-    justify-content: flex-start;
-  }
-
-  .teamCardText {
-    display: flex;
-  }
-}
-
 /* Not enough width for the pills next to the buttons: they take their own row under the header. */
 @media (max-width: 1179px) {
   .pills {
