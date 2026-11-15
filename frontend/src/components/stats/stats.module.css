@@ -70,6 +70,21 @@
   gap: 10px;
 }
 
+.aiCard > button {
+  align-self: flex-start;
+  width: auto;
+  min-height: var(--control-height);
+  margin-top: 14px;
+  padding: 0 20px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: none;
+}
+
+.aiCard > button:hover:not(:disabled) {
+  background: var(--color-surface-alt);
+}
+
 .aiCardHead {
   display: flex;
   align-items: center;

@@ -94,7 +94,7 @@ export function TeamTrainingsTab({ token, teamId, canManage }: { token: string; 
       {state.trainings.length === 0 ? (
         <StateScreen kind="empty" title="Пока нет тренировок" description="Запланируйте первую тренировку команды." />
       ) : (
-        <div className={styles.cardGrid}>
+        <div className={styles.listCard}>
           {state.trainings.map((training) => (
             <button
               key={training.id}

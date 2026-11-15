@@ -105,7 +105,8 @@ export function TeamMatchesTab({
       {state.matches.length === 0 ? (
         <StateScreen kind="empty" title="Пока нет матчей" description={canManage ? "Запланируйте первый матч команды." : "Тренер ещё не запланировал матчи."} />
       ) : (
-        state.matches.map((match) => (
+        <div className={styles.listCard}>
+        {state.matches.map((match) => (
           <button
             key={match.id}
             type="button"
@@ -124,7 +125,8 @@ export function TeamMatchesTab({
               {match.matchDate} · {match.startTime.slice(0, 5)} · {match.isHome ? "дома" : "в гостях"}
             </p>
           </button>
-        ))
+        ))}
+        </div>
       )}
     </>
   );

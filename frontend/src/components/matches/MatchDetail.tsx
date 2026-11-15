@@ -309,7 +309,7 @@ export function MatchDetail({
       )}
 
       {canManage && (
-        <div className={profileStyles.card}>
+        <div className={`${profileStyles.card} ${profileStyles.actionsCard}`}>
           {match.status !== "cancelled" && (
             <button type="button" className={profileStyles.buttonSecondary} onClick={() => void handleSetStatus("cancelled")} disabled={busy}>
               Отменить матч

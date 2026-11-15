@@ -314,7 +314,7 @@ export function TaskDetail({
       )}
 
       {canManage && (
-        <div className={profileStyles.card}>
+        <div className={`${profileStyles.card} ${profileStyles.actionsCard}`}>
           <button type="button" className={profileStyles.buttonSecondary} onClick={() => onEdit(task)}>
             Редактировать
           </button>
@@ -346,7 +346,7 @@ export function TaskDetail({
       )}
 
       {canManage && (
-        <div className={profileStyles.card}>
+        <div className={`${profileStyles.card} ${styles.plainRows}`}>
           <span className={profileStyles.title}>
             Игроки ({task.assignments.length})
             {task.assignments.some((a) => a.status === "submitted") &&

@@ -134,11 +134,11 @@ export function TeamTasksTab({ token, teamId, canManage }: { token: string; team
   return (
     <>
       {canManage && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 4 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 4 }}>
           <button
             type="button"
             className={styles.addButton}
-            style={{ justifyContent: "center", width: "100%" }}
+            style={{ justifyContent: "center" }}
             onClick={() => setView({ screen: "pick-template" })}
           >
             <Icon name="book" size={16} />
@@ -147,7 +147,7 @@ export function TeamTasksTab({ token, teamId, canManage }: { token: string; team
           <button
             type="button"
             className={styles.iconButton}
-            style={{ justifyContent: "center", width: "100%" }}
+            style={{ justifyContent: "center" }}
             onClick={() => setView({ screen: "create" })}
           >
             <Icon name="plus" size={16} />
@@ -159,7 +159,8 @@ export function TeamTasksTab({ token, teamId, canManage }: { token: string; team
       {state.tasks.length === 0 ? (
         <StateScreen kind="empty" title="Пока нет заданий" description={canManage ? "Назначьте первое задание команде." : "Тренер ещё не назначил вам заданий."} />
       ) : (
-        state.tasks.map((task) => {
+        <div className={styles.listCard}>
+        {state.tasks.map((task) => {
           const mine = task.assignments.find((a) => a.userId === myUserId);
           return (
             <button
@@ -180,7 +181,8 @@ export function TeamTasksTab({ token, teamId, canManage }: { token: string; team
               {task.deadline && <p className={styles.teamMeta}>Дедлайн: {new Date(task.deadline).toLocaleDateString("ru-RU")}</p>}
             </button>
           );
-        })
+        })}
+        </div>
       )}
     </>
   );
