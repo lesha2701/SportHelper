@@ -98,21 +98,18 @@ export function TeamsScreen({ token }: { token: string }) {
                     team.name.charAt(0).toUpperCase()
                   )}
                 </div>
-                <div className={styles.teamNameCol}>
-                  <div className={styles.teamCardTop}>
-                    <h2 className={styles.teamName}>{team.name}</h2>
-                    {team.status === "without_coach" && <span className={`${styles.badge} ${styles.badgeWarning}`}>Без тренера</span>}
-                    <span className={styles.chevron} aria-hidden="true">
-                      <Icon name="chevron-right" size={18} />
-                    </span>
-                  </div>
-                  <p className={styles.teamMeta}>
-                    {team.sport}
-                    {team.ageCategory ? ` · ${team.ageCategory}` : ""} · {team.membersCount} чел.
-                  </p>
-                </div>
+                {team.myRole && <span className={`${styles.badge} ${styles.roleBadge}`}>{TEAM_ROLE_LABELS[team.myRole]}</span>}
               </div>
-              {team.myRole && <span className={styles.badge}>{TEAM_ROLE_LABELS[team.myRole]}</span>}
+              <div className={styles.teamNameCol}>
+                <div className={styles.teamCardTop}>
+                  <h2 className={styles.teamName}>{team.name}</h2>
+                  {team.status === "without_coach" && <span className={`${styles.badge} ${styles.badgeWarning}`}>Без тренера</span>}
+                </div>
+                <p className={styles.teamMeta}>
+                  {team.sport}
+                  {team.ageCategory ? ` · ${team.ageCategory}` : ""} · {team.membersCount} чел.
+                </p>
+              </div>
             </button>
           ))}
         </div>

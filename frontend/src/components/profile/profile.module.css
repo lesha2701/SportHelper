@@ -15,7 +15,7 @@
    multi-column layout instead. */
 @media (min-width: 900px) {
   .screen {
-    max-width: 640px;
+    max-width: 760px;
     margin: 0 auto;
     width: 100%;
     padding: 0 0 32px;
@@ -758,8 +758,14 @@
 
 .fieldGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
+}
+
+@media (max-width: 400px) {
+  .fieldGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .error {
@@ -769,9 +775,18 @@
 
 .formActions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-top: 4px;
+}
+
+.formActions > .buttonPrimary,
+.formActions > .buttonSecondary {
+  width: auto;
+  min-height: var(--control-height);
+  padding: 0 24px;
 }
 
 .onboardingChoices {

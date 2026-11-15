@@ -133,17 +133,17 @@
 
 .realTabBar {
   display: flex;
-  gap: 6px;
+  gap: 28px;
   border-bottom: 1px solid var(--color-border);
   overflow-x: auto;
 }
 
 .realTab,
 .realTabActive {
-  padding: 10px 14px;
+  padding: 10px 0;
   font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
   border: none;
   background: none;
   cursor: pointer;
@@ -168,9 +168,9 @@
 @media (min-width: 900px) {
   .teamContentLayout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     align-items: start;
-    gap: 16px;
+    gap: 20px;
   }
 }
 
@@ -214,8 +214,20 @@
 
 .quickStatsGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 24px;
+  padding: var(--card-padding);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+/* The four numbers share one card, as in the mockup's "Сезон" block. */
+.quickStatsGrid > * {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
 }
 
 .headerRow {
@@ -288,18 +300,17 @@
 @media (min-width: 900px) {
   .cardGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
   }
 }
 
 .teamCard {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 16px;
   background: var(--color-surface);
   border: none;
-  border-left: 3px solid var(--event-color, transparent);
   box-shadow: var(--shadow-card);
   border-radius: var(--radius-lg);
   padding: var(--card-padding);
@@ -311,28 +322,39 @@
   min-height: var(--control-height);
 }
 
+.teamCard:hover {
+  transform: translateY(-2px);
+}
+
 .teamCard:active {
   transform: scale(0.99);
-  border-color: var(--color-border-strong);
 }
 
 .teamCardRow {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
 }
 
+.roleBadge {
+  align-self: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-ink-soft);
+  color: var(--color-ink);
+}
+
 .teamAvatar {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: var(--radius-md);
-  background: var(--color-ink-soft);
-  color: var(--color-link);
+  border-radius: 14px;
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
   font-family: var(--font-display);
   font-size: 18px;
   font-weight: 500;
@@ -362,14 +384,13 @@
 .teamName {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 22px;
+  line-height: 1.2;
   font-weight: 500;
   color: var(--color-text);
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .chevron {
