@@ -45,7 +45,7 @@ export function ListingPublicProfileScreen({
   }, [token, listingId]);
 
   return (
-    <div className={profileStyles.screen}>
+    <div className={styles.listingScreen}>
       <div className={sharedStyles.headerRow}>
         <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
           <Icon name="chevron-left" size={16} />
@@ -61,7 +61,8 @@ export function ListingPublicProfileScreen({
         const formats = [listing.offersOnline && "Онлайн", listing.offersOffline && "Очно"].filter(Boolean).join(" · ");
 
         return (
-          <>
+          <div className={styles.listingLayout}>
+            <div className={styles.listingMain}>
             <div className={profileStyles.card}>
               <div className={styles.profileHero}>
                 {listing.coachPhotoUrl ? (
@@ -109,34 +110,6 @@ export function ListingPublicProfileScreen({
                 </div>
               )}
 
-              <div className={profileStyles.row}>
-                <span className={profileStyles.rowLabel}>Цена</span>
-                <span className={profileStyles.rowValue}>
-                  {listing.pricePerSession !== null ? `${listing.pricePerSession} ${listing.currency}` : "Не указана"}
-                  {listing.sessionDurationMinutes ? ` / ${listing.sessionDurationMinutes} мин` : ""}
-                </span>
-              </div>
-              {formats && (
-                <div className={profileStyles.row}>
-                  <span className={profileStyles.rowLabel}>Формат</span>
-                  <span className={profileStyles.rowValue}>{formats}</span>
-                </div>
-              )}
-              {listing.location && (
-                <div className={profileStyles.row}>
-                  <span className={profileStyles.rowLabel}>Город</span>
-                  <span className={profileStyles.rowValue}>{listing.location}</span>
-                </div>
-              )}
-
-              <div className={profileStyles.formActions}>
-                {listing.coachUserId !== ownUserId && (
-                  <button type="button" className={profileStyles.buttonPrimary} onClick={() => onBook(listing)}>
-                    Записаться
-                  </button>
-                )}
-                <ReportButton targetType="listing" targetId={listing.id} ownerUserId={listing.coachUserId} label="Пожаловаться на объявление" />
-              </div>
             </div>
 
             <div className={profileStyles.card}>
@@ -165,7 +138,39 @@ export function ListingPublicProfileScreen({
                 </div>
               ))}
             </div>
-          </>
+            </div>
+
+            <aside className={`${profileStyles.card} ${styles.listingAside}`}>
+              <div className={profileStyles.row}>
+                <span className={profileStyles.rowLabel}>Цена</span>
+                <span className={profileStyles.rowValue}>
+                  {listing.pricePerSession !== null ? `${listing.pricePerSession} ${listing.currency}` : "Не указана"}
+                  {listing.sessionDurationMinutes ? ` / ${listing.sessionDurationMinutes} мин` : ""}
+                </span>
+              </div>
+              {formats && (
+                <div className={profileStyles.row}>
+                  <span className={profileStyles.rowLabel}>Формат</span>
+                  <span className={profileStyles.rowValue}>{formats}</span>
+                </div>
+              )}
+              {listing.location && (
+                <div className={profileStyles.row}>
+                  <span className={profileStyles.rowLabel}>Город</span>
+                  <span className={profileStyles.rowValue}>{listing.location}</span>
+                </div>
+              )}
+
+              <div className={profileStyles.formActions}>
+                {listing.coachUserId !== ownUserId && (
+                  <button type="button" className={profileStyles.buttonPrimary} onClick={() => onBook(listing)}>
+                    Записаться
+                  </button>
+                )}
+                <ReportButton targetType="listing" targetId={listing.id} ownerUserId={listing.coachUserId} label="Пожаловаться на объявление" />
+              </div>
+            </aside>
+          </div>
         );
       })()}
     </div>
