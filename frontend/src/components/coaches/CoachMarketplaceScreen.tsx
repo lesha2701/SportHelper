@@ -423,7 +423,7 @@ export function CoachMarketplaceScreen({
             />
           </div>
 
-          <div className={styles.filterField}>
+          <div className={`${styles.filterField} ${styles.filterFieldPrice}`}>
             <span className={styles.filterFieldLabel}>Цена, ₽</span>
             <div className={styles.priceInputRow}>
               <input
@@ -469,7 +469,7 @@ export function CoachMarketplaceScreen({
             />
           </div>
 
-          <div className={styles.filterField}>
+          <div className={`${styles.filterField} ${styles.filterFieldRating}`}>
             <span className={styles.filterFieldLabel}>Рейтинг</span>
             <div className={styles.ratingPillRow}>
               {[undefined, 4.5, 4.8].map((r) => (
