@@ -52,6 +52,24 @@ interface ActionRowDef {
   onClick?: () => void;
 }
 
+/** One card of menu rows, built like the «Профиль тренера» card on the left: a title, a rule, then the rows. */
+function ActionCard({ title, rows }: { title?: string; rows: ActionRowDef[] }) {
+  return (
+    <div className={styles.actionCard}>
+      {title && (
+        <div className={styles.actionCardHead}>
+          <h2 className={styles.factsCardTitle}>{title}</h2>
+        </div>
+      )}
+      <div className={styles.actionCardRows}>
+        {rows.map((def) => (
+          <ActionRow key={def.key} def={def} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ActionRow({ def }: { def: ActionRowDef }) {
   return (
     <button type="button" className={styles.actionRow} onClick={def.onClick} disabled={!def.onClick && !def.toggle}>
@@ -349,23 +367,8 @@ export function ProfileSummary({
         </div>
 
         <div className={styles.summarySide}>
-          {offerRows.length > 0 && (
-            <>
-              <h2 className={styles.actionGroupTitle}>Объявления</h2>
-              <div className={styles.actionRowList}>
-                {offerRows.map((def) => (
-                  <ActionRow key={def.key} def={def} />
-                ))}
-              </div>
-            </>
-          )}
-
-          {offerRows.length > 0 && <h2 className={styles.actionGroupTitle}>Тренировки</h2>}
-          <div className={styles.actionRowList}>
-            {actionRows.map((def) => (
-              <ActionRow key={def.key} def={def} />
-            ))}
-          </div>
+          {offerRows.length > 0 && <ActionCard title="Объявления" rows={offerRows} />}
+          <ActionCard title={offerRows.length > 0 ? "Тренировки" : undefined} rows={actionRows} />
         </div>
       </div>
     </div>

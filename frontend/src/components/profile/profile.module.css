@@ -445,14 +445,50 @@
   overflow-wrap: anywhere;
 }
 
-.actionRowList {
+/* The same card as .factsCard on the left: surface, 20px padding, a title with a rule under it. The rows keep the card's own
+   side padding; their hover and divider lines are inset by 8px so they line up with the title's rule. */
+.actionCard {
   border-radius: var(--radius-lg);
   background: var(--color-surface);
-  border: none;
   box-shadow: var(--shadow-card);
-  overflow: hidden;
+  padding: var(--card-padding);
   display: flex;
   flex-direction: column;
+  min-width: 0;
+}
+
+.actionCardHead {
+  padding-bottom: 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+.actionCardRows {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -8px;
+}
+
+.actionCardRows > .actionRow {
+  position: relative;
+  padding: 12px 8px;
+  border-bottom: none;
+  border-radius: var(--radius-md);
+}
+
+.actionCardRows > .actionRow + .actionRow::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.actionCardRows > .actionRow:hover::before,
+.actionCardRows > .actionRow:hover + .actionRow::before {
+  opacity: 0;
 }
 
 .actionRow {
@@ -896,14 +932,6 @@
   color: var(--color-text);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
-}
-
-.actionGroupTitle {
-  margin: 8px 0 0;
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
 }
 
 /* Keeps the look, but the tappable area is 44px. */

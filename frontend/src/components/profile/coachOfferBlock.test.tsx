@@ -26,11 +26,11 @@ function summary(profile: ProfileMe) {
   );
 }
 
-/** The buttons under a heading, up to the next one. */
+/** The buttons in the card whose title is `title` (the title sits in the card's head, the rows in the card's body). */
 function rowsUnder(title: string): string[] {
   const heading = screen.getByRole("heading", { name: title });
-  const list = heading.nextElementSibling as HTMLElement;
-  return within(list).getAllByRole("button").map((b) => b.textContent ?? "");
+  const card = heading.parentElement!.parentElement as HTMLElement;
+  return within(card).getAllByRole("button").map((b) => b.textContent ?? "");
 }
 
 describe("the coach's requests and bookings sit in the «Объявления» block", () => {
