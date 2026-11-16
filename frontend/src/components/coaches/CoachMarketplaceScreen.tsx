@@ -1,5 +1,5 @@
 // frontend/src/components/coaches/CoachMarketplaceScreen.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getListingProfile, listListings } from "../../api/coachListings";
 import { navigateApp } from "../../appNav";
 import { ApiError } from "../../api/client";
@@ -206,6 +206,7 @@ export function CoachMarketplaceScreen({
   onRequireLogin,
   myUserId = null,
   canCreateListing = false,
+  createListingRequest = 0,
 }: {
   token: string;
   /** Opens straight on this coach's public profile (e.g. from global search). */
@@ -221,6 +222,8 @@ export function CoachMarketplaceScreen({
   myUserId?: string | null;
   /** A coach can start a new listing from this tab. */
   canCreateListing?: boolean;
+  /** On desktop the «Создать объявление» button sits in the page heading, outside this screen; each press raises this number. */
+  createListingRequest?: number;
 }) {
   const isDesktop = useIsDesktop();
   const [view, setView] = useState<View>(
@@ -232,6 +235,13 @@ export function CoachMarketplaceScreen({
           ? { screen: "coachProfile", coachUserId: initialCoachUserId }
           : { screen: "list" },
   );
+  // Only a press made while this screen is open counts: the value it mounted with is already handled.
+  const seenCreateRequest = useRef(createListingRequest);
+  useEffect(() => {
+    if (createListingRequest === seenCreateRequest.current) return;
+    seenCreateRequest.current = createListingRequest;
+    if (canCreateListing) setView({ screen: "createListing" });
+  }, [createListingRequest, canCreateListing]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [state, setState] = useState<ListState>({ status: "loading" });
   const [location, setLocation] = useState("");
@@ -398,15 +408,20 @@ export function CoachMarketplaceScreen({
 
   return (
     <div className={teamStyles.screen}>
-      <div className={teamStyles.headerRow}>
+      {isDesktop ? (
+        // the page heading already shows the title and the create button
         <h1 className={`${teamStyles.heading} ${teamStyles.headingDup}`}>Тренеры</h1>
-        {canCreateListing && (
-          <button type="button" className={teamStyles.addButton} onClick={() => setView({ screen: "createListing" })}>
-            <Icon name="plus" size={16} />
-            Создать объявление
-          </button>
-        )}
-      </div>
+      ) : (
+        <div className={teamStyles.headerRow}>
+          <h1 className={teamStyles.heading}>Тренеры</h1>
+          {canCreateListing && (
+            <button type="button" className={teamStyles.addButton} onClick={() => setView({ screen: "createListing" })}>
+              <Icon name="plus" size={16} />
+              Создать объявление
+            </button>
+          )}
+        </div>
+      )}
 
       <div className={styles.marketplaceLayout}>
         <div className={styles.filterPanel}>

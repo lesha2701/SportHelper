@@ -41,7 +41,7 @@
   width: 100%;
   max-width: 1240px;
   margin: 0 auto;
-  padding: 20px 32px;
+  padding: 14px 32px;
 }
 
 .desktopContent {
@@ -58,13 +58,13 @@
   width: 100%;
   max-width: 1240px;
   margin: 0 auto;
-  padding: 0 32px 64px;
+  padding: 0 32px 40px;
 }
 
 @media (max-width: 1179px) {
   /* The brand name is hidden, so the logo takes the left edge and the buttons the right one. */
   .headerInner {
-    padding: 16px 24px;
+    padding: 12px 24px;
   }
 
   .desktopContentInner {

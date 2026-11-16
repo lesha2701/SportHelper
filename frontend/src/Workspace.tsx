@@ -124,7 +124,7 @@ function calendarEventToOverlay(event: CalendarEvent): Overlay {
   }
 }
 
-function coachTopBar(tab: CoachTab, onCreateTraining: () => void): TopBarConfig {
+function coachTopBar(tab: CoachTab, onCreateTraining: () => void, onCreateListing: () => void): TopBarConfig {
   switch (tab) {
     case "dashboard":
       return { kicker: dateKicker(), title: "Тренерская панель", cta: { label: "Тренировка", icon: "plus", onClick: onCreateTraining } };
@@ -135,7 +135,7 @@ function coachTopBar(tab: CoachTab, onCreateTraining: () => void): TopBarConfig 
     case "calendar":
       return { kicker: monthKicker(), title: "Календарь" };
     case "coaches":
-      return { kicker: "Индивидуальные занятия", title: "Тренеры" };
+      return { kicker: "Индивидуальные занятия", title: "Тренеры", cta: { label: "Создать объявление", icon: "plus", onClick: onCreateListing } };
     case "profile":
       return { kicker: "Аккаунт", title: "Профиль" };
   }
@@ -170,6 +170,7 @@ export function CoachTabContent({
   unreadNotifications,
   startProfileInSettings,
   onProfileSettingsOpened,
+  createListingRequest,
 }: {
   initialCoachUserId: string | null;
   marketplaceStart: MarketplaceIntent | null;
@@ -184,6 +185,8 @@ export function CoachTabContent({
   unreadNotifications: number;
   startProfileInSettings: boolean;
   onProfileSettingsOpened: () => void;
+  /** Bumped each time «Создать объявление» is pressed in the page heading. */
+  createListingRequest?: number;
 }) {
   switch (tab) {
     case "dashboard":
@@ -213,6 +216,7 @@ export function CoachTabContent({
           initialBookListingId={marketplaceStart?.bookListingId ?? null}
           myUserId={userId}
           canCreateListing
+          createListingRequest={createListingRequest}
         />
       );
     case "profile":
@@ -338,6 +342,8 @@ function MainContent({
   // or when the visitor arrives with a link to a coach / listing / booking.
   const [marketplaceCoachId, setMarketplaceCoachId] = useState<string | null>(marketplaceIntent?.coachUserId ?? null);
   const [marketplaceStart, setMarketplaceStart] = useState<MarketplaceIntent | null>(marketplaceIntent);
+  // The «Создать объявление» button lives in the page heading; each press bumps this so the marketplace screen opens its form.
+  const [createListingRequest, setCreateListingRequest] = useState(0);
 
   // A notification button (or a page freshly opened with
   // ?open=&id= from anywhere else) should jump straight to the relevant
@@ -559,7 +565,7 @@ function MainContent({
           hasOverlay
             ? undefined
             : {
-                ...coachTopBar(coachTab, onCreateTraining),
+                ...coachTopBar(coachTab, onCreateTraining, () => setCreateListingRequest((n) => n + 1)),
                 unreadNotifications,
                 onOpenNotifications: () => setOverlay({ kind: "notifications" }),
                 onOpenFinance: trainerBalance ? () => setOverlay({ kind: "finance" }) : undefined,
@@ -583,6 +589,7 @@ function MainContent({
             unreadNotifications={unreadNotifications}
             startProfileInSettings={profileSettingsRequested}
             onProfileSettingsOpened={clearProfileSettingsRequest}
+            createListingRequest={createListingRequest}
           />
         )}
       </AppShell>

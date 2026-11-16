@@ -310,13 +310,6 @@
   gap: 20px;
 }
 
-/* One card per row is already wide, so its photo band stays slim (the mockup's catalogue card has none). */
-@media (min-width: 900px) {
-  .listingsColumn .listingCardPhotoWrap {
-    aspect-ratio: 16 / 6;
-  }
-}
-
 /* "3 в ряд" — a fixed 3-column grid on desktop; still a single column on
    narrower viewports where 3 columns wouldn't fit anything useful. */
 .listingsGrid3 {
@@ -352,7 +345,8 @@
 
 @media (min-width: 900px) {
   .coachCard {
-    padding: var(--card-padding);
+    /* the photo bleeds to the card's edges; the text blocks carry their own side padding */
+    padding: 0 0 16px;
     overflow: hidden;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
@@ -371,7 +365,7 @@
   }
 
   .coachCardTop {
-    padding-top: 16px;
+    padding-top: 14px;
   }
 }
 
@@ -451,7 +445,7 @@
    growing/shrinking with whichever fields a coach happened to fill in. */
 .listingCardPhotoWrap {
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 9;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--color-surface-alt);
@@ -460,7 +454,7 @@
 @media (min-width: 900px) {
   .listingCardPhotoWrap {
     border-radius: 0;
-    aspect-ratio: 16 / 11;
+    aspect-ratio: 16 / 9;
   }
 }
 
