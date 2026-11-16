@@ -277,11 +277,11 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
         </label>
 
         <CollapsibleSection label="Детали" defaultOpen={isEdit || seed !== undefined}>
+          <div className={profileStyles.fieldGrid}>
           <label className={profileStyles.field}>
             <span className={profileStyles.label}>Дедлайн</span>
             <input className={profileStyles.input} type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
           </label>
-
           <label className={profileStyles.field}>
             <span className={profileStyles.label}>План тренировки</span>
             <select className={profileStyles.select} value={planId} onChange={(e) => setPlanId(e.target.value)}>
@@ -293,6 +293,8 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
               ))}
             </select>
           </label>
+          </div>
+
         </CollapsibleSection>
 
         {exercises.length > 0 && (

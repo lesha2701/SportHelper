@@ -1,7 +1,9 @@
 /* frontend/src/components/shared/CollapsibleSection.module.css */
 .section {
   border-radius: var(--radius-lg);
-  background: var(--color-surface-alt);
+  /* Outlined, not filled: the fields inside are filled with surface-alt and would vanish on a surface-alt background. */
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
   overflow: hidden;
 }
 
@@ -38,7 +40,7 @@
 .body {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 20px;
   padding: 4px 18px 18px;
 }
 

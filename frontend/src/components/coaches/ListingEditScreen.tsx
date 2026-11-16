@@ -258,6 +258,7 @@ export function ListingEditScreen({
           </button>
         </div>
 
+        <div className={profileStyles.fieldGrid}>
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Цена за тренировку</span>
           <input
@@ -270,12 +271,12 @@ export function ListingEditScreen({
           />
           <span className={profileStyles.requiredHint}>Стоимость одного занятия. Её видит игрок при записи.</span>
         </label>
-
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Валюта</span>
           <input className={profileStyles.input} value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
           <span className={profileStyles.requiredHint}>Трёхбуквенный код, например RUB.</span>
         </label>
+        </div>
 
         <div className={profileStyles.field}>
           <span className={profileStyles.label}>Формат</span>
@@ -290,17 +291,18 @@ export function ListingEditScreen({
           <span className={profileStyles.requiredHint}>Как вы проводите занятия: по видеосвязи, лично или и так и так.</span>
         </div>
 
+        <div className={profileStyles.fieldGrid}>
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Город (для очных тренировок)</span>
           <input className={profileStyles.input} value={location} onChange={(e) => setLocation(e.target.value)} maxLength={200} />
           <span className={profileStyles.requiredHint}>Где проходят очные занятия: город или район. Для онлайна не нужен.</span>
         </label>
-
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Длительность тренировки, мин</span>
           <input className={profileStyles.input} type="number" min={1} value={duration} onChange={(e) => setDuration(e.target.value)} />
           <span className={profileStyles.requiredHint}>Сколько длится одно занятие. По этой длине система нарежет слоты расписания.</span>
         </label>
+        </div>
 
       </div>
 

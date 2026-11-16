@@ -118,18 +118,13 @@ export function TaskTemplateForm({ token, initial, onSaved, onCancel }: TaskTemp
         <h1 className={profileStyles.pageHeading}>{isEdit ? "Настройки шаблона" : "Новый шаблон задания"}</h1>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
+        <div className={profileStyles.fieldGrid}>
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>
             Название<span className={profileStyles.requiredMark}>*</span>
           </span>
           <input className={profileStyles.input} value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={150} />
         </label>
-
-        <label className={profileStyles.field}>
-          <span className={profileStyles.label}>Описание</span>
-          <textarea className={profileStyles.textarea} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
-        </label>
-
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>План тренировки</span>
           <select className={profileStyles.select} value={planId} onChange={(e) => setPlanId(e.target.value)}>
@@ -140,6 +135,12 @@ export function TaskTemplateForm({ token, initial, onSaved, onCancel }: TaskTemp
               </option>
             ))}
           </select>
+        </label>
+        </div>
+
+        <label className={profileStyles.field}>
+          <span className={profileStyles.label}>Описание</span>
+          <textarea className={profileStyles.textarea} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
         </label>
 
         {exercises.length > 0 && (

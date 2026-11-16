@@ -44,6 +44,7 @@ export function CoachProfileForm({ initial, onSubmit, onCancel }: CoachProfileFo
         <h1 className={styles.pageHeading}>Профиль тренера</h1>
         <p className={styles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
+        <div className={styles.fieldGrid}>
         <label className={styles.field}>
           <span className={styles.label}>
             Имя<span className={styles.requiredMark}>*</span>
@@ -56,9 +57,10 @@ export function CoachProfileForm({ initial, onSubmit, onCancel }: CoachProfileFo
             maxLength={100}
           />
         </label>
-
         <SportSelect value={sport} onChange={setSport} />
+        </div>
 
+        <div className={styles.fieldGrid}>
         <label className={styles.field}>
           <span className={styles.label}>Опыт, лет</span>
           <input
@@ -70,7 +72,6 @@ export function CoachProfileForm({ initial, onSubmit, onCancel }: CoachProfileFo
             onChange={(e) => setExperienceYears(e.target.value)}
           />
         </label>
-
         <label className={styles.field}>
           <span className={styles.label}>Специализация</span>
           <input
@@ -80,6 +81,7 @@ export function CoachProfileForm({ initial, onSubmit, onCancel }: CoachProfileFo
             maxLength={200}
           />
         </label>
+        </div>
 
         <label className={styles.field}>
           <span className={styles.label}>Описание</span>

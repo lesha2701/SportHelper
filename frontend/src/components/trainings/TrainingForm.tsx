@@ -400,6 +400,7 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
           </label>
         </div>
 
+        <div className={profileStyles.fieldGrid}>
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>
             Длительность, мин<span className={profileStyles.requiredMark}>*</span>
@@ -415,11 +416,11 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
             disabled={locked}
           />
         </label>
-
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Место</span>
           <input className={profileStyles.input} value={location} onChange={(e) => setLocation(e.target.value)} maxLength={200} disabled={locked} />
         </label>
+        </div>
 
         {mode === "team" && (
           <div
