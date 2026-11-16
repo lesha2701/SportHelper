@@ -1,3 +1,4 @@
+import { useHeadingAction, useHeadingActionVisible } from "../../hooks/useHeadingAction";
 import { useCallback, useEffect, useState } from "react";
 import { listMyPlans, sharePlan, duplicatePlan } from "../../api/plans";
 import { listMyTeams } from "../../api/teams";
@@ -149,9 +150,11 @@ function PlanDetailPanel({
   );
 }
 
-export function PlansScreen({ token }: { token: string }) {
+export function PlansScreen({ token, createRequest }: { token: string; createRequest?: number }) {
   const isDesktop = useIsDesktop();
   const [view, setView] = useState<View>({ screen: "list" });
+  useHeadingAction(createRequest, () => setView({ screen: "create" }));
+  useHeadingActionVisible(view.screen === "list");
   const [state, setState] = useState<ListState>({ status: "loading" });
   const [teams, setTeams] = useState<Team[]>([]);
   const [query, setQuery] = useState("");
@@ -227,10 +230,12 @@ export function PlansScreen({ token }: { token: string }) {
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <h1 className={`${styles.heading} ${styles.headingDup}`}>Планы тренировок</h1>
-        <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })}>
-          <Icon name="plus" size={16} />
-          Создать
-        </button>
+        {!isDesktop && (
+          <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })}>
+            <Icon name="plus" size={16} />
+            Создать
+          </button>
+        )}
       </div>
 
       {state.plans.length > 0 && (

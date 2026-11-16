@@ -297,6 +297,53 @@
   }
 }
 
+/* Most people have one team, a few have two: then the cards are big (one per row, or two side by side) instead of small tiles
+   lost in an empty row. From three teams on they are the usual grid of tiles. */
+@media (min-width: 900px) {
+  .cardGridSolo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cardGridPair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.cardGridSolo .teamCard,
+.cardGridPair .teamCard {
+  gap: 20px;
+}
+
+.cardGridSolo .teamCard {
+  padding: 28px;
+}
+
+.cardGridSolo .teamAvatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 22px;
+  font-size: 34px;
+}
+
+.cardGridPair .teamAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  font-size: 24px;
+}
+
+.cardGridSolo .teamName {
+  font-size: 32px;
+}
+
+.cardGridPair .teamName {
+  font-size: 26px;
+}
+
+.cardGridSolo .teamMeta {
+  font-size: 15px;
+}
+
 .plainRows .memberRow {
   padding: 14px 0;
   border-radius: 0;
@@ -819,6 +866,13 @@
 .headerRow > .iconButton:only-child:hover {
   background: none;
   color: var(--color-text);
+}
+
+/* On desktop the top navigation is always there, so the row that holds only «Назад» is not drawn at all (it used to cost a line). */
+@media (min-width: 900px) {
+  .headerRow:has(> .iconButton:only-child) {
+    display: none;
+  }
 }
 
 /* Tab strip above a section screen (library): the screen's own margin on a phone, none on desktop. */

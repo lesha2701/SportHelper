@@ -73,7 +73,7 @@ export function AppShell<T extends string>({
           </div>
         </header>
         <div className={styles.desktopContent}>
-          <div className={styles.desktopContentInner}>
+          <div className={topBar ? styles.desktopContentInner : `${styles.desktopContentInner} ${styles.desktopContentNoHeading}`}>
             {topBar && <PageHeading {...topBar} />}
             {children}
           </div>

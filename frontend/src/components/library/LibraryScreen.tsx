@@ -6,7 +6,8 @@ import styles from "../teams/teams.module.css";
 
 type Tab = "exercises" | "plans" | "tasks";
 
-export function LibraryScreen({ token }: { token: string }) {
+/** `createRequest` is raised by the «Создать» button in the page heading (desktop); the open tab starts its create form. */
+export function LibraryScreen({ token, createRequest }: { token: string; createRequest?: number }) {
   const [tab, setTab] = useState<Tab>("exercises");
 
   return (
@@ -25,9 +26,9 @@ export function LibraryScreen({ token }: { token: string }) {
         </div>
       </div>
 
-      {tab === "exercises" && <ExercisesScreen token={token} />}
-      {tab === "plans" && <PlansScreen token={token} />}
-      {tab === "tasks" && <TaskTemplatesScreen token={token} />}
+      {tab === "exercises" && <ExercisesScreen token={token} createRequest={createRequest} />}
+      {tab === "plans" && <PlansScreen token={token} createRequest={createRequest} />}
+      {tab === "tasks" && <TaskTemplatesScreen token={token} createRequest={createRequest} />}
     </>
   );
 }

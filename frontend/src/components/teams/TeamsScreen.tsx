@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { listMyTeams } from "../../api/teams";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
+import { useHeadingAction, useHeadingActionVisible } from "../../hooks/useHeadingAction";
+import { useIsDesktop } from "../../hooks/useIsDesktop";
 import { Icon } from "../shared/Icon";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { CreateTeamForm } from "./CreateTeamForm";
@@ -16,8 +18,11 @@ type ListState =
 
 type View = { screen: "list" } | { screen: "create" } | { screen: "detail"; teamId: string };
 
-export function TeamsScreen({ token }: { token: string }) {
+export function TeamsScreen({ token, createRequest }: { token: string; createRequest?: number }) {
+  const isDesktop = useIsDesktop();
   const [view, setView] = useState<View>({ screen: "list" });
+  useHeadingAction(createRequest, () => setView({ screen: "create" }));
+  useHeadingActionVisible(view.screen === "list");
   const [state, setState] = useState<ListState>({ status: "loading" });
 
   const load = useCallback(() => {
@@ -64,10 +69,12 @@ export function TeamsScreen({ token }: { token: string }) {
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <h1 className={`${styles.heading} ${styles.headingDup}`}>Команды</h1>
-        <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })}>
-          <Icon name="plus" size={16} />
-          Создать
-        </button>
+        {!isDesktop && (
+          <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })}>
+            <Icon name="plus" size={16} />
+            Создать
+          </button>
+        )}
       </div>
 
       {state.teams.length === 0 ? (
@@ -77,7 +84,7 @@ export function TeamsScreen({ token }: { token: string }) {
           description="Создайте свою первую команду, чтобы начать."
         />
       ) : (
-        <div className={styles.cardGrid}>
+        <div className={`${styles.cardGrid} ${state.teams.length === 1 ? styles.cardGridSolo : state.teams.length === 2 ? styles.cardGridPair : ""}`}>
           {state.teams.map((team) => (
             <button
               key={team.id}

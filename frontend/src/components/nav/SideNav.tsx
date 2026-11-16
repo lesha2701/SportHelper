@@ -17,6 +17,8 @@ export interface SideNavUser {
   sub: string;
   photoUrl: string | null;
   initial: string;
+  /** The uploaded avatar (the same one the profile shows); the initial stays underneath while it loads or if it fails. */
+  avatar?: { token: string; fileId: string } | null;
 }
 
 interface SideNavProps<T extends string> {
@@ -40,10 +42,11 @@ interface SideNavProps<T extends string> {
 export function SideNav<T extends string>({ items, active, onChange, team, onOpenTeam, user, onOpenProfile, onOpenSettings }: SideNavProps<T>) {
   return (
     <div className={styles.root}>
-      <div className={styles.brandRow}>
+      {/* the logo leads home: the first section of the pill */}
+      <button type="button" className={styles.brandRow} onClick={() => onChange(items[0]!.key)} aria-label="SportArenaGlobal — на главную">
         <BrandLogo className={styles.brandMark} />
         <span className={styles.brandName}>SportArenaGlobal</span>
-      </div>
+      </button>
 
       <nav className={styles.pills} aria-label="Разделы">
         {items.map((item) => {
@@ -80,7 +83,12 @@ export function SideNav<T extends string>({ items, active, onChange, team, onOpe
 
       <div className={styles.userRow}>
         <button type="button" className={styles.userMain} onClick={onOpenProfile}>
-          {user.photoUrl ? (
+          {user.avatar ? (
+            <div className={styles.userAvatarPlaceholder}>
+              {user.initial}
+              <AuthenticatedImage token={user.avatar.token} fileId={user.avatar.fileId} alt="" thumb className={styles.userAvatarImage} />
+            </div>
+          ) : user.photoUrl ? (
             <img className={styles.userAvatar} src={user.photoUrl} alt="" />
           ) : (
             <div className={styles.userAvatarPlaceholder}>{user.initial}</div>

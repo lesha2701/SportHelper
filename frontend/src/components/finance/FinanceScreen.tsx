@@ -130,6 +130,8 @@ export function FinanceScreen({ token, onBack }: { token: string; onBack: () => 
         </p>
       )}
 
+      <div className={styles.columns}>
+      <div className={styles.column}>
       <div className={`${profileStyles.card} ${profileStyles.actionsCard}`}>
         <button type="button" className={profileStyles.buttonPrimary} disabled={!summary.canWithdraw} onClick={() => setFormOpen(true)}>
           Вывести средства
@@ -186,7 +188,9 @@ export function FinanceScreen({ token, onBack }: { token: string; onBack: () => 
         </ul>
         {withdrawals && <PagerBar page={withdrawals} onChange={setWdOffset} label="заявок" />}
       </div>
+      </div>
 
+      <div className={styles.column}>
       <div className={profileStyles.card}>
         <h2 className={styles.sectionTitle}>История операций</h2>
         {operations && operations.items.length === 0 && <p className={styles.note}>Операций пока нет. Они появятся после первой оплаты занятия.</p>}
@@ -207,6 +211,8 @@ export function FinanceScreen({ token, onBack }: { token: string; onBack: () => 
           ))}
         </ul>
         {operations && <PagerBar page={operations} onChange={setOpOffset} label="операций" />}
+      </div>
+      </div>
       </div>
     </div>
   );

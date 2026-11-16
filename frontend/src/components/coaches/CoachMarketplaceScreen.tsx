@@ -1,5 +1,5 @@
 // frontend/src/components/coaches/CoachMarketplaceScreen.tsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { getListingProfile, listListings } from "../../api/coachListings";
 import { navigateApp } from "../../appNav";
 import { ApiError } from "../../api/client";
@@ -10,6 +10,7 @@ import { ListingPublicProfileScreen } from "./ListingPublicProfileScreen";
 import { CoachPublicProfileScreen } from "./CoachPublicProfileScreen";
 import { BookingFlow } from "./BookingFlow";
 import { ListingEditScreen } from "./ListingEditScreen";
+import { useHeadingAction, useHeadingActionVisible } from "../../hooks/useHeadingAction";
 import { useIsDesktop } from "../../hooks/useIsDesktop";
 import type { CoachListingCard, CoachListingFilters, CoachListingProfile } from "../../types/coachListing";
 import type { Booking } from "../../types/booking";
@@ -235,13 +236,10 @@ export function CoachMarketplaceScreen({
           ? { screen: "coachProfile", coachUserId: initialCoachUserId }
           : { screen: "list" },
   );
-  // Only a press made while this screen is open counts: the value it mounted with is already handled.
-  const seenCreateRequest = useRef(createListingRequest);
-  useEffect(() => {
-    if (createListingRequest === seenCreateRequest.current) return;
-    seenCreateRequest.current = createListingRequest;
+  useHeadingAction(createListingRequest, () => {
     if (canCreateListing) setView({ screen: "createListing" });
-  }, [createListingRequest, canCreateListing]);
+  });
+  useHeadingActionVisible(view.screen === "list");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [state, setState] = useState<ListState>({ status: "loading" });
   const [location, setLocation] = useState("");

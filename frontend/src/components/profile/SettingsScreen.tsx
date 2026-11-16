@@ -20,7 +20,7 @@ export function SettingsScreen({
   const [showGuide, setShowGuide] = useState(false);
 
   return (
-    <div className={`${profileStyles.screen} ${profileStyles.wideScreen}`}>
+    <div className={profileStyles.screen}>
       <div className={sharedStyles.headerRow}>
         <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
           <Icon name="chevron-left" size={16} />

@@ -61,6 +61,11 @@
   padding: 0 32px 40px;
 }
 
+/* A screen opened on top of a tab has no page heading, so it needs the heading's top spacing itself. */
+.desktopContentNoHeading {
+  padding-top: 16px;
+}
+
 @media (max-width: 1179px) {
   /* The brand name is hidden, so the logo takes the left edge and the buttons the right one. */
   .headerInner {
