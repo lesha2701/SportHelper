@@ -54,6 +54,7 @@ export function PlayerProfileForm({ initial, onSubmit, onCancel }: PlayerProfile
 
         <span className={styles.fieldSectionLabel}>Основное</span>
 
+        <div className={styles.fieldGrid}>
         <label className={styles.field}>
           <span className={styles.label}>
             Имя<span className={styles.requiredMark}>*</span>
@@ -66,8 +67,8 @@ export function PlayerProfileForm({ initial, onSubmit, onCancel }: PlayerProfile
             maxLength={100}
           />
         </label>
-
         <SportSelect value={sport} onChange={setSport} />
+        </div>
 
         <span className={styles.fieldSectionLabel}>Физические данные</span>
 
@@ -140,6 +141,7 @@ export function PlayerProfileForm({ initial, onSubmit, onCancel }: PlayerProfile
 
         <span className={styles.fieldSectionLabel}>Цели и ограничения</span>
 
+        <div className={styles.fieldGrid}>
         <label className={styles.field}>
           <span className={styles.label}>Цели</span>
           <textarea
@@ -149,7 +151,6 @@ export function PlayerProfileForm({ initial, onSubmit, onCancel }: PlayerProfile
             maxLength={1000}
           />
         </label>
-
         <label className={styles.field}>
           <span className={styles.label}>Ограничения по нагрузке</span>
           <textarea
@@ -159,6 +160,7 @@ export function PlayerProfileForm({ initial, onSubmit, onCancel }: PlayerProfile
             maxLength={1000}
           />
         </label>
+        </div>
 
         {error && <p className={styles.error}>{error}</p>}
 

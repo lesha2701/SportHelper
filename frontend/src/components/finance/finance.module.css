@@ -37,6 +37,44 @@
   font-size: 28px;
 }
 
+/* Withdrawals on the left, the history of operations on the right: the screen is as wide as every other one and fills it. */
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .balanceGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .balanceTilePrimary {
+    grid-column: auto;
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    align-items: start;
+  }
+
+  .column {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 899px) {
+  .columns {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
 .note {
   font-size: 13px;
   color: var(--color-text-secondary);

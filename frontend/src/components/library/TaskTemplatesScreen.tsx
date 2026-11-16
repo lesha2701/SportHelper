@@ -1,3 +1,4 @@
+import { useHeadingAction, useHeadingActionVisible } from "../../hooks/useHeadingAction";
 import { useCallback, useEffect, useState } from "react";
 import { listMyTemplates, deleteTemplate } from "../../api/taskTemplates";
 import { ApiError } from "../../api/client";
@@ -148,9 +149,11 @@ function TemplateDetailPanel({
   );
 }
 
-export function TaskTemplatesScreen({ token }: { token: string }) {
+export function TaskTemplatesScreen({ token, createRequest }: { token: string; createRequest?: number }) {
   const isDesktop = useIsDesktop();
   const [view, setView] = useState<View>({ screen: "list" });
+  useHeadingAction(createRequest, () => setView({ screen: "create" }));
+  useHeadingActionVisible(view.screen === "list");
   const [state, setState] = useState<ListState>({ status: "loading" });
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -217,10 +220,12 @@ export function TaskTemplatesScreen({ token }: { token: string }) {
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <h1 className={`${styles.heading} ${styles.headingDup}`}>Шаблоны заданий</h1>
-        <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })}>
-          <Icon name="plus" size={16} />
-          Создать
-        </button>
+        {!isDesktop && (
+          <button type="button" className={styles.addButton} onClick={() => setView({ screen: "create" })}>
+            <Icon name="plus" size={16} />
+            Создать
+          </button>
+        )}
       </div>
 
       {state.templates.length > 0 && (

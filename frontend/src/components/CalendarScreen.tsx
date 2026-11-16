@@ -1,3 +1,4 @@
+import { useIsDesktop } from "../hooks/useIsDesktop";
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { getCalendar } from "../api/calendar";
 import { ApiError } from "../api/client";
@@ -51,6 +52,8 @@ interface CalendarScreenProps {
 }
 
 export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: CalendarScreenProps) {
+  // on desktop «Добавить тренировку» sits in the page heading
+  const isDesktop = useIsDesktop();
   const [mode, setMode] = useState<Mode>("list");
   const [anchor, setAnchor] = useState(() => new Date());
   const [state, setState] = useState<LoadState>({ status: "loading" });
@@ -136,7 +139,7 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
     <div className={styles.screen}>
       <div className={styles.headerRow}>
         <h1 className={`${styles.heading} ${styles.headingDup}`}>Календарь</h1>
-        {onCreateTraining && (
+        {onCreateTraining && !isDesktop && (
           <button type="button" className={styles.iconButton} onClick={onCreateTraining}>
             + Добавить тренировку
           </button>

@@ -108,14 +108,15 @@ export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseForm
         <h1 className={profileStyles.pageHeading}>{isEdit ? "Редактировать упражнение" : "Новое упражнение"}</h1>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
+        <div className={profileStyles.fieldGrid}>
         <SportSelect value={sport} onChange={setSport} />
-
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>
             Название<span className={profileStyles.requiredMark}>*</span>
           </span>
           <input className={profileStyles.input} value={name} onChange={(e) => setName(e.target.value)} required maxLength={150} />
         </label>
+        </div>
 
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Описание</span>
@@ -156,11 +157,11 @@ export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseForm
           </label>
         </div>
 
+        <div className={profileStyles.fieldGrid}>
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Инвентарь</span>
           <input className={profileStyles.input} value={equipment} onChange={(e) => setEquipment(e.target.value)} maxLength={500} />
         </label>
-
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Сложность</span>
           <select className={profileStyles.select} value={difficulty} onChange={(e) => setDifficulty(e.target.value as SkillLevel | "")}>
@@ -172,12 +173,13 @@ export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseForm
             ))}
           </select>
         </label>
+        </div>
 
+        <div className={profileStyles.fieldGrid}>
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Техника выполнения</span>
           <textarea className={profileStyles.textarea} value={technique} onChange={(e) => setTechnique(e.target.value)} maxLength={2000} />
         </label>
-
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Типичные ошибки</span>
           <textarea
@@ -187,16 +189,18 @@ export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseForm
             maxLength={2000}
           />
         </label>
+        </div>
 
+        <div className={profileStyles.fieldGrid}>
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Предупреждения</span>
           <textarea className={profileStyles.textarea} value={warnings} onChange={(e) => setWarnings(e.target.value)} maxLength={1000} />
         </label>
-
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Комментарий тренера</span>
           <textarea className={profileStyles.textarea} value={coachComment} onChange={(e) => setCoachComment(e.target.value)} maxLength={1000} />
         </label>
+        </div>
 
         </CollapsibleSection>
 

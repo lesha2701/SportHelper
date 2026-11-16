@@ -58,7 +58,7 @@
   --radius-md: 12px;
   --radius-sm: 8px;
   --radius-pill: 999px;
-  --card-padding: 28px;
+  --card-padding: 20px;
   --control-height: 44px;
   --field-height: 48px;
 
@@ -601,6 +601,6 @@ textarea.ui-input {
 
 @media (max-width: 760px) {
   :root {
-    --card-padding: 20px;
+    --card-padding: 16px;
   }
 }

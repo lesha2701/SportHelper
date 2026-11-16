@@ -177,14 +177,15 @@ export function PlanForm({ token, initial, onSaved, onCancel }: PlanFormProps) {
           </div>
         )}
 
+        <div className={profileStyles.fieldGrid}>
         <SportSelect value={sport} onChange={setSport} />
-
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>
             Название<span className={profileStyles.requiredMark}>*</span>
           </span>
           <input className={profileStyles.input} value={name} onChange={(e) => setName(e.target.value)} required maxLength={150} />
         </label>
+        </div>
 
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Описание</span>
@@ -192,6 +193,7 @@ export function PlanForm({ token, initial, onSaved, onCancel }: PlanFormProps) {
         </label>
 
         <CollapsibleSection label="Дополнительно" defaultOpen={isEdit} forceOpenKey={aiFillSignal}>
+          <div className={profileStyles.fieldGrid}>
           <label className={profileStyles.field}>
             <span className={profileStyles.label}>Длительность, мин</span>
             <input
@@ -203,11 +205,11 @@ export function PlanForm({ token, initial, onSaved, onCancel }: PlanFormProps) {
               onChange={(e) => setDurationMinutes(e.target.value)}
             />
           </label>
-
           <label className={profileStyles.field}>
             <span className={profileStyles.label}>Инвентарь</span>
             <input className={profileStyles.input} value={equipment} onChange={(e) => setEquipment(e.target.value)} maxLength={500} />
           </label>
+          </div>
 
           <label className={profileStyles.field}>
             <span className={profileStyles.label}>Комментарий</span>

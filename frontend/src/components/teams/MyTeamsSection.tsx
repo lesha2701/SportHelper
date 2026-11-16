@@ -36,7 +36,7 @@ export function MyTeamsSection({ token, onOpenTeam }: { token: string; onOpenTea
           А пока — найти личного тренера
         </button>
       )}
-      <div className={teamStyles.cardGrid}>
+      <div className={`${teamStyles.cardGrid} ${teams.length === 1 ? teamStyles.cardGridSolo : teams.length === 2 ? teamStyles.cardGridPair : ""}`}>
         {teams.map((team) => (
           <button key={team.id} type="button" className={teamStyles.teamCard} onClick={() => onOpenTeam(team.id)}>
             <div className={teamStyles.teamCardRow}>

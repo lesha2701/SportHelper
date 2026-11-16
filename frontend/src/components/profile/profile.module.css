@@ -6,28 +6,13 @@
   padding-bottom: 32px;
 }
 
-/* Every form (training/task/match/exercise/plan/profile/team) roots this
-   same class — cap it on desktop so text fields and cards don't stretch
-   across the whole sidebar content width, and center it so the leftover
-   space reads as an intentional page margin instead of a stray void next
-   to a left-pinned column. The Profile tab's own summary screen opts out
-   via .summaryScreen, which uses the full content width for a proper
-   multi-column layout instead. */
+/* Every screen is as wide as the page (the 1240px column of AppShell), so moving between tabs and sub-screens never changes the width.
+   Forms and long cards keep themselves readable by laying their content out in columns or by capping the fields, not the screen. */
 @media (min-width: 900px) {
   .screen {
-    max-width: 760px;
-    margin: 0 auto;
     width: 100%;
     padding: 0 0 32px;
     gap: 20px;
-  }
-}
-
-/* A screen that uses the full content width instead of the narrow form column. */
-@media (min-width: 900px) {
-  .wideScreen {
-    max-width: none;
-    margin: 0;
   }
 }
 
@@ -445,14 +430,50 @@
   overflow-wrap: anywhere;
 }
 
-.actionRowList {
+/* The same card as .factsCard on the left: surface, 20px padding, a title with a rule under it. The rows keep the card's own
+   side padding; their hover and divider lines are inset by 8px so they line up with the title's rule. */
+.actionCard {
   border-radius: var(--radius-lg);
   background: var(--color-surface);
-  border: none;
   box-shadow: var(--shadow-card);
-  overflow: hidden;
+  padding: var(--card-padding);
   display: flex;
   flex-direction: column;
+  min-width: 0;
+}
+
+.actionCardHead {
+  padding-bottom: 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+.actionCardRows {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -8px;
+}
+
+.actionCardRows > .actionRow {
+  position: relative;
+  padding: 12px 8px;
+  border-bottom: none;
+  border-radius: var(--radius-md);
+}
+
+.actionCardRows > .actionRow + .actionRow::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.actionCardRows > .actionRow:hover::before,
+.actionCardRows > .actionRow:hover + .actionRow::before {
+  opacity: 0;
 }
 
 .actionRow {
@@ -896,14 +917,6 @@
   color: var(--color-text);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
-}
-
-.actionGroupTitle {
-  margin: 8px 0 0;
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
 }
 
 /* Keeps the look, but the tappable area is 44px. */

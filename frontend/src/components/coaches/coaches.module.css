@@ -310,13 +310,6 @@
   gap: 20px;
 }
 
-/* One card per row is already wide, so its photo band stays slim (the mockup's catalogue card has none). */
-@media (min-width: 900px) {
-  .listingsColumn .listingCardPhotoWrap {
-    aspect-ratio: 16 / 6;
-  }
-}
-
 /* "3 в ряд" — a fixed 3-column grid on desktop; still a single column on
    narrower viewports where 3 columns wouldn't fit anything useful. */
 .listingsGrid3 {
@@ -352,7 +345,8 @@
 
 @media (min-width: 900px) {
   .coachCard {
-    padding: var(--card-padding);
+    /* the photo bleeds to the card's edges; the text blocks carry their own side padding */
+    padding: 0 0 16px;
     overflow: hidden;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
@@ -371,7 +365,7 @@
   }
 
   .coachCardTop {
-    padding-top: 16px;
+    padding-top: 14px;
   }
 }
 
@@ -451,7 +445,7 @@
    growing/shrinking with whichever fields a coach happened to fill in. */
 .listingCardPhotoWrap {
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 9;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--color-surface-alt);
@@ -460,7 +454,7 @@
 @media (min-width: 900px) {
   .listingCardPhotoWrap {
     border-radius: 0;
-    aspect-ratio: 16 / 11;
+    aspect-ratio: 16 / 9;
   }
 }
 
@@ -951,18 +945,24 @@
   flex: 1 1 100%;
 }
 
-/* On a wide screen the filters sit in one row above the listings instead of a column beside them. */
+/* On a wide screen the filters sit in one row above the listings instead of a column beside them.
+   Every field is a label line of a fixed height over a 48px control, and everything is aligned to the TOP, so the labels share one
+   line and the controls share another. The price slider is taken out of the flow (it hangs under the inputs in the panel's bottom
+   padding), otherwise it would make the price field taller than its neighbours and leave a gap under all of them. */
 @media (min-width: 900px) {
   .marketplaceLayout {
     gap: 20px;
   }
 
   .filterPanel {
+    --filter-label-height: 18px;
+    --filter-label-gap: 8px;
+    --filter-slider-room: 36px;
     flex-direction: row;
     flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 12px 28px;
-    padding: 20px var(--card-padding);
+    align-items: flex-start;
+    gap: var(--filter-slider-room) 24px;
+    padding: 20px var(--card-padding) var(--filter-slider-room);
   }
 
   .filterPanelTitle {
@@ -975,19 +975,60 @@
   }
 
   .filterPanel > .filterField {
-    flex: 0 1 220px;
+    flex: 1 1 160px;
     min-width: 0;
+    gap: var(--filter-label-gap);
   }
 
+  .filterPanel > .filterFieldPrice {
+    position: relative;
+    flex-basis: 260px;
+  }
+
+  .filterPanel > .filterFieldPrice .priceSlider {
+    position: absolute;
+    left: 0;
+    top: calc(var(--filter-label-height) + var(--filter-label-gap) + var(--field-height) + 8px);
+    margin: 0;
+  }
+
+  .filterPanel > .filterFieldRating {
+    flex: 0 0 auto;
+  }
+
+  .filterFieldLabel {
+    height: var(--filter-label-height);
+    line-height: var(--filter-label-height);
+  }
+
+  .filterPanel .ratingPillRow {
+    grid-template-columns: repeat(3, 68px);
+  }
+
+  .filterPanel .ratingPill,
+  .filterPanel .ratingPillActive {
+    min-height: var(--field-height);
+    padding: 0;
+  }
+
+  /* below ~1160px the toggle and the reset link wrap onto a second row of their own, level with each other */
   .filterPanel > .onlineToggleRow {
     flex: 0 0 auto;
     gap: 14px;
-    min-height: var(--field-height);
+    height: var(--field-height);
   }
 
   .filterPanel > .resetFiltersLink {
-    margin-top: 0;
     margin-left: auto;
-    align-self: flex-end;
+    align-self: flex-start;
+    height: var(--field-height);
+  }
+}
+
+/* wide enough for everything in one row: the label-less toggle and reset link drop by the label line to sit level with the controls */
+@media (min-width: 1160px) {
+  .filterPanel > .onlineToggleRow,
+  .filterPanel > .resetFiltersLink {
+    margin-top: calc(var(--filter-label-height) + var(--filter-label-gap));
   }
 }

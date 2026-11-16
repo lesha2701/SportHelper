@@ -62,3 +62,20 @@ describe("the user row in the side navigation", () => {
     expect(openProfile).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("the logo and the user avatar in the header", () => {
+  it("takes you to the first section (the home page) when the logo is pressed", () => {
+    const onChange = vi.fn();
+    render(<SideNav {...props} onChange={onChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "SportArenaGlobal — на главную" }));
+
+    expect(onChange).toHaveBeenCalledWith("dashboard");
+  });
+
+  it("shows the uploaded avatar over the initial, the same one the profile shows", () => {
+    render(<SideNav {...props} user={{ ...props.user, avatar: { token: "t", fileId: "avatar-1" } }} />);
+
+    expect(screen.getByTestId("team-logo").getAttribute("data-file")).toBe("avatar-1");
+  });
+});

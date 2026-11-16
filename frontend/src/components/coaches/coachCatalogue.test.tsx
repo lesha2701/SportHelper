@@ -52,6 +52,16 @@ describe("the coaches tab for a coach", () => {
     expect(listListings).toHaveBeenCalledTimes(2);
   });
 
+  it("opens the form when the button in the page heading is pressed, but not for a press made before it mounted", async () => {
+    const { rerender } = render(<CoachMarketplaceScreen token="t" myUserId="me" canCreateListing createListingRequest={3} />);
+    await screen.findByText("Чужое объявление");
+    expect(screen.queryByText("Новое объявление")).toBeNull();
+
+    rerender(<CoachMarketplaceScreen token="t" myUserId="me" canCreateListing createListingRequest={4} />);
+
+    expect(await screen.findByText("Новое объявление")).toBeTruthy();
+  });
+
   it("shows the coach's own listing too, marked as theirs", async () => {
     render(<CoachMarketplaceScreen token="t" myUserId="me" canCreateListing />);
 

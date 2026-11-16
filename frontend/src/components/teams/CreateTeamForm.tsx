@@ -59,6 +59,7 @@ export function CreateTeamForm({ token, initial, onCreated, onCancel }: CreateTe
         <h1 className={profileStyles.pageHeading}>{isEdit ? "Настройки команды" : "Новая команда"}</h1>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
+        <div className={profileStyles.fieldGrid}>
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>
             Название<span className={profileStyles.requiredMark}>*</span>
@@ -71,8 +72,8 @@ export function CreateTeamForm({ token, initial, onCreated, onCancel }: CreateTe
             maxLength={100}
           />
         </label>
-
         <SportSelect value={sport} onChange={setSport} />
+        </div>
 
         <div className={profileStyles.fieldGrid}>
           <label className={profileStyles.field}>
@@ -112,6 +113,7 @@ export function CreateTeamForm({ token, initial, onCreated, onCancel }: CreateTe
           />
         </label>
 
+        <div className={profileStyles.fieldGrid}>
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Домашняя площадка</span>
           <input
@@ -123,7 +125,6 @@ export function CreateTeamForm({ token, initial, onCreated, onCancel }: CreateTe
           />
           <span className={profileStyles.requiredHint}>Подставится как место во всех домашних матчах команды.</span>
         </label>
-
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Турниры команды</span>
           <textarea
@@ -135,6 +136,7 @@ export function CreateTeamForm({ token, initial, onCreated, onCancel }: CreateTe
           />
           <span className={profileStyles.requiredHint}>Каждый турнир с новой строки. В форме матча их можно выбрать из списка.</span>
         </label>
+        </div>
 
         {error && <p className={profileStyles.error}>{error}</p>}
 

@@ -80,12 +80,34 @@ export function MatchForm({ token, teamId, initial, onSaved, onCancel }: MatchFo
         <h1 className={profileStyles.pageHeading}>{isEdit ? "Редактировать матч" : "Новый матч"}</h1>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
+        <div className={profileStyles.fieldGrid}>
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>
             Соперник<span className={profileStyles.requiredMark}>*</span>
           </span>
           <input className={profileStyles.input} value={opponentName} onChange={(e) => setOpponentName(e.target.value)} required maxLength={150} />
         </label>
+        <label className={profileStyles.field}>
+          <span className={profileStyles.label}>Турнир</span>
+          <input
+            className={profileStyles.input}
+            list="team-tournaments"
+            value={tournament}
+            onChange={(e) => setTournament(e.target.value)}
+            maxLength={150}
+          />
+          <datalist id="team-tournaments">
+            {tournaments.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
+          <span className={profileStyles.requiredHint}>
+            {tournaments.length > 0
+              ? "Выберите из турниров команды или впишите свой."
+              : "Турниры команды можно задать в настройках команды — тогда их можно будет выбирать здесь."}
+          </span>
+        </label>
+        </div>
 
         <div className={profileStyles.fieldGrid}>
           <label className={profileStyles.field}>
@@ -121,27 +143,6 @@ export function MatchForm({ token, teamId, initial, onSaved, onCancel }: MatchFo
         <label className={profileStyles.field} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <input type="checkbox" checked={isHome} onChange={(e) => setIsHome(e.target.checked)} />
           <span className={profileStyles.label}>Домашний матч</span>
-        </label>
-
-        <label className={profileStyles.field}>
-          <span className={profileStyles.label}>Турнир</span>
-          <input
-            className={profileStyles.input}
-            list="team-tournaments"
-            value={tournament}
-            onChange={(e) => setTournament(e.target.value)}
-            maxLength={150}
-          />
-          <datalist id="team-tournaments">
-            {tournaments.map((name) => (
-              <option key={name} value={name} />
-            ))}
-          </datalist>
-          <span className={profileStyles.requiredHint}>
-            {tournaments.length > 0
-              ? "Выберите из турниров команды или впишите свой."
-              : "Турниры команды можно задать в настройках команды — тогда их можно будет выбирать здесь."}
-          </span>
         </label>
 
         {error && <p className={profileStyles.error}>{error}</p>}

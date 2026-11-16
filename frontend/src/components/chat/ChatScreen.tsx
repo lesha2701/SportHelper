@@ -223,10 +223,10 @@ export function ChatScreen({
   const isTeam = load.chat.kind === "team";
   let lastDay = "";
   return (
-    <div className={styles.screen}>
+    <div className={embedded ? styles.screenEmbedded : styles.screen}>
       {!embedded && (
         <div className={styles.head}>
-          <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
+          <button type="button" className={`${sharedStyles.iconButton} ${styles.backPhoneOnly}`} onClick={onBack}>
             <Icon name="chevron-left" size={16} />
             Назад
           </button>

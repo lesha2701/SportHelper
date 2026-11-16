@@ -1,3 +1,4 @@
+import { HeadingActionVisibility } from "./hooks/useHeadingAction";
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ProfileProvider, useProfile } from "./context/ProfileContext";
 import { useAuth } from "./context/AuthContext";
@@ -124,18 +125,23 @@ function calendarEventToOverlay(event: CalendarEvent): Overlay {
   }
 }
 
-function coachTopBar(tab: CoachTab, onCreateTraining: () => void): TopBarConfig {
+function withoutHeadingAction(config: TopBarConfig, hide: boolean): TopBarConfig {
+  return hide ? { ...config, cta: undefined } : config;
+}
+
+/** `onHeadingAction` is the tab's main button in the page heading (create a listing / a library item / a team): the open screen listens for it. */
+function coachTopBar(tab: CoachTab, onCreateTraining: () => void, onHeadingAction: () => void): TopBarConfig {
   switch (tab) {
     case "dashboard":
       return { kicker: dateKicker(), title: "Тренерская панель", cta: { label: "Тренировка", icon: "plus", onClick: onCreateTraining } };
     case "teams":
-      return { kicker: "Команды", title: "Команды" };
+      return { kicker: "Команды", title: "Команды", cta: { label: "Создать команду", icon: "plus", onClick: onHeadingAction } };
     case "library":
-      return { kicker: "Упражнения, планы, шаблоны", title: "Библиотека" };
+      return { kicker: "Упражнения, планы, шаблоны", title: "Библиотека", cta: { label: "Создать", icon: "plus", onClick: onHeadingAction } };
     case "calendar":
-      return { kicker: monthKicker(), title: "Календарь" };
+      return { kicker: monthKicker(), title: "Календарь", cta: { label: "Добавить тренировку", icon: "plus", onClick: onCreateTraining } };
     case "coaches":
-      return { kicker: "Индивидуальные занятия", title: "Тренеры" };
+      return { kicker: "Индивидуальные занятия", title: "Тренеры", cta: { label: "Создать объявление", icon: "plus", onClick: onHeadingAction } };
     case "profile":
       return { kicker: "Аккаунт", title: "Профиль" };
   }
@@ -148,7 +154,7 @@ function playerTopBar(tab: PlayerTab, onCreateTraining: () => void): TopBarConfi
     case "teams":
       return { kicker: "Команды", title: "Команды" };
     case "calendar":
-      return { kicker: monthKicker(), title: "Календарь" };
+      return { kicker: monthKicker(), title: "Календарь", cta: { label: "Добавить тренировку", icon: "plus", onClick: onCreateTraining } };
     case "coaches":
       return { kicker: "Индивидуальные занятия", title: "Тренеры" };
     case "profile":
@@ -170,6 +176,7 @@ export function CoachTabContent({
   unreadNotifications,
   startProfileInSettings,
   onProfileSettingsOpened,
+  headingRequest,
 }: {
   initialCoachUserId: string | null;
   marketplaceStart: MarketplaceIntent | null;
@@ -184,6 +191,8 @@ export function CoachTabContent({
   unreadNotifications: number;
   startProfileInSettings: boolean;
   onProfileSettingsOpened: () => void;
+  /** Bumped each time the tab's main button in the page heading is pressed (see coachTopBar). */
+  headingRequest?: number;
 }) {
   switch (tab) {
     case "dashboard":
@@ -198,9 +207,9 @@ export function CoachTabContent({
         />
       );
     case "teams":
-      return <TeamsScreen token={token} />;
+      return <TeamsScreen token={token} createRequest={headingRequest} />;
     case "library":
-      return <LibraryScreen token={token} />;
+      return <LibraryScreen token={token} createRequest={headingRequest} />;
     case "calendar":
       return <CalendarScreen token={token} onOpenEvent={onOpenEvent} onCreateTraining={onCreateTraining} />;
     case "coaches":
@@ -213,6 +222,7 @@ export function CoachTabContent({
           initialBookListingId={marketplaceStart?.bookListingId ?? null}
           myUserId={userId}
           canCreateListing
+          createListingRequest={headingRequest}
         />
       );
     case "profile":
@@ -245,6 +255,8 @@ function MainContent({
   const { trainerBalance } = useFinanceFeatures();
   const myUserId = authState.status === "ready" ? authState.user.id : null;
   const myPhotoUrl = authState.status === "ready" ? authState.user.photoUrl : null;
+  const myAvatarFileId = authState.status === "ready" ? authState.user.avatarFileId : null;
+  const myAvatar = myAvatarFileId ? { token, fileId: myAvatarFileId } : null;
   useActivityPing(authState.status === "ready");
   const openAdmin = authState.status === "ready" && authState.user.isAdmin ? () => navigate("/admin") : undefined;
   // A reload returns to the screen the person was on; a link (invite, notification, coach page) takes priority over that.
@@ -306,13 +318,13 @@ function MainContent({
       }
     : null;
 
-  let sideUser: SideNavUser = { name: "…", sub: "", photoUrl: myPhotoUrl, initial: "?" };
+  let sideUser: SideNavUser = { name: "…", sub: "", photoUrl: myPhotoUrl, avatar: myAvatar, initial: "?" };
   if (state.status === "ready") {
     const mode = state.data.activeMode ?? (state.data.player ? "player" : "coach");
     if (mode === "player" && state.data.player) {
-      sideUser = { name: state.data.player.fullName, sub: "Игрок", photoUrl: myPhotoUrl, initial: initialOf(state.data.player.fullName) };
+      sideUser = { name: state.data.player.fullName, sub: "Игрок", photoUrl: myPhotoUrl, avatar: myAvatar, initial: initialOf(state.data.player.fullName) };
     } else if (mode === "coach" && state.data.coach) {
-      sideUser = { name: state.data.coach.fullName, sub: "Тренер", photoUrl: myPhotoUrl, initial: initialOf(state.data.coach.fullName) };
+      sideUser = { name: state.data.coach.fullName, sub: "Тренер", photoUrl: myPhotoUrl, avatar: myAvatar, initial: initialOf(state.data.coach.fullName) };
     }
   }
 
@@ -338,6 +350,9 @@ function MainContent({
   // or when the visitor arrives with a link to a coach / listing / booking.
   const [marketplaceCoachId, setMarketplaceCoachId] = useState<string | null>(marketplaceIntent?.coachUserId ?? null);
   const [marketplaceStart, setMarketplaceStart] = useState<MarketplaceIntent | null>(marketplaceIntent);
+  // The tab's main button lives in the page heading; each press bumps this so the open screen starts its create form.
+  const [headingRequest, setHeadingRequest] = useState(0);
+  const [headingActionVisible, setHeadingActionVisible] = useState(true);
 
   // A notification button (or a page freshly opened with
   // ?open=&id= from anywhere else) should jump straight to the relevant
@@ -531,6 +546,7 @@ function MainContent({
   if (state.status === "ready" && state.data.activeMode === "coach") {
     const coachNavItems = COACH_NAV_ITEMS.map((item) => (item.key === "profile" ? { ...item, badge: pendingBookings } : item));
     return (
+      <HeadingActionVisibility.Provider value={setHeadingActionVisible}>
       <AppShell
         navItems={coachNavItems}
         activeTab={coachTab}
@@ -559,7 +575,7 @@ function MainContent({
           hasOverlay
             ? undefined
             : {
-                ...coachTopBar(coachTab, onCreateTraining),
+                ...withoutHeadingAction(coachTopBar(coachTab, onCreateTraining, () => setHeadingRequest((n) => n + 1)), !headingActionVisible),
                 unreadNotifications,
                 onOpenNotifications: () => setOverlay({ kind: "notifications" }),
                 onOpenFinance: trainerBalance ? () => setOverlay({ kind: "finance" }) : undefined,
@@ -583,9 +599,11 @@ function MainContent({
             unreadNotifications={unreadNotifications}
             startProfileInSettings={profileSettingsRequested}
             onProfileSettingsOpened={clearProfileSettingsRequest}
+            headingRequest={headingRequest}
           />
         )}
       </AppShell>
+      </HeadingActionVisibility.Provider>
     );
   }
 

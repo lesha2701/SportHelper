@@ -10,6 +10,7 @@ import { ListingPublicProfileScreen } from "./ListingPublicProfileScreen";
 import { CoachPublicProfileScreen } from "./CoachPublicProfileScreen";
 import { BookingFlow } from "./BookingFlow";
 import { ListingEditScreen } from "./ListingEditScreen";
+import { useHeadingAction, useHeadingActionVisible } from "../../hooks/useHeadingAction";
 import { useIsDesktop } from "../../hooks/useIsDesktop";
 import type { CoachListingCard, CoachListingFilters, CoachListingProfile } from "../../types/coachListing";
 import type { Booking } from "../../types/booking";
@@ -206,6 +207,7 @@ export function CoachMarketplaceScreen({
   onRequireLogin,
   myUserId = null,
   canCreateListing = false,
+  createListingRequest = 0,
 }: {
   token: string;
   /** Opens straight on this coach's public profile (e.g. from global search). */
@@ -221,6 +223,8 @@ export function CoachMarketplaceScreen({
   myUserId?: string | null;
   /** A coach can start a new listing from this tab. */
   canCreateListing?: boolean;
+  /** On desktop the «Создать объявление» button sits in the page heading, outside this screen; each press raises this number. */
+  createListingRequest?: number;
 }) {
   const isDesktop = useIsDesktop();
   const [view, setView] = useState<View>(
@@ -232,6 +236,10 @@ export function CoachMarketplaceScreen({
           ? { screen: "coachProfile", coachUserId: initialCoachUserId }
           : { screen: "list" },
   );
+  useHeadingAction(createListingRequest, () => {
+    if (canCreateListing) setView({ screen: "createListing" });
+  });
+  useHeadingActionVisible(view.screen === "list");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [state, setState] = useState<ListState>({ status: "loading" });
   const [location, setLocation] = useState("");
@@ -398,15 +406,20 @@ export function CoachMarketplaceScreen({
 
   return (
     <div className={teamStyles.screen}>
-      <div className={teamStyles.headerRow}>
+      {isDesktop ? (
+        // the page heading already shows the title and the create button
         <h1 className={`${teamStyles.heading} ${teamStyles.headingDup}`}>Тренеры</h1>
-        {canCreateListing && (
-          <button type="button" className={teamStyles.addButton} onClick={() => setView({ screen: "createListing" })}>
-            <Icon name="plus" size={16} />
-            Создать объявление
-          </button>
-        )}
-      </div>
+      ) : (
+        <div className={teamStyles.headerRow}>
+          <h1 className={teamStyles.heading}>Тренеры</h1>
+          {canCreateListing && (
+            <button type="button" className={teamStyles.addButton} onClick={() => setView({ screen: "createListing" })}>
+              <Icon name="plus" size={16} />
+              Создать объявление
+            </button>
+          )}
+        </div>
+      )}
 
       <div className={styles.marketplaceLayout}>
         <div className={styles.filterPanel}>
@@ -423,7 +436,7 @@ export function CoachMarketplaceScreen({
             />
           </div>
 
-          <div className={styles.filterField}>
+          <div className={`${styles.filterField} ${styles.filterFieldPrice}`}>
             <span className={styles.filterFieldLabel}>Цена, ₽</span>
             <div className={styles.priceInputRow}>
               <input
@@ -469,7 +482,7 @@ export function CoachMarketplaceScreen({
             />
           </div>
 
-          <div className={styles.filterField}>
+          <div className={`${styles.filterField} ${styles.filterFieldRating}`}>
             <span className={styles.filterFieldLabel}>Рейтинг</span>
             <div className={styles.ratingPillRow}>
               {[undefined, 4.5, 4.8].map((r) => (
