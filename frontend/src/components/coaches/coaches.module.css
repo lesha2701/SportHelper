@@ -326,10 +326,14 @@
   }
 }
 
+/* The card: a header (avatar and the coach's name), then two columns — the photo on the left (always the same shape, whatever
+   the picture), the facts on the right. It lays itself out by its own width (a container query), because the same card sits
+   in a one-per-row list and in a three-per-row grid: wide enough → two columns, narrow → the photo above the facts. */
 .coachCard {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   height: 100%;
   background: var(--color-surface);
   border: none;
@@ -343,30 +347,9 @@
   transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-@media (min-width: 900px) {
-  .coachCard {
-    /* the photo bleeds to the card's edges; the text blocks carry their own side padding */
-    padding: 0 0 16px;
-    overflow: hidden;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-}
-
-  .coachCard:hover {
-    box-shadow: var(--shadow-raised);
-    transform: translateY(-2px);
-  }
-
-  .coachCardTop,
-  .coachDescription,
-  .coachFooterRow {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-
-  .coachCardTop {
-    padding-top: 14px;
-  }
+.coachCard:hover {
+  box-shadow: var(--shadow-raised);
+  transform: translateY(-2px);
 }
 
 .coachCardTop {
@@ -375,9 +358,20 @@
   align-items: center;
 }
 
+.coachCardWho {
+  min-width: 0;
+  flex: 1;
+}
+
+.coachCardRating {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
 .coachAvatar {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   border-radius: 50%;
   object-fit: cover;
@@ -393,7 +387,7 @@
 .coachName {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -402,10 +396,58 @@
   -webkit-box-orient: vertical;
 }
 
-.coachMeta {
+.coachCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.coachCardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.listingTitle {
   margin: 0;
-  font-size: 12.5px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.factList {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13px;
+}
+
+.factRow {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.factRow dt {
   color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.factRow dd {
+  margin: 0;
+  text-align: right;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .starRating {
@@ -420,15 +462,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
-  min-height: 2.6em;
 }
 
 .coachFooterRow {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  align-items: baseline;
+  gap: 8px;
   font-size: 13px;
   margin-top: auto;
   padding-top: 4px;
@@ -436,26 +477,32 @@
 
 .coachPrice {
   font-family: var(--font-display);
+  font-size: 18px;
   font-weight: 500;
   color: var(--color-link);
 }
 
-/* Reserves the same visual slot as .listingCardPhoto whether or not a
-   listing has a photo, so cards in the same grid row line up instead of
-   growing/shrinking with whichever fields a coach happened to fill in. */
+@container (min-width: 440px) {
+  .coachCardBody {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .listingCardPhotoWrap {
+    flex: 0 0 38%;
+    aspect-ratio: 4 / 3;
+  }
+}
+
+/* Every card's photo has the same shape (16:9 above the facts, 4:3 beside them) whatever the picture and whether or not the
+   listing has one: the picture is cropped to it, never stretched, so cards in a row line up. */
 .listingCardPhotoWrap {
   width: 100%;
   aspect-ratio: 16 / 9;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--color-surface-alt);
-}
-
-@media (min-width: 900px) {
-  .listingCardPhotoWrap {
-    border-radius: 0;
-    aspect-ratio: 16 / 9;
-  }
 }
 
 .listingCardPhotoPlaceholder {

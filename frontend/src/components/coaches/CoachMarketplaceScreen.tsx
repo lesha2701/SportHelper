@@ -34,7 +34,22 @@ type View =
 
 type ListState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; listings: CoachListingCard[] };
 
+/** «18 нояб., 10:00» for a slot's wall-clock start (it carries a UTC label, so it is read as UTC). */
+function slotLabel(startsAt: string): string {
+  return new Date(startsAt).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+}
+
 function ListingCardView({ token, listing, own = false, onOpen }: { token: string; listing: CoachListingCard; own?: boolean; onOpen: () => void }) {
+  const format = [listing.offersOnline && "Онлайн", listing.offersOffline && "Очно"].filter(Boolean).join(" · ");
+  const facts: { label: string; value: string }[] = [
+    { label: "Вид спорта", value: listing.sport },
+    ...(listing.specialization ? [{ label: "Специализация", value: listing.specialization }] : []),
+    ...(listing.experienceYears !== null ? [{ label: "Опыт", value: years(listing.experienceYears) }] : []),
+    ...(format ? [{ label: "Формат", value: format }] : []),
+    ...(listing.location ? [{ label: "Город", value: listing.location }] : []),
+    ...(listing.nextAvailableSlot ? [{ label: "Ближайшее время", value: slotLabel(listing.nextAvailableSlot) }] : []),
+  ];
+
   return (
     <button type="button" className={styles.coachCard} onClick={onOpen}>
       <div className={styles.coachCardTop}>
@@ -43,42 +58,46 @@ function ListingCardView({ token, listing, own = false, onOpen }: { token: strin
         ) : (
           <div className={styles.coachAvatar}>{listing.coachFullName.charAt(0).toUpperCase()}</div>
         )}
-        <div>
+        <div className={styles.coachCardWho}>
+          <h3 className={styles.coachName}>{listing.coachFullName}</h3>
           {own && <span className={styles.ownBadge}>Ваше объявление</span>}
-          <h3 className={styles.coachName}>{listing.title}</h3>
-          <p className={styles.coachMeta}>
-            {listing.coachFullName} · {listing.sport}
-            {listing.experienceYears !== null ? ` · ${years(listing.experienceYears)} опыта` : ""}
-          </p>
-          {listing.averageRating !== null && (
-            <p className={styles.coachMeta}>
-              <span className={styles.starRating}>★ {listing.averageRating.toFixed(1)}</span> ({listing.reviewCount})
-            </p>
-          )}
         </div>
-      </div>
-
-      <div className={styles.listingCardPhotoWrap}>
-        {listing.photoFileId ? (
-          <AuthenticatedImage token={token} fileId={listing.photoFileId} alt={listing.title} className={styles.listingCardPhoto} thumb />
-        ) : (
-          <div className={styles.listingCardPhotoPlaceholder}>
-            <Icon name="image" size={28} />
-          </div>
-        )}
-      </div>
-
-      <p className={styles.coachDescription}>{listing.description || " "}</p>
-
-      <div className={styles.coachFooterRow}>
-        <span className={styles.coachPrice}>
-          {listing.pricePerSession !== null ? `${listing.pricePerSession} ${listing.currency}` : "Цена не указана"}
-        </span>
-        {listing.location && (
-          <span className={teamStyles.teamMeta}>
-            <Icon name="map-pin" size={13} /> {listing.location}
+        {listing.averageRating !== null && (
+          <span className={styles.coachCardRating}>
+            <span className={styles.starRating}>★ {listing.averageRating.toFixed(1)}</span> ({listing.reviewCount})
           </span>
         )}
+      </div>
+
+      <div className={styles.coachCardBody}>
+        <div className={styles.listingCardPhotoWrap}>
+          {listing.photoFileId ? (
+            <AuthenticatedImage token={token} fileId={listing.photoFileId} alt={listing.title} className={styles.listingCardPhoto} thumb />
+          ) : (
+            <div className={styles.listingCardPhotoPlaceholder}>
+              <Icon name="image" size={28} />
+            </div>
+          )}
+        </div>
+
+        <div className={styles.coachCardInfo}>
+          <h4 className={styles.listingTitle}>{listing.title}</h4>
+          <dl className={styles.factList}>
+            {facts.map((f) => (
+              <div className={styles.factRow} key={f.label}>
+                <dt>{f.label}</dt>
+                <dd>{f.value}</dd>
+              </div>
+            ))}
+          </dl>
+          {listing.description && <p className={styles.coachDescription}>{listing.description}</p>}
+          <div className={styles.coachFooterRow}>
+            <span className={styles.coachPrice}>
+              {listing.pricePerSession !== null ? `${listing.pricePerSession} ${listing.currency}` : "Цена не указана"}
+            </span>
+            {listing.pricePerSession !== null && <span className={teamStyles.teamMeta}>за занятие</span>}
+          </div>
+        </div>
       </div>
     </button>
   );
