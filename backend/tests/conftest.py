@@ -293,7 +293,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
 
     import app.repositories.search as search_module
 
-    async def fake_search_all(conn, user_id, query):
+    async def fake_search_all(conn, user_id, query, admin_emails=()):
         # Only teams are backed by an in-memory store here; the real SQL is
         # exercised against the dev database (see the search route).
         needle = query.lower()
@@ -2342,7 +2342,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(coach_listings_module, "replace_availability", fake_replace_listing_availability)
     # coach_listings_module.has_overlap is a plain function — not faked, runs for real in tests.
 
-    async def fake_list_listed(conn, *, sport=None, location=None, min_price=None, max_price=None, min_rating=None, training_format=None, min_experience_years=None):
+    async def fake_list_listed(conn, *, sport=None, location=None, min_price=None, max_price=None, min_rating=None, training_format=None, min_experience_years=None, viewer_user_id=None, admin_emails=()):
         cards = []
         for listing in listings_store.values():
             if not listing.get("is_listed"):
@@ -2350,6 +2350,15 @@ def client(monkeypatch: pytest.MonkeyPatch):
             profile = coach_store.get(listing["coach_user_id"])
             if profile is None:
                 continue
+            author = _find_user_by_id(listing["coach_user_id"])
+            if (
+                admin_emails
+                and listing["coach_user_id"] != viewer_user_id
+                and author is not None
+                and author.get("email_verified_at")
+                and author["email"].lower() in [e.lower() for e in admin_emails]
+            ):
+                continue  # administrators' test listings are shown to nobody but their author
             if sport and sport.lower() not in profile["sport"].lower():
                 continue
             if location and (not listing.get("location") or location.lower() not in listing["location"].lower()):
