@@ -28,8 +28,8 @@ type View =
   /** `coachUserId` is unknown when a listing is opened straight from a link. */
   | { screen: "profile"; listingId: string; coachUserId: string | null }
   /** Coming back from sign-in with a booking in mind: load the listing, then open its booking form. */
-  | { screen: "resumeBooking"; listingId: string }
-  | { screen: "booking"; listing: CoachListingProfile }
+  | { screen: "resumeBooking"; listingId: string; /** Opened from a card in the list: «Назад» returns to the list, not to the listing's page. */ fromList?: boolean }
+  | { screen: "booking"; listing: CoachListingProfile; fromList?: boolean }
   | { screen: "confirmed"; booking: Booking };
 
 type ListState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; listings: CoachListingCard[] };
@@ -39,7 +39,20 @@ function slotLabel(startsAt: string): string {
   return new Date(startsAt).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 }
 
-function ListingCardView({ token, listing, own = false, onOpen }: { token: string; listing: CoachListingCard; own?: boolean; onOpen: () => void }) {
+function ListingCardView({
+  token,
+  listing,
+  own = false,
+  onOpen,
+  onBook,
+}: {
+  token: string;
+  listing: CoachListingCard;
+  own?: boolean;
+  onOpen: () => void;
+  /** Given where the card has no side panel with its own «Записаться» (phone, tablet): the card carries the button itself. */
+  onBook?: () => void;
+}) {
   const format = [listing.offersOnline && "Онлайн", listing.offersOffline && "Очно"].filter(Boolean).join(" · ");
   const facts: { label: string; value: string }[] = [
     { label: "Вид спорта", value: listing.sport },
@@ -51,7 +64,8 @@ function ListingCardView({ token, listing, own = false, onOpen }: { token: strin
   ];
 
   return (
-    <button type="button" className={styles.coachCard} onClick={onOpen}>
+    <div className={styles.coachCard}>
+      <button type="button" className={styles.coachCardMain} onClick={onOpen}>
       <div className={styles.coachCardTop}>
         {listing.coachPhotoUrl ? (
           <img className={styles.coachAvatar} src={listing.coachPhotoUrl} alt="" />
@@ -99,7 +113,13 @@ function ListingCardView({ token, listing, own = false, onOpen }: { token: strin
           </div>
         </div>
       </div>
-    </button>
+      </button>
+      {onBook && !own && (
+        <button type="button" className={`${profileStyles.buttonPrimary} ${styles.coachCardBook}`} onClick={onBook}>
+          Записаться
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -362,8 +382,10 @@ export function CoachMarketplaceScreen({
       <ResumeBooking
         token={token}
         listingId={view.listingId}
-        onReady={(listing) => setView({ screen: "booking", listing })}
-        onFailed={() => setView({ screen: "profile", listingId: view.listingId, coachUserId: null })}
+        onReady={(listing) => setView({ screen: "booking", listing, fromList: view.fromList })}
+        onFailed={() =>
+          setView(view.fromList ? { screen: "list" } : { screen: "profile", listingId: view.listingId, coachUserId: null })
+        }
       />
     );
   }
@@ -387,7 +409,13 @@ export function CoachMarketplaceScreen({
       <BookingFlow
         token={token}
         listing={view.listing}
-        onBack={() => setView({ screen: "profile", listingId: view.listing.id, coachUserId: view.listing.coachUserId })}
+        onBack={() =>
+          setView(
+            view.fromList
+              ? { screen: "list" }
+              : { screen: "profile", listingId: view.listing.id, coachUserId: view.listing.coachUserId },
+          )
+        }
         onBooked={(booking) => setView({ screen: "confirmed", booking })}
       />
     );
@@ -587,6 +615,11 @@ export function CoachMarketplaceScreen({
                     token={token}
                     listing={listing}
                     own={!!myUserId && listing.coachUserId === myUserId}
+                    onBook={
+                      showDetailPanel
+                        ? undefined
+                        : () => (guest ? onRequireLogin?.(listing.id) : setView({ screen: "resumeBooking", listingId: listing.id, fromList: true }))
+                    }
                     onOpen={() =>
                       showDetailPanel
                         ? setSelectedId(listing.id)
