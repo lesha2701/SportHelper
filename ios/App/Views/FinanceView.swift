@@ -56,7 +56,7 @@ struct FinanceView: View {
             Section {
                 StatTiles([
                     (Money.kopecks(value.availableKopecks), "Доступно к выводу"),
-                    (Money.kopecks(value.pendingKopecks), "Ожидает проведения занятия"),
+                    (Money.kopecks(value.pendingKopecks), "Ожидает подтверждения занятия"),
                     (Money.kopecks(value.reservedKopecks), "В обработке (заявки на вывод)"),
                     (Money.kopecks(value.paidOutKopecks), "Выплачено всего"),
                 ])
@@ -88,7 +88,7 @@ struct FinanceView: View {
     private func infoSection(_ value: FinanceSummary) -> some View {
         Section(sag: "Как это работает") {
             Text(
-                "Деньги за занятие становятся доступными к выводу после того, как вы отметите занятие проведённым и платформа его подтвердит. "
+                "Деньги за занятие становятся доступными к выводу, когда занятие подтверждено: игроком, его кодом или само — через 48 часов после окончания, если никто не сообщил о проблеме. "
                     + "Комиссия платформы — \(value.commissionPercent)% с каждой оплаты. Выплаты выполняются вручную, после проверки заявки."
             )
             .font(.footnote).foregroundStyle(Theme.textSecondary)

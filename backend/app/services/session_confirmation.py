@@ -115,11 +115,10 @@ async def view_for(conn: asyncpg.Connection, booking: dict[str, Any], user_id: U
 # --- the money --------------------------------------------------------------------------------------------------------------------
 
 async def settle_earning(conn: asyncpg.Connection, settings: Settings, booking_id: UUID, *, method: str) -> None:
-    """The window closed: the earning (if the booking was paid) becomes eligible for release — at once when a person confirmed, after the
-    usual hold when it was automatic."""
-    now = datetime.now(timezone.utc)
-    release_after = now + timedelta(hours=settings.earning_hold_hours) if method == "auto" else now
-    await earnings_repo.confirm_session(conn, booking_id, release_after=release_after)
+    """The window closed: the earning (if the booking was paid) becomes eligible for release at once — however it closed (the athlete,
+    the athlete's code or the 48 hours). Since 17.11.2026 the 48 hours carry no extra hold: nobody can dispute the session any more,
+    so there is nothing left to wait for (the owner's decision, docs/session-confirmation.md)."""
+    await earnings_repo.confirm_session(conn, booking_id, release_after=datetime.now(timezone.utc))
 
 
 async def on_new_earning(conn: asyncpg.Connection, settings: Settings, booking: dict[str, Any] | None) -> None:

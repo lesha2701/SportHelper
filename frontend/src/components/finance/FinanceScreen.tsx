@@ -30,7 +30,7 @@ const OPERATION_TITLES: Record<string, string> = {
 };
 
 const EARNING_STATUS_LABELS: Record<string, string> = {
-  pending: "ждёт проведения занятия",
+  pending: "ждёт подтверждения занятия",
   held: "приостановлено на проверку",
   available: "доступно",
   reversed: "отменено",
@@ -111,7 +111,7 @@ export function FinanceScreen({ token, onBack }: { token: string; onBack: () => 
           <span className={styles.balanceValuePrimary}>{formatKopecks(summary.availableKopecks)}</span>
         </div>
         <div className={styles.balanceTile}>
-          <span className={styles.balanceLabel}>Ожидает проведения занятия</span>
+          <span className={styles.balanceLabel}>Ожидает подтверждения занятия</span>
           <span className={styles.balanceValue}>{formatKopecks(summary.pendingKopecks)}</span>
         </div>
         <div className={styles.balanceTile}>
@@ -144,7 +144,7 @@ export function FinanceScreen({ token, onBack }: { token: string; onBack: () => 
           </p>
         ) : null}
         <p className={styles.note}>
-          Деньги за занятие становятся доступными к выводу после того, как вы отметите занятие проведённым и платформа его подтвердит. Комиссия платформы — {summary.commissionPercent}% с каждой оплаты.
+          Деньги за занятие становятся доступными к выводу, когда занятие подтверждено: игроком, его кодом или само — через 48 часов после окончания, если никто не сообщил о проблеме. Комиссия платформы — {summary.commissionPercent}% с каждой оплаты.
           Выплаты выполняются вручную, после проверки заявки.
         </p>
       </div>

@@ -59,7 +59,7 @@ struct FinanceTests {
         let payment = page.items[0]
         #expect(payment.title == "Оплата занятия получена" && payment.amountKopecks == 225_000)
         #expect(payment.details.count == 3 && payment.details[0] == "Теннис для взрослых")
-        #expect(payment.details[1].hasPrefix("Игрок заплатил") && payment.details[2] == "Статус: ждёт проведения занятия")
+        #expect(payment.details[1].hasPrefix("Игрок заплатил") && payment.details[2] == "Статус: ждёт подтверждения занятия")
         #expect(page.items[1].details == ["Заявка: На проверке"])
     }
 
