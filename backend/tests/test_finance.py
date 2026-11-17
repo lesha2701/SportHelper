@@ -156,8 +156,8 @@ def test_release_is_for_finance_administrators_with_a_recent_second_factor(fin) 
 
 
 def test_the_automatic_release_mode_follows_how_the_session_was_confirmed(fin) -> None:
-    """Owner's decision of 11.11.2026: confirmed by the athlete (or the code) — released at once; confirmed by itself after 48 hours,
-    or by the old rule (before confirmations existed) — after EARNING_HOLD_HOURS."""
+    """Confirmed by the athlete (or the code) or by itself after 48 hours — released at once (the owner's decision of 17.11.2026 removed the
+    hold after the 48 hours); only an earning confirmed by the old rule (before confirmations existed) still waits EARNING_HOLD_HOURS."""
     reconfigure(fin, EARNING_RELEASE_MODE="auto_after_hold", EARNING_HOLD_HOURS="72")
     settings = get_settings()
 
@@ -171,9 +171,8 @@ def test_the_automatic_release_mode_follows_how_the_session_was_confirmed(fin) -
     coach3, player3, booking3, _ = paid_booking(fin, 3)
     sql(fin.dsn, "UPDATE bookings SET starts_at = now() - interval '50 hours' WHERE id = $1::uuid", booking3["id"])
     assert run(with_conn(fin.dsn, lambda c: session_confirmation_service.auto_confirm_due(c, settings))) == 1
-    assert release() == 0  # automatic: the usual hold
-    sql(fin.dsn, "UPDATE trainer_earnings SET release_after = now() - interval '1 minute' WHERE booking_id = $1::uuid", booking3["id"])
-    assert release() == 1
+    assert release() == 1  # automatic: no hold either, in the same tick
+    assert coach3.ok("GET", "/api/finance/summary")["available_kopecks"] == 225000
 
     coach4, player4, booking4, _ = paid_booking(fin, 4)  # confirmed the old way: no release moment of its own
     sql(fin.dsn, "UPDATE trainer_earnings SET session_confirmed_at = now() - interval '71 hours' WHERE booking_id = $1::uuid", booking4["id"])
@@ -187,6 +186,52 @@ def test_the_automatic_release_mode_follows_how_the_session_was_confirmed(fin) -
     fin.admin.ok("POST", f"/api/admin/finance/earnings/{earning_of(fin, booking2)}/hold", json={"reason": "проверка"})
     player2.ok("POST", f"/api/bookings/{booking2['id']}/session/confirm")
     assert release() == 0
+
+
+async def finance_tick(conn, settings) -> None:
+    """What the background finance tick does for the money: close the windows that stayed open 48 hours, then release what is due."""
+    await session_confirmation_service.auto_confirm_due(conn, settings)
+    await earnings_service.release_due_earnings(conn, settings)
+
+
+def test_an_earning_that_confirmed_itself_under_the_old_hold_is_released_by_the_next_tick(fin) -> None:
+    """The earnings that were auto-confirmed while the 72-hour hold still existed (release_after in the future) are not left waiting."""
+    reconfigure(fin, EARNING_RELEASE_MODE="auto_after_hold", EARNING_HOLD_HOURS="72")
+    settings = get_settings()
+    coach, player, booking, _ = paid_booking(fin)
+    sql(fin.dsn, "UPDATE bookings SET starts_at = now() - interval '50 hours' WHERE id = $1::uuid", booking["id"])
+    assert run(with_conn(fin.dsn, lambda c: session_confirmation_service.auto_confirm_due(c, settings))) == 1
+    sql(fin.dsn, "UPDATE trainer_earnings SET release_after = now() + interval '70 hours' WHERE booking_id = $1::uuid", booking["id"])  # as it was before
+
+    assert run(with_conn(fin.dsn, lambda c: earnings_service.release_due_earnings(c, settings))) == 1
+    assert coach.ok("GET", "/api/finance/summary")["available_kopecks"] == 225000
+
+
+def test_the_whole_road_of_the_owners_scenario_nobody_does_anything_and_the_money_becomes_available(fin) -> None:
+    """Paid, confirmed by the coach, then nobody touches it: after 48 hours the session confirms itself and the same tick opens the money;
+    the coach's later «Тренировка проведена» changes nothing. (With EARNING_RELEASE_MODE=admin the money still waits for the administrator.)"""
+    reconfigure(fin, EARNING_RELEASE_MODE="auto_after_hold", EARNING_HOLD_HOURS="72")
+    coach, player, booking, _ = paid_booking(fin)
+    sql(fin.dsn, "UPDATE bookings SET starts_at = now() - interval '50 hours' WHERE id = $1::uuid", booking["id"])
+    assert coach.ok("GET", "/api/finance/summary")["available_kopecks"] == 0
+
+    run(with_conn(fin.dsn, lambda c: finance_tick(c, get_settings())))
+    coach.ok("POST", f"/api/bookings/{booking['id']}/complete")
+
+    summary = coach.ok("GET", "/api/finance/summary")
+    assert (summary["available_kopecks"], summary["pending_kopecks"]) == (225000, 0)
+    assert sql_value(fin.dsn, "SELECT status FROM trainer_earnings") == "available"
+    assert_books_are_sound(fin.dsn)
+
+
+def test_in_the_admin_mode_a_session_that_confirmed_itself_still_waits_for_the_administrator(fin) -> None:
+    coach, player, booking, _ = paid_booking(fin)  # EARNING_RELEASE_MODE=admin is the default
+    sql(fin.dsn, "UPDATE bookings SET starts_at = now() - interval '50 hours' WHERE id = $1::uuid", booking["id"])
+    run(with_conn(fin.dsn, lambda c: finance_tick(c, get_settings())))
+    assert coach.ok("GET", "/api/finance/summary")["available_kopecks"] == 0
+
+    fin.admin.ok("POST", f"/api/admin/finance/earnings/{earning_of(fin, booking)}/release", json={})
+    assert coach.ok("GET", "/api/finance/summary")["available_kopecks"] == 225000
 
 
 def test_the_default_mode_never_releases_by_itself(fin) -> None:

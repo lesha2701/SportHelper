@@ -131,7 +131,7 @@ public struct FinanceOperation: Decodable, Equatable, Identifiable, Sendable {
 
     static func earningStatusText(_ status: String) -> String {
         switch status {
-        case "pending": "ждёт проведения занятия"
+        case "pending": "ждёт подтверждения занятия"
         case "held": "приостановлено на проверку"
         case "available": "доступно"
         case "reversed": "отменено"

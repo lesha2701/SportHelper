@@ -219,7 +219,7 @@ def test_after_48_hours_the_session_confirms_itself_once(fin) -> None:
     card = _card(player, booking)
     assert (card["state"], card["confirmed_method"]) == ("auto_confirmed", "auto")
     earning = _earning(fin, booking)
-    assert earning["session_confirmed_at"] is not None and earning["at_once"] is False  # automatic: after the usual hold
+    assert earning["session_confirmed_at"] is not None and earning["at_once"] is True  # automatic too: no hold after the 48 hours (owner, 17.11.2026)
     assert _error(_post(player, booking, "problem", kind="coach_no_show")) == (409, "session_already_confirmed")
     assert _post(player, booking, "confirm").status_code == 200  # nothing to add, nothing broken
 

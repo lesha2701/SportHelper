@@ -57,8 +57,8 @@ async def get_for_payment(conn: asyncpg.Connection, payment_id: UUID, *, lock: b
 async def confirm_session(conn: asyncpg.Connection, booking_id: UUID, *, release_after: datetime | None = None) -> dict[str, Any] | None:
     """The session is confirmed (or the trainer keeps the payment): the earning (if the booking was paid) becomes eligible for release.
 
-    release_after: from when the automatic release may take it (None: the old rule, confirmation + EARNING_HOLD_HOURS). The first
-    confirmation is kept: a repeated call changes neither moment."""
+    release_after: from when the automatic release may take it (None: the old rule, confirmation + EARNING_HOLD_HOURS, kept for the
+    earnings confirmed before the session confirmation existed). The first confirmation is kept: a repeated call changes neither moment."""
     row = await conn.fetchrow(
         f"UPDATE trainer_earnings e SET release_after = CASE WHEN session_confirmed_at IS NULL THEN $2 ELSE release_after END, "
         f"session_confirmed_at = COALESCE(session_confirmed_at, now()), updated_at = now() "
@@ -130,7 +130,10 @@ async def due_for_auto_release(conn: asyncpg.Connection, *, hold_hours: int, lim
         f"""
         SELECT {_FIELDS} FROM trainer_earnings e
          WHERE e.status = 'pending' AND e.session_confirmed_at IS NOT NULL
-           AND COALESCE(e.release_after, e.session_confirmed_at + make_interval(hours => $1)) <= now()
+           AND (COALESCE(e.release_after, e.session_confirmed_at + make_interval(hours => $1)) <= now()
+                -- a session that confirmed itself has no hold any more, also the ones confirmed (and given a later release_after)
+                -- before that rule changed
+                OR EXISTS (SELECT 1 FROM session_confirmations c WHERE c.booking_id = e.booking_id AND c.state = 'auto_confirmed'))
          ORDER BY e.session_confirmed_at LIMIT $2
         """,
         hold_hours, limit,

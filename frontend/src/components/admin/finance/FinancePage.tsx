@@ -103,7 +103,7 @@ function OverviewTab({ onOpen }: { onOpen: (tab: TabId) => void }) {
 
       <h2 className={styles.cardTitle}>Что платформа должна тренерам</h2>
       <div className={styles.grid}>
-        <Tile label="Ждёт проведения занятия" value={money(o.owedToTrainers.pendingKopecks)} />
+        <Tile label="Ждёт подтверждения занятия" value={money(o.owedToTrainers.pendingKopecks)} />
         <Tile label="Доступно к выводу" value={money(o.owedToTrainers.availableKopecks)} />
         <Tile label="В заявках на вывод" value={money(o.owedToTrainers.reservedKopecks)} />
         <Tile label="У платёжного сервиса" value={money(o.heldByProviderKopecks)} hint="пока не пришло на счёт" />

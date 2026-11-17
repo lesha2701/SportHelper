@@ -87,7 +87,7 @@ describe("the trainer's balance", () => {
     setup({ operations: [operation()] });
     await screen.findByText("Оплата занятия получена");
     expect(text()).toContain("Игрок заплатил 2 500,00 ₽, комиссия платформы 250,00 ₽");
-    expect(text()).toContain("ждёт проведения занятия");
+    expect(text()).toContain("ждёт подтверждения занятия");
   });
 
   it("asks the server for the next page instead of loading everything", async () => {
