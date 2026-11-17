@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import time, datetime
+from datetime import date, time, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
@@ -70,6 +70,27 @@ class AvailabilityWindowOut(BaseModel):
     end_time: time
 
 
+class OneOffDateIn(BaseModel):
+    """A day the coach is free on just once, with the hours."""
+
+    slot_date: date
+    start_time: time
+    end_time: time
+
+    @model_validator(mode="after")
+    def _validate_range(self) -> "OneOffDateIn":
+        if self.end_time <= self.start_time:
+            raise ValueError("end_time must be after start_time")
+        return self
+
+
+class OneOffDateOut(BaseModel):
+    id: UUID
+    slot_date: date
+    start_time: time
+    end_time: time
+
+
 class CoachListingCardOut(BaseModel):
     id: UUID
     title: str
@@ -96,6 +117,7 @@ class CoachListingProfileOut(CoachListingCardOut):
     session_duration_minutes: int | None
     video_file_id: UUID | None
     availability: list[AvailabilityWindowOut]
+    one_off_dates: list[OneOffDateOut] = []
     recent_reviews: list["CoachReviewOut"]
 
 

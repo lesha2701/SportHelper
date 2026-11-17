@@ -167,6 +167,52 @@ async def replace_availability(
         return inserted
 
 
+# How many upcoming one-off dates a listing may hold, and how far ahead a date may be (keeps a listing and its slot list sane).
+MAX_ONE_OFF_DATES = 60
+MAX_ONE_OFF_DAYS_AHEAD = 366
+_ONE_OFF_FIELDS = "id, slot_date, start_time, end_time"
+
+
+async def list_one_off_dates(conn: asyncpg.Connection, listing_id: UUID) -> list[dict[str, Any]]:
+    """The listing's upcoming one-off dates (a past day is dropped by itself), soonest first."""
+    rows = await conn.fetch(
+        f"SELECT {_ONE_OFF_FIELDS} FROM coach_listing_dates WHERE listing_id = $1 AND slot_date >= $2 "
+        "ORDER BY slot_date, start_time",
+        listing_id,
+        session_time.wall_today(),
+    )
+    return [dict(row) for row in rows]
+
+
+async def add_one_off_date(
+    conn: asyncpg.Connection, listing_id: UUID, slot_date: date, start_time: time, end_time: time
+) -> dict[str, Any]:
+    row = await conn.fetchrow(
+        f"INSERT INTO coach_listing_dates (listing_id, slot_date, start_time, end_time) VALUES ($1, $2, $3, $4) "
+        f"RETURNING {_ONE_OFF_FIELDS}",
+        listing_id,
+        slot_date,
+        start_time,
+        end_time,
+    )
+    return dict(row)
+
+
+async def delete_one_off_date(conn: asyncpg.Connection, listing_id: UUID, date_id: UUID) -> bool:
+    result = await conn.execute(
+        "DELETE FROM coach_listing_dates WHERE id = $1 AND listing_id = $2", date_id, listing_id
+    )
+    return result.endswith("1")
+
+
+def one_off_overlap(existing: list[dict[str, Any]], slot_date: date, start_time: time, end_time: time) -> dict[str, Any] | None:
+    """The existing one-off date on the same day whose hours cross the new ones, or None."""
+    for other in existing:
+        if other["slot_date"] == slot_date and other["start_time"] < end_time and start_time < other["end_time"]:
+            return other
+    return None
+
+
 def _card_row_to_dict(row: dict[str, Any], coach_rating: dict[str, Any], next_slot: datetime | None) -> dict[str, Any]:
     return {
         "id": row["id"],
@@ -310,6 +356,7 @@ async def get_public_listing(conn: asyncpg.Connection, listing_id: UUID) -> dict
     card["session_duration_minutes"] = row["session_duration_minutes"]
     card["video_file_id"] = row["video_file_id"]
     card["availability"] = await list_availability(conn, listing_id)
+    card["one_off_dates"] = await list_one_off_dates(conn, listing_id)
     card["recent_reviews"] = await coach_reviews_repo.list_recent_for_coach(conn, row["coach_user_id"])
     return card
 
@@ -322,6 +369,7 @@ async def compute_open_slots(
         return []
     duration = listing["session_duration_minutes"]
     windows = await list_availability(conn, listing_id)
+    one_off = [d for d in await list_one_off_dates(conn, listing_id) if from_date <= d["slot_date"] <= to_date]
     # Booked-set is keyed on coach_user_id, not listing_id — a slot taken
     # via ANY of this coach's listings must disappear here too, since the
     # coach-wide double-booking guard spans every listing they own.
@@ -337,20 +385,20 @@ async def compute_open_slots(
     # The coach's hours are wall-clock hours of the platform's zone; a slot is offered as that wall-clock time with a UTC label
     # (10:00 -> 10:00Z, the form bookings.starts_at is kept in), and one whose start has come on the platform's clock is not offered.
     now = session_time.wall_now()
-    slots: list[dict[str, Any]] = []
+    starts: set[datetime] = set()  # one start offered once, even if a weekly window and a one-off date both cover it
     day = from_date
     while day <= to_date:
-        for window in windows:
-            if window["weekday"] != day.weekday():
-                continue
-            cursor = datetime.combine(day, window["start_time"], tzinfo=timezone.utc)
-            window_end = datetime.combine(day, window["end_time"], tzinfo=timezone.utc)
+        todays = [(w["start_time"], w["end_time"]) for w in windows if w["weekday"] == day.weekday()]
+        todays += [(d["start_time"], d["end_time"]) for d in one_off if d["slot_date"] == day]
+        for start_time, end_time in todays:
+            cursor = datetime.combine(day, start_time, tzinfo=timezone.utc)
+            window_end = datetime.combine(day, end_time, tzinfo=timezone.utc)
             while cursor + timedelta(minutes=duration) <= window_end:
                 if cursor not in booked and cursor > now:
-                    slots.append({"starts_at": cursor, "duration_minutes": duration})
+                    starts.add(cursor)
                 cursor += timedelta(minutes=duration)
         day += timedelta(days=1)
-    return sorted(slots, key=lambda s: s["starts_at"])
+    return [{"starts_at": s, "duration_minutes": duration} for s in sorted(starts)]
 
 
 async def _next_available_slot(conn: asyncpg.Connection, listing_id: UUID) -> datetime | None:

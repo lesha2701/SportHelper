@@ -10978,6 +10978,167 @@
         }
       }
     },
+    "/api/coach-listings/{listing_id}/dates": {
+      "get": {
+        "tags": [
+          "coach-listings"
+        ],
+        "summary": "List Listing Dates",
+        "description": "The upcoming one-off dates of the coach's own listing.",
+        "operationId": "list_listing_dates_api_coach_listings__listing_id__dates_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listing_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Listing Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OneOffDateOut"
+                  },
+                  "title": "Response List Listing Dates Api Coach Listings  Listing Id  Dates Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "coach-listings"
+        ],
+        "summary": "Add Listing Date",
+        "description": "Adds a day the coach is free on just once. Allowed at any time, also for a listing that is already published.",
+        "operationId": "add_listing_date_api_coach_listings__listing_id__dates_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listing_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Listing Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OneOffDateIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OneOffDateOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coach-listings/{listing_id}/dates/{date_id}": {
+      "delete": {
+        "tags": [
+          "coach-listings"
+        ],
+        "summary": "Delete Listing Date",
+        "operationId": "delete_listing_date_api_coach_listings__listing_id__dates__date_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listing_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Listing Id"
+            }
+          },
+          {
+            "name": "date_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Date Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/coach-listings/{listing_id}/photo": {
       "post": {
         "tags": [
@@ -16283,6 +16444,14 @@
             "type": "array",
             "title": "Availability"
           },
+          "one_off_dates": {
+            "items": {
+              "$ref": "#/components/schemas/OneOffDateOut"
+            },
+            "type": "array",
+            "title": "One Off Dates",
+            "default": []
+          },
           "recent_reviews": {
             "items": {
               "$ref": "#/components/schemas/CoachReviewOut"
@@ -19582,6 +19751,65 @@
           "preferences"
         ],
         "title": "NotificationPreferencesUpdateIn"
+      },
+      "OneOffDateIn": {
+        "properties": {
+          "slot_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Slot Date"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "time",
+            "title": "Start Time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "time",
+            "title": "End Time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slot_date",
+          "start_time",
+          "end_time"
+        ],
+        "title": "OneOffDateIn",
+        "description": "A day the coach is free on just once, with the hours."
+      },
+      "OneOffDateOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "slot_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Slot Date"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "time",
+            "title": "Start Time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "time",
+            "title": "End Time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slot_date",
+          "start_time",
+          "end_time"
+        ],
+        "title": "OneOffDateOut"
       },
       "OpenSlotOut": {
         "properties": {

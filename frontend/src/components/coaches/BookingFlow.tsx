@@ -27,6 +27,16 @@ function nextNDays(n: number): Date[] {
 // The day strip is the device's calendar days (see lib/localDate.ts); a slot's own time stays on the UTC label it came with.
 const toDateKey = localDateKey;
 
+/** A «YYYY-MM-DD» day as a Date of the device's calendar. */
+function dateOfKey(key: string): Date {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
+}
+
+const SEARCH_AHEAD_DAYS = 90; // the slots endpoint answers for at most this many days at once
+const NEAREST_DAYS_SHOWN = 4;
+const longDay = (key: string) => dateOfKey(key).toLocaleDateString("ru-RU", { weekday: "short", day: "numeric", month: "long" });
+
 export function BookingFlow({
   token,
   listing,
@@ -39,7 +49,12 @@ export function BookingFlow({
   onBooked: (booking: Booking) => void;
 }) {
   const days = nextNDays(14);
-  const [selectedDay, setSelectedDay] = useState(toDateKey(days[0] ?? new Date()));
+  const today = toDateKey(days[0] ?? new Date());
+  const lastPickable = toDateKey(nextNDays(367)[366] ?? new Date());
+  const [selectedDay, setSelectedDay] = useState(today);
+  // The nearest days after the chosen one that have free time, shown when the chosen day has none (null = not looked up yet).
+  const [nearestDays, setNearestDays] = useState<string[] | null>(null);
+  const [emptyDay, setEmptyDay] = useState<string | null>(null); // the day whose slots came back empty
   const [slots, setSlots] = useState<OpenSlot[] | null>(null);
   const [slotsError, setSlotsError] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<OpenSlot | null>(null);
@@ -48,6 +63,11 @@ export function BookingFlow({
   const [booking, setBooking] = useState(false);
   const [bookError, setBookError] = useState<string | null>(null);
   const daySessionIdRef = useRef(0);
+  const pickedChipRef = useRef<HTMLButtonElement | null>(null);
+  // A day picked in the calendar may lie beyond the visible part of the strip: bring its chip into view.
+  useEffect(() => {
+    pickedChipRef.current?.scrollIntoView?.({ inline: "nearest", block: "nearest" });
+  }, [selectedDay]);
 
   useEffect(() => {
     daySessionIdRef.current += 1;
@@ -55,10 +75,44 @@ export function BookingFlow({
     setSelectedSlot(null);
     setBookError(null);
     setSlotsError(null);
+    setNearestDays(null);
+    setEmptyDay(null);
+    let stale = false; // a slow answer for a day the person has already left must not overwrite the current one
     getListingOpenSlots(token, listing.id, selectedDay, selectedDay)
-      .then(setSlots)
-      .catch((err: unknown) => setSlotsError(err instanceof ApiError ? err.message : "Не удалось загрузить слоты"));
+      .then((loaded) => {
+        if (stale) return;
+        setSlots(loaded);
+        if (loaded.length === 0) setEmptyDay(selectedDay);
+      })
+      .catch((err: unknown) => {
+        if (!stale) setSlotsError(err instanceof ApiError ? err.message : "Не удалось загрузить слоты");
+      });
+    return () => {
+      stale = true;
+    };
   }, [token, listing.id, selectedDay]);
+
+  useEffect(() => {
+    if (emptyDay === null) return;
+    let stale = false;
+    const next = dateOfKey(emptyDay);
+    next.setDate(next.getDate() + 1);
+    const to = new Date(next);
+    to.setDate(to.getDate() + SEARCH_AHEAD_DAYS - 1);
+    getListingOpenSlots(token, listing.id, toDateKey(next), toDateKey(to))
+      .then((found) => {
+        if (stale) return;
+        // a slot's date is the UTC label it came with (the platform's wall-clock day), not the device's day
+        const keys = [...new Set(found.map((s) => s.startsAt.slice(0, 10)))];
+        setNearestDays(keys.slice(0, NEAREST_DAYS_SHOWN));
+      })
+      .catch(() => {
+        if (!stale) setNearestDays([]); // the hint is a bonus: without it the message above still stands
+      });
+    return () => {
+      stale = true;
+    };
+  }, [emptyDay, token, listing.id]);
 
   const handleConfirm = async () => {
     if (!selectedSlot) return;
@@ -128,11 +182,50 @@ export function BookingFlow({
               </button>
             );
           })}
+          {!days.some((d) => toDateKey(d) === selectedDay) && (
+            <button type="button" ref={pickedChipRef} className={styles.dateChipActive}>
+              {dateOfKey(selectedDay).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })}
+            </button>
+          )}
         </div>
+
+        <label className={styles.pickDate}>
+          <span className={profileStyles.label}>Нужна другая дата?</span>
+          <input
+            className={styles.dateInput}
+            type="date"
+            aria-label="Выбрать дату"
+            min={today}
+            max={lastPickable}
+            value={selectedDay}
+            onChange={(e) => {
+              if (e.target.value && e.target.value >= today && e.target.value <= lastPickable) setSelectedDay(e.target.value);
+            }}
+          />
+        </label>
 
         {slotsError && <p className={profileStyles.error}>{slotsError}</p>}
         {slots === null && !slotsError && <StateScreen kind="loading" title="Загрузка слотов…" />}
-        {slots !== null && slots.length === 0 && <p className={profileStyles.subtitle}>На этот день нет свободных слотов.</p>}
+        {slots !== null && slots.length === 0 && (
+          <>
+            <p className={profileStyles.subtitle}>На {longDay(selectedDay)} нет свободных слотов.</p>
+            {nearestDays !== null && nearestDays.length > 0 && (
+              <div className={profileStyles.field}>
+                <span className={profileStyles.label}>Ближайшие дни со свободным временем</span>
+                <div className={styles.dateStrip}>
+                  {nearestDays.map((key) => (
+                    <button key={key} type="button" className={styles.dateChip} onClick={() => setSelectedDay(key)}>
+                      {longDay(key)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {nearestDays !== null && nearestDays.length === 0 && (
+              <p className={profileStyles.subtitle}>В ближайшие три месяца свободного времени у тренера нет.</p>
+            )}
+          </>
+        )}
         {slots !== null && slots.length > 0 && (
           <div className={styles.slotGrid}>
             {slots.map((slot) => (

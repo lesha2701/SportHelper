@@ -5,10 +5,14 @@ import {
   mapCoachListingCardDto,
   mapCoachListingDto,
   mapCoachListingProfileDto,
+  mapOneOffDateDto,
   mapOpenSlotDto,
   type AvailabilityWindow,
   type AvailabilityWindowDto,
   type AvailabilityWindowInput,
+  type OneOffDate,
+  type OneOffDateDto,
+  type OneOffDateInput,
   type CoachListing,
   type CoachListingCard,
   type CoachListingCardDto,
@@ -56,6 +60,20 @@ export async function replaceListingAvailability(
     body: windows,
   });
   return dtos.map(mapAvailabilityWindowDto);
+}
+
+export async function getListingDates(token: string, listingId: string): Promise<OneOffDate[]> {
+  const dtos = await apiRequest<OneOffDateDto[]>(`/api/coach-listings/${listingId}/dates`, { token });
+  return dtos.map(mapOneOffDateDto);
+}
+
+export async function addListingDate(token: string, listingId: string, date: OneOffDateInput): Promise<OneOffDate> {
+  const dto = await apiRequest<OneOffDateDto>(`/api/coach-listings/${listingId}/dates`, { method: "POST", token, body: date });
+  return mapOneOffDateDto(dto);
+}
+
+export async function deleteListingDate(token: string, listingId: string, dateId: string): Promise<void> {
+  await apiRequest(`/api/coach-listings/${listingId}/dates/${dateId}`, { method: "DELETE", token });
 }
 
 export async function uploadListingPhoto(token: string, listingId: string, file: File): Promise<CoachListing> {

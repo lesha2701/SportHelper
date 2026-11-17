@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from uuid import UUID, uuid4
 
 import asyncpg
@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, UploadFile
 from app.api.deps import get_current_user, get_optional_user, get_db, get_settings_dep
 from app.config import Settings
 from app.core.exceptions import APIError, NotFoundError
+from app.core import session_time
 from app.integrations.paths import build_user_file_path
 from app.integrations.yandex_disk import YandexDiskError
 from app.repositories import coach_listings as listings_repo
@@ -21,6 +22,8 @@ from app.schemas.coach_listing import (
     CoachListingIn,
     CoachListingOut,
     CoachListingProfileOut,
+    OneOffDateIn,
+    OneOffDateOut,
     OpenSlotOut,
 )
 from app.services.uploads import (
@@ -93,7 +96,7 @@ async def update_listing(
     await _get_owned_listing_or_404(conn, listing_id, user["id"])
     if payload.is_listed:
         availability = await listings_repo.list_availability(conn, listing_id)
-        if not availability:
+        if not availability and not await listings_repo.list_one_off_dates(conn, listing_id):
             raise APIError(
                 "set at least one availability window before listing",
                 code="availability_required",
@@ -157,6 +160,66 @@ async def replace_listing_availability(
         raise APIError(_overlap_message(*overlap), code="overlapping_availability", status_code=400)
     updated = await listings_repo.replace_availability(conn, listing_id, windows)
     return [AvailabilityWindowOut(**w) for w in updated]
+
+
+@router.get("/{listing_id}/dates", response_model=list[OneOffDateOut])
+async def list_listing_dates(
+    listing_id: UUID,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> list[OneOffDateOut]:
+    """The upcoming one-off dates of the coach's own listing."""
+    await _get_owned_listing_or_404(conn, listing_id, user["id"])
+    return [OneOffDateOut(**d) for d in await listings_repo.list_one_off_dates(conn, listing_id)]
+
+
+@router.post("/{listing_id}/dates", response_model=OneOffDateOut, status_code=201)
+async def add_listing_date(
+    listing_id: UUID,
+    payload: OneOffDateIn,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> OneOffDateOut:
+    """Adds a day the coach is free on just once. Allowed at any time, also for a listing that is already published."""
+    await _get_owned_listing_or_404(conn, listing_id, user["id"])
+    today = session_time.wall_today()
+    if payload.slot_date < today or (
+        payload.slot_date == today and payload.end_time <= session_time.wall_now().time()
+    ):
+        raise APIError("Эта дата уже прошла. Выберите дату в будущем.", code="date_in_past", status_code=400)
+    if payload.slot_date > today + timedelta(days=listings_repo.MAX_ONE_OFF_DAYS_AHEAD):
+        raise APIError("Дату можно назначить не дальше чем на год вперёд.", code="date_too_far", status_code=400)
+    existing = await listings_repo.list_one_off_dates(conn, listing_id)
+    if len(existing) >= listings_repo.MAX_ONE_OFF_DATES:
+        raise APIError(
+            f"Можно добавить не больше {listings_repo.MAX_ONE_OFF_DATES} разовых дат. Удалите прошедшие или ненужные.",
+            code="too_many_dates",
+            status_code=409,
+        )
+    clash = listings_repo.one_off_overlap(existing, payload.slot_date, payload.start_time, payload.end_time)
+    if clash:
+        raise APIError(
+            f"На {payload.slot_date:%d.%m.%Y} уже есть окно {clash['start_time']:%H:%M}–{clash['end_time']:%H:%M}, "
+            "оно пересекается с новым. Измените время или удалите прежнее окно.",
+            code="overlapping_availability",
+            status_code=400,
+        )
+    created = await listings_repo.add_one_off_date(
+        conn, listing_id, payload.slot_date, payload.start_time, payload.end_time
+    )
+    return OneOffDateOut(**created)
+
+
+@router.delete("/{listing_id}/dates/{date_id}", status_code=204, response_model=None)
+async def delete_listing_date(
+    listing_id: UUID,
+    date_id: UUID,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> None:
+    await _get_owned_listing_or_404(conn, listing_id, user["id"])
+    if not await listings_repo.delete_one_off_date(conn, listing_id, date_id):
+        raise NotFoundError("date not found")
 
 
 async def _upload_listing_media(

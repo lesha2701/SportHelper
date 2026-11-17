@@ -1,8 +1,11 @@
 // frontend/src/components/coaches/ListingEditScreen.tsx
 import { useEffect, useState } from "react";
 import {
+  addListingDate,
   createListing,
+  deleteListingDate,
   getListingAvailability,
+  getListingDates,
   replaceListingAvailability,
   updateListing,
   uploadListingPhoto,
@@ -18,6 +21,7 @@ import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { AuthenticatedVideo } from "../shared/AuthenticatedVideo";
 import type { AvailabilityWindow, CoachListing } from "../../types/coachListing";
 import { overlapMessage } from "./scheduleOverlap";
+import { datesProblem, formatSlotDate, sortDates, todayIso, type DateDraft } from "./oneOffDates";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
@@ -62,6 +66,12 @@ export function ListingEditScreen({
   // Existing listings load their schedule first; saving without it would wipe it.
   const [availabilityReady, setAvailabilityReady] = useState(isNew);
   const [availabilityLoadError, setAvailabilityLoadError] = useState<string | null>(null);
+  // One-off dates: shown and edited here, written to the server on Save (new ones added, removed ones deleted).
+  const [dates, setDates] = useState<DateDraft[]>([]);
+  const [removedDateIds, setRemovedDateIds] = useState<string[]>([]);
+  const [datesReady, setDatesReady] = useState(isNew);
+  const [datesLoadError, setDatesLoadError] = useState<string | null>(null);
+  const [newDate, setNewDate] = useState<DateDraft>({ slotDate: "", startTime: "10:00", endTime: "12:00" });
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -79,6 +89,12 @@ export function ListingEditScreen({
         setAvailabilityReady(true);
       })
       .catch((err: unknown) => setAvailabilityLoadError(err instanceof ApiError ? err.message : "Не удалось загрузить расписание"));
+    getListingDates(token, initialListing.id)
+      .then((loaded) => {
+        setDates(loaded.map((d) => ({ id: d.id, slotDate: d.slotDate, startTime: d.startTime.slice(0, 5), endTime: d.endTime.slice(0, 5) })));
+        setDatesReady(true);
+      })
+      .catch((err: unknown) => setDatesLoadError(err instanceof ApiError ? err.message : "Не удалось загрузить разовые даты"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -102,7 +118,7 @@ export function ListingEditScreen({
     setPendingVideo(file);
   };
 
-  const validate = (): string | null => {
+  const validate = (datesToCheck: DateDraft[]): string | null => {
     if (!title.trim()) return "Укажите название объявления.";
     for (const w of windows) {
       if (!w.startTime || !w.endTime || w.startTime >= w.endTime) {
@@ -111,21 +127,32 @@ export function ListingEditScreen({
     }
     const overlap = overlapMessage(windows);
     if (overlap) return overlap;
+    const datesIssue = datesProblem(datesToCheck);
+    if (datesIssue) return datesIssue;
     if (isListed) {
       if (!(offersOnline || offersOffline)) return "Выберите формат тренировки (онлайн или очно), чтобы опубликовать объявление.";
       if (!price) return "Укажите цену, чтобы опубликовать объявление.";
       if (!duration) return "Укажите длительность тренировки, чтобы опубликовать объявление.";
-      if (windows.length === 0) return "Добавьте хотя бы одно окно в расписание — без него нельзя опубликовать объявление.";
+      if (windows.length === 0 && datesToCheck.length === 0) {
+        return "Добавьте хотя бы одно окно в расписание или одну разовую дату — без этого нельзя опубликовать объявление.";
+      }
     }
     return null;
   };
 
   const handleSave = async () => {
     setError(null);
-    const problem = validate();
+    // A date already picked in the «new date» template counts even if «Добавить дату» was not pressed.
+    const pending: DateDraft | null = newDate.slotDate ? { ...newDate } : null;
+    const allDates = pending ? sortDates([...dates, pending]) : dates;
+    const problem = validate(allDates);
     if (problem) {
       fail(problem);
       return;
+    }
+    if (pending) {
+      setDates(allDates);
+      setNewDate({ ...newDate, slotDate: "" });
     }
     setSaving(true);
     const payload = {
@@ -162,6 +189,22 @@ export function ListingEditScreen({
         if (availabilityReady && !(wasNew && windows.length === 0)) {
           step = "расписание";
           await replaceListingAvailability(token, id, availabilityPayload);
+        }
+        if (datesReady) {
+          step = "разовые даты";
+          for (const dateId of removedDateIds) {
+            await deleteListingDate(token, id, dateId);
+            setRemovedDateIds((prev) => prev.filter((x) => x !== dateId));
+          }
+          for (const draft of allDates) {
+            if (draft.id) continue;
+            const created = await addListingDate(token, id, {
+              slot_date: draft.slotDate,
+              start_time: `${draft.startTime}:00`,
+              end_time: `${draft.endTime}:00`,
+            });
+            setDates((prev) => prev.map((x) => (x === draft ? { ...x, id: created.id } : x)));
+          }
         }
         if (!wasNew) {
           step = "объявление";
@@ -208,6 +251,22 @@ export function ListingEditScreen({
     } finally {
       setSaving(false);
     }
+  };
+
+  const addDateRow = () => {
+    const problem = datesProblem([...dates, newDate]);
+    if (problem) {
+      fail(problem);
+      return;
+    }
+    setError(null);
+    setDates(sortDates([...dates, newDate]));
+    setNewDate({ ...newDate, slotDate: "" });
+  };
+
+  const removeDateRow = (draft: DateDraft) => {
+    setDates(dates.filter((x) => x !== draft));
+    if (draft.id) setRemovedDateIds((prev) => [...prev, draft.id as string]);
   };
 
   const gallery = photoVideoGallery(photoFileId, videoFileId, title);
@@ -407,6 +466,67 @@ export function ListingEditScreen({
                 Добавить окно
               </button>
 
+          </>
+        )}
+      </div>
+
+      <div className={profileStyles.card}>
+        <h2 className={profileStyles.title}>Разовые даты</h2>
+        <p className={profileStyles.subtitle}>
+          Когда вы свободны только в этот день, один раз — например, «12 декабря с 18:00 до 20:00». Они добавляются к недельному расписанию;
+          новую дату можно добавить в любой момент, и в уже опубликованном объявлении тоже.
+        </p>
+
+        {datesLoadError ? (
+          <p className={profileStyles.error}>
+            Не удалось загрузить разовые даты: {datesLoadError}. При сохранении они не изменятся — обновите страницу, чтобы их отредактировать.
+          </p>
+        ) : !datesReady ? (
+          <p className={profileStyles.subtitle}>Загрузка дат…</p>
+        ) : (
+          <>
+            {dates.map((d) => (
+              <div className={styles.weekdayRow} key={`${d.id ?? "new"}-${d.slotDate}-${d.startTime}`}>
+                <span>{formatSlotDate(d.slotDate)}</span>
+                <span>
+                  {d.startTime} — {d.endTime}
+                </span>
+                {!d.id && <span className={profileStyles.requiredHint}>ещё не сохранена</span>}
+                <button type="button" className={styles.removeRowButton} onClick={() => removeDateRow(d)} aria-label="Удалить дату">
+                  <Icon name="trash" size={16} />
+                </button>
+              </div>
+            ))}
+
+            <div className={styles.weekdayRow}>
+              <input
+                className={styles.dateInput}
+                type="date"
+                aria-label="Дата"
+                min={todayIso()}
+                value={newDate.slotDate}
+                onChange={(e) => setNewDate({ ...newDate, slotDate: e.target.value })}
+              />
+              <input
+                className={styles.timeInput}
+                type="time"
+                aria-label="Начало"
+                value={newDate.startTime}
+                onChange={(e) => setNewDate({ ...newDate, startTime: e.target.value })}
+              />
+              <span>—</span>
+              <input
+                className={styles.timeInput}
+                type="time"
+                aria-label="Конец"
+                value={newDate.endTime}
+                onChange={(e) => setNewDate({ ...newDate, endTime: e.target.value })}
+              />
+            </div>
+            <button type="button" className={profileStyles.buttonSecondary} onClick={addDateRow}>
+              <Icon name="plus" size={16} />
+              Добавить дату
+            </button>
           </>
         )}
       </div>

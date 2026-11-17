@@ -2338,6 +2338,29 @@ def client(monkeypatch: pytest.MonkeyPatch):
         listing_availability_store[listing_id] = stored
         return stored
 
+    one_off_store: dict = {}  # listing_id -> list[{id, slot_date, start_time, end_time}]
+
+    async def fake_list_one_off_dates(conn, listing_id):
+        today = session_time.wall_today()
+        return sorted(
+            [dict(d) for d in one_off_store.get(listing_id, []) if d["slot_date"] >= today],
+            key=lambda d: (d["slot_date"], d["start_time"]),
+        )
+
+    async def fake_add_one_off_date(conn, listing_id, slot_date, start_time, end_time):
+        record = {"id": uuid4(), "slot_date": slot_date, "start_time": start_time, "end_time": end_time}
+        one_off_store.setdefault(listing_id, []).append(record)
+        return dict(record)
+
+    async def fake_delete_one_off_date(conn, listing_id, date_id):
+        before = one_off_store.get(listing_id, [])
+        after = [d for d in before if d["id"] != date_id]
+        one_off_store[listing_id] = after
+        return len(after) < len(before)
+
+    monkeypatch.setattr(coach_listings_module, "list_one_off_dates", fake_list_one_off_dates)
+    monkeypatch.setattr(coach_listings_module, "add_one_off_date", fake_add_one_off_date)
+    monkeypatch.setattr(coach_listings_module, "delete_one_off_date", fake_delete_one_off_date)
     monkeypatch.setattr(coach_listings_module, "create_listing", fake_create_listing)
     monkeypatch.setattr(coach_listings_module, "get_listing", fake_get_listing)
     monkeypatch.setattr(coach_listings_module, "is_public", fake_is_public)
@@ -2421,6 +2444,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
         card["session_duration_minutes"] = listing.get("session_duration_minutes")
         card["video_file_id"] = listing.get("video_file_id")
         card["availability"] = await fake_list_listing_availability(conn, listing_id)
+        card["one_off_dates"] = await fake_list_one_off_dates(conn, listing_id)
         card["recent_reviews"] = await fake_list_recent_for_coach(conn, listing["coach_user_id"])
         return card
 
@@ -2436,20 +2460,21 @@ def client(monkeypatch: pytest.MonkeyPatch):
             for b in bookings_store.values()
             if b["coach_user_id"] == coach_user_id and b["status"] in ("pending", "confirmed")
         }
-        slots = []
+        one_off = await fake_list_one_off_dates(conn, listing_id)
+        starts = set()
         day = from_date
         while day <= to_date:
-            for window in windows:
-                if window["weekday"] != day.weekday():
-                    continue
-                cursor = datetime.combine(day, window["start_time"], tzinfo=timezone.utc)
-                window_end = datetime.combine(day, window["end_time"], tzinfo=timezone.utc)
+            todays = [(w["start_time"], w["end_time"]) for w in windows if w["weekday"] == day.weekday()]
+            todays += [(d["start_time"], d["end_time"]) for d in one_off if d["slot_date"] == day]
+            for start_time, end_time in todays:
+                cursor = datetime.combine(day, start_time, tzinfo=timezone.utc)
+                window_end = datetime.combine(day, end_time, tzinfo=timezone.utc)
                 while cursor + timedelta(minutes=duration) <= window_end:
                     if cursor not in booked and cursor > session_time.wall_now():
-                        slots.append({"starts_at": cursor, "duration_minutes": duration})
+                        starts.add(cursor)
                     cursor += timedelta(minutes=duration)
             day += timedelta(days=1)
-        return sorted(slots, key=lambda s: s["starts_at"])
+        return [{"starts_at": s, "duration_minutes": duration} for s in sorted(starts)]
 
     async def fake_list_listed_for_coach(conn, coach_user_id):
         cards = await fake_list_listed(conn)
