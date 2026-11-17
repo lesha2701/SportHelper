@@ -21,7 +21,7 @@ import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { AuthenticatedVideo } from "../shared/AuthenticatedVideo";
 import type { AvailabilityWindow, CoachListing } from "../../types/coachListing";
 import { overlapMessage } from "./scheduleOverlap";
-import { datesProblem, formatSlotDate, todayIso, type DateDraft } from "./oneOffDates";
+import { datesProblem, formatSlotDate, sortDates, todayIso, type DateDraft } from "./oneOffDates";
 import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
@@ -118,7 +118,7 @@ export function ListingEditScreen({
     setPendingVideo(file);
   };
 
-  const validate = (): string | null => {
+  const validate = (datesToCheck: DateDraft[]): string | null => {
     if (!title.trim()) return "Укажите название объявления.";
     for (const w of windows) {
       if (!w.startTime || !w.endTime || w.startTime >= w.endTime) {
@@ -127,13 +127,13 @@ export function ListingEditScreen({
     }
     const overlap = overlapMessage(windows);
     if (overlap) return overlap;
-    const datesIssue = datesProblem(dates);
+    const datesIssue = datesProblem(datesToCheck);
     if (datesIssue) return datesIssue;
     if (isListed) {
       if (!(offersOnline || offersOffline)) return "Выберите формат тренировки (онлайн или очно), чтобы опубликовать объявление.";
       if (!price) return "Укажите цену, чтобы опубликовать объявление.";
       if (!duration) return "Укажите длительность тренировки, чтобы опубликовать объявление.";
-      if (windows.length === 0 && dates.length === 0) {
+      if (windows.length === 0 && datesToCheck.length === 0) {
         return "Добавьте хотя бы одно окно в расписание или одну разовую дату — без этого нельзя опубликовать объявление.";
       }
     }
@@ -142,10 +142,17 @@ export function ListingEditScreen({
 
   const handleSave = async () => {
     setError(null);
-    const problem = validate();
+    // A date already picked in the «new date» template counts even if «Добавить дату» was not pressed.
+    const pending: DateDraft | null = newDate.slotDate ? { ...newDate } : null;
+    const allDates = pending ? sortDates([...dates, pending]) : dates;
+    const problem = validate(allDates);
     if (problem) {
       fail(problem);
       return;
+    }
+    if (pending) {
+      setDates(allDates);
+      setNewDate({ ...newDate, slotDate: "" });
     }
     setSaving(true);
     const payload = {
@@ -189,7 +196,7 @@ export function ListingEditScreen({
             await deleteListingDate(token, id, dateId);
             setRemovedDateIds((prev) => prev.filter((x) => x !== dateId));
           }
-          for (const draft of dates) {
+          for (const draft of allDates) {
             if (draft.id) continue;
             const created = await addListingDate(token, id, {
               slot_date: draft.slotDate,
@@ -253,7 +260,7 @@ export function ListingEditScreen({
       return;
     }
     setError(null);
-    setDates([...dates, newDate].sort((a, b) => a.slotDate.localeCompare(b.slotDate) || a.startTime.localeCompare(b.startTime)));
+    setDates(sortDates([...dates, newDate]));
     setNewDate({ ...newDate, slotDate: "" });
   };
 

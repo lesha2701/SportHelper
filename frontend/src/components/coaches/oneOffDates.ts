@@ -37,3 +37,8 @@ export function datesProblem(dates: DateDraft[], today: string = todayIso()): st
   }
   return null;
 }
+
+/** The dates in the order they are shown: by day, then by start time. */
+export function sortDates(dates: DateDraft[]): DateDraft[] {
+  return [...dates].sort((a, b) => a.slotDate.localeCompare(b.slotDate) || a.startTime.localeCompare(b.startTime));
+}

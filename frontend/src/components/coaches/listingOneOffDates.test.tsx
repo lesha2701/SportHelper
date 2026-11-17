@@ -72,6 +72,42 @@ describe("one-off dates in the listing editor", () => {
     expect(api.addListingDate).not.toHaveBeenCalled();
   });
 
+  it("saves a date picked in the template even if «Добавить дату» was not pressed", async () => {
+    vi.mocked(api.getListingDates).mockResolvedValue([]);
+    render(<ListingEditScreen token="t" listing={listing} onBack={() => {}} />);
+    await waitFor(() => expect(api.getListingDates).toHaveBeenCalled());
+
+    fireEvent.change(screen.getByLabelText("Дата"), { target: { value: tomorrow } });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    await waitFor(() => expect(api.addListingDate).toHaveBeenCalledTimes(1));
+    expect(api.addListingDate).toHaveBeenCalledWith("t", "L1", { slot_date: tomorrow, start_time: "10:00:00", end_time: "12:00:00" });
+  });
+
+  it("an empty template (no date chosen) adds nothing on Save", async () => {
+    vi.mocked(api.getListingDates).mockResolvedValue([]);
+    render(<ListingEditScreen token="t" listing={listing} onBack={() => {}} />);
+    await waitFor(() => expect(api.getListingDates).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    await waitFor(() => expect(api.updateListing).toHaveBeenCalled());
+    expect(api.addListingDate).not.toHaveBeenCalled();
+  });
+
+  it("a date in the template that is in the past stops the save with a message", async () => {
+    vi.mocked(api.getListingDates).mockResolvedValue([]);
+    render(<ListingEditScreen token="t" listing={listing} onBack={() => {}} />);
+    await waitFor(() => expect(api.getListingDates).toHaveBeenCalled());
+
+    fireEvent.change(screen.getByLabelText("Дата"), { target: { value: "2020-01-01" } });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    expect(await screen.findByText(/уже прошла/)).toBeTruthy();
+    expect(api.addListingDate).not.toHaveBeenCalled();
+    expect(api.updateListing).not.toHaveBeenCalled();
+  });
+
   it("lets a listing be published with a date alone, no weekly window", async () => {
     vi.mocked(api.getListingDates).mockResolvedValue([]);
     render(<ListingEditScreen token="t" listing={{ ...listing, isListed: true }} onBack={() => {}} />);
