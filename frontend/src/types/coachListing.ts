@@ -24,6 +24,31 @@ export interface AvailabilityWindowInput {
   end_time: string;
 }
 
+/** A day the coach is free on just once (not every week). `slotDate` is «YYYY-MM-DD». */
+export interface OneOffDateDto {
+  id: string;
+  slot_date: string;
+  start_time: string;
+  end_time: string;
+}
+
+export interface OneOffDate {
+  id: string;
+  slotDate: string;
+  startTime: string;
+  endTime: string;
+}
+
+export function mapOneOffDateDto(dto: OneOffDateDto): OneOffDate {
+  return { id: dto.id, slotDate: dto.slot_date, startTime: dto.start_time, endTime: dto.end_time };
+}
+
+export interface OneOffDateInput {
+  slot_date: string;
+  start_time: string;
+  end_time: string;
+}
+
 export interface CoachListingDto {
   id: string;
   coach_user_id: string;
@@ -176,6 +201,7 @@ export interface CoachListingProfileDto extends CoachListingCardDto {
   session_duration_minutes: number | null;
   video_file_id: string | null;
   availability: AvailabilityWindowDto[];
+  one_off_dates?: OneOffDateDto[];
   recent_reviews: CoachReviewDto[];
 }
 
@@ -184,6 +210,7 @@ export interface CoachListingProfile extends CoachListingCard {
   sessionDurationMinutes: number | null;
   videoFileId: string | null;
   availability: AvailabilityWindow[];
+  oneOffDates: OneOffDate[];
   recentReviews: CoachReview[];
 }
 
@@ -194,6 +221,7 @@ export function mapCoachListingProfileDto(dto: CoachListingProfileDto): CoachLis
     sessionDurationMinutes: dto.session_duration_minutes,
     videoFileId: dto.video_file_id,
     availability: dto.availability.map(mapAvailabilityWindowDto),
+    oneOffDates: (dto.one_off_dates ?? []).map(mapOneOffDateDto),
     recentReviews: dto.recent_reviews.map(mapCoachReviewDto),
   };
 }

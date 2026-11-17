@@ -590,3 +590,114 @@ def test_list_listings_filters_by_min_and_max_price(logged_in_client, login_as) 
     assert titles(min_price=1000) == ["Дорого", "Средне"]
     assert titles(min_price=1000, max_price=2000) == ["Средне"]
     assert titles(max_price=1000) == ["Дёшево"]
+
+
+# --- one-off dates ------------------------------------------------------------------------------------------------------
+
+
+def _draft(client, token) -> tuple[dict, dict]:
+    headers = {"Authorization": f"Bearer {token}"}
+    _create_coach_profile(client, token)
+    return client.post("/api/coach-listings", headers=headers, json=_listing_payload()).json(), headers
+
+
+def _soon(days: int = 10) -> date:
+    return session_time.wall_today() + timedelta(days=days)
+
+
+def _add_date(client, headers, listing, day: date, start="18:00:00", end="20:00:00"):
+    return client.post(f"/api/coach-listings/{listing['id']}/dates", headers=headers,
+                       json={"slot_date": day.isoformat(), "start_time": start, "end_time": end})
+
+
+def test_a_coach_adds_lists_and_removes_one_off_dates_at_any_time(logged_in_client) -> None:
+    client, token = logged_in_client
+    listing, headers = _draft(client, token)
+    base = f"/api/coach-listings/{listing['id']}/dates"
+
+    later, sooner = _add_date(client, headers, listing, _soon(12)), _add_date(client, headers, listing, _soon(5), "10:00:00", "11:00:00")
+    assert later.status_code == sooner.status_code == 201, later.text
+    assert [d["slot_date"] for d in client.get(base, headers=headers).json()] == [_soon(5).isoformat(), _soon(12).isoformat()]
+
+    assert client.delete(f"{base}/{sooner.json()['id']}", headers=headers).status_code == 204
+    assert [d["id"] for d in client.get(base, headers=headers).json()] == [later.json()["id"]]
+    assert client.delete(f"{base}/{sooner.json()['id']}", headers=headers).status_code == 404
+
+
+def test_a_listing_with_only_one_off_dates_can_be_published_and_offers_exactly_those_slots(logged_in_client) -> None:
+    client, token = logged_in_client
+    listing, headers = _draft(client, token)
+    published = lambda: client.put(f"/api/coach-listings/{listing['id']}", headers=headers, json=_listing_payload(is_listed=True))  # noqa: E731
+    assert published().status_code == 409  # no weekly window and no date yet
+
+    day = _soon(9)
+    assert _add_date(client, headers, listing, day).status_code == 201
+    assert published().status_code == 200  # …a single date is enough
+
+    slots = client.get(f"/api/coach-listings/{listing['id']}/slots", headers=headers,
+                       params={"from_date": day.isoformat(), "to_date": day.isoformat()}).json()
+    assert [s["starts_at"] for s in slots] == [f"{day.isoformat()}T18:00:00Z", f"{day.isoformat()}T19:00:00Z"]
+    other_day = day + timedelta(days=1)
+    assert client.get(f"/api/coach-listings/{listing['id']}/slots", headers=headers,
+                      params={"from_date": other_day.isoformat(), "to_date": other_day.isoformat()}).json() == []
+
+    # the public page of the listing shows the dates too
+    profile = client.get(f"/api/coach-listings/{listing['id']}").json()
+    assert [d["slot_date"] for d in profile["one_off_dates"]] == [day.isoformat()]
+
+
+def test_a_date_is_added_to_the_weekly_hours_not_instead_of_them_and_no_start_is_offered_twice(logged_in_client) -> None:
+    client, token = logged_in_client
+    listing, headers = _draft(client, token)
+    day = _soon(14)
+    client.put(f"/api/coach-listings/{listing['id']}/availability", headers=headers,
+               json=[{"weekday": day.weekday(), "start_time": "10:00:00", "end_time": "12:00:00"}])
+    _add_date(client, headers, listing, day, "11:00:00", "13:00:00")  # 11:00 is covered by both
+    client.put(f"/api/coach-listings/{listing['id']}", headers=headers, json=_listing_payload(is_listed=True))
+
+    slots = client.get(f"/api/coach-listings/{listing['id']}/slots", headers=headers,
+                       params={"from_date": day.isoformat(), "to_date": day.isoformat()}).json()
+    assert [s["starts_at"][11:16] for s in slots] == ["10:00", "11:00", "12:00"]
+    # one-off dates do not touch the weekly schedule (the old clients keep reading and writing only that)
+    assert len(client.get(f"/api/coach-listings/{listing['id']}/availability", headers=headers).json()) == 1
+
+
+def test_one_off_dates_are_validated(logged_in_client) -> None:
+    client, token = logged_in_client
+    listing, headers = _draft(client, token)
+
+    past = _add_date(client, headers, listing, session_time.wall_today() - timedelta(days=1))
+    assert past.status_code == 400 and past.json()["error"]["code"] == "date_in_past"
+    far = _add_date(client, headers, listing, session_time.wall_today() + timedelta(days=400))
+    assert far.status_code == 400 and far.json()["error"]["code"] == "date_too_far"
+    assert _add_date(client, headers, listing, _soon(), "20:00:00", "18:00:00").status_code == 422
+
+    assert _add_date(client, headers, listing, _soon(), "18:00:00", "20:00:00").status_code == 201
+    clash = _add_date(client, headers, listing, _soon(), "19:00:00", "21:00:00")
+    assert clash.status_code == 400 and clash.json()["error"]["code"] == "overlapping_availability"
+    assert _add_date(client, headers, listing, _soon(), "20:00:00", "21:00:00").status_code == 201  # next to it is fine
+
+
+def test_there_is_a_limit_on_one_off_dates(logged_in_client, monkeypatch) -> None:
+    import app.repositories.coach_listings as repo
+
+    monkeypatch.setattr(repo, "MAX_ONE_OFF_DATES", 2)
+    client, token = logged_in_client
+    listing, headers = _draft(client, token)
+    assert _add_date(client, headers, listing, _soon(3)).status_code == 201
+    assert _add_date(client, headers, listing, _soon(4)).status_code == 201
+    third = _add_date(client, headers, listing, _soon(5))
+    assert third.status_code == 409 and third.json()["error"]["code"] == "too_many_dates"
+
+
+def test_only_the_owner_manages_one_off_dates(logged_in_client, login_as) -> None:
+    client, token = logged_in_client
+    listing, headers = _draft(client, token)
+    created = _add_date(client, headers, listing, _soon()).json()
+    other = {"Authorization": f"Bearer {login_as('other-coach@example.com')}"}
+    base = f"/api/coach-listings/{listing['id']}/dates"
+
+    assert client.get(base, headers=other).status_code == 404
+    assert client.post(base, headers=other, json={"slot_date": _soon().isoformat(), "start_time": "10:00:00", "end_time": "11:00:00"}).status_code == 404
+    assert client.delete(f"{base}/{created['id']}", headers=other).status_code == 404
+    assert client.get(base).status_code == 401
