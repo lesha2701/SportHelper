@@ -482,22 +482,36 @@
   color: var(--color-link);
 }
 
+/* Wide enough for two columns: the photo takes the whole height of the left column, and that height is the same for every card
+   (the facts column is clipped to it, the price sits at its bottom), so every photo has the same shape. */
 @container (min-width: 440px) {
   .coachCardBody {
     flex-direction: row;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 16px;
+    flex: none;
+    height: 280px;
   }
 
   .listingCardPhotoWrap {
     flex: 0 0 38%;
-    aspect-ratio: 4 / 3;
+    width: auto;
+    aspect-ratio: auto;
+  }
+
+  .coachCardInfo {
+    overflow: hidden;
+  }
+
+  .coachDescription {
+    -webkit-line-clamp: 2;
   }
 }
 
 /* Every card's photo has the same shape (16:9 above the facts, 4:3 beside them) whatever the picture and whether or not the
    listing has one: the picture is cropped to it, never stretched, so cards in a row line up. */
 .listingCardPhotoWrap {
+  position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
   border-radius: var(--radius-md);
@@ -506,6 +520,8 @@
 }
 
 .listingCardPhotoPlaceholder {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: flex;
@@ -765,6 +781,8 @@
 }
 
 .listingCardPhoto {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
