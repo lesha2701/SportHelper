@@ -42,7 +42,7 @@ def test_create_team_makes_creator_head_coach(logged_in_client) -> None:
     team = _create_team(client, token)
 
     assert team["my_role"] == "head_coach"
-    assert team["members_count"] == 1
+    assert team["members_count"] == 0  # the coach is not a player
     assert team["status"] == "active"
 
 

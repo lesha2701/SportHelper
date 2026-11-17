@@ -2,10 +2,12 @@
 parameterized; each entity type is capped so one type can't crowd out the rest."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Sequence
 from uuid import UUID
 
 import asyncpg
+
+from app.repositories.admin_accounts import is_admin_account
 
 PER_TYPE_LIMIT = 5
 
@@ -15,10 +17,14 @@ def _like_pattern(query: str) -> str:
     return f"%{escaped}%"
 
 
-async def search_all(conn: asyncpg.Connection, user_id: UUID, query: str) -> list[dict[str, Any]]:
+async def search_all(
+    conn: asyncpg.Connection, user_id: UUID, query: str, admin_emails: Sequence[str] = ()
+) -> list[dict[str, Any]]:
+    """Administrators never turn up here, for anybody: not as people (a team-mate), not as coaches, and their listings not
+    at all. `admin_emails` is the lower-cased list from configuration."""
     pattern = _like_pattern(query)
     rows = await conn.fetch(
-        """
+        f"""
         (SELECT 'team' AS type, t.id, t.name AS title, t.sport AS subtitle, t.id AS team_id, NULL::date AS on_date
            FROM teams t JOIN team_members m ON m.team_id = t.id AND m.user_id = $1
           WHERE t.name ILIKE $2 ORDER BY t.name LIMIT $3)
@@ -29,6 +35,7 @@ async def search_all(conn: asyncpg.Connection, user_id: UUID, query: str) -> lis
            JOIN users u ON u.id = other.user_id
            JOIN teams tm ON tm.id = mine.team_id
           WHERE mine.user_id = $1
+            AND NOT {is_admin_account("u", "$4")}
             AND (u.first_name || ' ' || COALESCE(u.last_name, '') ILIKE $2 OR u.username ILIKE $2)
           ORDER BY u.first_name LIMIT $3)
         UNION ALL
@@ -38,6 +45,7 @@ async def search_all(conn: asyncpg.Connection, user_id: UUID, query: str) -> lis
             AND NOT EXISTS (SELECT 1 FROM users cu WHERE cu.id = cl.coach_user_id
                             AND cu.is_banned AND (cu.banned_until IS NULL OR cu.banned_until > now()))
             AND cl.coach_user_id <> $1
+            AND NOT EXISTS (SELECT 1 FROM users au WHERE au.id = cl.coach_user_id AND {is_admin_account("au", "$4")})
             AND (cp.full_name ILIKE $2 OR cl.title ILIKE $2 OR cp.sport ILIKE $2 OR cl.location ILIKE $2)
           GROUP BY cl.coach_user_id, cp.full_name, cp.sport ORDER BY cp.full_name LIMIT $3)
         UNION ALL
@@ -71,5 +79,6 @@ async def search_all(conn: asyncpg.Connection, user_id: UUID, query: str) -> lis
         user_id,
         pattern,
         PER_TYPE_LIMIT,
+        [e.lower() for e in admin_emails],
     )
     return [dict(row) for row in rows]

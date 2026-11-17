@@ -123,4 +123,35 @@ final class TrainingsUITests: SignedInUITestCase {
         if element("trainings.schedule").waitForExistence(timeout: 4) { throw XCTSkip("This account is a coach of the team.") }
         XCTAssertFalse(element("trainings.schedule").exists)
     }
+
+    /// A session the athlete booked with a coach is the booking's: the form shows whose it is, its fields are read-only and the menu has
+    /// neither «Удалить» nor the status changes. Needs an athlete with such a session among the upcoming events of the home.
+    func testABookedSessionIsReadOnlyForTheAthlete() throws {
+        try launchSignedIn()
+        let events = app.descendants(matching: .any).matching(identifier: "home.event")
+        _ = events.firstMatch.waitForExistence(timeout: 15)
+        let row = events.matching(NSPredicate(format: "label CONTAINS 'тренером' OR label CONTAINS 'Личная'")).firstMatch
+        scrollUntilVisible(row, attempts: 6)
+        guard row.exists else { throw XCTSkip("This needs an athlete with a session booked with a coach.") }
+        row.tap()
+        XCTAssertTrue(element("training.title").waitForExistence(timeout: 10), "the event did not open as a training")
+        let menu = element("training.actions")
+        guard menu.waitForExistence(timeout: 8) else { throw XCTSkip("The next event is not a training of this person.") }
+        menu.tap()
+        let edit = element("training.edit")
+        XCTAssertTrue(edit.waitForExistence(timeout: 5), "no «Изменить» in the menu")
+        // wait for the booking to be known: the menu is rebuilt, so look at it again after a moment
+        _ = element("training.delete").waitForExistence(timeout: 3)
+        let hasDelete = element("training.delete").exists
+        edit.tap()
+        let note = element("trainingForm.booked")
+        guard note.waitForExistence(timeout: 8) else {
+            if hasDelete { throw XCTSkip("The next event is the athlete's own training, not a booked session.") }
+            XCTFail("the form of a booked session does not say it is booked"); return
+        }
+        XCTAssertFalse(hasDelete, "«Удалить» must not be offered for a booked session")
+        XCTAssertTrue(note.label.contains("Занятие с тренером"), "the note does not name the coach: \(note.label)")
+        XCTAssertFalse(app.textFields["trainingForm.location"].isEnabled, "the place of a booked session must be read-only")
+        XCTAssertFalse(app.datePickers["trainingForm.date"].firstMatch.isEnabled, "the date of a booked session must be read-only")
+    }
 }

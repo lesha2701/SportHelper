@@ -224,11 +224,16 @@ def test_members_are_marked_present_on_trainings_that_took_place_and_only_on_tho
                 past_cancelled = await training(-1, "cancelled")
                 corrected = await training(-2, "completed")
                 await conn.execute("INSERT INTO training_attendance (training_id, user_id, status) VALUES ($1, $2, 'absent')", corrected, early)
+                # a mark of the head coach saved before coaches stopped being counted as players
+                await conn.execute("INSERT INTO training_attendance (training_id, user_id, status) VALUES ($1, $2, 'present')", corrected, coach)
 
                 await background.sweep_attendance(conn)
                 again = await background.sweep_attendance(conn)  # idempotent
 
                 rows = await conn.fetch("SELECT training_id, user_id, status FROM training_attendance")
+                from app.repositories import trainings as trainings_repo
+                shown = [r["user_id"] for r in await trainings_repo.list_attendance(conn, corrected)]
+                assert shown == [early], "the old mark of the coach stays in the table but is not shown"
                 return {(r["training_id"], r["user_id"]): r["status"] for r in rows}, again, (
                     future_held, past_unmarked, future_planned, past_cancelled, corrected), (coach, early, late)
         finally:
@@ -236,7 +241,8 @@ def test_members_are_marked_present_on_trainings_that_took_place_and_only_on_tho
 
     rows, again, (future_held, past_unmarked, future_planned, past_cancelled, corrected), (coach, early, late) = asyncio.run(scenario())
 
-    assert rows[(future_held, early)] == "present" and rows[(future_held, coach)] == "present"
+    assert rows[(future_held, early)] == "present"
+    assert (future_held, coach) not in rows, "the head coach is not a player: no attendance row is made for them"
     assert rows[(past_unmarked, early)] == "present"
     assert not any(t in (future_planned, past_cancelled) for t, _ in rows)  # didn't happen -> nothing recorded
     assert (future_held, late) not in rows  # joined after the training date
@@ -331,3 +337,55 @@ def test_a_one_off_date_is_published_booked_and_removed_on_the_real_schema(live_
     assert [d["id"] for d in coach.ok("GET", f"/api/coach-listings/{listing['id']}/dates")] == [first["id"]]
     profile = _guest(client, "GET", f"/api/coach-listings/{listing['id']}").json()
     assert [d["slot_date"] for d in profile["one_off_dates"]] == [day.isoformat()]
+
+
+def test_administrators_are_invisible_in_search_and_in_the_catalogue_except_to_themselves(live_client, monkeypatch) -> None:  # noqa: F811
+    from app.config import get_settings
+
+    monkeypatch.setenv("ADMIN_EMAILS", "boss@example.com,second@example.com")
+    get_settings.cache_clear()
+    client = live_client
+    boss = Browser(client, "boss@example.com", "Босс", "coach")
+    second = Browser(client, "second@example.com", "Второй", "coach")
+    coach = Browser(client, "plain@example.com", "Обычный", "coach")
+    player = Browser(client, "pl@example.com", "Игрок", "player")
+    guest_listing_titles = lambda: [l["title"] for l in _guest(client, "GET", "/api/coach-listings").json()]  # noqa: E731
+
+    for who, name, title in ((boss, "Босс Админов", "Тест босса"), (second, "Второй Админов", "Тест второго"),
+                             (coach, "Обычный Тренер", "Занятия у обычного")):
+        who.ok("PUT", "/api/profile/coach", json={"full_name": name, "sport": "Теннис", "experience_years": 2,
+                                                   "specialization": None, "description": None})
+        draft = who.ok("POST", "/api/coach-listings", json={**_listing_body(title), "is_listed": False})
+        who.ok("PUT", f"/api/coach-listings/{draft['id']}/availability",
+               json=[{"weekday": _NEXT_MONDAY.weekday(), "start_time": "10:00:00", "end_time": "12:00:00"}])
+        who.ok("PUT", f"/api/coach-listings/{draft['id']}", json=_listing_body(title))
+
+    # --- the catalogue: guests and players see only the ordinary coach; each administrator sees their own too ---------
+    assert guest_listing_titles() == ["Занятия у обычного"]
+    assert [l["title"] for l in player.ok("GET", "/api/coach-listings")] == ["Занятия у обычного"]
+    assert sorted(l["title"] for l in coach.ok("GET", "/api/coach-listings")) == ["Занятия у обычного"]
+    assert sorted(l["title"] for l in boss.ok("GET", "/api/coach-listings")) == ["Занятия у обычного", "Тест босса"]
+    assert sorted(l["title"] for l in second.ok("GET", "/api/coach-listings")) == ["Занятия у обычного", "Тест второго"]
+
+    # --- search: coaches (by name and by listing title) -------------------------------------------------------------
+    def found(who, q: str) -> set[str]:
+        return {r["title"] for r in who.ok("GET", "/api/search", params={"q": q})}
+
+    assert found(player, "Админов") == set() and found(player, "Тест") == set()
+    assert found(player, "Обычный") == {"Обычный Тренер"}
+    assert found(boss, "Админов") == set()  # not even the administrator's own coach card: search is for finding others
+    assert found(boss, "Обычный") == {"Обычный Тренер"}
+
+    # --- search: team-mates -----------------------------------------------------------------------------------------
+    team = coach.ok("POST", "/api/teams", json={"name": "Ястребы", "description": None, "sport": "Теннис",
+                                                  "age_category": "U-16", "level": "amateur"})
+    token = coach.ok("POST", f"/api/teams/{team['id']}/invites", json={"kind": "join"})["token"]
+    for joiner in (boss, player):
+        assert joiner.call("POST", f"/api/invites/{token}/apply").status_code == 200
+    for application in coach.ok("GET", f"/api/teams/{team['id']}/applications"):
+        assert coach.call("POST", f"/api/teams/{team['id']}/applications/{application['id']}/accept").status_code == 204
+    assert {m["first_name"] for m in coach.ok("GET", f"/api/teams/{team['id']}/members")} == {"Обычный", "Босс", "Игрок"}
+
+    assert found(player, "Игрок") == set() and found(coach, "Босс") == set()  # the administrator in the team is not found
+    assert found(coach, "Игр") == {"Игрок"}  # …while an ordinary team-mate is
+    assert found(player, "Обыч") >= {"Обычный"}

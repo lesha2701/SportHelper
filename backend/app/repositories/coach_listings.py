@@ -4,7 +4,7 @@ video. All queries are parameterized."""
 from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta, timezone
-from typing import Any
+from typing import Any, Sequence
 from uuid import UUID
 
 import asyncpg
@@ -12,6 +12,7 @@ import asyncpg
 from app.core import session_time
 
 from app.repositories import coach_reviews as coach_reviews_repo
+from app.repositories.admin_accounts import is_admin_account
 
 # What makes a listing public: switched on by its coach, not deleted, not hidden by moderation, and its coach not blocked.
 # (A blocked coach's listings come back by themselves when the block ends.)
@@ -245,7 +246,11 @@ async def list_listed(
     min_rating: float | None = None,
     training_format: str | None = None,
     min_experience_years: int | None = None,
+    viewer_user_id: UUID | None = None,
+    admin_emails: Sequence[str] = (),
 ) -> list[dict[str, Any]]:
+    """The marketplace catalogue. Administrators' listings (made for testing) are not shown to anybody but their own
+    author: `admin_emails` is the lower-cased list from configuration, `viewer_user_id` the person looking (if signed in)."""
     conditions = [PUBLIC_LISTING]
     params: list[Any] = []
 
@@ -263,6 +268,11 @@ async def list_listed(
         add("cl.price_per_session <= ${}", max_price)
     if min_experience_years is not None:
         add("cp.experience_years >= ${}", min_experience_years)
+    if admin_emails:
+        params.append([e.lower() for e in admin_emails])
+        admin_param = f"${len(params)}"
+        params.append(viewer_user_id)
+        conditions.append(f"(cl.coach_user_id = ${len(params)}::uuid OR NOT {is_admin_account('u', admin_param)})")
     if training_format == "online":
         conditions.append("cl.offers_online = TRUE")
     elif training_format == "offline":

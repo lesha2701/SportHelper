@@ -65,7 +65,7 @@ def test_team_stats_attendance_and_activity_lists(logged_in_client, login_as) ->
     assert response.status_code == 200
     stats = response.json()
 
-    assert stats["members_count"] == 3  # coach + 2 players
+    assert stats["members_count"] == 2  # 2 players, the coach is not counted
     assert stats["trainings_completed"] >= 1
     assert stats["attendance_rate"] is not None
 

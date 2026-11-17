@@ -87,7 +87,7 @@ async def list_my_teams(conn: asyncpg.Connection, user_id: UUID) -> list[dict[st
             t.id, t.name, t.description, t.sport, t.age_category, t.level, t.status,
             t.created_by, t.logo_file_id, t.tournaments, t.home_venue, t.created_at, t.updated_at,
             m.role AS my_role,
-            (SELECT COUNT(*) FROM team_members WHERE team_id = t.id) AS members_count
+            (SELECT COUNT(*) FROM team_members WHERE team_id = t.id AND role IN ('player', 'captain')) AS members_count
         FROM teams t
         JOIN team_members m ON m.team_id = t.id
         WHERE m.user_id = $1
@@ -109,7 +109,15 @@ async def get_member(conn: asyncpg.Connection, team_id: UUID, user_id: UUID) -> 
 
 
 async def count_members(conn: asyncpg.Connection, team_id: UUID) -> int:
+    """Everyone in the team, the coaching staff included (the number of people in the team's chat)."""
     return await conn.fetchval("SELECT COUNT(*) FROM team_members WHERE team_id = $1", team_id)
+
+
+async def count_players(conn: asyncpg.Connection, team_id: UUID) -> int:
+    """Only the players (a captain is one): what «number of players» means. The head coach and assistants are not players."""
+    return await conn.fetchval(
+        "SELECT COUNT(*) FROM team_members WHERE team_id = $1 AND role IN ('player', 'captain')", team_id
+    )
 
 
 async def shares_team_as_coach(conn: asyncpg.Connection, coach_id: UUID, player_id: UUID) -> bool:

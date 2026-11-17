@@ -37,6 +37,23 @@ struct MoneyTests {
     }
 }
 
+struct BookedSessionTests {
+    @Test func aTrainingIsABookedSessionOnlyWhenABookingPointsAtIt() throws {
+        let mine = "aaaaaaaa-2222-4333-8444-555555555555"
+        let other = "bbbbbbbb-2222-4333-8444-555555555555"
+        let bookings = try [
+            decode(bookingJSON(id: "11111111-2222-4333-8444-555555555551", trainingId: other)),
+            decode(bookingJSON(id: "11111111-2222-4333-8444-555555555552", trainingId: mine)),
+            decode(bookingJSON(id: "11111111-2222-4333-8444-555555555553")),
+        ]
+        let found = Booking.session(ofTraining: UUID(uuidString: mine)!, in: bookings)
+        #expect(found?.id.uuidString.lowercased() == "11111111-2222-4333-8444-555555555552")
+        #expect(found?.coachFullName == "Анна Тренер", "the coach's name is what the screen tells the athlete")
+        #expect(Booking.session(ofTraining: UUID(), in: bookings) == nil, "a training of one's own is not a booked session")
+        #expect(Booking.session(ofTraining: UUID(uuidString: mine)!, in: []) == nil)
+    }
+}
+
 struct BookingModelTests {
     @Test func aBookingIsReadWithItsStatesAndTheServersClock() throws {
         let booking = try decode(bookingJSON())
