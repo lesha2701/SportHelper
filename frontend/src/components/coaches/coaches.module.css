@@ -551,6 +551,14 @@
   color: var(--color-inverse-text);
 }
 
+.pickDate {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
 .slotGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
