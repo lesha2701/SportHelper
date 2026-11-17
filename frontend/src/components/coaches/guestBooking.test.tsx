@@ -47,6 +47,7 @@ const profile: CoachListingProfile = {
   videoFileId: null,
   sessionDurationMinutes: 60,
   availability: [],
+  oneOffDates: [],
   recentReviews: [],
 };
 

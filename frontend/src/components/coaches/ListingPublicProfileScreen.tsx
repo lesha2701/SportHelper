@@ -13,6 +13,7 @@ import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 import { photoVideoGallery } from "../shared/MediaLightbox";
 import { count, years } from "../../lib/plural";
+import { formatSlotDate } from "./oneOffDates";
 
 const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -114,7 +115,9 @@ export function ListingPublicProfileScreen({
 
             <div className={profileStyles.card}>
               <h2 className={profileStyles.title}>Расписание</h2>
-              {listing.availability.length === 0 && <p className={profileStyles.subtitle}>Пока нет доступного времени.</p>}
+              {listing.availability.length === 0 && listing.oneOffDates.length === 0 && (
+                <p className={profileStyles.subtitle}>Пока нет доступного времени.</p>
+              )}
               {listing.availability.map((w) => (
                 <div className={styles.availabilityRow} key={w.id}>
                   <span>{WEEKDAY_LABELS[w.weekday]}</span>
@@ -123,6 +126,19 @@ export function ListingPublicProfileScreen({
                   </span>
                 </div>
               ))}
+              {listing.oneOffDates.length > 0 && (
+                <>
+                  <p className={profileStyles.subtitle}>Разовые даты</p>
+                  {listing.oneOffDates.map((d) => (
+                    <div className={styles.availabilityRow} key={d.id}>
+                      <span>{formatSlotDate(d.slotDate)}</span>
+                      <span>
+                        {d.startTime.slice(0, 5)} — {d.endTime.slice(0, 5)}
+                      </span>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
 
             <div className={profileStyles.card}>

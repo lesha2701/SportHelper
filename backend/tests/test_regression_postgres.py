@@ -292,3 +292,42 @@ def test_files_with_and_without_a_thumbnail_on_the_real_schema_and_the_purge_rem
     assert fetched[0]["thumb_disk_path"] is None and fetched[1]["thumb_disk_path"] == "/TeamFlow/main/new_thumb.webp"
     assert sorted(deleted) == ["/TeamFlow/main/new.webp", "/TeamFlow/main/new_thumb.webp", "/TeamFlow/main/old.jpg"]
     assert left == 0
+
+
+def _listing_body(title: str) -> dict:
+    return {"title": title, "description": "Индивидуально", "is_listed": True, "price_per_session": 2000, "currency": "RUB",
+            "offers_online": True, "offers_offline": False, "location": "Москва", "session_duration_minutes": 60}
+
+
+def test_a_one_off_date_is_published_booked_and_removed_on_the_real_schema(live_client) -> None:  # noqa: F811
+    client = live_client
+    coach = Browser(client, "oneoff@example.com", "Тренер", "coach")
+    player = Browser(client, "oneoff-player@example.com", "Игрок", "player")
+    coach.ok("PUT", "/api/profile/coach", json={"full_name": "Тренер Разовый", "sport": "Теннис", "experience_years": 5,
+                                                  "specialization": None, "description": None})
+    player.ok("PUT", "/api/profile/player", json={"full_name": "Игрок", "sport": "Теннис", "age": 28, "height_cm": None,
+                                                    "weight_kg": None, "position": None, "level": None, "goals": None,
+                                                    "load_restrictions": None})
+    listing = coach.ok("POST", "/api/coach-listings", json={**_listing_body("Разовые окна"), "is_listed": False})
+    day = date.today() + timedelta(days=9)
+    # before and after the listing is published a date can be added; a past one cannot
+    assert coach.call("POST", f"/api/coach-listings/{listing['id']}/dates",
+                      json={"slot_date": (date.today() - timedelta(days=2)).isoformat(), "start_time": "10:00:00", "end_time": "11:00:00"}).status_code == 400
+    first = coach.ok("POST", f"/api/coach-listings/{listing['id']}/dates",
+                     json={"slot_date": day.isoformat(), "start_time": "16:00:00", "end_time": "17:00:00"})
+    coach.ok("PUT", f"/api/coach-listings/{listing['id']}", json=_listing_body("Разовые окна"))  # published with no weekly hours at all
+    later = coach.ok("POST", f"/api/coach-listings/{listing['id']}/dates",
+                     json={"slot_date": (day + timedelta(days=3)).isoformat(), "start_time": "09:00:00", "end_time": "10:00:00"})
+    assert [d["id"] for d in coach.ok("GET", f"/api/coach-listings/{listing['id']}/dates")] == [first["id"], later["id"]]
+
+    slots = _guest(client, "GET", f"/api/coach-listings/{listing['id']}/slots",
+                   params={"from_date": day.isoformat(), "to_date": (day + timedelta(days=3)).isoformat()}).json()
+    assert [s["starts_at"] for s in slots] == [f"{day.isoformat()}T16:00:00Z", f"{(day + timedelta(days=3)).isoformat()}T09:00:00Z"]
+    assert _guest(client, "GET", "/api/coach-listings").json()[0]["next_available_slot"] == f"{day.isoformat()}T16:00:00Z"
+
+    booking = player.ok("POST", "/api/bookings", json={"listing_id": listing["id"], "starts_at": slots[0]["starts_at"], "format": "online"})
+    assert booking["status"] == "pending"
+    coach.ok("DELETE", f"/api/coach-listings/{listing['id']}/dates/{later['id']}")
+    assert [d["id"] for d in coach.ok("GET", f"/api/coach-listings/{listing['id']}/dates")] == [first["id"]]
+    profile = _guest(client, "GET", f"/api/coach-listings/{listing['id']}").json()
+    assert [d["slot_date"] for d in profile["one_off_dates"]] == [day.isoformat()]
