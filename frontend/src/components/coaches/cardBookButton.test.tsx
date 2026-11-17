@@ -26,7 +26,7 @@ const card = (id: string, coachUserId: string, title: string): CoachListingCard 
   location: null, offersOnline: true, offersOffline: false, photoFileId: null, nextAvailableSlot: null,
 });
 const profile = (c: CoachListingCard): CoachListingProfile => ({
-  ...c, coachDescription: null, videoFileId: null, sessionDurationMinutes: 60, availability: [], recentReviews: [],
+  ...c, coachDescription: null, videoFileId: null, sessionDurationMinutes: 60, availability: [], oneOffDates: [], recentReviews: [],
 });
 
 beforeEach(() => {
