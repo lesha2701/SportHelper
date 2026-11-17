@@ -160,6 +160,12 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
     public var day: LocalDate { startsAt.serverDay }
     public var time: LocalTime { startsAt.serverTime }
 
+    /// The athlete's booking behind a personal training, if the training is the session of one. Its date, time, length and place belong
+    /// to the booking, not to the calendar: the server refuses to move it or delete it there.
+    public static func session(ofTraining trainingId: UUID, in bookings: [Booking]) -> Booking? {
+        bookings.first { $0.trainingId == trainingId }
+    }
+
     /// The coach picks the plan of a confirmed session that is not held yet (the server needs the session to exist).
     public var canChoosePlan: Bool { status == .confirmed && !isCompleted && trainingId != nil }
 
