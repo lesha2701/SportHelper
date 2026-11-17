@@ -46,7 +46,7 @@ async def get_team_stats(
     # Players see the team's totals; who misses trainings is for the coaches only.
     is_staff = member["role"] in _COACH_STAFF
 
-    members_count = await teams_repo.count_members(conn, team_id)
+    members_count = await teams_repo.count_players(conn, team_id)
     training_summary = await trainings_repo.count_team_trainings_summary(conn, team_id)
     task_summary = await tasks_repo.team_task_summary(conn, team_id)
     match_summary = await matches_repo.team_match_summary(conn, team_id)

@@ -136,7 +136,7 @@ def test_attendance_defaults_present_and_coach_can_mark_absent(logged_in_client,
     training = client.post(f"/api/teams/{team['id']}/trainings", headers=coach_headers, json=_TRAINING_PAYLOAD).json()[0]
 
     attendance = client.get(f"/api/trainings/{training['id']}/attendance", headers=coach_headers).json()
-    assert len(attendance) == 2  # coach (head_coach) + the player
+    assert [a["user_id"] for a in attendance] == [player_id], "only the player is listed: the coach is not a player"
     assert all(a["status"] == "present" for a in attendance)
 
     mark_resp = client.patch(
@@ -148,6 +148,36 @@ def test_attendance_defaults_present_and_coach_can_mark_absent(logged_in_client,
     attendance_after = client.get(f"/api/trainings/{training['id']}/attendance", headers=coach_headers).json()
     statuses = {a["user_id"]: a["status"] for a in attendance_after}
     assert statuses[player_id] == "absent"
+
+
+def test_coaching_staff_is_not_in_attendance_but_a_captain_is(logged_in_client, login_as) -> None:
+    client, coach_token = logged_in_client
+    coach_headers = {"Authorization": f"Bearer {coach_token}"}
+    _create_coach_profile(client, coach_token)
+    team = _create_team(client, coach_token)
+
+    ids = {}
+    for tid, name in ((800010, "Assistant"), (800011, "Captain"), (800012, "Player")):
+        _add_player_to_team(client, coach_token, team["id"], login_as(tid, first_name=name))
+        ids[name] = _member_user_id(client, team["id"], coach_token, tid)
+    for name, role in (("Assistant", "assistant_coach"), ("Captain", "captain")):
+        done = client.patch(f"/api/teams/{team['id']}/members/{ids[name]}", headers=coach_headers, json={"role": role})
+        assert done.status_code == 200, done.text
+
+    training = client.post(f"/api/teams/{team['id']}/trainings", headers=coach_headers, json=_TRAINING_PAYLOAD).json()[0]
+    listed = {a["user_id"] for a in client.get(f"/api/trainings/{training['id']}/attendance", headers=coach_headers).json()}
+    assert listed == {ids["Captain"], ids["Player"]}, "the captain stays a player; the head coach and the assistant are not listed"
+
+    # a coach cannot be marked, even by guessing the id
+    refused = client.patch(
+        f"/api/trainings/{training['id']}/attendance/{ids['Assistant']}", headers=coach_headers, json={"status": "absent"}
+    )
+    assert refused.status_code == 400
+    assert refused.json()["error"]["code"] == "attendance_players_only"
+
+    # the number of players on the team does not count the coaches either
+    mine = client.get("/api/teams/mine", headers=coach_headers).json()
+    assert next(t for t in mine if t["id"] == team["id"])["members_count"] == 2
 
 
 def test_player_cannot_mark_attendance(logged_in_client, login_as) -> None:

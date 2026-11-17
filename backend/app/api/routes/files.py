@@ -81,7 +81,7 @@ async def upload_team_logo(
     await files_repo.replace_team_logo(conn, team_id, file_record["id"])
 
     updated_team = await teams_repo.get_team(conn, team_id)
-    members_count = await teams_repo.count_members(conn, team_id)
+    members_count = await teams_repo.count_players(conn, team_id)
     return _team_out(updated_team, my_role=member["role"], members_count=members_count)
 
 

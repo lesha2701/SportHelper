@@ -30,6 +30,7 @@ router = APIRouter(prefix="/api/trainings", tags=["trainings"])
 team_trainings_router = APIRouter(prefix="/api/teams", tags=["trainings"])
 
 _COACH_STAFF = {"head_coach", "assistant_coach"}
+_PLAYER_ROLES = {"player", "captain"}
 
 
 def _weekly_dates(start: date, until: date) -> list[date]:
@@ -353,6 +354,10 @@ async def set_attendance(
     target_member = await teams_repo.get_member(conn, training["team_id"], target_user_id)
     if target_member is None:
         raise NotFoundError("this user is not a member of the team")
+    if target_member["role"] not in _PLAYER_ROLES:
+        raise APIError(
+            "attendance is marked for players only, not for the coaching staff", code="attendance_players_only", status_code=400
+        )
 
     await trainings_repo.ensure_attendance_initialized(conn, training_id, training["team_id"])
     updated = await trainings_repo.set_attendance_status(conn, training_id, target_user_id, payload.status, user["id"])
