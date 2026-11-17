@@ -294,6 +294,7 @@ async def list_listings(
     min_experience_years: int | None = None,
     user: dict | None = Depends(get_optional_user),
     conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
 ) -> list[CoachListingCardOut]:
     cards = await listings_repo.list_listed(
         conn,
@@ -304,6 +305,8 @@ async def list_listings(
         min_rating=min_rating,
         training_format=format,
         min_experience_years=min_experience_years,
+        viewer_user_id=user["id"] if user else None,
+        admin_emails=settings.admin_emails_list,
     )
     return [CoachListingCardOut(**c) for c in cards]
 
