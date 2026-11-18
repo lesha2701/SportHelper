@@ -1,5 +1,5 @@
-"""The administrators' queue of support requests. Taking, answering and closing are recorded in the audit trail. The answer
-is e-mailed to the author (when the server can send mail) and is always shown to them in «Поддержка» on the site."""
+"""The administrators' queue of support requests. Taking, answering and closing are recorded in the audit trail. Every message of
+the administrators is e-mailed to the author (when the server can send mail) and is always shown to them in «Поддержка» on the site."""
 from __future__ import annotations
 
 from uuid import UUID
@@ -12,7 +12,7 @@ from app.config import Settings
 from app.core.exceptions import ConflictError, NotFoundError
 from app.repositories import support as support_repo
 from app.schemas.admin import PersonOut
-from app.schemas.support import AnswerSupportIn, CloseSupportIn, SupportKind, SupportPageOut, SupportRequestOut, SupportStatus
+from app.schemas.support import AnswerSupportIn, CloseSupportIn, SupportKind, SupportMessageOut, SupportPageOut, SupportRequestOut, SupportStatus
 from app.services import accounts as accounts_service
 from app.services import admin_audit
 from app.services import email_templates as templates
@@ -33,7 +33,7 @@ def _out(r: dict) -> SupportRequestOut:
         status=r["status"],
         created_at=r["created_at"],
         author=PersonOut(id=r["author_id"], name=_name(r["author_first_name"], r["author_last_name"]), email=r["author_email"]),
-        answer=r["answer"],
+        messages=[SupportMessageOut(**m) for m in r["messages"]],
         handled_by=r["handled_by_email"],
         handled_at=r["handled_at"],
     )
@@ -104,7 +104,7 @@ async def answer_request(
                 before={"status": before.status}, after={"status": "answered"}, extra={"kind": before.kind},
             )
     except support_repo.BadTransition as exc:
-        raise ConflictError(f"На обращение уже ответили или оно закрыто (статус «{exc.current}»).", code="bad_transition") from None
+        raise ConflictError(f"Обращение закрыто, в нём больше нельзя писать (статус «{exc.current}»).", code="bad_transition") from None
     if before.author.email:
         first_name = before.author.name.split(" ")[0] if before.author.name else ""
         accounts_service.queue_email(

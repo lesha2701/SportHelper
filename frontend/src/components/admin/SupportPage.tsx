@@ -49,7 +49,7 @@ export function SupportPage() {
 
   return (
     <>
-      <PageHead title="Поддержка" hint="Обращения пользователей: сначала самые давние открытые. Ответ уходит автору на почту и показывается ему в профиле." />
+      <PageHead title="Поддержка" hint="Обращения пользователей: сначала те, кто ждёт дольше всех. Ответ уходит автору на почту и показывается ему в профиле; автор может ответить, и обращение снова попадёт в очередь." />
       <div className={styles.chips} role="group" aria-label="Статус обращения">
         {(["", "new", "in_progress", "answered", "closed"] as const).map((s) => (
           <button key={s || "all"} type="button" className={status === s ? styles.chipActive : styles.chip} aria-pressed={status === s} onClick={() => setStatus(s)}>
@@ -117,7 +117,7 @@ function SupportDrawer({ request: r, onClose, onChanged }: { request: AdminSuppo
   const [dialog, setDialog] = useState<"answer" | "close" | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const open = r.status === "new" || r.status === "in_progress";
+  const open = r.status !== "closed"; // an answered request can go on: the author may reply, an administrator may add something
 
   const perform = async (action: () => Promise<unknown>) => {
     setBusy(true);
@@ -165,25 +165,30 @@ function SupportDrawer({ request: r, onClose, onChanged }: { request: AdminSuppo
             <dd>
               <strong>{r.subject}</strong>
             </dd>
-            <dt>Текст</dt>
-            <dd style={{ whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{r.body}</dd>
-            {r.answer && (
-              <>
-                <dt>Ответ</dt>
-                <dd style={{ whiteSpace: "pre-line", overflowWrap: "anywhere" }}>
-                  {r.answer} <span className={styles.muted}>— {r.handledBy ?? "—"}, {formatDateTime(r.handledAt)}</span>
-                </dd>
-              </>
-            )}
             {r.status === "closed" && (
               <>
                 <dt>Закрыто</dt>
                 <dd>
-                  без ответа <span className={styles.muted}>— {r.handledBy ?? "—"}, {formatDateTime(r.handledAt)}</span>
+                  <span className={styles.muted}>
+                    {r.handledBy ?? "—"}, {formatDateTime(r.handledAt)}
+                  </span>
                 </dd>
               </>
             )}
           </dl>
+        </section>
+        <section className={styles.card} aria-label="Переписка">
+          <h3 className={styles.cardTitle}>Переписка</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {[{ id: "first", fromStaff: false, body: r.body, createdAt: r.createdAt }, ...r.messages].map((m) => (
+              <div key={m.id} style={{ whiteSpace: "pre-line", overflowWrap: "anywhere" }}>
+                <div className={styles.muted}>
+                  {m.fromStaff ? "Поддержка" : (r.author.name || "Автор")} · {formatDateTime(m.createdAt)}
+                </div>
+                {m.body}
+              </div>
+            ))}
+          </div>
         </section>
         {open && (
           <div className={styles.actions}>
@@ -196,7 +201,7 @@ function SupportDrawer({ request: r, onClose, onChanged }: { request: AdminSuppo
               Ответить
             </button>
             <button type="button" className={styles.button} onClick={() => { setError(null); setDialog("close"); }}>
-              Закрыть без ответа
+              Закрыть обращение
             </button>
           </div>
         )}
@@ -206,8 +211,8 @@ function SupportDrawer({ request: r, onClose, onChanged }: { request: AdminSuppo
         )}
         {dialog === "close" && (
           <ReasonDialog
-            title="Закрыть без ответа"
-            description="Например: дубль, спам, ответ не требуется. Автору ничего не отправляется."
+            title="Закрыть обращение"
+            description="Например: вопрос решён, дубль, спам. Автору ничего не отправляется, а писать в закрытом обращении уже нельзя."
             confirmLabel="Закрыть"
             busy={busy}
             error={error}
@@ -238,10 +243,10 @@ function AnswerDialog({
   return (
     <Dialog title="Ответить на обращение" onClose={busy ? () => {} : onClose}>
       <p className={styles.dialogText}>
-        Ответ получит {request.author.email ?? request.author.name} на почту и увидит его в профиле, в разделе «Поддержка». Отправленный ответ изменить нельзя.
+        Сообщение получит {request.author.email ?? request.author.name} на почту и увидит его в профиле, в разделе «Поддержка». Автор сможет ответить. Отправленное сообщение изменить нельзя.
       </p>
       <label className={styles.field}>
-        <span>Ответ</span>
+        <span>Сообщение</span>
         <textarea className={styles.textarea} value={answer} maxLength={ANSWER_MAX} rows={8} autoFocus disabled={busy} onChange={(e) => setAnswer(e.target.value)} />
         <span className={styles.counter}>
           {answer.length} / {ANSWER_MAX}

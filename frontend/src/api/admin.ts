@@ -688,9 +688,17 @@ export interface AdminSupportRequest {
   status: SupportRequestStatus;
   createdAt: string;
   author: Person;
-  answer: string | null;
+  /** Everything after the first message, oldest first. */
+  messages: AdminSupportMessage[];
   handledBy: string | null;
   handledAt: string | null;
+}
+
+export interface AdminSupportMessage {
+  id: string;
+  fromStaff: boolean;
+  body: string;
+  createdAt: string;
 }
 
 interface SupportDto {
@@ -701,7 +709,7 @@ interface SupportDto {
   status: SupportRequestStatus;
   created_at: string;
   author: Person;
-  answer: string | null;
+  messages: { id: string; from_staff: boolean; body: string; created_at: string }[];
   handled_by: string | null;
   handled_at: string | null;
 }
@@ -715,7 +723,7 @@ function mapSupport(dto: SupportDto): AdminSupportRequest {
     status: dto.status,
     createdAt: dto.created_at,
     author: dto.author,
-    answer: dto.answer,
+    messages: dto.messages.map((m) => ({ id: m.id, fromStaff: m.from_staff, body: m.body, createdAt: m.created_at })),
     handledBy: dto.handled_by,
     handledAt: dto.handled_at,
   };

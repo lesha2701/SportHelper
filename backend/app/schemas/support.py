@@ -49,6 +49,15 @@ class SupportCreatedOut(BaseModel):
     status: SupportStatus
 
 
+class SupportMessageOut(BaseModel):
+    """One message after the first: the administrators' answer (from_staff) or the author's reply."""
+
+    id: UUID
+    from_staff: bool
+    body: str
+    created_at: datetime
+
+
 class MySupportRequestOut(BaseModel):
     id: UUID
     kind: SupportKind
@@ -56,8 +65,8 @@ class MySupportRequestOut(BaseModel):
     body: str
     status: SupportStatus
     created_at: datetime
-    answer: str | None
-    answered_at: datetime | None
+    messages: list[SupportMessageOut]
+    can_reply: bool
 
 
 class SupportRequestOut(BaseModel):
@@ -70,7 +79,7 @@ class SupportRequestOut(BaseModel):
     status: SupportStatus
     created_at: datetime
     author: PersonOut
-    answer: str | None
+    messages: list[SupportMessageOut]
     handled_by: str | None
     handled_at: datetime | None
 
@@ -93,6 +102,22 @@ class AnswerSupportIn(BaseModel):
         text = _tidy_text(value)
         if not 3 <= len(text) <= 3000:
             raise ValueError("Ответ: от 3 до 3000 символов.")
+        return text
+
+
+class SupportReplyIn(BaseModel):
+    """The author's next message in an existing request."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    body: str = Field(min_length=1, max_length=6000)
+
+    @field_validator("body")
+    @classmethod
+    def _body(cls, value: str) -> str:
+        text = _tidy_text(value)
+        if not 3 <= len(text) <= 3000:
+            raise ValueError("Сообщение: от 3 до 3000 символов.")
         return text
 
 

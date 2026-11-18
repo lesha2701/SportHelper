@@ -5754,6 +5754,65 @@
         ]
       }
     },
+    "/api/support/{request_id}/messages": {
+      "post": {
+        "tags": [
+          "support"
+        ],
+        "summary": "Reply To Request",
+        "description": "The author's next message in their own request (also after the administrators' answer).",
+        "operationId": "reply_to_request_api_support__request_id__messages_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReplyIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MySupportRequestOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "tags": [
@@ -20074,28 +20133,16 @@
             "format": "date-time",
             "title": "Created At"
           },
-          "answer": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Answer"
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/SupportMessageOut"
+            },
+            "type": "array",
+            "title": "Messages"
           },
-          "answered_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Answered At"
+          "can_reply": {
+            "type": "boolean",
+            "title": "Can Reply"
           }
         },
         "type": "object",
@@ -20106,8 +20153,8 @@
           "body",
           "status",
           "created_at",
-          "answer",
-          "answered_at"
+          "messages",
+          "can_reply"
         ],
         "title": "MySupportRequestOut"
       },
@@ -22976,6 +23023,37 @@
         ],
         "title": "SupportCreatedOut"
       },
+      "SupportMessageOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "from_staff": {
+            "type": "boolean",
+            "title": "From Staff"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "from_staff",
+          "body",
+          "created_at"
+        ],
+        "title": "SupportMessageOut",
+        "description": "One message after the first: the administrators' answer (from_staff) or the author's reply."
+      },
       "SupportPageOut": {
         "properties": {
           "total": {
@@ -23006,6 +23084,23 @@
           "items"
         ],
         "title": "SupportPageOut"
+      },
+      "SupportReplyIn": {
+        "properties": {
+          "body": {
+            "type": "string",
+            "maxLength": 6000,
+            "minLength": 1,
+            "title": "Body"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "body"
+        ],
+        "title": "SupportReplyIn",
+        "description": "The author's next message in an existing request."
       },
       "SupportRequestIn": {
         "properties": {
@@ -23088,16 +23183,12 @@
           "author": {
             "$ref": "#/components/schemas/PersonOut"
           },
-          "answer": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Answer"
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/SupportMessageOut"
+            },
+            "type": "array",
+            "title": "Messages"
           },
           "handled_by": {
             "anyOf": [
@@ -23132,7 +23223,7 @@
           "status",
           "created_at",
           "author",
-          "answer",
+          "messages",
           "handled_by",
           "handled_at"
         ],

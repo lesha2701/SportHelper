@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
   createSupportRequest,
   listMySupportRequests,
+  replyToSupportRequest,
   SUPPORT_KIND_LABELS,
   SUPPORT_STATUS_LABELS,
   type MySupportRequest,
@@ -17,6 +18,7 @@ export const SUBJECT_MAX = 120;
 export const BODY_MAX = 3000;
 const SUBJECT_MIN = 3;
 const BODY_MIN = 10;
+const REPLY_MIN = 3;
 
 function formatWhen(iso: string): string {
   return new Date(iso).toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
@@ -150,26 +152,79 @@ export function SupportScreen({ onBack }: { onBack: () => void }) {
           <h2 className={styles.sectionTitle}>Ваши обращения</h2>
           <ul className={styles.list}>
             {mine.map((r) => (
-              <li key={r.id} className={styles.item}>
-                <div className={styles.itemHead}>
-                  <strong className={styles.itemSubject}>{r.subject}</strong>
-                  <span className={r.status === "answered" ? `${styles.badge} ${styles.badgeAnswered}` : styles.badge}>{SUPPORT_STATUS_LABELS[r.status]}</span>
-                </div>
-                <span className={styles.itemMeta}>
-                  {SUPPORT_KIND_LABELS[r.kind]} · {formatWhen(r.createdAt)}
-                </span>
-                <p className={styles.itemBody}>{r.body}</p>
-                {r.answer && (
-                  <div className={styles.answer}>
-                    <span className={styles.answerLabel}>Ответ поддержки{r.answeredAt ? ` · ${formatWhen(r.answeredAt)}` : ""}</span>
-                    <p className={styles.itemBody}>{r.answer}</p>
-                  </div>
-                )}
-              </li>
+              <RequestItem key={r.id} request={r} onChanged={(updated) => setMine((list) => list && list.map((x) => (x.id === updated.id ? updated : x)))} />
             ))}
           </ul>
         </div>
       )}
     </div>
+  );
+}
+
+/** One request as a conversation: the first message, what came back, the person's replies - and a field to write the next one. */
+function RequestItem({ request: r, onChanged }: { request: MySupportRequest; onChanged: (updated: MySupportRequest) => void }) {
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const clean = draft.trim();
+
+  const send = async (event: FormEvent) => {
+    event.preventDefault();
+    if (clean.length < REPLY_MIN || sending) return;
+    setSending(true);
+    setError(null);
+    try {
+      onChanged(await replyToSupportRequest(r.id, clean));
+      setDraft("");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Не удалось отправить сообщение. Попробуйте ещё раз.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <li className={styles.item}>
+      <div className={styles.itemHead}>
+        <strong className={styles.itemSubject}>{r.subject}</strong>
+        <span className={r.status === "answered" ? `${styles.badge} ${styles.badgeAnswered}` : styles.badge}>{SUPPORT_STATUS_LABELS[r.status]}</span>
+      </div>
+      <span className={styles.itemMeta}>
+        {SUPPORT_KIND_LABELS[r.kind]} · {formatWhen(r.createdAt)}
+      </span>
+      <p className={styles.itemBody}>{r.body}</p>
+      {r.messages.map((m) => (
+        <div key={m.id} className={m.fromStaff ? styles.answer : `${styles.answer} ${styles.mineMessage}`}>
+          <span className={styles.answerLabel}>
+            {m.fromStaff ? "Ответ поддержки" : "Вы"} · {formatWhen(m.createdAt)}
+          </span>
+          <p className={styles.itemBody}>{m.body}</p>
+        </div>
+      ))}
+      {r.canReply ? (
+        <form className={styles.reply} onSubmit={send}>
+          <textarea
+            className={profileStyles.textarea}
+            rows={3}
+            value={draft}
+            maxLength={BODY_MAX}
+            placeholder={r.messages.length > 0 ? "Ответить поддержке" : "Дополнить обращение"}
+            aria-label={`Сообщение в обращении «${r.subject}»`}
+            onChange={(e) => setDraft(e.target.value)}
+            disabled={sending}
+          />
+          {error && <p className={profileStyles.error}>{error}</p>}
+          <button type="submit" className={profileStyles.buttonSecondary} disabled={clean.length < REPLY_MIN || sending}>
+            {sending ? "Отправляем…" : "Отправить сообщение"}
+          </button>
+        </form>
+      ) : (
+        <p className={styles.itemMeta}>
+          {r.status === "closed"
+            ? "Обращение закрыто. Если нужна помощь, создайте новое."
+            : "В этом обращении набралось много сообщений. Дождитесь ответа или создайте новое обращение."}
+        </p>
+      )}
+    </li>
   );
 }

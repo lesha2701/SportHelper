@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createSupportRequest, listMySupportRequests, type MySupportRequest } from "../../api/support";
+import { createSupportRequest, listMySupportRequests, replyToSupportRequest, type MySupportRequest } from "../../api/support";
 import { ApiError } from "../../api/client";
 import { SupportScreen } from "./SupportScreen";
 
@@ -8,12 +8,14 @@ vi.mock("../../api/support", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../api/support")>()),
   createSupportRequest: vi.fn(),
   listMySupportRequests: vi.fn(),
+  replyToSupportRequest: vi.fn(),
 }));
 const flush = () => act(async () => {});
 
 const answered: MySupportRequest = {
   id: "r1", kind: "bug", subject: "Не приходит письмо", body: "Жду подтверждение почты уже час.", status: "answered",
-  createdAt: "2026-11-16T10:00:00Z", answer: "Проверьте папку «Спам».", answeredAt: "2026-11-16T12:00:00Z",
+  createdAt: "2026-11-16T10:00:00Z", canReply: true,
+  messages: [{ id: "m1", fromStaff: true, body: "Проверьте папку «Спам».", createdAt: "2026-11-16T12:00:00Z" }],
 };
 
 beforeEach(() => {
@@ -91,6 +93,53 @@ describe("the support form", () => {
     expect(screen.getByText("Не приходит письмо")).toBeTruthy();
     expect(screen.getByText("Есть ответ")).toBeTruthy();
     expect(screen.getByText("Проверьте папку «Спам».")).toBeTruthy();
+  });
+
+  it("lets the person answer the support, and shows the whole conversation after that", async () => {
+    vi.mocked(listMySupportRequests).mockResolvedValue([answered]);
+    vi.mocked(replyToSupportRequest).mockResolvedValue({
+      ...answered,
+      status: "new",
+      messages: [...answered.messages, { id: "m2", fromStaff: false, body: "Проверил, там пусто.", createdAt: "2026-11-16T13:00:00Z" }],
+    });
+    render(<SupportScreen onBack={() => {}} />);
+    await flush();
+
+    const field = screen.getByLabelText("Сообщение в обращении «Не приходит письмо»") as HTMLTextAreaElement;
+    const send = screen.getByRole("button", { name: "Отправить сообщение" }) as HTMLButtonElement;
+    expect(send.disabled).toBe(true);
+    fireEvent.change(field, { target: { value: "  Проверил, там пусто.  " } });
+    fireEvent.click(send);
+    await flush();
+
+    expect(replyToSupportRequest).toHaveBeenCalledWith("r1", "Проверил, там пусто.");
+    expect(screen.getByText("Проверил, там пусто.")).toBeTruthy(); // the reply sits in the thread...
+    expect(screen.getByText("Проверьте папку «Спам».")).toBeTruthy(); // ...under the earlier answer
+    expect(screen.getByText("Отправлено")).toBeTruthy(); // back to waiting for the administrators
+    expect((screen.getByLabelText("Сообщение в обращении «Не приходит письмо»") as HTMLTextAreaElement).value).toBe(""); // the field is emptied
+  });
+
+  it("keeps the draft and says why when the reply cannot be sent", async () => {
+    vi.mocked(listMySupportRequests).mockResolvedValue([answered]);
+    vi.mocked(replyToSupportRequest).mockRejectedValue(new ApiError(409, "closed", "Обращение закрыто. Если нужна помощь, создайте новое."));
+    render(<SupportScreen onBack={() => {}} />);
+    await flush();
+
+    fireEvent.change(screen.getByLabelText("Сообщение в обращении «Не приходит письмо»"), { target: { value: "Ещё один вопрос" } });
+    fireEvent.click(screen.getByRole("button", { name: "Отправить сообщение" }));
+    await flush();
+
+    expect(screen.getByText("Обращение закрыто. Если нужна помощь, создайте новое.")).toBeTruthy();
+    expect((screen.getByLabelText("Сообщение в обращении «Не приходит письмо»") as HTMLTextAreaElement).value).toBe("Ещё один вопрос");
+  });
+
+  it("a closed request has no reply field and says so", async () => {
+    vi.mocked(listMySupportRequests).mockResolvedValue([{ ...answered, status: "closed", canReply: false }]);
+    render(<SupportScreen onBack={() => {}} />);
+    await flush();
+
+    expect(screen.queryByRole("button", { name: "Отправить сообщение" })).toBeNull();
+    expect(screen.getByText(/Обращение закрыто/)).toBeTruthy();
   });
 
   it("the arrow goes back", async () => {

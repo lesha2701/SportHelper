@@ -14,7 +14,7 @@ function request(over: Partial<adminApi.AdminSupportRequest> = {}): adminApi.Adm
   return {
     id: REQUEST, kind: "question", subject: "Как сменить вид спорта?", body: "Не нахожу, где менять вид спорта.\nПомогите, пожалуйста.",
     status: "new", createdAt: "2026-11-17T10:00:00Z", author: { id: "u1", name: "Анна Игрок", email: "anna@example.com" },
-    answer: null, handledBy: null, handledAt: null, ...over,
+    messages: [], handledBy: null, handledAt: null, ...over,
   };
 }
 const page = (items: adminApi.AdminSupportRequest[]) => ({ total: items.length, limit: 25, offset: 0, items });
@@ -63,7 +63,7 @@ describe("the support queue", () => {
   it("opens a request with its whole text, takes it, and answers it", async () => {
     api.listAdminSupport.mockResolvedValue(page([request()]));
     api.takeAdminSupport.mockResolvedValue(request({ status: "in_progress" }));
-    api.answerAdminSupport.mockResolvedValue(request({ status: "answered", answer: "Это в «Профиле»." }));
+    api.answerAdminSupport.mockResolvedValue(request({ status: "answered", messages: [{ id: "m1", fromStaff: true, body: "Это в «Профиле».", createdAt: "2026-11-17T12:00:00Z" }] }));
     await openQueue();
     await openFirst();
 
@@ -84,14 +84,14 @@ describe("the support queue", () => {
     expect(api.answerAdminSupport).toHaveBeenCalledWith(REQUEST, "Это в «Профиле».");
   });
 
-  it("closing without an answer asks for a note and sends nothing to the author", async () => {
+  it("closing asks for a note and sends nothing to the author", async () => {
     api.listAdminSupport.mockResolvedValue(page([request()]));
     api.closeAdminSupport.mockResolvedValue(request({ status: "closed" }));
     await openQueue();
     await openFirst();
 
-    fireEvent.click(screen.getByRole("button", { name: "Закрыть без ответа" }));
-    const dialog = screen.getByRole("dialog", { name: "Закрыть без ответа" });
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть обращение" }));
+    const dialog = screen.getByRole("dialog", { name: "Закрыть обращение" });
     fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "Дубль" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Закрыть" }));
     await flush();
@@ -100,16 +100,56 @@ describe("the support queue", () => {
     expect(api.answerAdminSupport).not.toHaveBeenCalled();
   });
 
-  it("an answered request shows the answer and offers no more actions", async () => {
+  it("shows the whole conversation, oldest first, with who wrote what", async () => {
     api.listAdminSupport.mockResolvedValue(
-      page([request({ status: "answered", answer: "Это в «Профиле».", handledBy: "boss@example.com", handledAt: "2026-11-17T12:00:00Z" })]),
+      page([
+        request({
+          status: "new",
+          messages: [
+            { id: "m1", fromStaff: true, body: "Проверьте папку «Спам».", createdAt: "2026-11-17T12:00:00Z" },
+            { id: "m2", fromStaff: false, body: "Там пусто, письма нет.", createdAt: "2026-11-17T13:00:00Z" },
+          ],
+        }),
+      ]),
+    );
+    await openQueue();
+    await openFirst();
+
+    const thread = within(screen.getByRole("complementary", { name: "Обращение" })).getByRole("region", { name: "Переписка" });
+    const text = thread.textContent ?? "";
+    expect(text.indexOf("Не нахожу, где менять вид спорта")).toBeLessThan(text.indexOf("Проверьте папку «Спам»."));
+    expect(text.indexOf("Проверьте папку «Спам».")).toBeLessThan(text.indexOf("Там пусто, письма нет."));
+    expect(within(thread).getByText(/Поддержка · /)).toBeTruthy();
+    expect(within(thread).getAllByText(/Анна Игрок · /).length).toBe(2); // the first message and the reply
+  });
+
+  it("an answered request can be answered again or closed, but not taken", async () => {
+    api.listAdminSupport.mockResolvedValue(
+      page([
+        request({
+          status: "answered",
+          messages: [{ id: "m1", fromStaff: true, body: "Это в «Профиле».", createdAt: "2026-11-17T12:00:00Z" }],
+          handledBy: "boss@example.com",
+          handledAt: "2026-11-17T12:00:00Z",
+        }),
+      ]),
     );
     await openQueue();
     await openFirst();
 
     const drawer = screen.getByRole("complementary", { name: "Обращение" });
-    expect(within(drawer).getByText(/Это в «Профиле»\./)).toBeTruthy();
-    expect(within(drawer).queryByRole("button", { name: "Ответить" })).toBeNull();
+    expect(within(drawer).getByRole("button", { name: "Ответить" })).toBeTruthy();
+    expect(within(drawer).getByRole("button", { name: "Закрыть обращение" })).toBeTruthy();
     expect(within(drawer).queryByRole("button", { name: "Взять в работу" })).toBeNull();
+  });
+
+  it("a closed request offers no actions", async () => {
+    api.listAdminSupport.mockResolvedValue(page([request({ status: "closed", handledBy: "boss@example.com", handledAt: "2026-11-17T12:00:00Z" })]));
+    await openQueue();
+    await openFirst();
+
+    const drawer = screen.getByRole("complementary", { name: "Обращение" });
+    expect(within(drawer).queryByRole("button", { name: "Ответить" })).toBeNull();
+    expect(within(drawer).queryByRole("button", { name: "Закрыть обращение" })).toBeNull();
   });
 });
