@@ -21,7 +21,7 @@ function summary(profile: ProfileMe) {
   const noop = vi.fn();
   render(
     <ProfileSummary token="t" profile={profile} canSwitchRole={false} onEdit={noop} onSwitchMode={noop} onCreateOther={noop} onOpenMyStats={noop}
-      onOpenHelp={noop} onOpenSettings={noop} onOpenMarketplaceSettings={noop} onOpenMyBookings={noop} onOpenCoachBookings={noop}
+      onOpenHelp={noop} onOpenSupport={noop} onOpenSettings={noop} onOpenMarketplaceSettings={noop} onOpenMyBookings={noop} onOpenCoachBookings={noop}
       onOpenIncomingBookings={noop} onOpenNotifications={noop} />,
   );
 }

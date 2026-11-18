@@ -19,11 +19,14 @@ export const AUDIT_ACTIONS: Record<string, string> = {
   complaint_take: "Жалоба взята в работу",
   complaint_resolved: "Жалоба решена",
   complaint_rejected: "Жалоба отклонена",
+  support_take: "Обращение в поддержку взято в работу",
+  support_answer: "Ответ на обращение в поддержку",
+  support_close: "Обращение в поддержку закрыто",
   mfa_enabled: "Включена двухфакторная защита",
   mfa_disabled: "Отключена двухфакторная защита",
 };
 
-const TARGET_LABELS: Record<string, string> = { user: "Пользователь", media: "Файл", listing: "Объявление", complaint: "Жалоба" };
+const TARGET_LABELS: Record<string, string> = { user: "Пользователь", media: "Файл", listing: "Объявление", complaint: "Жалоба", support_request: "Обращение в поддержку" };
 const RESULT_LABELS = { success: "выполнено", denied: "отказано", failed: "ошибка" } as const;
 
 function targetHref(entry: AuditEntry): string | null {
@@ -32,6 +35,7 @@ function targetHref(entry: AuditEntry): string | null {
   if (entry.targetType === "media") return `/admin/moderation?open=${entry.targetId}`;
   if (entry.targetType === "listing") return `/admin/trainings?tab=listings&open=${entry.targetId}`;
   if (entry.targetType === "complaint") return `/admin/reports?q=${entry.targetId}`;
+  if (entry.targetType === "support_request") return `/admin/support?q=${entry.targetId}`;
   return null;
 }
 

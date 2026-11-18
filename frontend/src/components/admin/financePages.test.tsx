@@ -7,7 +7,7 @@ import { DisputesTab } from "./finance/DisputesTab";
 import { EarningsTab } from "./finance/EarningsTab";
 import { WithdrawalsTab } from "./finance/WithdrawalsTab";
 
-vi.mock("../../api/admin", () => ({ getAdminSession: vi.fn(), getAdminDashboard: vi.fn(() => new Promise(() => {})), listAdminComplaints: vi.fn(() => Promise.resolve({ total: 0, limit: 1, offset: 0, items: [] })) }));
+vi.mock("../../api/admin", () => ({ getAdminSession: vi.fn(), getAdminDashboard: vi.fn(() => new Promise(() => {})), listAdminComplaints: vi.fn(() => Promise.resolve({ total: 0, limit: 1, offset: 0, items: [] })), listAdminSupport: vi.fn(() => Promise.resolve({ total: 0, limit: 1, offset: 0, items: [] })) }));
 vi.mock("../../api/adminFinance", async (importOriginal) => {
   const real = await importOriginal<typeof import("../../api/adminFinance")>();
   return {

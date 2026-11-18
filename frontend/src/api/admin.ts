@@ -675,6 +675,82 @@ export async function createComplaint(input: {
   });
 }
 
+// --- support requests ----------------------------------------------------------------------------------------------------
+
+export type SupportRequestKind = "question" | "suggestion" | "conflict" | "bug" | "payment" | "other";
+export type SupportRequestStatus = "new" | "in_progress" | "answered" | "closed";
+
+export interface AdminSupportRequest {
+  id: string;
+  kind: SupportRequestKind;
+  subject: string;
+  body: string;
+  status: SupportRequestStatus;
+  createdAt: string;
+  author: Person;
+  answer: string | null;
+  handledBy: string | null;
+  handledAt: string | null;
+}
+
+interface SupportDto {
+  id: string;
+  kind: SupportRequestKind;
+  subject: string;
+  body: string;
+  status: SupportRequestStatus;
+  created_at: string;
+  author: Person;
+  answer: string | null;
+  handled_by: string | null;
+  handled_at: string | null;
+}
+
+function mapSupport(dto: SupportDto): AdminSupportRequest {
+  return {
+    id: dto.id,
+    kind: dto.kind,
+    subject: dto.subject,
+    body: dto.body,
+    status: dto.status,
+    createdAt: dto.created_at,
+    author: dto.author,
+    answer: dto.answer,
+    handledBy: dto.handled_by,
+    handledAt: dto.handled_at,
+  };
+}
+
+export async function listAdminSupport(query: {
+  status: SupportRequestStatus | "";
+  kind: SupportRequestKind | "";
+  q: string;
+  limit: number;
+  offset: number;
+}): Promise<Page<AdminSupportRequest>> {
+  const dto = await apiRequest<{ total: number; limit: number; offset: number; items: SupportDto[] }>(
+    `/api/admin/support${queryString({ status: query.status, kind: query.kind, q: query.q.trim() || undefined, limit: query.limit, offset: query.offset })}`,
+    QUIET,
+  );
+  return { total: dto.total, limit: dto.limit, offset: dto.offset, items: dto.items.map(mapSupport) };
+}
+
+export async function takeAdminSupport(id: string): Promise<AdminSupportRequest> {
+  return mapSupport(await apiRequest<SupportDto>(`/api/admin/support/${id}/take`, { method: "POST", successMessage: "Обращение взято в работу" }));
+}
+
+export async function answerAdminSupport(id: string, answer: string): Promise<AdminSupportRequest> {
+  return mapSupport(
+    await apiRequest<SupportDto>(`/api/admin/support/${id}/answer`, { method: "POST", body: { answer }, successMessage: "Ответ отправлен" }),
+  );
+}
+
+export async function closeAdminSupport(id: string, note: string | null): Promise<AdminSupportRequest> {
+  return mapSupport(
+    await apiRequest<SupportDto>(`/api/admin/support/${id}/close`, { method: "POST", successMessage: "Обращение закрыто", body: { note } }),
+  );
+}
+
 // --- audit trail -----------------------------------------------------------------------------------------------------
 
 export interface AuditEntry {
