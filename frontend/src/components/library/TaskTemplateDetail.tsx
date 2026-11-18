@@ -3,10 +3,10 @@ import { deleteTemplate, getTemplate } from "../../api/taskTemplates";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { ConfirmModal } from "../shared/ConfirmModal";
-import { Icon } from "../shared/Icon";
 import type { TaskTemplate } from "../../types/taskTemplate";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; template: TaskTemplate };
 
@@ -62,15 +62,10 @@ export function TaskTemplateDetail({
 
   return (
     <div className={styles.screen}>
-      <div className={styles.headerRow}>
-        <button type="button" className={styles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.title}>{template.title}</h1>
+        <TitleWithBack onBack={onBack}>
+          <h1 className={profileStyles.title}>{template.title}</h1>
+        </TitleWithBack>
         {template.description && <p className={profileStyles.subtitle}>{template.description}</p>}
 
         {template.exercises.length > 0 && (

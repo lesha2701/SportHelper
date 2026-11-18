@@ -2,8 +2,8 @@ import { useState } from "react";
 import { capitalized } from "../../lib/capitalized";
 import { Icon, type IconName } from "../shared/Icon";
 import { WelcomeGuide } from "../welcome/WelcomeGuide";
-import styles from "../teams/teams.module.css";
 import profileStyles from "./profile.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 interface HelpItem {
   label: string;
@@ -119,15 +119,10 @@ export function HelpScreen({
 
   return (
     <div className={profileStyles.screen}>
-      <div className={styles.headerRow}>
-        <button type="button" className={styles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>О приложении</h1>
+        <TitleWithBack onBack={onBack}>
+          <h1 className={profileStyles.pageHeading}>О приложении</h1>
+        </TitleWithBack>
         <p className={profileStyles.subtitle}>
           SportArenaGlobal помогает тренерам и игрокам вести дела команды в одном месте: состав, тренировки,
           задания, матчи, статистика и запись к личным тренерам — без переписок и таблиц. Ниже — что есть в каждом

@@ -9,6 +9,7 @@ import { FilePicker } from "../shared/FilePicker";
 import { checkVideo, usePreviewUrl } from "../shared/pendingMedia";
 import profileStyles from "../profile/profile.module.css";
 import libraryStyles from "./library.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 interface ExerciseFormProps {
   token: string;
@@ -105,7 +106,9 @@ export function ExerciseForm({ token, initial, onSaved, onCancel }: ExerciseForm
   return (
     <form className={profileStyles.screen} onSubmit={handleSubmit}>
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>{isEdit ? "Редактировать упражнение" : "Новое упражнение"}</h1>
+        <TitleWithBack onBack={onCancel}>
+          <h1 className={profileStyles.pageHeading}>{isEdit ? "Редактировать упражнение" : "Новое упражнение"}</h1>
+        </TitleWithBack>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         <div className={profileStyles.fieldGrid}>

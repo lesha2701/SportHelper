@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { getAttendance, setAttendanceStatus } from "../../api/trainings";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
-import { Icon } from "../shared/Icon";
 import type { Attendance } from "../../types/training";
 import styles from "../teams/teams.module.css";
 import trainingStyles from "./training.module.css";
 import profileStyles from "../profile/profile.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 type LoadState =
   | { status: "loading" }
@@ -62,14 +62,9 @@ export function AttendanceScreen({
   return (
     <div className={styles.screen}>
       <div className={styles.headerRow}>
-        <button type="button" className={styles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
-      <div className={styles.headerRow}>
-        <h1 className={styles.heading}>Посещаемость</h1>
+        <TitleWithBack onBack={onBack}>
+          <h1 className={styles.heading}>Посещаемость</h1>
+        </TitleWithBack>
       </div>
       {canEdit && (
         <p className={styles.teamMeta}>Нажмите на игрока, чтобы отметить отсутствие. Остальные считаются присутствовавшими.</p>

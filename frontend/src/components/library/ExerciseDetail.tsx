@@ -22,6 +22,7 @@ import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 import libraryStyles from "./library.module.css";
 import { photoVideoGallery } from "../shared/MediaLightbox";
+import { TitleWithBack } from "../shared/BackArrow";
 
 type LoadState =
   | { status: "loading" }
@@ -133,15 +134,10 @@ export function ExerciseDetail({
 
   return (
     <div className={styles.screen}>
-      <div className={styles.headerRow}>
-        <button type="button" className={styles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.title}>{exercise.name}</h1>
+        <TitleWithBack onBack={onBack}>
+          <h1 className={profileStyles.title}>{exercise.name}</h1>
+        </TitleWithBack>
         <p className={profileStyles.subtitle}>{exercise.sport}</p>
 
         {(() => {

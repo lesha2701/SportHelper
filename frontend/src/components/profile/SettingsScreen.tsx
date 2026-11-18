@@ -5,8 +5,8 @@ import { AccountSecurity } from "./AccountSecurity";
 import { NotificationSettings } from "./NotificationSettings";
 import { PrivacySettings } from "./PrivacySettings";
 import { ThemeToggle } from "./ThemeToggle";
-import sharedStyles from "../teams/teams.module.css";
 import profileStyles from "./profile.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 export function SettingsScreen({
   token,
@@ -21,14 +21,9 @@ export function SettingsScreen({
 
   return (
     <div className={profileStyles.screen}>
-      <div className={sharedStyles.headerRow}>
-        <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
-      <h1 className={profileStyles.pageHeading}>Настройки</h1>
+      <TitleWithBack onBack={onBack}>
+        <h1 className={profileStyles.pageHeading}>Настройки</h1>
+      </TitleWithBack>
 
       <div className={profileStyles.settingsGrid}>
         <div className={profileStyles.settingsCol}>

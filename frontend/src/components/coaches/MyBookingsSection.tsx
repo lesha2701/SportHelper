@@ -10,7 +10,6 @@ import { useChatUnread } from "../../hooks/useChatUnread";
 import { BookingChatButton } from "../chat/BookingChatButton";
 import { ChatScreen } from "../chat/ChatScreen";
 import { StateScreen } from "../StateScreen";
-import { Icon } from "../shared/Icon";
 import { TrainingDetail } from "../trainings/TrainingDetail";
 import { CoachPublicProfileScreen } from "./CoachPublicProfileScreen";
 import { ListingPublicProfileScreen } from "./ListingPublicProfileScreen";
@@ -18,11 +17,11 @@ import { BookingFlow } from "./BookingFlow";
 import type { Booking } from "../../types/booking";
 import type { CoachListingProfile } from "../../types/coachListing";
 import profileStyles from "../profile/profile.module.css";
-import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 import { CancelBooking, CancellationNote } from "./CancelBooking";
 import { SessionConfirmation } from "./SessionConfirmation";
 import { ReviewModal } from "./ReviewModal";
+import { TitleWithBack } from "../shared/BackArrow";
 
 type CoachView =
   | { screen: "profile"; coachUserId: string }
@@ -214,14 +213,9 @@ export function MyBookingsSection({
 
   return (
     <div className={profileStyles.screen}>
-      <div className={sharedStyles.headerRow}>
-        <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
-      <h1 className={profileStyles.pageHeading}>Мои брони</h1>
+      <TitleWithBack onBack={onBack}>
+        <h1 className={profileStyles.pageHeading}>Мои брони</h1>
+      </TitleWithBack>
 
       {pending.length > 0 && (
         <>

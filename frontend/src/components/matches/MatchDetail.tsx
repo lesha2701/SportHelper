@@ -4,12 +4,12 @@ import { listMembers } from "../../api/teams";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { ConfirmModal } from "../shared/ConfirmModal";
-import { Icon } from "../shared/Icon";
 import { MATCH_RESULT_LABELS, MATCH_STATUS_LABELS, type Match } from "../../types/match";
 import type { TeamMember } from "../../types/team";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 import { toast } from "../../toast";
+import { TitleWithBack } from "../shared/BackArrow";
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; match: Match };
 
@@ -158,16 +158,11 @@ export function MatchDetail({
 
   return (
     <div className={styles.screen}>
-      <div className={styles.headerRow}>
-        <button type="button" className={styles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       <div className={profileStyles.card}>
         <div className={styles.teamCardTop}>
-          <h1 className={profileStyles.title}>{match.opponentName}</h1>
+          <TitleWithBack onBack={onBack}>
+            <h1 className={profileStyles.title}>{match.opponentName}</h1>
+          </TitleWithBack>
           <span className={styles.badge}>{MATCH_STATUS_LABELS[match.status]}</span>
         </div>
 

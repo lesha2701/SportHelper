@@ -20,6 +20,7 @@ export type IconName =
   | "plus"
   | "chevron-right"
   | "chevron-left"
+  | "arrow-left"
   | "x"
   | "trash"
   | "search"
@@ -150,6 +151,7 @@ const PATHS: Record<IconName, ReactElement> = {
   plus: <path d="M12 4.5v15M4.5 12h15" />,
   "chevron-right": <path d="M9 5.5 16 12l-7 6.5" />,
   "chevron-left": <path d="M15 5.5 8 12l7 6.5" />,
+  "arrow-left": <path d="M19 12H5.5M11.5 5.5 5 12l6.5 6.5" />,
   x: <path d="M5.5 5.5 18.5 18.5M18.5 5.5 5.5 18.5" />,
   trash: (
     <>

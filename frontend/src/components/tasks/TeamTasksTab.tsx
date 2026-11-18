@@ -1,3 +1,4 @@
+import { TitleWithBack } from "../shared/BackArrow";
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { listTeamTasks } from "../../api/tasks";
 import { listMyTemplates } from "../../api/taskTemplates";
@@ -208,14 +209,9 @@ function TemplatePicker({
 
   return (
     <div className={styles.screen}>
-      <div className={styles.headerRow}>
-        <button type="button" className={styles.iconButton} onClick={onCancel}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
-      <h2 className={styles.heading}>Выберите шаблон</h2>
+      <TitleWithBack onBack={onCancel}>
+        <h2 className={styles.heading}>Выберите шаблон</h2>
+      </TitleWithBack>
       {error && <p className={profileStyles.error}>{error}</p>}
 
       {templates !== null && templates.length === 0 && (

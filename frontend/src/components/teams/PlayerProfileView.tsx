@@ -1,9 +1,9 @@
+import { BackArrow } from "../shared/BackArrow";
 import { useEffect, useState } from "react";
 import { getMemberPlayerProfile } from "../../api/teams";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { PlayerStatsScreen } from "../stats/PlayerStatsScreen";
-import { Icon } from "../shared/Icon";
 import { SKILL_LEVEL_LABELS } from "../../types/profile";
 import type { PlayerProfile } from "../../types/profile";
 import profileStyles from "../profile/profile.module.css";
@@ -49,10 +49,7 @@ export function PlayerProfileView({
   return (
     <div className={styles.screen}>
       <div className={styles.headerRow}>
-        <button type="button" className={styles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
+        <BackArrow onClick={onBack} />
         <button type="button" className={styles.iconButton} onClick={() => setShowStats(true)}>
           Статистика
         </button>

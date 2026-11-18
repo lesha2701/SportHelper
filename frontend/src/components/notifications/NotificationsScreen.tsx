@@ -6,8 +6,8 @@ import { StateScreen } from "../StateScreen";
 import { Icon, type IconName } from "../shared/Icon";
 import type { NotificationCategory, NotificationItem } from "../../types/notification";
 import profileStyles from "../profile/profile.module.css";
-import sharedStyles from "../teams/teams.module.css";
 import styles from "./notifications.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 const CATEGORY_ICON: Record<NotificationCategory, IconName> = {
   training_reminder: "calendar",
@@ -90,15 +90,10 @@ export function NotificationsScreen({
 
   return (
     <div className={profileStyles.screen}>
-      <div className={sharedStyles.headerRow}>
-        <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       <div className={styles.headerActions}>
-        <h1 className={profileStyles.pageHeading}>Уведомления</h1>
+        <TitleWithBack onBack={onBack}>
+          <h1 className={profileStyles.pageHeading}>Уведомления</h1>
+        </TitleWithBack>
         {unreadCount > 0 && (
           <button type="button" className={styles.markAllLink} onClick={() => void handleMarkAll()} disabled={markingAll}>
             Прочитать все

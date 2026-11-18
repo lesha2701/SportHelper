@@ -3,14 +3,13 @@ import { useEffect, useState } from "react";
 import { confirmBooking, declineBooking, listCoachPendingBookings } from "../../api/bookings";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
-import { Icon } from "../shared/Icon";
 import { NextStepCard } from "../shared/NextStepCard";
 import { TrainingDetail } from "../trainings/TrainingDetail";
 import { PlayerPublicProfileScreen } from "./PlayerPublicProfileScreen";
 import type { PendingBooking } from "../../types/booking";
 import profileStyles from "../profile/profile.module.css";
-import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 type LoadState =
   | { status: "loading" }
@@ -88,14 +87,9 @@ export function IncomingBookingsScreen({
 
   return (
     <div className={profileStyles.screen}>
-      <div className={sharedStyles.headerRow}>
-        <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
-      <h1 className={profileStyles.pageHeading}>Входящие заявки</h1>
+      <TitleWithBack onBack={onBack}>
+        <h1 className={profileStyles.pageHeading}>Входящие заявки</h1>
+      </TitleWithBack>
 
       {lastResult?.kind === "confirmed" && (
         <NextStepCard

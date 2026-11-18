@@ -6,6 +6,7 @@ import type { Match } from "../../types/match";
 import profileStyles from "../profile/profile.module.css";
 import { navigateApp } from "../../appNav";
 import { toast } from "../../toast";
+import { TitleWithBack } from "../shared/BackArrow";
 
 interface MatchFormProps {
   token: string;
@@ -77,7 +78,9 @@ export function MatchForm({ token, teamId, initial, onSaved, onCancel }: MatchFo
   return (
     <form className={profileStyles.screen} onSubmit={handleSubmit}>
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>{isEdit ? "Редактировать матч" : "Новый матч"}</h1>
+        <TitleWithBack onBack={onCancel}>
+          <h1 className={profileStyles.pageHeading}>{isEdit ? "Редактировать матч" : "Новый матч"}</h1>
+        </TitleWithBack>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         <div className={profileStyles.fieldGrid}>

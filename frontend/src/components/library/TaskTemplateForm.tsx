@@ -8,6 +8,7 @@ import type { Plan } from "../../types/plan";
 import type { TaskTemplate } from "../../types/taskTemplate";
 import { DragReorderList } from "../shared/DragReorderList";
 import profileStyles from "../profile/profile.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 interface TaskTemplateFormProps {
   token: string;
@@ -115,7 +116,9 @@ export function TaskTemplateForm({ token, initial, onSaved, onCancel }: TaskTemp
   return (
     <form className={profileStyles.screen} onSubmit={handleSubmit}>
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>{isEdit ? "Настройки шаблона" : "Новый шаблон задания"}</h1>
+        <TitleWithBack onBack={onCancel}>
+          <h1 className={profileStyles.pageHeading}>{isEdit ? "Настройки шаблона" : "Новый шаблон задания"}</h1>
+        </TitleWithBack>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         <div className={profileStyles.fieldGrid}>

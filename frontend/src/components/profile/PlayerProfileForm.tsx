@@ -3,6 +3,7 @@ import { ApiError } from "../../api/client";
 import { SKILL_LEVEL_LABELS, type PlayerProfile, type PlayerProfileInput, type SkillLevel } from "../../types/profile";
 import { SportSelect } from "../shared/SportSelect";
 import styles from "./profile.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 interface PlayerProfileFormProps {
   initial: PlayerProfile | null;
@@ -49,7 +50,9 @@ export function PlayerProfileForm({ initial, onSubmit, onCancel }: PlayerProfile
   return (
     <form className={styles.screen} onSubmit={handleSubmit}>
       <div className={styles.card}>
-        <h1 className={styles.pageHeading}>Профиль игрока</h1>
+        <TitleWithBack onBack={onCancel}>
+          <h1 className={styles.pageHeading}>Профиль игрока</h1>
+        </TitleWithBack>
         <p className={styles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         <span className={styles.fieldSectionLabel}>Основное</span>

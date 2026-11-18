@@ -18,6 +18,7 @@ import dashStyles from "../dashboard/dashboard.module.css";
 import statsStyles from "./stats.module.css";
 import { navigateApp } from "../../appNav";
 import { pluralize } from "../../lib/plural";
+import { TitleWithBack } from "../shared/BackArrow";
 
 const RING_RADIUS = 68;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
@@ -104,14 +105,9 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
 
   return (
     <div className={styles.screen}>
-      <div className={styles.headerRow}>
-        <button type="button" className={styles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
-      <h1 className={profileStyles.pageHeading}>Статистика</h1>
+      <TitleWithBack onBack={onBack}>
+        <h1 className={profileStyles.pageHeading}>Статистика</h1>
+      </TitleWithBack>
 
       <div className={dashStyles.bento}>
         {hasActivity ? (

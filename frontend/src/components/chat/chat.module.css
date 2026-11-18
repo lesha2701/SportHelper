@@ -16,13 +16,6 @@
   min-width: 0;
 }
 
-/* «Назад» is for the phone only: on desktop the top navigation is always there. */
-@media (min-width: 900px) {
-  .backPhoneOnly {
-    display: none;
-  }
-}
-
 .head {
   display: flex;
   align-items: center;

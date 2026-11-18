@@ -13,6 +13,7 @@ import {
 } from "../../api/coachListings";
 import { ApiError } from "../../api/client";
 import { Icon } from "../shared/Icon";
+import { TitleWithBack } from "../shared/BackArrow";
 import { photoVideoGallery } from "../shared/MediaLightbox";
 import { toast, withoutSuccessToasts } from "../../toast";
 import { FilePicker } from "../shared/FilePicker";
@@ -23,7 +24,6 @@ import type { AvailabilityWindow, CoachListing } from "../../types/coachListing"
 import { overlapMessage } from "./scheduleOverlap";
 import { datesProblem, formatSlotDate, sortDates, todayIso, type DateDraft } from "./oneOffDates";
 import profileStyles from "../profile/profile.module.css";
-import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 
 const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -273,15 +273,10 @@ export function ListingEditScreen({
 
   return (
     <div className={profileStyles.screen}>
-      <div className={sharedStyles.headerRow}>
-        <button type="button" className={sharedStyles.iconButton} onClick={onBack} disabled={saving}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>{isNew ? "Новое объявление" : "Редактирование объявления"}</h1>
+        <TitleWithBack onBack={onBack} disabled={saving}>
+          <h1 className={profileStyles.pageHeading}>{isNew ? "Новое объявление" : "Редактирование объявления"}</h1>
+        </TitleWithBack>
 
         <label className={profileStyles.field}>
           <span className={profileStyles.label}>Название</span>

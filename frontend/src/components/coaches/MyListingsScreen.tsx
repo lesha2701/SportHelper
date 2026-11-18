@@ -7,8 +7,8 @@ import { Icon } from "../shared/Icon";
 import { ListingEditScreen } from "./ListingEditScreen";
 import type { CoachListing } from "../../types/coachListing";
 import profileStyles from "../profile/profile.module.css";
-import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 type LoadState =
   | { status: "loading" }
@@ -68,15 +68,10 @@ export function MyListingsScreen({ token, onBack }: { token: string; onBack: () 
 
   return (
     <div className={profileStyles.screen}>
-      <div className={sharedStyles.headerRow}>
-        <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>Мои объявления</h1>
+        <TitleWithBack onBack={onBack}>
+          <h1 className={profileStyles.pageHeading}>Мои объявления</h1>
+        </TitleWithBack>
 
         {deleteError && <p className={profileStyles.error}>{deleteError}</p>}
 
