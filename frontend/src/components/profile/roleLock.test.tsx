@@ -29,7 +29,7 @@ function summary(profile: ProfileMe, canSwitchRole: boolean) {
       onSwitchMode={noop}
       onCreateOther={noop}
       onOpenMyStats={noop}
-      onOpenHelp={noop}
+      onOpenHelp={noop} onOpenSupport={noop}
       onOpenSettings={noop}
       onOpenMarketplaceSettings={noop}
       onOpenMyBookings={noop}

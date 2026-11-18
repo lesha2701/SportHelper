@@ -25,6 +25,7 @@ interface ProfileSummaryProps {
   onCreateOther: (mode: ActiveMode) => void;
   onOpenMyStats: () => void;
   onOpenHelp: () => void;
+  onOpenSupport: () => void;
   onOpenSettings: () => void;
   onOpenMarketplaceSettings: () => void;
   onOpenMyBookings: () => void;
@@ -110,6 +111,7 @@ export function ProfileSummary({
   onCreateOther,
   onOpenMyStats,
   onOpenHelp,
+  onOpenSupport,
   onOpenSettings,
   onOpenMarketplaceSettings,
   onOpenMyBookings,
@@ -236,6 +238,7 @@ export function ProfileSummary({
   }
   actionRows.push({ key: "settings", icon: "settings", label: "Настройки", onClick: onOpenSettings });
   actionRows.push({ key: "help", icon: "book", label: "Помощь", onClick: onOpenHelp });
+  actionRows.push({ key: "support", icon: "message", label: "Поддержка", onClick: onOpenSupport });
   actionRows.push({ key: "logout", icon: "log-out", label: "Выйти из аккаунта", onClick: () => void logout() });
   // The role is fixed at registration: only administrators get a switch or a second profile.
   if (canSwitchRole) {

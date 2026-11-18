@@ -179,3 +179,16 @@ def money_notification_email(settings: Settings, to: str, first_name: str, title
         text="\n\n".join(paragraphs + ([base] if base else [])),
         html=_wrap_html(title, paragraphs, button, "Это автоматическое уведомление. Все уведомления также доступны на сайте в колокольчике."),
     )
+
+
+def support_answer_email(settings: Settings, to: str, first_name: str, subject: str, answer: str) -> OutgoingEmail:
+    """The administrators' message in a support request (an answer, or the next one of the conversation). It is also shown on the site, in «Профиль» → «Поддержка»."""
+    paragraphs = [f"Здравствуйте, {first_name}!" if first_name else "Здравствуйте!", f"Мы ответили на ваше обращение «{subject}»:", answer]
+    base = (settings.app_base_url or "").rstrip("/")
+    button = ("Открыть на сайте", base) if base else None
+    return OutgoingEmail(
+        to=to,
+        subject=f"Ответ поддержки — {_BRAND}",
+        text="\n\n".join(paragraphs + ([base] if base else [])),
+        html=_wrap_html("Ответ поддержки", paragraphs, button, "Чтобы ответить, откройте Профиль → Поддержка: переписка продолжится в этом же обращении."),
+    )

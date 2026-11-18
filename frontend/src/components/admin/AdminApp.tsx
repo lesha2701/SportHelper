@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { getAdminSession, listAdminComplaints, type AdminSession } from "../../api/admin";
+import { getAdminSession, listAdminComplaints, listAdminSupport, type AdminSession } from "../../api/admin";
 import { ApiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { Link } from "../Link";
@@ -12,6 +12,7 @@ import { DashboardPage } from "./DashboardPage";
 import { AuditPage } from "./AuditPage";
 import { ComplaintsPage } from "./ComplaintsPage";
 import { ModerationPage } from "./ModerationPage";
+import { SupportPage } from "./SupportPage";
 import { TrainingsPage } from "./TrainingsPage";
 import { UsersPage } from "./UsersPage";
 import { FinancePage } from "./finance/FinancePage";
@@ -34,6 +35,7 @@ const SECTIONS: Section[] = [
   { path: "/admin/moderation", label: "Модерация", icon: "image", render: () => <ModerationPage /> },
   { path: "/admin/trainings", label: "Тренировки", icon: "dumbbell", render: () => <TrainingsPage /> },
   { path: "/admin/reports", label: "Жалобы", icon: "flag", render: () => <ComplaintsPage /> },
+  { path: "/admin/support", label: "Поддержка", icon: "message", render: () => <SupportPage /> },
   { path: "/admin/finance", label: "Финансы", icon: "wallet", render: () => <FinancePage />, financeOnly: true },
   { path: "/admin/audit", label: "Журнал", icon: "list", render: () => <AuditPage /> },
 ];
@@ -119,12 +121,16 @@ function AdminShell({ email, finance }: { email: string | null; finance: boolean
   const sections = useMemo(() => SECTIONS.filter((s) => finance || !s.financeOnly), [finance]);
   const current = sections.find((s) => s.path === path) ?? (path === "/admin" ? sections[0] : undefined);
   const [newComplaints, setNewComplaints] = useState(0);
+  const [newSupport, setNewSupport] = useState(0);
 
   // The number of untouched complaints next to "Жалобы"; refreshed whenever the administrator moves between sections.
   useEffect(() => {
     listAdminComplaints({ status: "new", targetType: "", reason: "", q: "", limit: 1, offset: 0 })
       .then((page) => setNewComplaints(page.total))
       .catch(() => setNewComplaints(0));
+    listAdminSupport({ status: "new", kind: "", q: "", limit: 1, offset: 0 })
+      .then((page) => setNewSupport(page.total))
+      .catch(() => setNewSupport(0));
   }, [path]);
 
   return (
@@ -142,6 +148,7 @@ function AdminShell({ email, finance }: { email: string | null; finance: boolean
             <Icon name={section.icon} size={19} />
             {section.label}
             {section.path === "/admin/reports" && newComplaints > 0 && <span className={styles.navBadge}>{newComplaints}</span>}
+            {section.path === "/admin/support" && newSupport > 0 && <span className={styles.navBadge}>{newSupport}</span>}
           </Link>
         ))}
         <div className={styles.sidebarFoot}>

@@ -449,6 +449,8 @@ def live_client(pg, monkeypatch):
     monkeypatch.setenv("ARGON2_TIME_COST", "1")
     monkeypatch.setenv("ARGON2_PARALLELISM", "1")
     monkeypatch.setenv("AUTH_RATE_LIMIT_ENABLED", "false")
+    # The per-address brake (300 a minute by default) is not what these tests are about: the admin matrix alone sends more.
+    monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "100000")
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "")
     monkeypatch.setenv("TELEGRAM_BOT_USERNAME", "TestBot")
     monkeypatch.setenv("SMTP_HOST", "")

@@ -8,6 +8,7 @@ import { MyBookingsSection } from "../coaches/MyBookingsSection";
 import { CoachBookingsSection } from "../coaches/CoachBookingsSection";
 import { CoachProfileForm } from "./CoachProfileForm";
 import { HelpScreen } from "./HelpScreen";
+import { SupportScreen } from "../support/SupportScreen";
 import { Onboarding } from "./Onboarding";
 import { PlayerProfileForm } from "./PlayerProfileForm";
 import { ProfileSummary } from "./ProfileSummary";
@@ -37,6 +38,7 @@ export function ProfileScreen({
   const isAdmin = authState.status === "ready" && authState.user.isAdmin;
   const [editing, setEditing] = useState<ActiveMode | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [showSupport, setShowSupport] = useState(false);
   const [showSettings, setShowSettings] = useState(!!startInSettings);
   useEffect(() => {
     if (!startInSettings) return;
@@ -63,6 +65,10 @@ export function ProfileScreen({
         roles={{ player: state.data.player !== null, coach: state.data.coach !== null }}
       />
     );
+  }
+
+  if (showSupport) {
+    return <SupportScreen onBack={() => setShowSupport(false)} />;
   }
 
   if (showSettings) {
@@ -143,6 +149,7 @@ export function ProfileScreen({
       onCreateOther={(mode) => setEditing(mode)}
       onOpenMyStats={onOpenMyStats}
       onOpenHelp={() => setShowHelp(true)}
+      onOpenSupport={() => setShowSupport(true)}
       onOpenSettings={() => setShowSettings(true)}
       onOpenMarketplaceSettings={() => setShowMarketplaceSettings(true)}
       onOpenMyBookings={() => setShowMyBookings(true)}
