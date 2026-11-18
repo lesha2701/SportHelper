@@ -183,32 +183,36 @@ function RequestItem({ request: r, onChanged }: { request: MySupportRequest; onC
     }
   };
 
+  const thread = [{ id: "first", fromStaff: false, body: r.body, createdAt: r.createdAt }, ...r.messages];
+
   return (
     <li className={styles.item}>
       <div className={styles.itemHead}>
-        <strong className={styles.itemSubject}>{r.subject}</strong>
+        <div className={styles.itemTitle}>
+          <strong className={styles.itemSubject}>{r.subject}</strong>
+          <span className={styles.itemMeta}>{SUPPORT_KIND_LABELS[r.kind]}</span>
+        </div>
         <span className={r.status === "answered" ? `${styles.badge} ${styles.badgeAnswered}` : styles.badge}>{SUPPORT_STATUS_LABELS[r.status]}</span>
       </div>
-      <span className={styles.itemMeta}>
-        {SUPPORT_KIND_LABELS[r.kind]} · {formatWhen(r.createdAt)}
-      </span>
-      <p className={styles.itemBody}>{r.body}</p>
-      {r.messages.map((m) => (
-        <div key={m.id} className={m.fromStaff ? styles.answer : `${styles.answer} ${styles.mineMessage}`}>
-          <span className={styles.answerLabel}>
-            {m.fromStaff ? "Ответ поддержки" : "Вы"} · {formatWhen(m.createdAt)}
-          </span>
-          <p className={styles.itemBody}>{m.body}</p>
-        </div>
-      ))}
+      <div className={styles.thread}>
+        {thread.map((m) => (
+          <div key={m.id} className={m.fromStaff ? `${styles.message} ${styles.fromStaff}` : `${styles.message} ${styles.fromMe}`}>
+            <span className={styles.messageAuthor}>
+              {m.fromStaff ? "Поддержка" : "Вы"} <span className={styles.messageTime}>· {formatWhen(m.createdAt)}</span>
+            </span>
+            <p className={styles.itemBody}>{m.body}</p>
+          </div>
+        ))}
+      </div>
       {r.canReply ? (
         <form className={styles.reply} onSubmit={send}>
+          <span className={styles.replyLabel}>{r.messages.length > 0 ? "Ваш ответ" : "Дополнить обращение"}</span>
           <textarea
             className={profileStyles.textarea}
             rows={3}
             value={draft}
             maxLength={BODY_MAX}
-            placeholder={r.messages.length > 0 ? "Ответить поддержке" : "Дополнить обращение"}
+            placeholder="Напишите сообщение"
             aria-label={`Сообщение в обращении «${r.subject}»`}
             onChange={(e) => setDraft(e.target.value)}
             disabled={sending}
@@ -219,7 +223,7 @@ function RequestItem({ request: r, onChanged }: { request: MySupportRequest; onC
           </button>
         </form>
       ) : (
-        <p className={styles.itemMeta}>
+        <p className={styles.closedNote}>
           {r.status === "closed"
             ? "Обращение закрыто. Если нужна помощь, создайте новое."
             : "В этом обращении набралось много сообщений. Дождитесь ответа или создайте новое обращение."}

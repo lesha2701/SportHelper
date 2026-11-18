@@ -179,12 +179,12 @@ function SupportDrawer({ request: r, onClose, onChanged }: { request: AdminSuppo
         </section>
         <section className={styles.card} aria-label="Переписка">
           <h3 className={styles.cardTitle}>Переписка</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className={styles.thread}>
             {[{ id: "first", fromStaff: false, body: r.body, createdAt: r.createdAt }, ...r.messages].map((m) => (
-              <div key={m.id} style={{ whiteSpace: "pre-line", overflowWrap: "anywhere" }}>
-                <div className={styles.muted}>
-                  {m.fromStaff ? "Поддержка" : (r.author.name || "Автор")} · {formatDateTime(m.createdAt)}
-                </div>
+              <div key={m.id} className={`${styles.message} ${m.fromStaff ? styles.messageStaff : styles.messageAuthor}`}>
+                <span className={styles.messageWho}>
+                  {m.fromStaff ? "Поддержка" : (r.author.name || "Автор")} <span className={styles.muted}>· {formatDateTime(m.createdAt)}</span>
+                </span>
                 {m.body}
               </div>
             ))}

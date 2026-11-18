@@ -119,8 +119,8 @@ describe("the support queue", () => {
     const text = thread.textContent ?? "";
     expect(text.indexOf("Не нахожу, где менять вид спорта")).toBeLessThan(text.indexOf("Проверьте папку «Спам»."));
     expect(text.indexOf("Проверьте папку «Спам».")).toBeLessThan(text.indexOf("Там пусто, письма нет."));
-    expect(within(thread).getByText(/Поддержка · /)).toBeTruthy();
-    expect(within(thread).getAllByText(/Анна Игрок · /).length).toBe(2); // the first message and the reply
+    expect(text.match(/Поддержка/g)?.length).toBe(1); // one answer from the administrators
+    expect(text.match(/Анна Игрок/g)?.length).toBe(2); // the first message and the reply, both signed by the author
   });
 
   it("an answered request can be answered again or closed, but not taken", async () => {

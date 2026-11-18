@@ -59,17 +59,14 @@
   list-style: none;
 }
 
+/* Each request is its own outlined card, so it is clear where one conversation ends and the next begins. */
 .item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-border);
-}
-
-.item:first-child {
-  padding-top: 0;
-  border-top: 0;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
 }
 
 .itemHead {
@@ -77,11 +74,20 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.itemTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .itemSubject {
-  min-width: 0;
   overflow-wrap: anywhere;
+  font-size: 17px;
   color: var(--color-text);
 }
 
@@ -113,36 +119,65 @@
   color: var(--color-success);
 }
 
-.answer {
+/* A chat: the person's messages sit on the right, the support's on the left, each under a name and a time. */
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.message {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: 4px;
-  padding: 12px 14px;
+  max-width: 90%;
+  padding: 10px 14px;
   border-radius: var(--radius-md);
-  background: var(--color-surface-alt);
 }
 
-.answerLabel {
-  font-size: 12px;
-  font-weight: 600;
+.fromMe {
+  align-self: flex-end;
+  background: var(--color-primary-glow);
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+}
+
+.fromStaff {
+  align-self: flex-start;
+  background: var(--color-surface-alt);
+  border-left: 3px solid var(--color-success);
+}
+
+.messageAuthor {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.messageTime {
+  font-weight: 400;
   color: var(--color-text-secondary);
 }
 
-/* The person's own reply: the same card as the answer, told apart by a lighter fill and an outline. */
-.mineMessage {
-  background: var(--color-surface);
-  box-shadow: inset 0 0 0 1px var(--color-border);
-}
-
+/* The field for the next message is set apart from the conversation by a line and a caption. */
 .reply {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 8px;
-  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
 }
 
-.reply textarea {
-  width: 100%;
+.replyLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.closedNote {
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+  font-size: 14px;
+  color: var(--color-text-secondary);
 }
