@@ -75,7 +75,7 @@ describe("one-off dates in the listing editor", () => {
   it("saves a date picked in the template even if «Добавить дату» was not pressed", async () => {
     vi.mocked(api.getListingDates).mockResolvedValue([]);
     render(<ListingEditScreen token="t" listing={listing} onBack={() => {}} />);
-    await waitFor(() => expect(api.getListingDates).toHaveBeenCalled());
+    await screen.findByLabelText("Дата"); // the dates section shows only after the dates have loaded, not as soon as they are requested
 
     fireEvent.change(screen.getByLabelText("Дата"), { target: { value: tomorrow } });
     fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
@@ -87,7 +87,7 @@ describe("one-off dates in the listing editor", () => {
   it("an empty template (no date chosen) adds nothing on Save", async () => {
     vi.mocked(api.getListingDates).mockResolvedValue([]);
     render(<ListingEditScreen token="t" listing={listing} onBack={() => {}} />);
-    await waitFor(() => expect(api.getListingDates).toHaveBeenCalled());
+    await screen.findByLabelText("Дата"); // the dates section shows only after the dates have loaded, not as soon as they are requested
 
     fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
 
@@ -98,7 +98,7 @@ describe("one-off dates in the listing editor", () => {
   it("a date in the template that is in the past stops the save with a message", async () => {
     vi.mocked(api.getListingDates).mockResolvedValue([]);
     render(<ListingEditScreen token="t" listing={listing} onBack={() => {}} />);
-    await waitFor(() => expect(api.getListingDates).toHaveBeenCalled());
+    await screen.findByLabelText("Дата"); // the dates section shows only after the dates have loaded, not as soon as they are requested
 
     fireEvent.change(screen.getByLabelText("Дата"), { target: { value: "2020-01-01" } });
     fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
@@ -111,7 +111,7 @@ describe("one-off dates in the listing editor", () => {
   it("lets a listing be published with a date alone, no weekly window", async () => {
     vi.mocked(api.getListingDates).mockResolvedValue([]);
     render(<ListingEditScreen token="t" listing={{ ...listing, isListed: true }} onBack={() => {}} />);
-    await waitFor(() => expect(api.getListingDates).toHaveBeenCalled());
+    await screen.findByLabelText("Дата"); // the dates section shows only after the dates have loaded, not as soon as they are requested
     fillNewDate(tomorrow);
     fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
 
