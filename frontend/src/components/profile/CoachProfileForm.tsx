@@ -3,6 +3,7 @@ import { ApiError } from "../../api/client";
 import type { CoachProfile, CoachProfileInput } from "../../types/profile";
 import { SportSelect } from "../shared/SportSelect";
 import styles from "./profile.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 interface CoachProfileFormProps {
   initial: CoachProfile | null;
@@ -41,7 +42,9 @@ export function CoachProfileForm({ initial, onSubmit, onCancel }: CoachProfileFo
   return (
     <form className={styles.screen} onSubmit={handleSubmit}>
       <div className={styles.card}>
-        <h1 className={styles.pageHeading}>Профиль тренера</h1>
+        <TitleWithBack onBack={onCancel}>
+          <h1 className={styles.pageHeading}>Профиль тренера</h1>
+        </TitleWithBack>
         <p className={styles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         <div className={styles.fieldGrid}>

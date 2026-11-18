@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { getPlayerPublicProfile, getPlayerReviews } from "../../api/players";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
-import { Icon } from "../shared/Icon";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { ReportButton } from "../shared/ReportButton";
 import { AchievementsGallery } from "../profile/AchievementsGallery";
@@ -13,6 +12,7 @@ import profileStyles from "../profile/profile.module.css";
 import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 import { years } from "../../lib/plural";
+import { TitleWithBack } from "../shared/BackArrow";
 
 const stars = (n: number) => "★".repeat(n) + "☆".repeat(5 - n);
 
@@ -90,13 +90,6 @@ export function PlayerPublicProfileScreen({
 
   return (
     <div className={profileStyles.screen}>
-      <div className={sharedStyles.headerRow}>
-        <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       {state.status === "loading" && <StateScreen kind="loading" title="Загрузка профиля…" />}
       {state.status === "error" && <StateScreen kind="error" title="Не удалось загрузить профиль" description={state.message} />}
 
@@ -114,7 +107,9 @@ export function PlayerPublicProfileScreen({
                   <div className={styles.profileAvatarLg}>{profile.fullName.charAt(0).toUpperCase()}</div>
                 )}
                 <div>
-                  <h1 className={profileStyles.title}>{profile.fullName}</h1>
+                  <TitleWithBack onBack={onBack}>
+                    <h1 className={profileStyles.title}>{profile.fullName}</h1>
+                  </TitleWithBack>
                   <p className={profileStyles.subtitle}>
                     {[profile.position, profile.sport].filter(Boolean).join(" · ")}
                   </p>

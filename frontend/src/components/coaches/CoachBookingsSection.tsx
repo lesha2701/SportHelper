@@ -7,16 +7,15 @@ import { useChatUnread } from "../../hooks/useChatUnread";
 import { BookingChatButton } from "../chat/BookingChatButton";
 import { ChatScreen } from "../chat/ChatScreen";
 import { StateScreen } from "../StateScreen";
-import { Icon } from "../shared/Icon";
 import type { Booking } from "../../types/booking";
 import profileStyles from "../profile/profile.module.css";
-import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 import { CancelBooking, CancellationNote } from "./CancelBooking";
 import { SessionConfirmation } from "./SessionConfirmation";
 import { CoachSessionActions } from "./CoachSessionActions";
 import { PlanPickerModal } from "./PlanPickerModal";
 import { PlayerPublicProfileScreen } from "./PlayerPublicProfileScreen";
+import { TitleWithBack } from "../shared/BackArrow";
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
@@ -131,14 +130,9 @@ export function CoachBookingsSection({ token, onBack }: { token: string; onBack:
 
   return (
     <div className={profileStyles.screen}>
-      <div className={sharedStyles.headerRow}>
-        <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
-      <h1 className={profileStyles.pageHeading}>Записи</h1>
+      <TitleWithBack onBack={onBack}>
+        <h1 className={profileStyles.pageHeading}>Записи</h1>
+      </TitleWithBack>
 
       <h2 className={profileStyles.title}>Предстоящие</h2>
       {upcoming.length === 0 && <p className={profileStyles.subtitle}>Нет предстоящих записей.</p>}

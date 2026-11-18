@@ -1,3 +1,4 @@
+import { BackArrow } from "../shared/BackArrow";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { deleteChatMessage, getChat, listChatMessages, markChatRead, openChat, sendChatMedia, sendChatMessage } from "../../api/chat";
 import { ApiError } from "../../api/client";
@@ -8,7 +9,6 @@ import { ConfirmModal } from "../shared/ConfirmModal";
 import { Icon } from "../shared/Icon";
 import { checkVideo, usePreviewUrl } from "../shared/pendingMedia";
 import { StateScreen } from "../StateScreen";
-import sharedStyles from "../teams/teams.module.css";
 import styles from "./chat.module.css";
 
 const POLL_EVERY_MS = 5000;
@@ -209,12 +209,7 @@ export function ChatScreen({
   if (load.status === "error") {
     return (
       <div className={styles.screen}>
-        {!embedded && (
-          <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
-            <Icon name="chevron-left" size={16} />
-            Назад
-          </button>
-        )}
+        {!embedded && <BackArrow onClick={onBack} />}
         <StateScreen kind="empty" title="Чат недоступен" description={load.message} />
       </div>
     );
@@ -226,10 +221,7 @@ export function ChatScreen({
     <div className={embedded ? styles.screenEmbedded : styles.screen}>
       {!embedded && (
         <div className={styles.head}>
-          <button type="button" className={`${sharedStyles.iconButton} ${styles.backPhoneOnly}`} onClick={onBack}>
-            <Icon name="chevron-left" size={16} />
-            Назад
-          </button>
+          <BackArrow onClick={onBack} />
           <div className={styles.headText}>
             <h1 className={styles.title}>{load.chat.title}</h1>
             {load.chat.subtitle && <p className={styles.subtitle}>{load.chat.subtitle}</p>}

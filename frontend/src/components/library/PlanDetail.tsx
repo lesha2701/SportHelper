@@ -12,6 +12,7 @@ import type { Team } from "../../types/team";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 import libraryStyles from "./library.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; plan: Plan };
 
@@ -126,15 +127,10 @@ export function PlanDetail({
 
   return (
     <div className={styles.screen}>
-      <div className={styles.headerRow}>
-        <button type="button" className={styles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.title}>{plan.name}</h1>
+        <TitleWithBack onBack={onBack}>
+          <h1 className={profileStyles.title}>{plan.name}</h1>
+        </TitleWithBack>
         <p className={profileStyles.subtitle}>{plan.sport}</p>
         {plan.description && (
           <div className={profileStyles.row}>

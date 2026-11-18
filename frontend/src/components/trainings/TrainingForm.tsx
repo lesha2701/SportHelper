@@ -18,6 +18,7 @@ import aiStyles from "../stats/stats.module.css";
 import { navigateApp } from "../../appNav";
 import { toast } from "../../toast";
 import { rowsWithoutName } from "./exerciseNames";
+import { TitleWithBack } from "../shared/BackArrow";
 
 interface TrainingFormProps {
   token: string;
@@ -320,9 +321,11 @@ export function TrainingForm({ token, mode, teamId, initial, onSaved, onCancel, 
   return (
     <form className={profileStyles.screen} onSubmit={handleSubmit}>
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>
-          {isEdit ? "Редактировать тренировку" : mode === "team" ? "Новая тренировка команды" : "Новая личная тренировка"}
-        </h1>
+        <TitleWithBack onBack={onCancel}>
+          <h1 className={profileStyles.pageHeading}>
+            {isEdit ? "Редактировать тренировку" : mode === "team" ? "Новая тренировка команды" : "Новая личная тренировка"}
+          </h1>
+        </TitleWithBack>
         {booked ? (
           <p className={profileStyles.subtitle} role="note">
             Это занятие с тренером {booked.coachFullName}: дату, время, длительность и место меняет запись, а не календарь. Здесь можно

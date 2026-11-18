@@ -5,13 +5,12 @@ import { getListingOpenSlots } from "../../api/coachListings";
 import { createBooking } from "../../api/bookings";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
-import { Icon } from "../shared/Icon";
 import type { CoachListingProfile, OpenSlot } from "../../types/coachListing";
 import type { Booking } from "../../types/booking";
 import { localDateKey } from "../../lib/localDate";
 import profileStyles from "../profile/profile.module.css";
-import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 function nextNDays(n: number): Date[] {
   const days: Date[] = [];
@@ -157,15 +156,10 @@ export function BookingFlow({
 
   return (
     <div className={profileStyles.screen}>
-      <div className={sharedStyles.headerRow}>
-        <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>Запись: {listing.title}</h1>
+        <TitleWithBack onBack={onBack}>
+          <h1 className={profileStyles.pageHeading}>Запись: {listing.title}</h1>
+        </TitleWithBack>
         <p className={profileStyles.subtitle}>{listing.coachFullName}</p>
 
         <div className={styles.dateStrip}>

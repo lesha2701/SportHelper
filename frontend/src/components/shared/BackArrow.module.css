@@ -1,0 +1,41 @@
+.arrow {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.arrow:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.arrow:hover:not(:disabled) {
+  background: var(--color-surface);
+}
+
+.arrow:active {
+  transform: scale(0.94);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* The title keeps the rest of the line and wraps inside it, not under the arrow. */
+.titleRow > :not(.arrow) {
+  min-width: 0;
+}

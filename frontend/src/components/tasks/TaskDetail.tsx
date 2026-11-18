@@ -15,13 +15,13 @@ import { ConfirmModal } from "../shared/ConfirmModal";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { AuthenticatedVideo } from "../shared/AuthenticatedVideo";
 import { FilePicker } from "../shared/FilePicker";
-import { Icon } from "../shared/Icon";
 import { TASK_STATUS_LABELS, TASK_TARGET_LABELS, type Task, type TaskAssignment } from "../../types/task";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 import libraryStyles from "../library/library.module.css";
 import { photoVideoGallery } from "../shared/MediaLightbox";
 import { NextStepCard } from "../shared/NextStepCard";
+import { TitleWithBack } from "../shared/BackArrow";
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; task: Task };
 
@@ -263,16 +263,11 @@ export function TaskDetail({
 
   return (
     <div className={styles.screen}>
-      <div className={styles.headerRow}>
-        <button type="button" className={styles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       <div className={profileStyles.card}>
         <div className={styles.teamCardTop}>
-          <h1 className={profileStyles.title}>{task.title}</h1>
+          <TitleWithBack onBack={onBack}>
+            <h1 className={profileStyles.title}>{task.title}</h1>
+          </TitleWithBack>
           {!canManage && myAssignment && <span className={styles.badge}>{TASK_STATUS_LABELS[myAssignment.status]}</span>}
         </div>
         {task.description && <p className={profileStyles.subtitle}>{task.description}</p>}

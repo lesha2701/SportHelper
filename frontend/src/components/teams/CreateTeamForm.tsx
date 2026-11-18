@@ -5,6 +5,7 @@ import { SKILL_LEVEL_LABELS, type SkillLevel } from "../../types/profile";
 import { SportSelect } from "../shared/SportSelect";
 import type { Team } from "../../types/team";
 import profileStyles from "../profile/profile.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 interface CreateTeamFormProps {
   token: string;
@@ -56,7 +57,9 @@ export function CreateTeamForm({ token, initial, onCreated, onCancel }: CreateTe
   return (
     <form className={profileStyles.screen} onSubmit={handleSubmit}>
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>{isEdit ? "Настройки команды" : "Новая команда"}</h1>
+        <TitleWithBack onBack={onCancel}>
+          <h1 className={profileStyles.pageHeading}>{isEdit ? "Настройки команды" : "Новая команда"}</h1>
+        </TitleWithBack>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         <div className={profileStyles.fieldGrid}>

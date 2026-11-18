@@ -868,13 +868,6 @@
   color: var(--color-text);
 }
 
-/* On desktop the top navigation is always there, so the row that holds only «Назад» is not drawn at all (it used to cost a line). */
-@media (min-width: 900px) {
-  .headerRow:has(> .iconButton:only-child) {
-    display: none;
-  }
-}
-
 /* Tab strip above a section screen (library): the screen's own margin on a phone, none on desktop. */
 .pageTabsWrap {
   padding: 16px 16px 0;

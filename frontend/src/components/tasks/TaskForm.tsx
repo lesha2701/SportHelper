@@ -18,6 +18,7 @@ import { CollapsibleSection } from "../shared/CollapsibleSection";
 import profileStyles from "../profile/profile.module.css";
 import libraryStyles from "../library/library.module.css";
 import aiStyles from "../stats/stats.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 interface TaskFormProps {
   token: string;
@@ -217,9 +218,11 @@ export function TaskForm({ token, teamId, initial, prefill, onSaved, onCancel }:
   return (
     <form className={profileStyles.screen} onSubmit={handleSubmit}>
       <div className={profileStyles.card}>
-        <h1 className={profileStyles.pageHeading}>
-          {isEdit ? "Настройки задания" : prefill ? `Новое задание из шаблона «${prefill.title}»` : "Новое задание"}
-        </h1>
+        <TitleWithBack onBack={onCancel}>
+          <h1 className={profileStyles.pageHeading}>
+            {isEdit ? "Настройки задания" : prefill ? `Новое задание из шаблона «${prefill.title}»` : "Новое задание"}
+          </h1>
+        </TitleWithBack>
         <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         {!isEdit && !prefill && !showAiPanel && (

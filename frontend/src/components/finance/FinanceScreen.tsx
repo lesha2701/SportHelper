@@ -13,10 +13,9 @@ import {
   type Withdrawal,
 } from "../../types/finance";
 import { StateScreen } from "../StateScreen";
-import { Icon } from "../shared/Icon";
 import profileStyles from "../profile/profile.module.css";
-import sharedStyles from "../teams/teams.module.css";
 import styles from "./finance.module.css";
+import { TitleWithBack } from "../shared/BackArrow";
 
 const PAGE_SIZE = 10;
 
@@ -96,14 +95,9 @@ export function FinanceScreen({ token, onBack }: { token: string; onBack: () => 
 
   return (
     <div className={profileStyles.screen}>
-      <div className={sharedStyles.headerRow}>
-        <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
-      <h1 className={profileStyles.pageHeading}>Финансы</h1>
+      <TitleWithBack onBack={onBack}>
+        <h1 className={profileStyles.pageHeading}>Финансы</h1>
+      </TitleWithBack>
 
       <div className={styles.balanceGrid}>
         <div className={styles.balanceTilePrimary}>

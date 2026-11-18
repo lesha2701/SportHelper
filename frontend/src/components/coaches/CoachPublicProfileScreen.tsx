@@ -10,9 +10,9 @@ import { AchievementsGallery } from "../profile/AchievementsGallery";
 import type { CoachPublicProfile } from "../../types/coach";
 import type { CoachListingCard, CoachReview } from "../../types/coachListing";
 import profileStyles from "../profile/profile.module.css";
-import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 import { count, years } from "../../lib/plural";
+import { TitleWithBack } from "../shared/BackArrow";
 
 type LoadState =
   | { status: "loading" }
@@ -57,13 +57,6 @@ export function CoachPublicProfileScreen({
 
   return (
     <div className={profileStyles.screen}>
-      <div className={sharedStyles.headerRow}>
-        <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       {state.status === "loading" && <StateScreen kind="loading" title="Загрузка профиля…" />}
       {state.status === "error" && <StateScreen kind="error" title="Не удалось загрузить профиль" description={state.message} />}
 
@@ -82,7 +75,9 @@ export function CoachPublicProfileScreen({
                   <div className={styles.profileAvatarLg}>{profile.fullName.charAt(0).toUpperCase()}</div>
                 )}
                 <div>
-                  <h1 className={profileStyles.title}>{profile.fullName}</h1>
+                  <TitleWithBack onBack={onBack}>
+                    <h1 className={profileStyles.title}>{profile.fullName}</h1>
+                  </TitleWithBack>
                   <p className={profileStyles.subtitle}>
                     {[profile.specialization, profile.sport].filter(Boolean).join(" · ")}
                     {profile.experienceYears !== null ? ` · ${years(profile.experienceYears)} опыта` : ""}

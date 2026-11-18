@@ -3,17 +3,16 @@ import { useEffect, useState } from "react";
 import { getListingProfile } from "../../api/coachListings";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
-import { Icon } from "../shared/Icon";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { AuthenticatedVideo } from "../shared/AuthenticatedVideo";
 import { ReportButton } from "../shared/ReportButton";
 import type { CoachListingProfile } from "../../types/coachListing";
 import profileStyles from "../profile/profile.module.css";
-import sharedStyles from "../teams/teams.module.css";
 import styles from "./coaches.module.css";
 import { photoVideoGallery } from "../shared/MediaLightbox";
 import { count, years } from "../../lib/plural";
 import { formatSlotDate } from "./oneOffDates";
+import { TitleWithBack } from "../shared/BackArrow";
 
 const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -47,13 +46,6 @@ export function ListingPublicProfileScreen({
 
   return (
     <div className={styles.listingScreen}>
-      <div className={sharedStyles.headerRow}>
-        <button type="button" className={sharedStyles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       {state.status === "loading" && <StateScreen kind="loading" title="Загрузка объявления…" />}
       {state.status === "error" && <StateScreen kind="error" title="Не удалось загрузить объявление" description={state.message} />}
 
@@ -72,7 +64,9 @@ export function ListingPublicProfileScreen({
                   <div className={styles.profileAvatarLg}>{listing.coachFullName.charAt(0).toUpperCase()}</div>
                 )}
                 <div>
-                  <h1 className={profileStyles.title}>{listing.title}</h1>
+                  <TitleWithBack onBack={onBack}>
+                    <h1 className={profileStyles.title}>{listing.title}</h1>
+                  </TitleWithBack>
                   <p className={profileStyles.subtitle}>
                     {listing.coachFullName} · {listing.sport}
                     {listing.experienceYears !== null ? ` · ${years(listing.experienceYears)} опыта` : ""}

@@ -6,13 +6,13 @@ import { StateScreen } from "../StateScreen";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { AuthenticatedVideo } from "../shared/AuthenticatedVideo";
 import { FilePicker } from "../shared/FilePicker";
-import { Icon } from "../shared/Icon";
 import { REPORT_STATUS_LABELS, type Report } from "../../types/report";
 import type { Training } from "../../types/training";
 import profileStyles from "../profile/profile.module.css";
 import styles from "../teams/teams.module.css";
 import libraryStyles from "../library/library.module.css";
 import { photoVideoGallery } from "../shared/MediaLightbox";
+import { TitleWithBack } from "../shared/BackArrow";
 
 type LoadState =
   | { status: "loading" }
@@ -125,14 +125,9 @@ export function ReportScreen({
   return (
     <div className={styles.screen}>
       <div className={styles.headerRow}>
-        <button type="button" className={styles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
-      <div className={styles.headerRow}>
-        <h1 className={styles.heading}>Отчёт о тренировке</h1>
+        <TitleWithBack onBack={onBack}>
+          <h1 className={styles.heading}>Отчёт о тренировке</h1>
+        </TitleWithBack>
         {report && <span className={styles.badge}>{REPORT_STATUS_LABELS[report.status]}</span>}
       </div>
 

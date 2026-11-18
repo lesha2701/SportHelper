@@ -39,6 +39,7 @@ import libraryStyles from "../library/library.module.css";
 import confirmModalStyles from "../shared/ConfirmModal.module.css";
 import trainingStyles from "./training.module.css";
 import { Icon } from "../shared/Icon";
+import { TitleWithBack } from "../shared/BackArrow";
 
 type LoadState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; training: Training };
 type FeedbackLoadState = { status: "loading" } | { status: "ready"; feedback: TrainingFeedback | null } | { status: "error" };
@@ -471,18 +472,13 @@ export function TrainingDetail({
 
   return (
     <div className={styles.screen}>
-      <div className={styles.headerRow}>
-        <button type="button" className={styles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       <div className={profileStyles.card}>
         <div className={styles.teamCardTop}>
-          <h1 className={profileStyles.title}>
-            {training.trainingDate} · {training.startTime.slice(0, 5)}
-          </h1>
+          <TitleWithBack onBack={onBack}>
+            <h1 className={profileStyles.title}>
+              {training.trainingDate} · {training.startTime.slice(0, 5)}
+            </h1>
+          </TitleWithBack>
           <span className={styles.badge}>{TRAINING_STATUS_LABELS[training.status]}</span>
           {overdue && <span className={`${styles.badge} ${styles.badgeWarning}`}>Просрочена</span>}
           {canEdit && (

@@ -1,3 +1,4 @@
+import { BackArrow } from "../shared/BackArrow";
 import { useCallback, useEffect, useState } from "react";
 import { getTeam, leaveTeam, listMembers } from "../../api/teams";
 import { getTeamStats } from "../../api/stats";
@@ -208,14 +209,8 @@ export function TeamDetailScreen({ token, teamId, onBack }: { token: string; tea
 
   return (
     <div className={styles.screen}>
-      <div className={styles.headerRow}>
-        <button type="button" className={styles.iconButton} onClick={onBack}>
-          <Icon name="chevron-left" size={16} />
-          Назад
-        </button>
-      </div>
-
       <div className={styles.teamHero}>
+        <BackArrow onClick={onBack} />
         <div className={styles.teamHeroLogo}>
           {team.logoFileId ? (
             <AuthenticatedImage token={token} fileId={team.logoFileId} alt="" className={styles.teamHeroLogoImg} zoomable />
