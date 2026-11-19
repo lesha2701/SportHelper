@@ -29,7 +29,6 @@ struct BookingFlowView: View {
     @State private var selectedDay: LocalDate?
     @State private var selectedSlot: OpenSlot?
     @State private var format: BookingFormat
-    @State private var notes = ""
     @State private var isSending = false
     @State private var errorMessage: String?
     @State private var sent: Booking?
@@ -140,12 +139,6 @@ struct BookingFlowView: View {
                 .pickerStyle(.segmented)
             }
         }
-        Section(sag: "Пожелания тренеру") {
-            TextField("Необязательно", text: $notes, axis: .vertical).lineLimit(2...5).accessibilityIdentifier("booking.notes")
-            if notes.count > BookingRequest.maxNotesLength {
-                Text("Не длиннее \(BookingRequest.maxNotesLength) символов.").font(.footnote).foregroundStyle(.red)
-            }
-        }
         Section {
             if let price = profile.priceText {
                 LabeledContent("Стоимость", value: price)
@@ -155,14 +148,14 @@ struct BookingFlowView: View {
         }
     }
 
-    /// Pinned under the form once a time is chosen, so it never hides below the notes.
+    /// Pinned under the form once a time is chosen, so it never hides below the form.
     private var submitBar: some View {
         Button { Task { await send() } } label: {
             if isSending { ProgressView().frame(maxWidth: .infinity) } else { Text("Отправить заявку").bold().frame(maxWidth: .infinity) }
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
-        .disabled(isSending || notes.count > BookingRequest.maxNotesLength)
+        .disabled(isSending)
         .accessibilityIdentifier("booking.submit")
         .padding(.horizontal).padding(.vertical, 8)
         .background(.bar)
@@ -215,7 +208,7 @@ struct BookingFlowView: View {
         isSending = true
         errorMessage = nil
         defer { isSending = false }
-        let request = BookingRequest(listingId: profile.id, startsAt: slot.startsAt, format: format, athleteNotes: notes)
+        let request = BookingRequest(listingId: profile.id, startsAt: slot.startsAt, format: format)
         switch await auth.bookings.request(request) {
         case .success(let booking):
             sent = booking

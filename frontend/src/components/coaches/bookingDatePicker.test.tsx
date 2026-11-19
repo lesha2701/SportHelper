@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getListingOpenSlots } from "../../api/coachListings";
+import { createBooking } from "../../api/bookings";
 import type { CoachListingProfile } from "../../types/coachListing";
 import { localDateKey } from "../../lib/localDate";
 import { BookingFlow } from "./BookingFlow";
@@ -69,5 +70,22 @@ describe("choosing a date in the booking flow", () => {
     fireEvent.change(screen.getByLabelText("Выбрать дату"), { target: { value: dayPlus(-3) } });
 
     await waitFor(() => expect(vi.mocked(getListingOpenSlots).mock.calls.length).toBe(calls));
+  });
+});
+
+describe("sending a booking request", () => {
+  it("asks only for a time: no wishes field, and the request goes out without notes", async () => {
+    vi.mocked(createBooking).mockResolvedValue({} as never);
+    open();
+    await screen.findByText(/нет свободных слотов/);
+    fireEvent.change(screen.getByLabelText("Выбрать дату"), { target: { value: FAR } });
+    fireEvent.click(await screen.findByText("10:00"));
+
+    expect(screen.queryByText(/Пожелания/)).toBeNull();
+    expect(screen.queryByRole("textbox")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Подтвердить запись" }));
+    await waitFor(() => expect(vi.mocked(createBooking)).toHaveBeenCalled());
+    expect(vi.mocked(createBooking).mock.calls[0]?.[1]).toMatchObject({ listing_id: "L1", starts_at: `${FAR}T10:00:00Z`, athlete_notes: null });
   });
 });
