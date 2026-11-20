@@ -65,7 +65,10 @@ struct ListingDetailView: View {
                     NavigationLink {
                         CoachProfileView(coachUserId: profile.coachUserId)
                     } label: {
-                        Label(profile.coachFullName, systemImage: "person.crop.circle").foregroundStyle(Theme.primary)
+                        HStack(spacing: 6) {
+                            Label(profile.coachFullName, systemImage: "person.crop.circle").foregroundStyle(Theme.primary)
+                            if profile.isProCoach { ProBadge() }
+                        }
                     }
                     .accessibilityIdentifier("listing.coachProfile")
                 }

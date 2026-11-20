@@ -101,7 +101,7 @@ struct ListingCardView: View {
                     Text("Ваше объявление").font(.caption.bold()).textCase(.uppercase).foregroundStyle(Theme.primary)
                 }
                 Text(listing.title).font(.headline).lineLimit(2)
-                Text(listing.coachFullName).font(.subheadline).foregroundStyle(.secondary)
+                CoachNameLabel(name: listing.coachFullName, isPro: listing.isProCoach).font(.subheadline).foregroundStyle(.secondary)
                 Text([listing.sport, listing.specialization].compactMap { $0 }.joined(separator: " · ")).font(.footnote).foregroundStyle(.secondary)
                 HStack(spacing: 8) {
                     if let price = listing.priceText { Text(price).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.primary) }

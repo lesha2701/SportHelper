@@ -7,6 +7,7 @@ export interface CoachPublicProfileDto {
   specialization: string | null;
   experience_years: number | null;
   description: string | null;
+  is_pro?: boolean;
   avatar_file_id: string | null;
   photo_url: string | null;
   average_rating: number | null;
@@ -20,6 +21,7 @@ export interface CoachPublicProfile {
   specialization: string | null;
   experienceYears: number | null;
   description: string | null;
+  isPro?: boolean;
   avatarFileId: string | null;
   photoUrl: string | null;
   averageRating: number | null;
@@ -34,6 +36,7 @@ export function mapCoachPublicProfileDto(dto: CoachPublicProfileDto): CoachPubli
     specialization: dto.specialization,
     experienceYears: dto.experience_years,
     description: dto.description,
+    isPro: dto.is_pro ?? false,
     avatarFileId: dto.avatar_file_id,
     photoUrl: dto.photo_url,
     averageRating: dto.average_rating,

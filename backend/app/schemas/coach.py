@@ -15,6 +15,7 @@ class CoachPublicProfileOut(BaseModel):
     specialization: str | None
     experience_years: int | None
     description: str | None
+    is_pro: bool = False
     avatar_file_id: UUID | None
     photo_url: str | None
     average_rating: float | None

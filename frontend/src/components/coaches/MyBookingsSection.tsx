@@ -1,4 +1,5 @@
 // frontend/src/components/coaches/MyBookingsSection.tsx
+import { ProBadge } from "../shared/ProBadge";
 import { syncBookingPayment } from "../../api/payments";
 import { BookingPayment } from "./BookingPayment";
 import { useEffect, useRef, useState } from "react";
@@ -40,6 +41,7 @@ function CoachNameButton({ booking, onOpen }: { booking: Booking; onOpen: (coach
       }}
     >
       {booking.coachFullName}
+      {booking.coachIsPro && <ProBadge />}
     </button>
   );
 }

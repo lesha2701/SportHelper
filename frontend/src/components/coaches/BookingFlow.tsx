@@ -11,6 +11,7 @@ import { localDateKey } from "../../lib/localDate";
 import profileStyles from "../profile/profile.module.css";
 import styles from "./coaches.module.css";
 import { TitleWithBack } from "../shared/BackArrow";
+import { ProBadge } from "../shared/ProBadge";
 
 function nextNDays(n: number): Date[] {
   const days: Date[] = [];
@@ -160,7 +161,10 @@ export function BookingFlow({
         <TitleWithBack onBack={onBack}>
           <h1 className={profileStyles.pageHeading}>Запись: {listing.title}</h1>
         </TitleWithBack>
-        <p className={profileStyles.subtitle}>{listing.coachFullName}</p>
+        <p className={profileStyles.subtitle}>
+          {listing.coachFullName}
+          {listing.coachIsPro && <ProBadge />}
+        </p>
 
         <div className={styles.dateStrip}>
           {days.map((d) => {
@@ -270,7 +274,10 @@ export function BookingFlow({
             </div>
             <div className={profileStyles.row}>
               <span className={profileStyles.rowLabel}>Тренер</span>
-              <span className={profileStyles.rowValue}>{listing.coachFullName}</span>
+              <span className={profileStyles.rowValue}>
+                {listing.coachFullName}
+                {listing.coachIsPro && <ProBadge />}
+              </span>
             </div>
             <div className={profileStyles.row}>
               <span className={profileStyles.rowLabel}>Когда</span>

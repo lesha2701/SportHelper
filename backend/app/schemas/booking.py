@@ -135,6 +135,7 @@ class BookingOut(BaseModel):
     id: UUID
     coach_user_id: UUID
     coach_full_name: str
+    coach_is_pro: bool = False
     listing_id: UUID | None
     listing_title: str | None
     athlete_user_id: UUID

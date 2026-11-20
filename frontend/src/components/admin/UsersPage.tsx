@@ -3,6 +3,7 @@ import {
   banAdminUser,
   getAdminUser,
   listAdminUsers,
+  setCoachStatus,
   unbanAdminUser,
   type AdminUserCard,
   type AdminUserRow,
@@ -12,6 +13,7 @@ import {
 } from "../../api/admin";
 import { ApiError } from "../../api/client";
 import { Icon } from "../shared/Icon";
+import { ProBadge } from "../shared/ProBadge";
 import { ErrorBox, PageHead, Pager, Pill, ReasonDialog, formatDate, formatDateTime, useAdminQuery, useDebounced, useOpenParam, errorText } from "./adminUi";
 import styles from "./admin.module.css";
 
@@ -54,11 +56,12 @@ function StatusPill({ user }: { user: Pick<AdminUserRow, "status" | "bannedUntil
   );
 }
 
-function Roles({ user }: { user: Pick<AdminUserRow, "isPlayer" | "isCoach" | "isAdmin"> }) {
+function Roles({ user }: { user: Pick<AdminUserRow, "isPlayer" | "isCoach" | "isAdmin" | "isCoachPro"> }) {
   return (
     <span className={styles.actions} style={{ gap: 4 }}>
       {user.isAdmin && <Pill tone="warn">Админ</Pill>}
       {user.isCoach && <Pill>Тренер</Pill>}
+      {user.isCoach && user.isCoachPro && <ProBadge />}
       {user.isPlayer && <Pill>Игрок</Pill>}
       {!user.isAdmin && !user.isCoach && !user.isPlayer && <span className={styles.muted}>—</span>}
     </span>
@@ -172,7 +175,7 @@ export function UsersPage() {
 
 function UserDrawer({ userId, onClose, onChanged }: { userId: string; onClose: () => void; onChanged: () => void }) {
   const { query, reload } = useAdminQuery(() => getAdminUser(userId), [userId]);
-  const [dialog, setDialog] = useState<"block" | "unblock" | null>(null);
+  const [dialog, setDialog] = useState<"block" | "unblock" | "pro" | null>(null);
   const [days, setDays] = useState<number | null>(7);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -217,6 +220,10 @@ function UserDrawer({ userId, onClose, onChanged }: { userId: string; onClose: (
               setError(null);
               setDialog("unblock");
             }}
+            onCoachStatus={() => {
+              setError(null);
+              setDialog("pro");
+            }}
           />
         )}
 
@@ -244,6 +251,21 @@ function UserDrawer({ userId, onClose, onChanged }: { userId: string; onClose: (
             onClose={() => setDialog(null)}
           />
         )}
+        {dialog === "pro" && query.status === "ready" && (
+          <ReasonDialog
+            title={query.data.isCoachPro ? "Снять статус Pro" : "Дать статус Pro"}
+            description={
+              query.data.isCoachPro
+                ? `У тренера ${fullName(query.data)} исчезнет отметка Pro рядом с именем.`
+                : `Рядом с именем тренера ${fullName(query.data)} везде появится отметка Pro: в каталоге, в объявлениях и в записях.`
+            }
+            confirmLabel={query.data.isCoachPro ? "Снять статус" : "Дать статус"}
+            busy={busy}
+            error={error}
+            onConfirm={(reason) => void run(() => setCoachStatus(userId, !query.data.isCoachPro, reason))}
+            onClose={() => setDialog(null)}
+          />
+        )}
         {dialog === "unblock" && (
           <ReasonDialog
             title="Снять блокировку"
@@ -259,7 +281,7 @@ function UserDrawer({ userId, onClose, onChanged }: { userId: string; onClose: (
   );
 }
 
-function Card({ card, onBlock, onUnblock }: { card: AdminUserCard; onBlock: () => void; onUnblock: () => void }) {
+function Card({ card, onBlock, onUnblock, onCoachStatus }: { card: AdminUserCard; onBlock: () => void; onUnblock: () => void; onCoachStatus: () => void }) {
   return (
     <>
       <section className={styles.card}>
@@ -302,6 +324,11 @@ function Card({ card, onBlock, onUnblock }: { card: AdminUserCard; onBlock: () =
       </section>
 
       <div className={styles.actions}>
+        {card.isCoach && card.status !== "deleted" && (
+          <button type="button" className={styles.button} onClick={onCoachStatus}>
+            {card.isCoachPro ? "Снять статус Pro" : "Дать статус Pro"}
+          </button>
+        )}
         {card.status === "banned" ? (
           <button type="button" className={styles.buttonPrimary} onClick={onUnblock}>
             Снять блокировку
@@ -363,4 +390,4 @@ function Card({ card, onBlock, onUnblock }: { card: AdminUserCard; onBlock: () =
   );
 }
 
-export const ACTION_LABELS: Record<string, string> = { ban: "Блокировка", unban: "Снятие блокировки" };
+export const ACTION_LABELS: Record<string, string> = { ban: "Блокировка", unban: "Снятие блокировки", "coach.pro.grant": "Выдан статус Pro", "coach.pro.revoke": "Снят статус Pro" };

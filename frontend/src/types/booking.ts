@@ -70,6 +70,7 @@ export interface BookingDto {
   id: string;
   coach_user_id: string;
   coach_full_name: string;
+  coach_is_pro?: boolean;
   listing_id: string | null;
   listing_title: string | null;
   athlete_user_id: string;
@@ -171,6 +172,7 @@ export interface Booking {
   id: string;
   coachUserId: string;
   coachFullName: string;
+  coachIsPro?: boolean;
   listingId: string | null;
   listingTitle: string | null;
   athleteUserId: string;
@@ -209,6 +211,7 @@ export function mapBookingDto(dto: BookingDto): Booking {
     id: dto.id,
     coachUserId: dto.coach_user_id,
     coachFullName: dto.coach_full_name,
+    coachIsPro: dto.coach_is_pro ?? false,
     listingId: dto.listing_id,
     listingTitle: dto.listing_title,
     athleteUserId: dto.athlete_user_id,

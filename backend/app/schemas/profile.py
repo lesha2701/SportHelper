@@ -52,6 +52,7 @@ class CoachProfileOut(BaseModel):
     experience_years: int | None
     specialization: str | None
     description: str | None
+    is_pro: bool = False
     created_at: datetime
     updated_at: datetime
 

@@ -1,4 +1,5 @@
 // frontend/src/components/coaches/CoachPublicProfileScreen.tsx
+import { ProBadge } from "../shared/ProBadge";
 import { useEffect, useState } from "react";
 import { getCoachPublicProfile, listCoachPublicListings, listCoachPublicReviews } from "../../api/coaches";
 import { ApiError } from "../../api/client";
@@ -76,7 +77,10 @@ export function CoachPublicProfileScreen({
                 )}
                 <div>
                   <TitleWithBack onBack={onBack}>
-                    <h1 className={profileStyles.title}>{profile.fullName}</h1>
+                    <h1 className={profileStyles.title}>
+                      {profile.fullName}
+                      {profile.isPro && <ProBadge />}
+                    </h1>
                   </TitleWithBack>
                   <p className={profileStyles.subtitle}>
                     {[profile.specialization, profile.sport].filter(Boolean).join(" · ")}

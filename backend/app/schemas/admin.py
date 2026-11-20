@@ -86,6 +86,8 @@ class AdminUserRowOut(BaseModel):
     last_name: str | None
     is_player: bool
     is_coach: bool
+    # The trainer's Pro status; None for somebody who has no trainer profile.
+    coach_is_pro: bool | None = None
     # True for the people listed in the server configuration; shown so the panel can explain why they cannot be blocked.
     is_admin: bool
     status: Literal["active", "banned", "unverified", "deleted"]
@@ -149,6 +151,19 @@ class BlockIn(BaseModel):
     reason: str = Field(max_length=1000)
     # None = permanent; otherwise the block lifts itself after this many days.
     days: int | None = Field(default=None, ge=1, le=3650)
+
+    @field_validator("reason")
+    @classmethod
+    def _check_reason(cls, value: str) -> str:
+        return _clean_reason(value)
+
+
+class CoachStatusIn(BaseModel):
+    """Gives a trainer the Pro status (is_pro true) or takes it back (false), and why."""
+    model_config = ConfigDict(extra="forbid")
+
+    is_pro: bool
+    reason: str = Field(max_length=1000)
 
     @field_validator("reason")
     @classmethod

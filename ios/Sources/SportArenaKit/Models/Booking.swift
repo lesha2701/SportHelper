@@ -91,6 +91,8 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
     public let id: UUID
     public let coachUserId: UUID
     public let coachFullName: String
+    /// The trainer has the Pro status; absent from an older server.
+    public let coachIsPro: Bool?
     public let listingId: UUID?
     public let listingTitle: String?
     public let athleteUserId: UUID
@@ -120,7 +122,7 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
     public let sessionConfirmation: SessionConfirmation?
 
     private enum CodingKeys: String, CodingKey {
-        case id, coachUserId, coachFullName, listingId, listingTitle, athleteUserId, athleteFullName, athleteNotes, startsAt
+        case id, coachUserId, coachFullName, coachIsPro, listingId, listingTitle, athleteUserId, athleteFullName, athleteNotes, startsAt
         case durationMinutes, format, pricePerSession, currency, isCompleted, trainingId, trainingPlanId, trainingPlanName, hasReview, paidAt, trainingStatus, cancellation, sessionConfirmation
         case canCancelRaw = "canCancel"
         case hasStartedRaw = "hasStarted"
@@ -129,6 +131,7 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
         case paymentStatusRaw = "paymentStatus"
     }
 
+    public var isProCoach: Bool { coachIsPro ?? false }
     public var status: BookingStatus { BookingStatus(raw: statusRaw) }
     /// The coach has already reviewed the athlete (an older server that does not say it counts as no).
     public var hasPlayerReview: Bool { hasPlayerReviewRaw ?? false }

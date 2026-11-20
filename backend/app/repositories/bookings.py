@@ -11,7 +11,7 @@ from app.core import session_time
 from app.repositories import trainings as trainings_repo
 
 _BOOKING_FIELDS = (
-    "b.id, b.coach_user_id, cp.full_name AS coach_full_name, b.listing_id, cl.title AS listing_title, "
+    "b.id, b.coach_user_id, cp.full_name AS coach_full_name, cp.is_pro AS coach_is_pro, b.listing_id, cl.title AS listing_title, "
     "b.athlete_user_id, u.first_name || COALESCE(' ' || u.last_name, '') AS athlete_full_name, "
     "b.athlete_notes, "
     "b.starts_at, b.duration_minutes, b.format, b.price_per_session, b.currency, "
@@ -72,12 +72,13 @@ async def create_booking(
         return None
     result = dict(row)
     coach_and_listing = await conn.fetchrow(
-        "SELECT cp.full_name, cl.title FROM coach_profiles cp JOIN coach_listings cl ON cl.id = $2 "
+        "SELECT cp.full_name, cp.is_pro, cl.title FROM coach_profiles cp JOIN coach_listings cl ON cl.id = $2 "
         "WHERE cp.user_id = $1",
         coach_user_id,
         listing_id,
     )
     result["coach_full_name"] = coach_and_listing["full_name"]
+    result["coach_is_pro"] = coach_and_listing["is_pro"]
     result["listing_title"] = coach_and_listing["title"]
     athlete = await conn.fetchrow(
         "SELECT first_name || COALESCE(' ' || last_name, '') AS full_name FROM users WHERE id = $1",

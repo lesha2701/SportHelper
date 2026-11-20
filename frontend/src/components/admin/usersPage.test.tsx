@@ -1,16 +1,17 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { banAdminUser, getAdminUser, listAdminUsers, unbanAdminUser, type AdminUserCard, type AdminUserRow } from "../../api/admin";
+import { banAdminUser, getAdminUser, listAdminUsers, setCoachStatus, unbanAdminUser, type AdminUserCard, type AdminUserRow } from "../../api/admin";
 import { ApiError } from "../../api/client";
 import { UsersPage } from "./UsersPage";
 
-vi.mock("../../api/admin", () => ({ listAdminUsers: vi.fn(), getAdminUser: vi.fn(), banAdminUser: vi.fn(), unbanAdminUser: vi.fn() }));
+vi.mock("../../api/admin", () => ({ listAdminUsers: vi.fn(), getAdminUser: vi.fn(), banAdminUser: vi.fn(), unbanAdminUser: vi.fn(), setCoachStatus: vi.fn() }));
 
 const UID = "11111111-1111-4111-8111-111111111111";
 const listMock = vi.mocked(listAdminUsers);
 const cardMock = vi.mocked(getAdminUser);
 const banMock = vi.mocked(banAdminUser);
 const unbanMock = vi.mocked(unbanAdminUser);
+const proMock = vi.mocked(setCoachStatus);
 
 function row(overrides: Partial<AdminUserRow> = {}): AdminUserRow {
   return {
@@ -33,7 +34,7 @@ const flush = () => act(async () => {});
 beforeEach(() => {
   window.history.replaceState(null, "", "/admin/users");
   vi.useFakeTimers({ shouldAdvanceTime: true });
-  [listMock, cardMock, banMock, unbanMock].forEach((m) => m.mockReset());
+  [listMock, cardMock, banMock, unbanMock, proMock].forEach((m) => m.mockReset());
   listMock.mockResolvedValue(page([row()]));
   cardMock.mockResolvedValue(card());
 });
@@ -214,5 +215,54 @@ describe("a user's card and blocking", () => {
     await flush();
 
     expect(unbanMock).toHaveBeenCalledWith(UID, "Ошибка модератора");
+  });
+});
+
+describe("the Pro status of a trainer", () => {
+  const openCard = async () => {
+    await open();
+    fireEvent.click(screen.getByText("Алиса Иванова"));
+    await flush();
+  };
+
+  it("marks a Pro trainer in the list", async () => {
+    listMock.mockResolvedValue(page([row({ isPlayer: false, isCoach: true, isCoachPro: true })]));
+    await open();
+    expect(within(screen.getByRole("table")).getByTitle("Тренер Pro")).toBeTruthy();
+  });
+
+  it("gives the status with a reason", async () => {
+    cardMock.mockResolvedValue(card({ isPlayer: false, isCoach: true, isCoachPro: false }));
+    proMock.mockResolvedValue(card({ isPlayer: false, isCoach: true, isCoachPro: true }));
+    await openCard();
+    const drawer = screen.getByRole("complementary", { name: "Карточка пользователя" });
+
+    fireEvent.click(within(drawer).getByRole("button", { name: "Дать статус Pro" }));
+    const dialog = screen.getByRole("dialog", { name: "Дать статус Pro" });
+    fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "Договор подписан" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Дать статус" }));
+    await flush();
+
+    expect(proMock).toHaveBeenCalledWith(UID, true, "Договор подписан");
+  });
+
+  it("takes the status back from a Pro trainer", async () => {
+    cardMock.mockResolvedValue(card({ isPlayer: false, isCoach: true, isCoachPro: true }));
+    proMock.mockResolvedValue(card({ isPlayer: false, isCoach: true, isCoachPro: false }));
+    await openCard();
+    const drawer = screen.getByRole("complementary", { name: "Карточка пользователя" });
+
+    fireEvent.click(within(drawer).getByRole("button", { name: "Снять статус Pro" }));
+    const dialog = screen.getByRole("dialog", { name: "Снять статус Pro" });
+    fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "Договор расторгнут" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Снять статус" }));
+    await flush();
+
+    expect(proMock).toHaveBeenCalledWith(UID, false, "Договор расторгнут");
+  });
+
+  it("offers no status for somebody who is not a trainer", async () => {
+    await openCard();
+    expect(screen.queryByRole("button", { name: /статус Pro/ })).toBeNull();
   });
 });

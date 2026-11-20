@@ -90,6 +90,8 @@ export interface AdminUserRow {
   lastName: string | null;
   isPlayer: boolean;
   isCoach: boolean;
+  /** The trainer's Pro status; null for somebody without a trainer profile. */
+  isCoachPro?: boolean | null;
   isAdmin: boolean;
   status: UserStatus;
   deletionRequested: boolean;
@@ -147,6 +149,7 @@ interface UserRowDto {
   last_name: string | null;
   is_player: boolean;
   is_coach: boolean;
+  coach_is_pro?: boolean | null;
   is_admin: boolean;
   status: UserStatus;
   deletion_requested: boolean;
@@ -187,6 +190,7 @@ function mapRow(dto: UserRowDto): AdminUserRow {
     lastName: dto.last_name,
     isPlayer: dto.is_player,
     isCoach: dto.is_coach,
+    isCoachPro: dto.coach_is_pro ?? null,
     isAdmin: dto.is_admin,
     status: dto.status,
     deletionRequested: dto.deletion_requested,
@@ -266,6 +270,16 @@ export async function unbanAdminUser(id: string, reason: string): Promise<AdminU
       method: "POST",
       successMessage: "Блокировка снята",
       body: { reason },
+    }),
+  );
+}
+
+export async function setCoachStatus(id: string, isPro: boolean, reason: string): Promise<AdminUserCard> {
+  return mapCard(
+    await apiRequest<UserCardDto>(`/api/admin/users/${id}/coach-status`, {
+      method: "PUT",
+      successMessage: isPro ? "Статус Pro выдан" : "Статус Pro снят",
+      body: { is_pro: isPro, reason },
     }),
   );
 }

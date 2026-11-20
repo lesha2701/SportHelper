@@ -7,6 +7,8 @@ public struct CoachListingCard: Decodable, Equatable, Identifiable, Sendable {
     public let description: String?
     public let coachUserId: UUID
     public let coachFullName: String
+    /// The trainer has the Pro status; absent from an older server.
+    public let coachIsPro: Bool?
     public let sport: String
     public let specialization: String?
     public let experienceYears: Int?
@@ -19,6 +21,8 @@ public struct CoachListingCard: Decodable, Equatable, Identifiable, Sendable {
     public let offersOffline: Bool
     public let photoFileId: UUID?
     public let nextAvailableSlot: Date?
+
+    public var isProCoach: Bool { coachIsPro ?? false }
 
     public var priceText: String? { pricePerSession.map { Money.format($0, currency: currency) } }
 
@@ -47,6 +51,8 @@ public struct CoachListingProfile: Decodable, Equatable, Identifiable, Sendable 
     public let description: String?
     public let coachUserId: UUID
     public let coachFullName: String
+    /// The trainer has the Pro status; absent from an older server.
+    public let coachIsPro: Bool?
     public let sport: String
     public let specialization: String?
     public let experienceYears: Int?
@@ -61,6 +67,8 @@ public struct CoachListingProfile: Decodable, Equatable, Identifiable, Sendable 
     public let coachDescription: String?
     public let sessionDurationMinutes: Int?
     public let recentReviews: [CoachReview]
+
+    public var isProCoach: Bool { coachIsPro ?? false }
 
     public var priceText: String? { pricePerSession.map { Money.format($0, currency: currency) } }
 

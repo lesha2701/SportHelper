@@ -117,6 +117,7 @@ export interface CoachListingCardDto {
   description: string | null;
   coach_user_id: string;
   coach_full_name: string;
+  coach_is_pro?: boolean;
   coach_photo_url: string | null;
   sport: string;
   specialization: string | null;
@@ -138,6 +139,8 @@ export interface CoachListingCard {
   description: string | null;
   coachUserId: string;
   coachFullName: string;
+  /** The trainer has the Pro status (a mark next to his name). */
+  coachIsPro?: boolean;
   coachPhotoUrl: string | null;
   sport: string;
   specialization: string | null;
@@ -160,6 +163,7 @@ export function mapCoachListingCardDto(dto: CoachListingCardDto): CoachListingCa
     description: dto.description,
     coachUserId: dto.coach_user_id,
     coachFullName: dto.coach_full_name,
+    coachIsPro: dto.coach_is_pro ?? false,
     coachPhotoUrl: dto.coach_photo_url,
     sport: dto.sport,
     specialization: dto.specialization,
