@@ -270,6 +270,30 @@ export interface Commission {
 export const getCommission = () => get<Commission>("/api/admin/finance/commission");
 export const setCommission = (percent: string, reason: string) => put<Commission>("/api/admin/finance/commission", { percent, reason });
 
+export interface CoachCommission {
+  coachUserId: string;
+  fullName: string | null;
+  email: string | null;
+  /** The trainer's own percent, or null while he pays the general commission. */
+  personalPercent: string | null;
+  /** What he pays now: the personal percent, else the general one. */
+  percent: string;
+  since: string | null;
+  reason: string | null;
+  setByEmail: string | null;
+}
+
+export interface CoachCommissionsPage extends FinancePage<CoachCommission> {
+  generalPercent: string;
+  maxPercent: string;
+}
+
+export const listCoachCommissions = (q: { q: string; onlyPersonal: boolean; limit: number; offset: number }) =>
+  get<CoachCommissionsPage>(`/api/admin/finance/coach-commissions${queryString({ q: q.q.trim() || undefined, only_personal: q.onlyPersonal ? "true" : undefined, limit: q.limit, offset: q.offset })}`);
+/** `percent` null hands the trainer back to the general commission. */
+export const setCoachCommission = (coachUserId: string, percent: string | null, reason: string) =>
+  put<CoachCommission>(`/api/admin/finance/coach-commissions/${coachUserId}`, { percent, reason });
+
 export interface BankBalanceEntry {
   id: number;
   balanceKopecks: number;

@@ -62,7 +62,7 @@ async def summary(
         "withdrawals_enabled": settings.trainer_withdrawals_enabled,
         "can_withdraw": settings.trainer_withdrawals_enabled and available >= minimum,
         "shortfall_kopecks": max(minimum - available, 0),
-        "commission_percent": commission_service.percent_text(await commission_service.current_percent(conn, settings)),
+        "commission_percent": commission_service.percent_text(await commission_service.percent_for_coach(conn, settings, user["id"])),
     }
 
 

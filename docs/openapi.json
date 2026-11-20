@@ -3410,6 +3410,157 @@
         ]
       }
     },
+    "/api/admin/finance/coach-commissions": {
+      "get": {
+        "tags": [
+          "admin-finance"
+        ],
+        "summary": "List Coach Commissions",
+        "description": "Trainers found by name or e-mail with the commission each pays: a personal one if he was given it (those come first), else the\ngeneral one. `only_personal` keeps just the trainers with a personal percent.",
+        "operationId": "list_coach_commissions_api_admin_finance_coach_commissions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "only_personal",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Only Personal"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response List Coach Commissions Api Admin Finance Coach Commissions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/finance/coach-commissions/{coach_user_id}": {
+      "put": {
+        "tags": [
+          "admin-finance"
+        ],
+        "summary": "Set Coach Commission",
+        "description": "Gives a trainer a personal commission (or, with a null percent, hands him back to the general one) for the payments created from\nnow on: payments that already exist keep the percent they were created with. Second factor entered a moment ago; audited.",
+        "operationId": "set_coach_commission_api_admin_finance_coach_commissions__coach_user_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "coach_user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Coach User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoachCommissionIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Set Coach Commission Api Admin Finance Coach Commissions  Coach User Id  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/finance/bank-balance": {
       "get": {
         "tags": [
@@ -16382,6 +16533,39 @@
           "commented_at"
         ],
         "title": "CoachCommentOut"
+      },
+      "CoachCommissionIn": {
+        "properties": {
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 50.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "percent",
+          "reason"
+        ],
+        "title": "CoachCommissionIn",
+        "description": "A trainer's personal commission percent for the payments created from now on (0-50, at most two decimals), or null to hand him back\nto the general commission, and why. The percent must be sent (null included): leaving it out is a mistake, not a reset."
       },
       "CoachListingCardOut": {
         "properties": {

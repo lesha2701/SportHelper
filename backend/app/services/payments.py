@@ -134,7 +134,7 @@ async def start_payment(
         raise APIError("Онлайн-оплата сейчас недоступна.", code="payments_unavailable", status_code=503)
     ensure_payable(booking)
     gross = rub_to_kopecks(booking["price_per_session"])  # from the booking row, never from the request
-    percent = await commission_service.current_percent(conn, settings)
+    percent = await commission_service.percent_for_coach(conn, settings, booking["coach_user_id"])
     fee, trainer = split_commission(gross, percent)
 
     async with conn.transaction():

@@ -17,6 +17,7 @@ from app.config import Settings
 from app.core.exceptions import APIError, NotFoundError
 from app.integrations.yookassa import YooKassaError
 from app.repositories import bank_balance as bank_balance_repo
+from app.repositories import coach_commission as coach_commission_repo
 from app.repositories import commission as commission_repo
 from app.repositories import earnings as earnings_repo
 from app.repositories import finance_views
@@ -26,7 +27,7 @@ from app.repositories import payouts as payouts_repo
 from app.repositories import refunds as refunds_repo
 from app.repositories import session_confirmations as confirmations_repo
 from app.repositories import withdrawals as withdrawals_repo
-from app.schemas.finance import BankBalanceIn, CommissionIn, MarkPaidIn, OptionalNoteIn, ReasonIn, RefundIn, RejectIn, ResolveDisputeIn, ResolveIncidentIn
+from app.schemas.finance import BankBalanceIn, CoachCommissionIn, CommissionIn, MarkPaidIn, OptionalNoteIn, ReasonIn, RefundIn, RejectIn, ResolveDisputeIn, ResolveIncidentIn
 from app.services import admin_audit
 from app.services import commission as commission_service
 from app.services import earnings as earnings_service
@@ -127,6 +128,72 @@ async def set_commission(
             before={"percent": commission_service.percent_text(before)}, after={"percent": commission_service.percent_text(payload.percent)},
         )
     return _commission_view(payload.percent, "admin", await commission_repo.history(conn), settings)
+
+
+def _coach_commission_view(row: dict[str, Any], general: Any) -> dict[str, Any]:
+    personal = row["personal_percent"]
+    return {
+        "coach_user_id": row["id"],
+        "full_name": f"{row['first_name'] or ''} {row['last_name'] or ''}".strip() or None,
+        "email": row["email"],
+        "personal_percent": None if personal is None else commission_service.percent_text(personal),
+        "percent": commission_service.percent_text(general if personal is None else personal),  # what the trainer pays now
+        "since": row["since"], "reason": row["reason"], "set_by_email": row["changed_by_email"],
+    }
+
+
+@router.get("/coach-commissions")
+async def list_coach_commissions(
+    q: str | None = Query(default=None, max_length=100),
+    only_personal: bool = False,
+    limit: int = Query(default=25, ge=1, le=100),
+    offset: int = Query(default=0, ge=0, le=1_000_000),
+    ctx: AuthContext = Depends(require_finance_admin),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> dict[str, Any]:
+    """Trainers found by name or e-mail with the commission each pays: a personal one if he was given it (those come first), else the
+    general one. `only_personal` keeps just the trainers with a personal percent."""
+    general = await commission_service.current_percent(conn, settings)
+    total, rows = await coach_commission_repo.search_coaches(conn, query=q, only_personal=only_personal, limit=limit, offset=offset)
+    return {
+        "general_percent": commission_service.percent_text(general), "max_percent": "50",
+        **_page(limit, offset, total, [_coach_commission_view(r, general) for r in rows]),
+    }
+
+
+@router.put("/coach-commissions/{coach_user_id}")
+async def set_coach_commission(
+    coach_user_id: UUID,
+    payload: CoachCommissionIn,
+    ctx: AuthContext = Depends(require_finance_recent_mfa),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> dict[str, Any]:
+    """Gives a trainer a personal commission (or, with a null percent, hands him back to the general one) for the payments created from
+    now on: payments that already exist keep the percent they were created with. Second factor entered a moment ago; audited."""
+    async with conn.transaction():
+        await conn.execute("SELECT pg_advisory_xact_lock(hashtext($1))", f"coach_commission:{coach_user_id}")
+        coach = await coach_commission_repo.get_coach(conn, coach_user_id)
+        if coach is None:
+            raise NotFoundError("trainer not found")
+        general = await commission_service.current_percent(conn, settings)
+        personal = coach["personal_percent"]
+        if payload.percent == personal:
+            raise APIError(
+                "У этого тренера и так стоит такая личная комиссия." if personal is not None else "Этот тренер и так платит общую комиссию.",
+                code="coach_commission_unchanged", status_code=409,
+            )
+        before = general if personal is None else personal
+        await coach_commission_repo.record_change(
+            conn, coach_user_id=coach_user_id, percent=payload.percent, previous=before, reason=payload.reason.strip(), changed_by=ctx.user["id"]
+        )
+        await admin_audit.record(
+            conn, ctx.user["id"], "finance.coach_commission.change", target_type="coach", target_id=coach_user_id, reason=payload.reason,
+            before={"personal_percent": None if personal is None else commission_service.percent_text(personal), "percent": commission_service.percent_text(before)},
+            after={"personal_percent": None if payload.percent is None else commission_service.percent_text(payload.percent)},
+        )
+    return _coach_commission_view((await coach_commission_repo.get_coach(conn, coach_user_id)) or coach, general)
 
 
 def _trainers_money(totals: dict[str, int]) -> int:
