@@ -37,11 +37,13 @@ final class ChatStore {
     let target: Target
     let userId: UUID
     private let service: ChatService
+    private let blocks: BlocksService
     private let onRead: () -> Void
     private var lastRead = 0
 
     init(client: APIClient, target: Target, userId: UUID, onRead: @escaping () -> Void = {}) {
         service = ChatService(client: client)
+        blocks = BlocksService(client: client)
         self.target = target
         self.userId = userId
         self.onRead = onRead
@@ -166,6 +168,31 @@ final class ChatStore {
         guard let index = outgoing.firstIndex(where: { $0.id == id }) else { return }
         outgoing[index].isSending = false
         outgoing[index].failure = text
+    }
+
+    // MARK: blocking
+
+    /// Blocks the author of a message (App Store guideline 1.2). Their messages leave the screen at once; the conversation is asked for
+    /// again because a personal chat becomes read-only. Returns the server's error text, or nil when the person is blocked.
+    func block(_ senderId: UUID) async -> String? {
+        do {
+            try await blocks.block(senderId)
+        } catch let error as APIError {
+            return error.message
+        } catch {
+            return APIError.unknown.message
+        }
+        thread.remove(senderId: senderId)
+        if let info = conversationInfo {
+            let target = self.target
+            let fresh: ChatConversation?
+            switch target {
+            case .booking(let id): fresh = try? await service.conversation(forBooking: id)
+            case .team(let id): fresh = try? await service.conversation(forTeam: id)
+            }
+            if let fresh, fresh.id == info.id { conversation = .loaded(fresh) }
+        }
+        return nil
     }
 
     // MARK: deleting

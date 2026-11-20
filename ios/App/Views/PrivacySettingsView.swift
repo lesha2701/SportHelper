@@ -9,6 +9,7 @@ struct PrivacySettingsView: View {
     @State private var busy = false
     @State private var notice: String?
     @State private var error: String?
+    @State private var blocked = LoadState<[BlockedUser]>.loading
 
     var body: some View {
         List {
@@ -41,12 +42,37 @@ struct PrivacySettingsView: View {
                         + "Фото и видео из отчётов тренеру не открываются. По умолчанию выключено; при отключении уже подготовленные анализы удаляются."
                 )
             }
+
+            Section(sag: "Заблокированные") {
+                switch blocked {
+                case .loading:
+                    ProgressView().frame(maxWidth: .infinity)
+                case .failed(let message):
+                    Text(message).foregroundStyle(.red)
+                    Button("Повторить") { Task { await loadBlocked() } }
+                case .loaded(let people):
+                    if people.isEmpty {
+                        Text("Вы никого не блокировали").foregroundStyle(.secondary).accessibilityIdentifier("privacy.blocked.empty")
+                    }
+                    ForEach(people) { person in
+                        HStack {
+                            Text(person.fullName)
+                            Spacer()
+                            Button("Разблокировать") { Task { await unblock(person) } }
+                                .font(.subheadline).buttonStyle(.borderless).disabled(busy)
+                                .accessibilityIdentifier("privacy.unblock")
+                        }
+                    }
+                }
+            } footer: {
+                Text("Сообщения заблокированных людей скрыты в чатах, и переписываться с ними нельзя. Заблокировать автора можно, удерживая его сообщение в чате.")
+            }
         }
         .sagScreen()
         .navigationTitle("Конфиденциальность")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
-        .refreshable { await load() }
+        .task { await load(); await loadBlocked() }
+        .refreshable { await load(); await loadBlocked() }
     }
 
     private func binding(_ value: PrivacySettings) -> Binding<Bool> {
@@ -60,6 +86,30 @@ struct PrivacySettingsView: View {
             if settings.value == nil { settings = .failed(error.message) }
         } catch {
             if settings.value == nil { settings = .failed(APIError.unknown.message) }
+        }
+    }
+
+    private func loadBlocked() async {
+        do {
+            blocked = .loaded(try await auth.blocks.blocked())
+        } catch let error as APIError {
+            if blocked.value == nil { blocked = .failed(error.message) }
+        } catch {
+            if blocked.value == nil { blocked = .failed(APIError.unknown.message) }
+        }
+    }
+
+    private func unblock(_ person: BlockedUser) async {
+        busy = true
+        error = nil
+        defer { busy = false }
+        do {
+            try await auth.blocks.unblock(person.userId)
+            blocked = .loaded((blocked.value ?? []).filter { $0.userId != person.userId })
+        } catch let failure as APIError {
+            error = failure.message
+        } catch {
+            self.error = APIError.unknown.message
         }
     }
 

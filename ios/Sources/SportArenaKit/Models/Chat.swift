@@ -160,4 +160,9 @@ public struct ChatThread: Equatable, Sendable {
     public mutating func remove(id: Int) {
         messages.removeAll { $0.id == id }
     }
+
+    /// Everything one person wrote: the messages of someone the reader has just blocked disappear without waiting for a reload.
+    public mutating func remove(senderId: UUID) {
+        messages.removeAll { $0.senderId == senderId }
+    }
 }
