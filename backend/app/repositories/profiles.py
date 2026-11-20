@@ -15,7 +15,7 @@ _PLAYER_FIELDS = (
 )
 _COACH_FIELDS = (
     "user_id, full_name, sport, experience_years, specialization, "
-    "description, created_at, updated_at"
+    "description, is_pro, created_at, updated_at"
 )
 
 
@@ -56,7 +56,7 @@ async def get_public_coach_profile(conn: asyncpg.Connection, user_id: UUID) -> d
     profile is "my own profile" only and has neither)."""
     row = await conn.fetchrow(
         f"""
-        SELECT cp.user_id, cp.full_name, cp.sport, cp.experience_years, cp.specialization, cp.description,
+        SELECT cp.user_id, cp.full_name, cp.sport, cp.experience_years, cp.specialization, cp.description, cp.is_pro,
                {_VISIBLE_AVATAR} AS avatar_file_id, u.photo_url
         FROM coach_profiles cp
         JOIN users u ON u.id = cp.user_id
@@ -65,6 +65,16 @@ async def get_public_coach_profile(conn: asyncpg.Connection, user_id: UUID) -> d
         user_id,
     )
     return dict(row) if row else None
+
+
+async def set_coach_pro(conn: asyncpg.Connection, user_id: UUID, is_pro: bool) -> bool | None:
+    """Sets the Pro status; returns what it was before, or None when the user has no trainer profile."""
+    row = await conn.fetchrow(
+        "UPDATE coach_profiles cp SET is_pro = $2 FROM (SELECT is_pro FROM coach_profiles WHERE user_id = $1 FOR UPDATE) old "
+        "WHERE cp.user_id = $1 RETURNING old.is_pro AS was_pro",
+        user_id, is_pro,
+    )
+    return None if row is None else row["was_pro"]
 
 
 async def upsert_player_profile(

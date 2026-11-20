@@ -26,7 +26,8 @@ _LIST_FIELDS = f"""
     u.id, u.email, u.email_verified_at, u.first_name, u.last_name, u.created_at, u.last_active_at, u.last_login_at,
     u.deleted_at, u.deletion_requested_at, {_BANNED_NOW} AS is_banned, u.banned_until,
     EXISTS(SELECT 1 FROM player_profiles p WHERE p.user_id = u.id) AS is_player,
-    EXISTS(SELECT 1 FROM coach_profiles c WHERE c.user_id = u.id) AS is_coach
+    EXISTS(SELECT 1 FROM coach_profiles c WHERE c.user_id = u.id) AS is_coach,
+    (SELECT c.is_pro FROM coach_profiles c WHERE c.user_id = u.id) AS coach_is_pro
 """
 
 

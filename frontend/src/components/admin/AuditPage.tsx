@@ -9,6 +9,8 @@ const PAGE_SIZE = 50;
 export const AUDIT_ACTIONS: Record<string, string> = {
   ban: "Блокировка пользователя",
   unban: "Снятие блокировки",
+  "coach.pro.grant": "Выдан статус тренера Pro",
+  "coach.pro.revoke": "Снят статус тренера Pro",
   media_hide: "Файл скрыт",
   media_restore: "Файл восстановлен",
   media_delete: "Файл удалён",

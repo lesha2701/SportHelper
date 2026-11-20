@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ProBadge } from "../shared/ProBadge";
 import { listMyBookings, reviewBooking } from "../../api/bookings";
 import type { Booking } from "../../types/booking";
 import { ReviewModal } from "../coaches/ReviewModal";
@@ -21,7 +22,10 @@ export function AthleteSessionCard({ token, trainingId }: { token: string; train
 
   return (
     <div className={profileStyles.card}>
-      <h2 className={profileStyles.title}>Занятие с тренером {booking.coachFullName}</h2>
+      <h2 className={profileStyles.title}>
+        Занятие с тренером {booking.coachFullName}
+        {booking.coachIsPro && <ProBadge />}
+      </h2>
       {booking.isCompleted && !booking.hasReview && (
         <>
           <p className={profileStyles.subtitle}>Занятие прошло. Оцените тренера — это поможет другим игрокам.</p>

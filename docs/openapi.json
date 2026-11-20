@@ -1558,6 +1558,65 @@
         }
       }
     },
+    "/api/admin/users/{user_id}/coach-status": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Set Coach Status",
+        "description": "Gives a trainer the Pro status or takes it back. Players then see (or no longer see) the Pro mark next to his name. Audited.",
+        "operationId": "set_coach_status_api_admin_users__user_id__coach_status_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoachStatusIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserCardOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/audit": {
       "get": {
         "tags": [
@@ -14395,6 +14454,17 @@
             "type": "boolean",
             "title": "Is Coach"
           },
+          "coach_is_pro": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coach Is Pro"
+          },
           "is_admin": {
             "type": "boolean",
             "title": "Is Admin"
@@ -14584,6 +14654,17 @@
           "is_coach": {
             "type": "boolean",
             "title": "Is Coach"
+          },
+          "coach_is_pro": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coach Is Pro"
           },
           "is_admin": {
             "type": "boolean",
@@ -15681,6 +15762,11 @@
             "type": "string",
             "title": "Coach Full Name"
           },
+          "coach_is_pro": {
+            "type": "boolean",
+            "title": "Coach Is Pro",
+            "default": false
+          },
           "listing_id": {
             "anyOf": [
               {
@@ -16598,6 +16684,11 @@
             "type": "string",
             "title": "Coach Full Name"
           },
+          "coach_is_pro": {
+            "type": "boolean",
+            "title": "Coach Is Pro",
+            "default": false
+          },
           "coach_photo_url": {
             "anyOf": [
               {
@@ -16984,6 +17075,11 @@
             "type": "string",
             "title": "Coach Full Name"
           },
+          "coach_is_pro": {
+            "type": "boolean",
+            "title": "Coach Is Pro",
+            "default": false
+          },
           "coach_photo_url": {
             "anyOf": [
               {
@@ -17287,6 +17383,11 @@
             ],
             "title": "Description"
           },
+          "is_pro": {
+            "type": "boolean",
+            "title": "Is Pro",
+            "default": false
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -17358,6 +17459,11 @@
               }
             ],
             "title": "Description"
+          },
+          "is_pro": {
+            "type": "boolean",
+            "title": "Is Pro",
+            "default": false
           },
           "avatar_file_id": {
             "anyOf": [
@@ -17455,6 +17561,27 @@
           "created_at"
         ],
         "title": "CoachReviewOut"
+      },
+      "CoachStatusIn": {
+        "properties": {
+          "is_pro": {
+            "type": "boolean",
+            "title": "Is Pro"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "is_pro",
+          "reason"
+        ],
+        "title": "CoachStatusIn",
+        "description": "Gives a trainer the Pro status (is_pro true) or takes it back (false), and why."
       },
       "CommissionIn": {
         "properties": {

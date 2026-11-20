@@ -50,6 +50,8 @@ export interface CoachProfile {
   experienceYears: number | null;
   specialization: string | null;
   description: string | null;
+  /** The Pro status, set by an administrator. */
+  isPro?: boolean;
 }
 
 export interface ProfileMe {
@@ -78,6 +80,7 @@ interface CoachProfileDto {
   experience_years: number | null;
   specialization: string | null;
   description: string | null;
+  is_pro?: boolean;
 }
 
 export interface ProfileMeDto {
@@ -109,6 +112,7 @@ function mapCoachDto(dto: CoachProfileDto): CoachProfile {
     experienceYears: dto.experience_years,
     specialization: dto.specialization,
     description: dto.description,
+    isPro: dto.is_pro ?? false,
   };
 }
 

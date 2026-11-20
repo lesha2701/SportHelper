@@ -1,4 +1,5 @@
 // frontend/src/components/coaches/CoachMarketplaceScreen.tsx
+import { ProBadge } from "../shared/ProBadge";
 import { useEffect, useState } from "react";
 import { getListingProfile, listListings } from "../../api/coachListings";
 import { navigateApp } from "../../appNav";
@@ -73,7 +74,10 @@ function ListingCardView({
           <div className={styles.coachAvatar}>{listing.coachFullName.charAt(0).toUpperCase()}</div>
         )}
         <div className={styles.coachCardWho}>
-          <h3 className={styles.coachName}>{listing.coachFullName}</h3>
+          <h3 className={styles.coachName}>
+            {listing.coachFullName}
+            {listing.coachIsPro && <ProBadge />}
+          </h3>
           {own && <span className={styles.ownBadge}>Ваше объявление</span>}
         </div>
         {listing.averageRating !== null && (
@@ -154,6 +158,7 @@ function ListingDetailPanel({
         </div>
         <p className={profileStyles.subtitle} style={{ margin: 0 }}>
           {listing.coachFullName}
+          {listing.coachIsPro && <ProBadge />}
           {listing.experienceYears !== null ? ` · ${years(listing.experienceYears)} опыта` : ""}
         </p>
         {listing.averageRating !== null && (

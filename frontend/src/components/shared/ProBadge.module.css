@@ -1,0 +1,19 @@
+/* Gold on a dark ink: the same in both themes (a fixed colour, like text on a red fill), so the mark always stands out. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 2px 7px 2px 6px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, #f8d067, #e8962a);
+  color: #2b1a00;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  vertical-align: middle;
+  white-space: nowrap;
+}

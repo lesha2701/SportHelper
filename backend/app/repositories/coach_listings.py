@@ -220,6 +220,7 @@ def _card_row_to_dict(row: dict[str, Any], coach_rating: dict[str, Any], next_sl
         "description": row["description"],
         "coach_user_id": row["coach_user_id"],
         "coach_full_name": row["coach_full_name"],
+        "coach_is_pro": row["coach_is_pro"],
         "coach_photo_url": row["coach_photo_url"],
         "sport": row["sport"],
         "specialization": row["specialization"],
@@ -280,7 +281,7 @@ async def list_listed(
 
     rows = await conn.fetch(
         f"""
-        SELECT cl.id, cl.title, cl.description, cl.coach_user_id, cp.full_name AS coach_full_name,
+        SELECT cl.id, cl.title, cl.description, cl.coach_user_id, cp.full_name AS coach_full_name, cp.is_pro AS coach_is_pro,
                u.photo_url AS coach_photo_url, cp.sport, cp.specialization, cp.experience_years,
                cl.price_per_session, cl.currency, cl.location, cl.offers_online, cl.offers_offline,
                {_VISIBLE_PHOTO} AS photo_file_id
@@ -310,7 +311,7 @@ async def list_listed_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) -
     coach's public profile can render them with CoachListingCardOut."""
     rows = await conn.fetch(
         f"""
-        SELECT cl.id, cl.title, cl.description, cl.coach_user_id, cp.full_name AS coach_full_name,
+        SELECT cl.id, cl.title, cl.description, cl.coach_user_id, cp.full_name AS coach_full_name, cp.is_pro AS coach_is_pro,
                u.photo_url AS coach_photo_url, cp.sport, cp.specialization, cp.experience_years,
                cl.price_per_session, cl.currency, cl.location, cl.offers_online, cl.offers_offline,
                {_VISIBLE_PHOTO} AS photo_file_id
@@ -334,7 +335,7 @@ async def list_listed_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) -
 async def get_public_listing(conn: asyncpg.Connection, listing_id: UUID) -> dict[str, Any] | None:
     row = await conn.fetchrow(
         f"""
-        SELECT cl.id, cl.title, cl.description, cl.coach_user_id, cp.full_name AS coach_full_name,
+        SELECT cl.id, cl.title, cl.description, cl.coach_user_id, cp.full_name AS coach_full_name, cp.is_pro AS coach_is_pro,
                u.photo_url AS coach_photo_url, cp.sport, cp.specialization, cp.description AS coach_description,
                cp.experience_years, cl.price_per_session, cl.currency, cl.location, cl.offers_online,
                cl.offers_offline, cl.session_duration_minutes, {_VISIBLE_PHOTO} AS photo_file_id,

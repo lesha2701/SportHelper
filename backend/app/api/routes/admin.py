@@ -28,6 +28,7 @@ from app.config import Settings
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.repositories import admin as admin_repo
 from app.repositories import admin_users as admin_users_repo
+from app.repositories import profiles as profiles_repo
 from app.services import admin_audit
 from app.repositories import mfa as mfa_repo
 from app.repositories import admin_stats as admin_stats_repo
@@ -41,6 +42,7 @@ from app.schemas.admin import (
     AdminUsersPageOut,
     BanRecordOut,
     BlockIn,
+    CoachStatusIn,
     ModerationEntryOut,
     UnblockIn,
     DashboardActivityOut,
@@ -115,6 +117,7 @@ def _row_out(row: dict, settings: Settings) -> dict:
         "last_name": row["last_name"],
         "is_player": row["is_player"],
         "is_coach": row["is_coach"],
+        "coach_is_pro": row["coach_is_pro"],
         "is_admin": is_admin({"email": row["email"], "email_verified_at": row["email_verified_at"], "is_banned": False, "deleted_at": row["deleted_at"]}, settings),
         "status": _status(row),
         "deletion_requested": row["deletion_requested_at"] is not None and row["deleted_at"] is None,
@@ -248,6 +251,28 @@ async def unban_user(
             )
     except admin_users_repo.NotBlocked:
         raise ConflictError("Пользователь не заблокирован.", code="not_banned") from None
+    return await _card(conn, user_id, settings)
+
+
+@router.put("/users/{user_id}/coach-status", response_model=AdminUserCardOut)
+async def set_coach_status(
+    user_id: UUID,
+    payload: CoachStatusIn,
+    ctx: AuthContext = Depends(require_admin_write),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> AdminUserCardOut:
+    """Gives a trainer the Pro status or takes it back. Players then see (or no longer see) the Pro mark next to his name. Audited."""
+    async with conn.transaction():
+        was_pro = await profiles_repo.set_coach_pro(conn, user_id, payload.is_pro)
+        if was_pro is None:
+            raise NotFoundError("trainer not found")
+        if was_pro == payload.is_pro:
+            raise ConflictError("Этот тренер уже в таком статусе.", code="coach_status_unchanged")
+        await admin_audit.record(
+            conn, ctx.user["id"], "coach.pro.grant" if payload.is_pro else "coach.pro.revoke", target_type="user", target_id=user_id,
+            reason=payload.reason, before={"is_pro": was_pro}, after={"is_pro": payload.is_pro},
+        )
     return await _card(conn, user_id, settings)
 
 

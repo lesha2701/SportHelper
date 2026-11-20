@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ProBadge } from "../shared/ProBadge";
 import { listListings } from "../../api/coachListings";
 import { Link } from "../Link";
 import { Icon } from "../shared/Icon";
@@ -22,6 +23,7 @@ function PreviewCard({ listing }: { listing: CoachListingCard }) {
       <h3 className={styles.previewTitle}>{listing.title}</h3>
       <p className={styles.previewMeta}>
         {listing.coachFullName}
+        {listing.coachIsPro && <ProBadge />}
         {listing.location ? ` · ${listing.location}` : ""}
         {listing.averageRating !== null ? ` · ★ ${listing.averageRating.toFixed(1)}` : ""}
       </p>

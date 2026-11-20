@@ -162,6 +162,14 @@ struct CoachListingTests {
         #expect(listing.nextAvailableSlot?.serverTime.display == "10:00")
     }
 
+    @Test func theProStatusIsReadAndAnOlderServerMeansAnOrdinaryTrainer() throws {
+        #expect(try APIClient.decoder.decode(CoachListingCard.self, from: Data(card.utf8)).isProCoach == false)  // no field at all
+        let pro = card.replacingOccurrences(of: "\"coach_photo_url\":null", with: "\"coach_is_pro\":true,\"coach_photo_url\":null")
+        #expect(try APIClient.decoder.decode(CoachListingCard.self, from: Data(pro.utf8)).isProCoach == true)
+        let booking = bookingJSON().replacingOccurrences(of: "\"coach_full_name\":\"Анна Тренер\"", with: "\"coach_full_name\":\"Анна Тренер\",\"coach_is_pro\":true")
+        #expect(try decode(booking).isProCoach == true && (try decode(bookingJSON())).isProCoach == false)
+    }
+
     @Test func aListingWithoutReviewsShowsNoRating() throws {
         let text = card.replacingOccurrences(of: "\"review_count\":4", with: "\"review_count\":0")
         #expect(try APIClient.decoder.decode(CoachListingCard.self, from: Data(text.utf8)).ratingText == nil)

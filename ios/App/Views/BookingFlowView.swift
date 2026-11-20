@@ -60,7 +60,7 @@ struct BookingFlowView: View {
         Form {
             Section {
                 Text(profile.title).font(.headline)
-                Text(profile.coachFullName).foregroundStyle(.secondary)
+                CoachNameLabel(name: profile.coachFullName, isPro: profile.isProCoach).foregroundStyle(.secondary)
             }
             switch slotsLoad {
             case .loading:

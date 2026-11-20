@@ -1,4 +1,5 @@
 // frontend/src/components/coaches/ListingPublicProfileScreen.tsx
+import { ProBadge } from "../shared/ProBadge";
 import { useEffect, useState } from "react";
 import { getListingProfile } from "../../api/coachListings";
 import { ApiError } from "../../api/client";
@@ -68,7 +69,9 @@ export function ListingPublicProfileScreen({
                     <h1 className={profileStyles.title}>{listing.title}</h1>
                   </TitleWithBack>
                   <p className={profileStyles.subtitle}>
-                    {listing.coachFullName} · {listing.sport}
+                    {listing.coachFullName}
+                    {listing.coachIsPro && <ProBadge />}
+                    {" "}· {listing.sport}
                     {listing.experienceYears !== null ? ` · ${years(listing.experienceYears)} опыта` : ""}
                   </p>
                   {listing.averageRating !== null && (

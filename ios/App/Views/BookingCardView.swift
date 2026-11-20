@@ -33,7 +33,7 @@ struct BookingCardView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(viewer == .athlete ? booking.coachFullName : booking.athleteFullName).font(.headline)
+                    CoachNameLabel(name: viewer == .athlete ? booking.coachFullName : booking.athleteFullName, isPro: viewer == .athlete && booking.isProCoach).font(.headline)
                     if let title = booking.listingTitle { Text(title).font(.subheadline).foregroundStyle(.secondary) }
                     Text(when)
                         .font(.subheadline).foregroundStyle(.secondary)

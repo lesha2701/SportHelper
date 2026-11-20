@@ -10,6 +10,7 @@ import { useFinanceFeatures } from "../../features";
 import { AchievementsGallery } from "./AchievementsGallery";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { Icon, type IconName } from "../shared/Icon";
+import { ProBadge } from "../shared/ProBadge";
 import { SKILL_LEVEL_LABELS, type ActiveMode, type ProfileMe } from "../../types/profile";
 import { formatRate } from "../../types/stats";
 import styles from "./profile.module.css";
@@ -300,7 +301,10 @@ export function ProfileSummary({
         </div>
 
         <div className={styles.summaryHeadText}>
-          <h1 className={styles.heroName}>{fullName ?? "—"}</h1>
+          <h1 className={styles.heroName}>
+            {fullName ?? "—"}
+            {mode === "coach" && profile.coach?.isPro && <ProBadge />}
+          </h1>
           <p className={styles.heroSub}>
             {mode === "player"
               ? [profile.player?.position, profile.player?.sport].filter(Boolean).join(" · ")

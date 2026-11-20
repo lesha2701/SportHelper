@@ -97,6 +97,7 @@ class CoachListingCardOut(BaseModel):
     description: str | None
     coach_user_id: UUID
     coach_full_name: str
+    coach_is_pro: bool = False
     coach_photo_url: str | None
     sport: str
     specialization: str | None
