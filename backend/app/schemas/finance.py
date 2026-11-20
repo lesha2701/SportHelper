@@ -29,6 +29,13 @@ class CommissionIn(BaseModel):
     reason: str = Field(min_length=1, max_length=500)
 
 
+class CoachCommissionIn(BaseModel):
+    """A trainer's personal commission percent for the payments created from now on (0-50, at most two decimals), or null to hand him back
+    to the general commission, and why. The percent must be sent (null included): leaving it out is a mistake, not a reset."""
+    percent: Decimal | None = Field(ge=0, le=50, decimal_places=2)
+    reason: str = Field(min_length=1, max_length=500)
+
+
 class BankBalanceIn(BaseModel):
     """The balance of the settlement account as the bank shows it, in kopecks (the browser converts roubles exactly)."""
     balance_kopecks: int = Field(ge=0, le=100_000_000_000_00)

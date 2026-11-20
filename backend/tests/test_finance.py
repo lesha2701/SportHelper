@@ -309,9 +309,10 @@ def test_there_is_no_way_to_add_money_through_the_api(fin) -> None:
     assert finance_routes == [("GET", "/api/finance/operations"), ("GET", "/api/finance/summary"), ("GET", "/api/finance/withdrawals"),
                               ("POST", "/api/finance/withdrawals"), ("POST", "/api/finance/withdrawals/{withdrawal_id}/cancel")]
     admin_money = [(m, r.path) for r in app.routes if getattr(r, "path", "").startswith("/api/admin/finance") for m in r.methods if m in ("PUT", "PATCH", "DELETE")]
-    # nothing edits or removes financial records; the only change is the commission SETTING (card #38, tests/test_commission.py): it
-    # applies to payments created later, and every payment keeps the percent it was created with
-    assert admin_money == [("PUT", "/api/admin/finance/commission")]
+    # nothing edits or removes financial records; the only changes are the commission SETTINGS (card #38, tests/test_commission.py, and a
+    # trainer's personal one, tests/test_coach_commission.py): they apply to payments created later, and every payment keeps the percent it
+    # was created with
+    assert sorted(admin_money) == [("PUT", "/api/admin/finance/coach-commissions/{coach_user_id}"), ("PUT", "/api/admin/finance/commission")]
     coach, player, booking, _ = paid_booking(fin)
     for body in ({"available_kopecks": 99999999}, {"amount_kopecks": 100000}, {"commission_percent": 0}):
         for method in ("POST", "PUT", "PATCH"):
