@@ -29,7 +29,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ru.sportarenaglobal.app
-        MARKETING_VERSION: "0.1.0"
+        MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: App/Resources/Info.plist
@@ -40,6 +40,15 @@ targets:
           API_BASE_URL: "$(SAG_DEV_API_URL)"
         Release:
           API_BASE_URL: "https://sportarenaglobal.ru"
+    postCompileScripts:
+      - name: Remove local-network keys from Release
+        basedOnDependencyAnalysis: false
+        script: |
+          if [ "${CONFIGURATION}" = "Release" ]; then
+            PLIST="${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
+            /usr/libexec/PlistBuddy -c "Delete :NSAppTransportSecurity" "$PLIST" || true
+            /usr/libexec/PlistBuddy -c "Delete :NSLocalNetworkUsageDescription" "$PLIST" || true
+          fi
     configFiles:
       Debug: Config/Debug.xcconfig
       Release: Config/Release.xcconfig
@@ -52,8 +61,13 @@ targets:
         UIAppFonts: [Oswald.ttf, Montserrat.ttf]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         API_BASE_URL: "$(API_BASE_URL)"
+        # One source of the version: MARKETING_VERSION / CURRENT_PROJECT_VERSION below.
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        # The app uses only the system's HTTPS: no export-compliance questions are asked at every upload.
+        ITSAppUsesNonExemptEncryption: false
         # Plain http is allowed only for a server on this Mac (the simulator reaches it as localhost, a phone by the Mac's name on the
-        # local network); the release build talks https.
+        # local network). The two keys are taken out of the Release build by the script below: the store build talks https only.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         NSLocalNetworkUsageDescription: Приложение подключается к тестовому серверу на вашем компьютере в этой же сети.
