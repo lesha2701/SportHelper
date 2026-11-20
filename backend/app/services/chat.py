@@ -17,6 +17,7 @@ import asyncpg
 
 from app.config import Settings
 from app.core.exceptions import APIError, ForbiddenError, NotFoundError
+from app.repositories import blocks as blocks_repo
 from app.repositories import bookings as bookings_repo
 from app.repositories import chat as chat_repo
 from app.repositories import payments as payments_repo
@@ -66,6 +67,8 @@ def _person(first: str | None, last: str | None) -> str:
 async def _booking_access(conn: asyncpg.Connection, user: dict, booking: dict[str, Any], conversation: dict[str, Any] | None) -> ChatAccess:
     summary = await payments_repo.summary_for_booking(conn, booking["id"])
     open_now, why = _booking_state(booking, summary)
+    if open_now and await blocks_repo.either_blocked(conn, booking["athlete_user_id"], booking["coach_user_id"]):
+        open_now, why = False, "Переписка в этом чате ограничена."  # worded the same for both people: nobody is told who blocked whom
     other = booking["coach_full_name"] if user["id"] == booking["athlete_user_id"] else booking["athlete_full_name"]
     when = booking["starts_at"].strftime("%d.%m.%Y %H:%M")
     subtitle = f"{booking['listing_title'] or 'Индивидуальная тренировка'} · {when}"
@@ -148,6 +151,12 @@ async def check_rate(conn: asyncpg.Connection, settings: Settings, user_id: UUID
         raise APIError("Слишком много сообщений подряд. Подождите немного.", code="rate_limited", status_code=429, retry_after=retry_after)
 
 
+async def _not_blocking(conn: asyncpg.Connection, sender_id: UUID, recipients: list[UUID]) -> list[UUID]:
+    """Without the people who have blocked the sender: his messages do not reach them, not even as a notification."""
+    blockers = await blocks_repo.blockers_among(conn, sender_id, recipients)
+    return [uid for uid in recipients if uid not in blockers]
+
+
 async def notify_recipients(conn: asyncpg.Connection, access: ChatAccess, sender: dict, message: dict[str, Any]) -> None:
     """Tells the OTHER people in the chat (once per unread streak - see the repository). Never blocks or undoes the message."""
     conversation = access.conversation
@@ -156,12 +165,14 @@ async def notify_recipients(conn: asyncpg.Connection, access: ChatAccess, sender
     if conversation["kind"] == "booking":
         booking = access.booking or {}
         recipients = [uid for uid in (booking.get("athlete_user_id"), booking.get("coach_user_id")) if uid and uid != sender["id"]]
+        recipients = await _not_blocking(conn, sender["id"], recipients)
         await chat_repo.queue_notifications(
             conn, conversation_id=conversation["id"], recipients=recipients, category="chat_booking",
             title=f"Сообщение от {sender_name}", body=preview, entity_type="booking", entity_id=conversation["booking_id"],
         )
     else:
         recipients = [uid for uid in await chat_repo.team_member_ids(conn, conversation["team_id"]) if uid != sender["id"]]
+        recipients = await _not_blocking(conn, sender["id"], recipients)
         await chat_repo.queue_notifications(
             conn, conversation_id=conversation["id"], recipients=recipients, category="chat_team",
             title=f"Чат команды «{access.title}»", body=f"{sender_name}: {preview}", entity_type="team", entity_id=conversation["team_id"],

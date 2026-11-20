@@ -6,6 +6,8 @@ from uuid import UUID
 
 import asyncpg
 
+from app.repositories.blocks import NOT_BLOCKED_BY
+
 _MESSAGE_SELECT = """
     SELECT m.id, m.conversation_id, m.sender_id, m.body, m.file_id, m.attachment_kind, m.created_at, m.deleted_at,
            u.first_name AS sender_first_name, u.last_name AS sender_last_name,
@@ -66,17 +68,20 @@ async def get_by_file(conn: asyncpg.Connection, file_id: UUID) -> dict[str, Any]
 
 
 async def list_messages(
-    conn: asyncpg.Connection, conversation_id: UUID, *, before_id: int | None, after_id: int | None, limit: int
+    conn: asyncpg.Connection, conversation_id: UUID, *, viewer_id: UUID, before_id: int | None, after_id: int | None, limit: int
 ) -> tuple[list[dict[str, Any]], bool]:
-    """Oldest-first page. `after_id` = what is new since I last looked; `before_id` = an older page; neither = the latest page.
-    The flag says whether there is anything older than the first returned message."""
+    """Oldest-first page, without the messages of people the viewer has blocked. `after_id` = what is new since I last looked;
+    `before_id` = an older page; neither = the latest page. The flag says whether there is anything older than the first returned message."""
+    visible = NOT_BLOCKED_BY.format(viewer="$4")
     if after_id is not None:
-        rows = await conn.fetch(f"{_MESSAGE_SELECT} WHERE m.conversation_id = $1 AND m.id > $2 ORDER BY m.id LIMIT $3", conversation_id, after_id, limit)
+        rows = await conn.fetch(
+            f"{_MESSAGE_SELECT} WHERE m.conversation_id = $1 AND m.id > $2 AND {visible} ORDER BY m.id LIMIT $3", conversation_id, after_id, limit, viewer_id
+        )
         items = [dict(r) for r in rows]
         return items, False
     rows = await conn.fetch(
-        f"{_MESSAGE_SELECT} WHERE m.conversation_id = $1 AND ($2::bigint IS NULL OR m.id < $2) ORDER BY m.id DESC LIMIT $3",
-        conversation_id, before_id, limit + 1,
+        f"{_MESSAGE_SELECT} WHERE m.conversation_id = $1 AND ($2::bigint IS NULL OR m.id < $2) AND {visible} ORDER BY m.id DESC LIMIT $3",
+        conversation_id, before_id, limit + 1, viewer_id,
     )
     items = [dict(r) for r in rows]
     more = len(items) > limit
@@ -126,26 +131,27 @@ async def mark_read(conn: asyncpg.Connection, conversation_id: UUID, user_id: UU
 
 async def unread_for_user(conn: asyncpg.Connection, user_id: UUID) -> dict[str, dict[str, int]]:
     """Unread (from other people, not deleted) per booking chat and per team chat the person can currently read."""
+    visible = NOT_BLOCKED_BY.format(viewer="$1")  # what people the viewer has blocked wrote is not unread
     bookings = await conn.fetch(
-        """
+        f"""
         SELECT c.booking_id AS ref, count(*) AS n
           FROM chat_conversations c
           JOIN bookings b ON b.id = c.booking_id AND (b.athlete_user_id = $1 OR b.coach_user_id = $1)
           JOIN chat_messages m ON m.conversation_id = c.id AND m.sender_id <> $1 AND m.deleted_at IS NULL
           LEFT JOIN chat_reads r ON r.conversation_id = c.id AND r.user_id = $1
-         WHERE m.id > COALESCE(r.last_read_id, 0)
+         WHERE m.id > COALESCE(r.last_read_id, 0) AND {visible}
          GROUP BY c.booking_id
         """,
         user_id,
     )
     teams = await conn.fetch(
-        """
+        f"""
         SELECT c.team_id AS ref, count(*) AS n
           FROM chat_conversations c
           JOIN team_members tm ON tm.team_id = c.team_id AND tm.user_id = $1
           JOIN chat_messages m ON m.conversation_id = c.id AND m.sender_id <> $1 AND m.deleted_at IS NULL
           LEFT JOIN chat_reads r ON r.conversation_id = c.id AND r.user_id = $1
-         WHERE m.id > COALESCE(r.last_read_id, 0)
+         WHERE m.id > COALESCE(r.last_read_id, 0) AND {visible}
          GROUP BY c.team_id
         """,
         user_id,

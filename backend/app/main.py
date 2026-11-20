@@ -28,6 +28,7 @@ from app.api.routes import (
     exercises,
     files,
     finance,
+    blocks,
     chat,
     health,
     matches,
@@ -227,6 +228,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_support.router)
     app.include_router(admin_finance.router)
     app.include_router(finance.router)
+    app.include_router(blocks.router)
     app.include_router(chat.router)
     app.include_router(complaints.router)
     app.include_router(support.router)
