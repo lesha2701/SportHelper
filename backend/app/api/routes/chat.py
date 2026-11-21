@@ -68,7 +68,7 @@ async def list_messages(
     conn: asyncpg.Connection = Depends(get_db),
 ) -> ChatMessagesOut:
     await chat_service.access_for(conn, user, conversation_id)
-    rows, more = await chat_repo.list_messages(conn, conversation_id, before_id=before_id, after_id=after_id, limit=limit)
+    rows, more = await chat_repo.list_messages(conn, conversation_id, viewer_id=user["id"], before_id=before_id, after_id=after_id, limit=limit)
     return ChatMessagesOut(items=[ChatMessageOut(**chat_service.message_out(r)) for r in rows], has_more_before=more)
 
 

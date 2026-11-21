@@ -44,6 +44,7 @@ final class AuthStore {
     let publicProfiles: PublicProfilesService
     let listings: ListingsService
     let reports: ReportsService
+    let blocks: BlocksService
     let account: AccountService
     let finance: FinanceService
     let search: SearchService
@@ -82,6 +83,7 @@ final class AuthStore {
         self.publicProfiles = PublicProfilesService(client: client)
         self.listings = ListingsService(client: client)
         self.reports = ReportsService(client: client)
+        self.blocks = BlocksService(client: client)
         self.account = AccountService(client: client)
         self.finance = FinanceService(client: client)
         self.search = SearchService(client: client)

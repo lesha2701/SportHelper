@@ -1469,6 +1469,117 @@
         }
       }
     },
+    "/api/blocks": {
+      "get": {
+        "tags": [
+          "blocks"
+        ],
+        "summary": "My Blocks",
+        "operationId": "my_blocks_api_blocks_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BlockedUserOut"
+                  },
+                  "type": "array",
+                  "title": "Response My Blocks Api Blocks Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/blocks/{user_id}": {
+      "put": {
+        "tags": [
+          "blocks"
+        ],
+        "summary": "Block User",
+        "description": "Blocks a person; blocking somebody already blocked changes nothing.",
+        "operationId": "block_user_api_blocks__user_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "blocks"
+        ],
+        "summary": "Unblock User",
+        "operationId": "unblock_user_api_blocks__user_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/chats/unread": {
       "get": {
         "tags": [
@@ -11399,6 +11510,31 @@
           "reason"
         ],
         "title": "BlockIn"
+      },
+      "BlockedUserOut": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "blocked_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Blocked At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "full_name",
+          "blocked_at"
+        ],
+        "title": "BlockedUserOut"
       },
       "Body_send_media_api_chats__conversation_id__messages_media_post": {
         "properties": {

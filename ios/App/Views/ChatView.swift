@@ -19,6 +19,7 @@ struct ChatView: View {
     @State private var viewing: ChatAttachment?
     @State private var reloads = 0
     @State private var reporting: ReportTarget?
+    @State private var blocking: ChatMessage?
 
     init(store: ChatStore) { _store = State(initialValue: store) }
 
@@ -55,6 +56,17 @@ struct ChatView: View {
         }
         .fullScreenCover(item: $viewing) { AttachmentViewer(attachment: $0) }
         .reportSheet(item: $reporting)
+        .confirmationDialog(
+            "Заблокировать \(blocking?.senderName ?? "автора")?",
+            isPresented: Binding(get: { blocking != nil }, set: { if !$0 { blocking = nil } }), titleVisibility: .visible
+        ) {
+            Button("Заблокировать", role: .destructive) {
+                guard let message = blocking else { return }
+                Task { notice = await store.block(message.senderId) }
+            }
+        } message: {
+            Text("Его сообщения пропадут из чата, и вы больше не сможете переписываться. Снять блокировку можно в разделе «Конфиденциальность».")
+        }
         .confirmationDialog("Удалить сообщение?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
             Button("Удалить", role: .destructive) {
                 guard let message = deleting else { return }
@@ -132,7 +144,8 @@ struct ChatView: View {
         MessageBubble(
             message: message, mine: store.isMine(message), showName: info.kind == "team",
             canDelete: store.canDelete(message), onDelete: { deleting = message }, onOpen: { viewing = $0 },
-            onReport: store.isMine(message) ? nil : { reporting = .user(message.senderId) }
+            onReport: store.isMine(message) ? nil : { reporting = .user(message.senderId) },
+            onBlock: store.isMine(message) ? nil : { blocking = message }
         )
     }
 
@@ -244,6 +257,8 @@ private struct MessageBubble: View {
     let onOpen: (ChatAttachment) -> Void
     /// «Пожаловаться» on the author of someone else's message; nil for one's own.
     var onReport: (() -> Void)?
+    /// «Заблокировать» the author of someone else's message; nil for one's own.
+    var onBlock: (() -> Void)?
 
     var body: some View {
         HStack {
@@ -277,6 +292,7 @@ private struct MessageBubble: View {
                 if let body = message.body, !body.isEmpty { Button("Копировать", systemImage: "doc.on.doc") { UIPasteboard.general.string = body } }
                 if canDelete { Button("Удалить", systemImage: "trash", role: .destructive, action: onDelete) }
                 if let onReport { Button("Пожаловаться на автора", systemImage: "flag", action: onReport).accessibilityIdentifier("chat.report") }
+                if let onBlock { Button("Заблокировать автора", systemImage: "hand.raised", role: .destructive, action: onBlock).accessibilityIdentifier("chat.block") }
             }
         }
     }
