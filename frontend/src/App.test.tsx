@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "./api/client";
 import * as authApi from "./api/auth";
@@ -50,7 +50,10 @@ describe("a visitor without an account", () => {
 
     expect(await screen.findByRole("heading", { level: 1, name: /Тренируйся с планом/i })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Найти тренера" }).getAttribute("href")).toBe("/coaches");
-    expect(screen.getAllByRole("link", { name: "Регистрация" }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: "Создать аккаунт" }).getAttribute("href")).toBe("/register");
+    const header = within(screen.getByRole("banner"));
+    expect(header.getByRole("link", { name: "Войти" }).getAttribute("href")).toBe("/login");
+    expect(header.getAllByRole("link")).toHaveLength(2);
   });
 
   it("can open the coach catalogue", async () => {

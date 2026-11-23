@@ -11,7 +11,7 @@ import {
   type PostCard,
 } from "../../api/blog";
 import { useAuth } from "../../context/AuthContext";
-import { loginUrl, navigate } from "../../router";
+import { navigate } from "../../router";
 import { COMMON_SPORTS } from "../../types/profile";
 import { Link } from "../Link";
 import { StateScreen } from "../StateScreen";
@@ -47,9 +47,7 @@ export function FeedPage({ search, active }: { search: string; active: boolean }
     <div className={styles.page}>
       <div className={styles.head}>
         <h1 className={styles.title}>Статьи</h1>
-        <Link to={signedIn ? "/blog/new" : loginUrl("/blog/new")} className={styles.primary}>
-          Написать статью
-        </Link>
+        {signedIn && <Link to="/blog/new" className={styles.primary}>Написать статью</Link>}
       </div>
 
       <div className={styles.toolbar}>

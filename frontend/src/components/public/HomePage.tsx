@@ -15,7 +15,7 @@ const STEPS = [
 ];
 
 const PLAYER_POINTS = ["Личный календарь тренировок и матчей", "Записи к тренерам и отзывы после занятий", "Задания, метрики и разбор прогресса"];
-const COACH_POINTS = ["Объявления и расписание с доступными слотами", "Команды, составы, матчи и отчёты", "Планы тренировок и библиотека упражнений"];
+const COACH_POINTS = ["Объявления и расписание с доступными слотами", "Матчи и отчёты", "Планы тренировок и библиотека упражнений"];
 
 function PreviewCard({ listing }: { listing: CoachListingCard }) {
   return (
@@ -52,22 +52,24 @@ export function HomePage() {
   return (
     <PublicShell>
       <section className={styles.hero} aria-labelledby="hero-title">
-        <span className={styles.eyebrow}>Платформа для игроков и тренеров</span>
-        <h1 id="hero-title" className={styles.heroTitle}>
-          Тренируйся <em>с планом.</em> Расти <em>с командой.</em>
-        </h1>
-        <p className={styles.heroLead}>
-          Находите тренеров, записывайтесь на занятия, ведите календарь, задания и статистику. Один аккаунт — и для игрока, и
-          для тренера.
-        </p>
-        <div className={styles.ctaRow}>
-          <Link to="/coaches" className={styles.cta}>
-            Найти тренера
-          </Link>
-          <Link to="/register" className={styles.ctaGhost}>
-            Создать аккаунт
-          </Link>
+        <div>
+          <span className={styles.eyebrow}>Платформа для игроков и тренеров</span>
+          <h1 id="hero-title" className={styles.heroTitle}>
+            Тренируйся <em>с планом.</em> Расти <em>с командой.</em>
+          </h1>
+          <p className={styles.heroLead}>
+            Находите тренеров, записывайтесь на занятия, ведите календарь, задания и статистику.
+          </p>
+          <div className={styles.ctaRow}>
+            <Link to="/coaches" className={styles.cta}>
+              Найти тренера
+            </Link>
+            <Link to="/register" className={styles.ctaGhost}>
+              Создать аккаунт
+            </Link>
+          </div>
         </div>
+        <FeaturedPost placement="public" />
       </section>
 
       <section className={styles.section} aria-labelledby="how-title">
@@ -103,10 +105,6 @@ export function HomePage() {
           </div>
         </section>
       )}
-
-      <div style={{ padding: "0 16px" }}>
-        <FeaturedPost />
-      </div>
 
       <section className={styles.section} aria-labelledby="roles-title">
         <div className={styles.sectionHead}>
