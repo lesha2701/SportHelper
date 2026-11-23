@@ -59,7 +59,7 @@ struct NotificationsView: View {
     @Environment(AuthStore.self) private var auth
 
     private enum Destination: Hashable {
-        case training(UUID, String), finance, matchOffers, myBookings, reviewBooking(UUID), incomingRequests, myTasks, chat(UUID, isTeam: Bool), settings
+        case training(UUID, String), finance, matchOffers, myBookings, reviewBooking(UUID), incomingRequests, myTasks, chat(UUID, isTeam: Bool), settings, blogPost(UUID)
     }
 
     @State private var destination: Destination?
@@ -105,6 +105,7 @@ struct NotificationsView: View {
             case .myTasks: MyTasksView()
             case .chat(let id, let isTeam): ChatView(store: auth.chatStore(for: isTeam ? .team(id) : .booking(id)))
             case .settings: NotificationSettingsView()
+            case .blogPost(let id): BlogPostView(postId: id)
             }
         }
         .sheet(isPresented: $planning) { PersonalTrainingFormView { Task { await auth.calendar.reload() } } }
@@ -176,6 +177,7 @@ struct NotificationsView: View {
         case .teamChat(let id): .chat(id, isTeam: true)
         case .finance: auth.features.trainerBalance ? .finance : nil
         case .matchOffers: .matchOffers
+        case .blogPost(let id): .blogPost(id)
         case .match, .matchRequests, .newPersonalTraining, .none: nil
         }
     }

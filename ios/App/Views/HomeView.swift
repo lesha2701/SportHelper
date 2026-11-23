@@ -32,6 +32,7 @@ struct HomeView: View {
                 VStack(spacing: 16) {
                     AppTopBar { SearchButton(); NotificationBell() }
                     heading
+                    FeaturedPostCard()
                     if user.isCoach { coachContent } else { playerContent }
                 }
                 .padding(.horizontal, 16)

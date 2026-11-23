@@ -20,9 +20,9 @@ struct ComplaintsTests {
         #expect(ComplaintDraft(reason: .spam, comment: String(repeating: "я", count: 1500)).tidyComment?.count == 1000)
     }
 
-    @Test func theReasonsAreTheSitesFiveInItsOrder() {
-        #expect(ComplaintReason.allCases.map(\.rawValue) == ["inappropriate", "fraud", "spam", "false_info", "other"])
-        #expect(ComplaintReason.allCases.map(\.title) == ["Недопустимый контент", "Мошенничество", "Спам", "Ложная информация", "Другая причина"])
+    @Test func theReasonsAreTheSitesSixInItsOrder() {
+        #expect(ComplaintReason.allCases.map(\.rawValue) == ["inappropriate", "fraud", "spam", "false_info", "advertising", "other"])
+        #expect(ComplaintReason.allCases.map(\.title) == ["Недопустимый контент", "Мошенничество", "Спам", "Ложная информация", "Реклама", "Другая причина"])
     }
 
     @Test func aComplaintIsSentWithItsTargetReasonAndComment() async throws {

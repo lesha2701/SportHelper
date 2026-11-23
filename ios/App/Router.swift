@@ -22,6 +22,8 @@ enum ProfileRoute: Hashable {
     case legalDocuments
     case myAchievements
     case matchOffers
+    case blogFeed
+    case blogPost(UUID)
 }
 
 /// Lets any screen send the person elsewhere (after booking: to "Мои брони") without knowing how the app is laid out.
