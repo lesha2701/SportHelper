@@ -37,6 +37,13 @@ PUBLIC_ROUTES = {
     ("GET", "/api/coaches/{coach_user_id}/profile"),
     ("GET", "/api/coaches/{coach_user_id}/listings"),
     ("GET", "/api/coaches/{coach_user_id}/reviews"),
+    # the blog: articles are readable by guests (writing, liking, saving and so on need a session)
+    ("GET", "/api/blog/authors/{author_id}"),
+    ("GET", "/api/blog/featured"),
+    ("GET", "/api/blog/posts"),
+    ("GET", "/api/blog/posts/{post_id}"),
+    ("GET", "/api/blog/posts/{post_id}/comments"),
+    ("GET", "/api/blog/sports"),
     # media: the handler itself refuses anything that is not PUBLIC / a coach gallery
     ("GET", "/api/files/{file_id}"),
     ("GET", "/api/profile/media/{user_id}"),

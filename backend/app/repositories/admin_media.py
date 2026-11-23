@@ -20,6 +20,7 @@ KINDS: dict[str, list[str]] = {
     "exercise": ["exercise_photo", "exercise_video"],
     "training": ["training_report_photo", "training_report_video", "task_photo", "task_video"],
     "chat": ["chat_photo", "chat_video"],
+    "blog": ["post_image"],
 }
 KIND_OF_ENTITY = {entity: kind for kind, entities in KINDS.items() for entity in entities}
 
@@ -38,6 +39,8 @@ REFERENCES: dict[tuple[str, str], str] = {
     ("task_assignments", "photo_file_id"): "null",
     ("task_assignments", "video_file_id"): "null",
     ("profile_media", "file_id"): "delete",
+    # An article keeps its text and its other photos; the removed one just drops out of the carousel.
+    ("post_images", "file_id"): "delete",
     # A chat message that showed the file stays as a deleted tombstone ("Сообщение удалено") for everyone in the chat.
     ("chat_messages", "file_id"): "chat",
 }
@@ -105,6 +108,8 @@ async def describe_relation(conn: asyncpg.Connection, media: dict[str, Any]) -> 
         return {"type": "user", "id": media["owner_id"], "label": "Профиль владельца"}
     if entity == "profile_media_photo" or entity == "profile_media_video":
         return {"type": "user", "id": media["owner_id"], "label": "Галерея достижений владельца"}
+    if entity == "post_image":
+        return {"type": "user", "id": media["owner_id"], "label": "Фото статьи блога"}
     if entity in ("coach_listing_photo", "coach_listing_video") and entity_id:
         title = await conn.fetchval("SELECT title FROM coach_listings WHERE id = $1", entity_id)
         return {"type": "listing", "id": entity_id, "label": f"Объявление «{title}»" if title else "Объявление"}

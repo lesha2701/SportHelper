@@ -1,13 +1,13 @@
 """«Подобрать тренера», offers to trainers: the terms a trainer accepts and what a trainer may see of a request."""
 from __future__ import annotations
 
-import re
 from decimal import Decimal
+
+from app.services.contact_filter import HIDDEN, mask_contacts  # noqa: F401 (re-exported: callers import them from here)
 
 # Bump on any change of the terms' meaning: trainers who accepted an older version have the matching switched off until they accept again.
 TERMS_VERSION = "2026-11-23"
 TERMS_TITLE = "Условия подбора клиентов"
-HIDDEN = "[контакт скрыт]"
 
 
 def format_percent(percent: Decimal | float) -> str:
@@ -30,24 +30,6 @@ def terms_paragraphs(percent: Decimal | float, window_days: int = 30) -> list[st
         "Если эта запись отклонена, отменена или деньги возвращены полностью, повышенный процент переходит на следующую запись.",
         "Подбор можно выключить в любой момент. Уже принятые предложения остаются в силе.",
     ]
-
-
-# Phones, e-mails, links, messengers' handles: a trainer who sees them before the payment could take the client away from the platform.
-_PATTERNS = [
-    re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+"),
-    re.compile(r"(?:https?://|www\.)\S+", re.IGNORECASE),
-    re.compile(r"\b(?:t\.me|wa\.me|vk\.com|vk\.cc|instagram\.com|youtube\.com)/\S*", re.IGNORECASE),
-    re.compile(r"(?<![\w@])@[A-Za-z0-9_]{3,}"),
-    re.compile(r"(?<!\d)(?:\+?\d[\s().-]*){10,}(?!\d)"),
-]
-
-
-def mask_contacts(text: str | None) -> str | None:
-    if not text:
-        return text
-    for pattern in _PATTERNS:
-        text = pattern.sub(HIDDEN, text)
-    return text
 
 
 def hide_athlete(row: dict) -> dict:

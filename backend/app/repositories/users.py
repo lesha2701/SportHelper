@@ -243,6 +243,25 @@ async def anonymize(conn: asyncpg.Connection, user_id: UUID) -> None:
         await conn.execute("DELETE FROM user_identities WHERE user_id = $1", user_id)
         # The «Подобрать тренера» forms are the person's own words (goals, comments): they go with the account.
         await conn.execute("DELETE FROM coach_match_requests WHERE user_id = $1", user_id)
+        # The blog: the person's articles (with their photos, likes and comments), their comments elsewhere and every mark they left.
+        await conn.execute("UPDATE files SET deleted_at = now() WHERE owner_id = $1 AND entity_type = 'post_image' AND deleted_at IS NULL", user_id)
+        touched = await conn.fetchval(
+            "SELECT COALESCE(array_agg(DISTINCT post_id), '{}') FROM (SELECT post_id FROM post_comments WHERE author_id = $1 "
+            "UNION SELECT post_id FROM post_likes WHERE user_id = $1) t",
+            user_id,
+        )
+        await conn.execute("DELETE FROM posts WHERE author_id = $1", user_id)
+        await conn.execute("DELETE FROM post_comments WHERE author_id = $1", user_id)
+        for table in ("post_likes", "post_bookmarks", "post_hides", "post_views"):
+            await conn.execute(f"DELETE FROM {table} WHERE user_id = $1", user_id)
+        await conn.execute(  # the counters of the articles this person had touched
+            "UPDATE posts SET likes_count = (SELECT count(*) FROM post_likes WHERE post_id = posts.id), "
+            "comments_count = (SELECT count(*) FROM post_comments WHERE post_id = posts.id AND deleted_at IS NULL AND hidden_at IS NULL) "
+            "WHERE id = ANY($1::uuid[])",
+            touched,
+        )
+        await conn.execute("DELETE FROM post_author_mutes WHERE user_id = $1 OR author_id = $1", user_id)
+        await conn.execute("UPDATE users SET show_profile_in_posts = FALSE, posts_trusted_at = NULL, posts_trusted_by = NULL WHERE id = $1", user_id)
 
 
 async def get_ai_analysis_consent(conn: asyncpg.Connection, user_id: UUID) -> bool:

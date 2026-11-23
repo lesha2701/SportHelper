@@ -25,6 +25,17 @@ async def resolve_target(conn: asyncpg.Connection, target_type: str, target_id: 
         return await conn.fetchval(
             "SELECT owner_id FROM files WHERE id = $1 AND deleted_at IS NULL AND hidden_at IS NULL AND access_level = 'PUBLIC'", target_id
         )
+    if target_type == "post":
+        # Only a published article that is not hidden from the reporter's world; the author is the owner.
+        return await conn.fetchval(
+            "SELECT author_id FROM posts WHERE id = $1 AND status = 'published' AND deleted_at IS NULL", target_id
+        )
+    if target_type == "post_comment":
+        return await conn.fetchval(
+            """SELECT c.author_id FROM post_comments c JOIN posts p ON p.id = c.post_id
+               WHERE c.id = $1 AND c.deleted_at IS NULL AND c.hidden_at IS NULL AND p.status = 'published' AND p.deleted_at IS NULL""",
+            target_id,
+        )
     return None
 
 
@@ -72,6 +83,8 @@ _SELECT = """
         WHEN 'user' THEN (SELECT first_name || COALESCE(' ' || last_name, '') FROM users WHERE id = c.target_id)
         WHEN 'listing' THEN (SELECT title FROM coach_listings WHERE id = c.target_id)
         WHEN 'media' THEN (SELECT filename FROM files WHERE id = c.target_id)
+        WHEN 'post' THEN (SELECT title FROM posts WHERE id = c.target_id)
+        WHEN 'post_comment' THEN (SELECT left(body, 80) FROM post_comments WHERE id = c.target_id)
     END AS target_label,
     CASE c.target_type
         WHEN 'user' THEN (SELECT CASE WHEN deleted_at IS NOT NULL THEN 'deleted'
@@ -81,6 +94,10 @@ _SELECT = """
                              FROM coach_listings WHERE id = c.target_id)
         WHEN 'media' THEN (SELECT CASE WHEN deleted_at IS NOT NULL THEN 'deleted' WHEN hidden_at IS NOT NULL THEN 'hidden' ELSE 'visible' END
                            FROM files WHERE id = c.target_id)
+        WHEN 'post' THEN (SELECT CASE WHEN deleted_at IS NOT NULL THEN 'deleted' WHEN status = 'removed' THEN 'hidden' ELSE 'visible' END
+                          FROM posts WHERE id = c.target_id)
+        WHEN 'post_comment' THEN (SELECT CASE WHEN deleted_at IS NOT NULL THEN 'deleted' WHEN hidden_at IS NOT NULL THEN 'hidden' ELSE 'visible' END
+                                  FROM post_comments WHERE id = c.target_id)
     END AS target_state
 """
 _FROM = """

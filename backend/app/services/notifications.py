@@ -384,3 +384,36 @@ async def schedule_match_offer_reply_notification(conn: asyncpg.Connection, offe
         entity_id=offer["request_id"],
         send_at=datetime.now(timezone.utc),
     )
+
+
+async def schedule_post_review_notification(conn: asyncpg.Connection, post: dict[str, Any], *, approved: bool, reason: str | None = None) -> None:
+    """Tells an author what the administrators decided about their article."""
+    if approved:
+        title, body = "Статья опубликована", f"Статью «{post['title']}» проверили — теперь её видят все."
+    else:
+        title = "Статья не прошла проверку"
+        body = f"Статью «{post['title']}» не опубликовали: {reason or 'причина не указана'}. Исправьте её и отправьте снова."
+    await _notify_recipients(
+        conn,
+        recipient_ids=[post["author_id"]],
+        category="post_review",
+        title=title,
+        body=body,
+        entity_type="post",
+        entity_id=post["id"],
+        send_at=datetime.now(timezone.utc),
+    )
+
+
+async def schedule_post_comment_notification(conn: asyncpg.Connection, post: dict[str, Any], commenter_name: str) -> None:
+    """Pings an author about a new comment (one ping per article until it is delivered: a busy discussion is not a stream of pushes)."""
+    await _notify_recipients(
+        conn,
+        recipient_ids=[post["author_id"]],
+        category="post_comment",
+        title="Новый комментарий к статье",
+        body=f"{commenter_name} прокомментировал(а) статью «{post['title']}».",
+        entity_type="post",
+        entity_id=post["id"],
+        send_at=datetime.now(timezone.utc),
+    )
