@@ -9,11 +9,10 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.admin import PersonOut
+from app.schemas.match_offers import AdminOfferOut, AthleteOfferOut
+from app.schemas.match_types import DayPart, MatchFormat, MatchLevel, MatchStatus
 
-MatchLevel = Literal["beginner", "amateur", "advanced", "pro"]
-MatchFormat = Literal["online", "offline", "any"]
-DayPart = Literal["morning", "day", "evening"]
-MatchStatus = Literal["new", "in_progress", "closed", "canceled"]
+__all__ = ["DayPart", "MatchFormat", "MatchLevel", "MatchStatus"]
 
 
 def _one_line(value: str | None) -> str | None:
@@ -94,7 +93,7 @@ class MatchRequestIn(BaseModel):
         return self
 
 
-class MatchRequestOut(BaseModel):
+class MatchRequestBase(BaseModel):
     id: UUID
     sport: str
     goal: str | None
@@ -113,11 +112,18 @@ class MatchRequestOut(BaseModel):
     created_at: datetime
 
 
-class MatchRequestAdminOut(MatchRequestOut):
+class MatchRequestOut(MatchRequestBase):
+    # The trainers who agreed to take this athlete (the athlete picks one); empty until there are any.
+    offers: list[AthleteOfferOut] = Field(default_factory=list)
+
+
+class MatchRequestAdminOut(MatchRequestBase):
     author: PersonOut
     admin_note: str | None
     handled_by: str | None
     handled_at: datetime | None
+    # The administrators see every offer, with the trainer's answer (the athlete sees only the accepted ones).
+    offers: list[AdminOfferOut] = Field(default_factory=list)
 
 
 class MatchRequestPageOut(BaseModel):

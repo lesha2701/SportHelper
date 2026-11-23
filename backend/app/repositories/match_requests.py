@@ -6,6 +6,7 @@ from uuid import UUID
 
 import asyncpg
 
+from app.repositories import match_offers as offers_repo
 from app.repositories.admin_users import like_pattern
 
 MAX_OPEN_PER_USER = 3
@@ -56,6 +57,7 @@ async def cancel(conn: asyncpg.Connection, request_id: UUID, user_id: UUID) -> d
         updated = await conn.fetchrow(
             f"UPDATE coach_match_requests SET status = 'canceled', updated_at = now() WHERE id = $1 RETURNING {_COLUMNS}", request_id
         )
+        await offers_repo.withdraw_all_for_request(conn, request_id)
     return dict(updated)
 
 
@@ -123,13 +125,14 @@ async def take(conn: asyncpg.Connection, request_id: UUID, admin_id: UUID) -> bo
 
 
 async def close(conn: asyncpg.Connection, request_id: UUID, admin_id: UUID, note: str | None) -> bool:
-    """new / in_progress -> closed, with an optional note on how it ended. Final."""
+    """new / in_progress / matched -> closed, with an optional note on how it ended. Final. Offers still waiting are withdrawn."""
     async with conn.transaction():
         row = await conn.fetchrow("SELECT status FROM coach_match_requests WHERE id = $1 FOR UPDATE", request_id)
         if row is None:
             return False
-        if row["status"] not in ("new", "in_progress"):
+        if row["status"] not in ("new", "in_progress", "matched"):
             raise BadTransition(row["status"])
+        await offers_repo.withdraw_all_for_request(conn, request_id)
         await conn.execute(
             "UPDATE coach_match_requests SET status = 'closed', admin_note = $3, handled_by = $2, handled_at = now(), updated_at = now() WHERE id = $1",
             request_id, admin_id, note,

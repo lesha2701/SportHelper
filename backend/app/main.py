@@ -45,6 +45,7 @@ from app.api.routes import (
     reports,
     stats,
     support,
+    match_offers,
     match_requests,
     task_templates,
     tasks,
@@ -236,6 +237,7 @@ def create_app() -> FastAPI:
     app.include_router(complaints.router)
     app.include_router(support.router)
     app.include_router(match_requests.router)
+    app.include_router(match_offers.router)
     app.include_router(health.router)
     app.include_router(profile.router)
     app.include_router(teams.router)

@@ -186,6 +186,11 @@ class Settings(BaseSettings):
 
     # The platform's commission, a percentage of the price. Read ONLY when a payment obligation is created and then frozen in it.
     platform_commission_percent: Decimal = Field(default=Decimal("10"), ge=0, le=50, alias="PLATFORM_COMMISSION_PERCENT")
+    # «Подобрать тренера»: the platform's share of the FIRST session with a client the platform brought (frozen in the offer),
+    # and how long the trainer / the athlete have to answer an offer.
+    match_first_session_commission_percent: Decimal = Field(default=Decimal("50"), ge=0, le=100, alias="MATCH_FIRST_SESSION_COMMISSION_PERCENT")
+    match_coach_reply_hours: int = Field(default=48, ge=1, le=720, alias="MATCH_COACH_REPLY_HOURS")
+    match_athlete_reply_hours: int = Field(default=72, ge=1, le=720, alias="MATCH_ATHLETE_REPLY_HOURS")
     # An athlete who cancels a confirmed booking at least this many hours before the start gets the money back in full; later, nothing.
     cancel_free_hours: int = Field(default=24, ge=0, le=720, alias="CANCEL_FREE_HOURS")
     trainer_min_withdrawal_rub: int = Field(default=10000, ge=1, alias="TRAINER_MIN_WITHDRAWAL_RUB")

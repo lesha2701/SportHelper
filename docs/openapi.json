@@ -3390,6 +3390,7 @@
                   "enum": [
                     "new",
                     "in_progress",
+                    "matched",
                     "closed",
                     "canceled"
                   ],
@@ -3598,6 +3599,183 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRequestAdminOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/match-requests/{request_id}/candidates": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Candidates",
+        "description": "Trainers who may be offered this request: opted in, published, no block or history with the athlete. Best matches first.",
+        "operationId": "candidates_api_admin_match_requests__request_id__candidates_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CandidateOut"
+                  },
+                  "title": "Response Candidates Api Admin Match Requests  Request Id  Candidates Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/match-requests/{request_id}/offers": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create Offer",
+        "description": "Offers the athlete to a trainer. The platform's share of the first session is fixed in the offer from the current setting.",
+        "operationId": "create_offer_api_admin_match_requests__request_id__offers_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOfferIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRequestAdminOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/match-requests/offers/{offer_id}/withdraw": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Withdraw Offer",
+        "operationId": "withdraw_offer_api_admin_match_requests_offers__offer_id__withdraw_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Offer Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6496,6 +6674,310 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MatchRequestOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/match-requests/offers/{offer_id}/accept": {
+      "post": {
+        "tags": [
+          "match-requests"
+        ],
+        "summary": "Accept Offer",
+        "description": "The athlete chooses this trainer; the request becomes «matched» and the other offers are taken back.",
+        "operationId": "accept_offer_api_match_requests_offers__offer_id__accept_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Offer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRequestOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/match-requests/offers/{offer_id}/decline": {
+      "post": {
+        "tags": [
+          "match-requests"
+        ],
+        "summary": "Decline Offer",
+        "description": "The athlete does not want this trainer; the request stays with the administrators.",
+        "operationId": "decline_offer_api_match_requests_offers__offer_id__decline_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Offer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRequestOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/match-offers/settings": {
+      "get": {
+        "tags": [
+          "match-offers"
+        ],
+        "summary": "Get Settings",
+        "operationId": "get_settings_api_match_offers_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchOfferSettingsOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "match-offers"
+        ],
+        "summary": "Put Settings",
+        "operationId": "put_settings_api_match_offers_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchOfferSettingsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchOfferSettingsOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/match-offers/incoming": {
+      "get": {
+        "tags": [
+          "match-offers"
+        ],
+        "summary": "Incoming",
+        "operationId": "incoming_api_match_offers_incoming_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CoachOfferOut"
+                  },
+                  "type": "array",
+                  "title": "Response Incoming Api Match Offers Incoming Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/match-offers/{offer_id}/accept": {
+      "post": {
+        "tags": [
+          "match-offers"
+        ],
+        "summary": "Accept Offer",
+        "operationId": "accept_offer_api_match_offers__offer_id__accept_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Offer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachOfferOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/match-offers/{offer_id}/decline": {
+      "post": {
+        "tags": [
+          "match-offers"
+        ],
+        "summary": "Decline Offer",
+        "operationId": "decline_offer_api_match_offers__offer_id__decline_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Offer Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclineOfferIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachOfferOut"
                 }
               }
             }
@@ -14865,6 +15347,130 @@
         ],
         "title": "AdminDashboardOut"
       },
+      "AdminOfferOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "proposed",
+              "coach_declined",
+              "coach_accepted",
+              "athlete_declined",
+              "athlete_accepted",
+              "withdrawn",
+              "expired"
+            ],
+            "title": "Status"
+          },
+          "coach": {
+            "$ref": "#/components/schemas/PersonOut"
+          },
+          "coach_sport": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coach Sport"
+          },
+          "first_session_percent": {
+            "type": "number",
+            "title": "First Session Percent"
+          },
+          "admin_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Message"
+          },
+          "coach_decline_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coach Decline Reason"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "athlete_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Athlete Expires At"
+          },
+          "coach_responded_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coach Responded At"
+          },
+          "athlete_responded_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Athlete Responded At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "coach",
+          "coach_sport",
+          "first_session_percent",
+          "admin_message",
+          "coach_decline_reason",
+          "created_at",
+          "expires_at",
+          "athlete_expires_at",
+          "coach_responded_at",
+          "athlete_responded_at"
+        ],
+        "title": "AdminOfferOut"
+      },
       "AdminSessionOut": {
         "properties": {
           "is_admin": {
@@ -15302,6 +15908,142 @@
           "team"
         ],
         "title": "ApplyResultOut"
+      },
+      "AthleteOfferCoachOut": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "is_pro": {
+            "type": "boolean",
+            "title": "Is Pro"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
+          "sport": {
+            "type": "string",
+            "title": "Sport"
+          },
+          "specialization": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specialization"
+          },
+          "experience_years": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Experience Years"
+          },
+          "average_rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Rating"
+          },
+          "review_count": {
+            "type": "integer",
+            "title": "Review Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "full_name",
+          "is_pro",
+          "photo_url",
+          "sport",
+          "specialization",
+          "experience_years",
+          "average_rating",
+          "review_count"
+        ],
+        "title": "AthleteOfferCoachOut"
+      },
+      "AthleteOfferOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "proposed",
+              "coach_declined",
+              "coach_accepted",
+              "athlete_declined",
+              "athlete_accepted",
+              "withdrawn",
+              "expired"
+            ],
+            "title": "Status"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "coach": {
+            "$ref": "#/components/schemas/AthleteOfferCoachOut"
+          },
+          "listings": {
+            "items": {
+              "$ref": "#/components/schemas/CoachListingCardOut"
+            },
+            "type": "array",
+            "title": "Listings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "expires_at",
+          "coach",
+          "listings"
+        ],
+        "title": "AthleteOfferOut",
+        "description": "A trainer who agreed to take the athlete. The athlete picks one (then books a session as usual) or declines."
       },
       "AttendanceOut": {
         "properties": {
@@ -16719,6 +17461,87 @@
         "title": "CancellationOut",
         "description": "Who cancelled the booking, why, by which rule and what happened to the money (None on the booking until it is cancelled)."
       },
+      "CandidateOut": {
+        "properties": {
+          "coach_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Coach User Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "is_pro": {
+            "type": "boolean",
+            "title": "Is Pro"
+          },
+          "sport": {
+            "type": "string",
+            "title": "Sport"
+          },
+          "specialization": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specialization"
+          },
+          "experience_years": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Experience Years"
+          },
+          "average_rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Rating"
+          },
+          "review_count": {
+            "type": "integer",
+            "title": "Review Count"
+          },
+          "same_sport": {
+            "type": "boolean",
+            "title": "Same Sport"
+          },
+          "already_offered": {
+            "type": "boolean",
+            "title": "Already Offered"
+          }
+        },
+        "type": "object",
+        "required": [
+          "coach_user_id",
+          "name",
+          "is_pro",
+          "sport",
+          "specialization",
+          "experience_years",
+          "average_rating",
+          "review_count",
+          "same_sport",
+          "already_offered"
+        ],
+        "title": "CandidateOut",
+        "description": "A trainer who may be offered the request: opted in, with a published listing, no block or history with the athlete."
+      },
       "ChangeEmailIn": {
         "properties": {
           "new_email": {
@@ -17810,6 +18633,67 @@
         ],
         "title": "CoachListingProfileOut"
       },
+      "CoachOfferOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "proposed",
+              "coach_declined",
+              "coach_accepted",
+              "athlete_declined",
+              "athlete_accepted",
+              "withdrawn",
+              "expired"
+            ],
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "first_session_percent": {
+            "type": "number",
+            "title": "First Session Percent"
+          },
+          "admin_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Message"
+          },
+          "request": {
+            "$ref": "#/components/schemas/MatchRequestSummaryOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "created_at",
+          "expires_at",
+          "first_session_percent",
+          "admin_message",
+          "request"
+        ],
+        "title": "CoachOfferOut"
+      },
       "CoachProfileIn": {
         "properties": {
           "full_name": {
@@ -18462,6 +19346,33 @@
         "title": "ConsentIn",
         "description": "One ticked box and the documents (with editions) it covered on the sign-up form."
       },
+      "CreateOfferIn": {
+        "properties": {
+          "coach_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Coach User Id"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "coach_user_id"
+        ],
+        "title": "CreateOfferIn"
+      },
       "DashboardActivityOut": {
         "properties": {
           "dau": {
@@ -18629,6 +19540,25 @@
           "count"
         ],
         "title": "DayCountOut"
+      },
+      "DeclineOfferIn": {
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DeclineOfferIn"
       },
       "DocumentRefIn": {
         "properties": {
@@ -19786,6 +20716,85 @@
         ],
         "title": "MatchHistoryEntryOut"
       },
+      "MatchOfferSettingsIn": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "accept_terms_version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept Terms Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "MatchOfferSettingsIn"
+      },
+      "MatchOfferSettingsOut": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "accepted_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted Version"
+          },
+          "current_version": {
+            "type": "string",
+            "title": "Current Version"
+          },
+          "terms_accepted": {
+            "type": "boolean",
+            "title": "Terms Accepted"
+          },
+          "first_session_percent": {
+            "type": "number",
+            "title": "First Session Percent"
+          },
+          "terms_title": {
+            "type": "string",
+            "title": "Terms Title"
+          },
+          "terms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Terms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "accepted_version",
+          "current_version",
+          "terms_accepted",
+          "first_session_percent",
+          "terms_title",
+          "terms"
+        ],
+        "title": "MatchOfferSettingsOut"
+      },
       "MatchOut": {
         "properties": {
           "id": {
@@ -20079,6 +21088,7 @@
             "enum": [
               "new",
               "in_progress",
+              "matched",
               "closed",
               "canceled"
             ],
@@ -20125,6 +21135,13 @@
               }
             ],
             "title": "Handled At"
+          },
+          "offers": {
+            "items": {
+              "$ref": "#/components/schemas/AdminOfferOut"
+            },
+            "type": "array",
+            "title": "Offers"
           }
         },
         "type": "object",
@@ -20447,6 +21464,7 @@
             "enum": [
               "new",
               "in_progress",
+              "matched",
               "closed",
               "canceled"
             ],
@@ -20456,6 +21474,13 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "offers": {
+            "items": {
+              "$ref": "#/components/schemas/AthleteOfferOut"
+            },
+            "type": "array",
+            "title": "Offers"
           }
         },
         "type": "object",
@@ -20508,6 +21533,153 @@
           "items"
         ],
         "title": "MatchRequestPageOut"
+      },
+      "MatchRequestSummaryOut": {
+        "properties": {
+          "sport": {
+            "type": "string",
+            "title": "Sport"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "beginner",
+                  "amateur",
+                  "advanced",
+                  "pro"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "online",
+                  "offline",
+                  "any"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "budget_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Min"
+          },
+          "budget_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Max"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Weekdays"
+          },
+          "day_parts": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "morning",
+                "day",
+                "evening"
+              ]
+            },
+            "type": "array",
+            "title": "Day Parts"
+          },
+          "schedule_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Note"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sport",
+          "goal",
+          "level",
+          "format",
+          "city",
+          "budget_min",
+          "budget_max",
+          "currency",
+          "weekdays",
+          "day_parts",
+          "schedule_note",
+          "comment"
+        ],
+        "title": "MatchRequestSummaryOut",
+        "description": "The request as a trainer sees it: only what helps to decide. Free text has contacts masked."
       },
       "MatchResultIn": {
         "properties": {
@@ -21611,7 +22783,9 @@
               "withdrawal_update",
               "finance_admin",
               "chat_booking",
-              "chat_team"
+              "chat_team",
+              "match_offer",
+              "match_offer_reply"
             ],
             "title": "Category"
           },

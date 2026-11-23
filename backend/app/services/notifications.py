@@ -348,3 +348,33 @@ async def schedule_session_dispute_resolved_notification(conn: asyncpg.Connectio
         coach = f"Администратор рассмотрел спор по тренировке {when}: оплата за занятие ваша."
     await _booking_note(conn, booking, recipient=booking["athlete_user_id"], title="Спор решён", body=athlete, key="session_dispute_resolved")
     await _booking_note(conn, booking, recipient=booking["coach_user_id"], title="Спор решён", body=coach, key="session_dispute_resolved")
+
+
+async def schedule_match_offer_notification(conn: asyncpg.Connection, offer: dict[str, Any]) -> None:
+    """Pings a trainer that the administrators offered them a client from «Подобрать тренера»."""
+    now = datetime.now(timezone.utc)
+    hours = max(1, round((offer["expires_at"] - now).total_seconds() / 3600))  # a duration: the server's clock is not the reader's
+    await _notify_recipients(
+        conn,
+        recipient_ids=[offer["coach_user_id"]],
+        category="match_offer",
+        title="Предложение клиента",
+        body=f"Вам предлагают спортсмена: {offer['sport']}. Посмотрите анкету и ответьте в течение {hours} ч.",
+        entity_type="match_offer",
+        entity_id=offer["id"],
+        send_at=now,
+    )
+
+
+async def schedule_match_offer_reply_notification(conn: asyncpg.Connection, offer: dict[str, Any], coach_name: str) -> None:
+    """Pings the athlete that a trainer agreed to take them: now they can choose."""
+    await _notify_recipients(
+        conn,
+        recipient_ids=[offer["athlete_user_id"]],
+        category="match_offer_reply",
+        title="Тренер готов с вами заниматься",
+        body=f"{coach_name} согласился(ась) на подбор. Откройте заявку и выберите тренера.",
+        entity_type="match_request",
+        entity_id=offer["request_id"],
+        send_at=datetime.now(timezone.utc),
+    )
