@@ -4,7 +4,7 @@ import { getAdminDashboard, getAdminSession } from "../../api/admin";
 import { ApiError } from "../../api/client";
 import AdminApp from "./AdminApp";
 
-vi.mock("../../api/admin", () => ({ getAdminSession: vi.fn(), getAdminDashboard: vi.fn(), listAdminComplaints: vi.fn(() => Promise.resolve({ total: 0, limit: 1, offset: 0, items: [] })), listAdminSupport: vi.fn(() => Promise.resolve({ total: 0, limit: 1, offset: 0, items: [] })) }));
+vi.mock("../../api/admin", () => ({ getAdminSession: vi.fn(), getAdminDashboard: vi.fn(), listAdminComplaints: vi.fn(() => Promise.resolve({ total: 0, limit: 1, offset: 0, items: [] })), listAdminSupport: vi.fn(() => Promise.resolve({ total: 0, limit: 1, offset: 0, items: [] })), listAdminMatchRequests: vi.fn(() => Promise.resolve({ total: 0, limit: 1, offset: 0, items: [] })) }));
 vi.mock("../../context/AuthContext", () => ({
   useAuth: () => ({ state: { status: "ready", user: { id: "me", email: "boss@example.com", isAdmin: true } } }),
 }));

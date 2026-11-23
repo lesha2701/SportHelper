@@ -215,6 +215,7 @@ export function ProfileSummary({
     if (trainerBalance) {
       offerRows.push({ key: "finance", icon: "wallet", label: "Финансы", onClick: () => navigateApp({ kind: "finance" }) });
     }
+    offerRows.push({ key: "match-offers", icon: "users", label: "Подбор клиентов", onClick: () => navigateApp({ kind: "match-offers" }) });
     offerRows.push({
       key: "catalogue",
       icon: "users",

@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 import asyncpg
 
 from app.core import session_time
+from app.repositories import match_attribution
 
 _TRAINING_FIELDS = (
     "id, team_id, created_by, type, plan_id, training_date, start_time, "
@@ -150,10 +151,11 @@ async def list_calendar_trainings(
     with them (`booked_athlete_name` is set for those). The athlete's own session
     booked with a coach carries that coach's name in `booked_coach_name`."""
     rows = await conn.fetch(
-        """
+        f"""
         SELECT t.id, t.type, t.training_date, t.start_time, t.status, t.team_id, tm.name AS team_name, t.description,
                CASE WHEN bk.id IS NOT NULL
-                    THEN au.first_name || COALESCE(' ' || au.last_name, '') END AS booked_athlete_name,
+                    THEN CASE WHEN {match_attribution.hidden_sql('bk.coach_user_id', 'bk.athlete_user_id')} THEN '{match_attribution.HIDDEN_NAME}'
+                              ELSE au.first_name || COALESCE(' ' || au.last_name, '') END END AS booked_athlete_name,
                ab.id IS NOT NULL AS is_booked_with_coach,
                cp.full_name AS booked_coach_name
         FROM trainings t

@@ -75,3 +75,10 @@ class ResolveDisputeIn(BaseModel):
 
     outcome: Literal["release", "refund"]
     note: str = Field(min_length=3, max_length=1000)
+
+
+class MatchCommissionIn(BaseModel):
+    """A new platform share of the first session with a client from «Подобрать тренера» (0-100, at most two decimals) for the offers
+    created from now on, and why. Offers that already exist keep their percent."""
+    percent: Decimal = Field(ge=0, le=100, decimal_places=2)
+    reason: str = Field(min_length=1, max_length=500)

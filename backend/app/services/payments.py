@@ -30,6 +30,7 @@ from app.integrations.yookassa import YooKassaError, get_client
 from app.repositories import bookings as bookings_repo
 from app.repositories import earnings as earnings_repo
 from app.repositories import ledger
+from app.repositories import match_attribution
 from app.repositories import legal as legal_repo
 from app.repositories import payments as payments_repo
 from app.repositories.ledger import Leg
@@ -134,12 +135,16 @@ async def start_payment(
         raise APIError("Онлайн-оплата сейчас недоступна.", code="payments_unavailable", status_code=503)
     ensure_payable(booking)
     gross = rub_to_kopecks(booking["price_per_session"])  # from the booking row, never from the request
-    percent = await commission_service.percent_for_coach(conn, settings, booking["coach_user_id"])
-    fee, trainer = split_commission(gross, percent)
 
     async with conn.transaction():
         # Serialises two simultaneous clicks on the same booking.
         await conn.execute("SELECT 1 FROM bookings WHERE id = $1 FOR UPDATE", booking["id"])
+        # The first session with a client from «Подобрать тренера» pays the share fixed in the offer (instead of the personal and the
+        # general one); a booking that was not the first when it was made may have become so since. A payment already created is kept as it is.
+        await match_attribution.claim(conn, booking)
+        offer_percent = await match_attribution.offer_percent_for_booking(conn, booking["id"])
+        percent = offer_percent if offer_percent is not None else await commission_service.percent_for_coach(conn, settings, booking["coach_user_id"])
+        fee, trainer = split_commission(gross, percent)
         payment, created = await payments_repo.create_payment(
             conn, booking_id=booking["id"], payer_user_id=user["id"], coach_user_id=booking["coach_user_id"], currency=booking["currency"],
             gross_kopecks=gross, commission_percent=percent, platform_fee_kopecks=fee, trainer_kopecks=trainer,

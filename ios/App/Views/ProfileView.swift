@@ -50,6 +50,7 @@ struct ProfileView: View {
                 case .finance: FinanceView()
                 case .legalDocuments: LegalDocumentsView(isCoach: user.isCoach)
                 case .myAchievements: MyAchievementsView(userId: user.id)
+                case .matchOffers: MatchOffersView()
                 }
             }
             .task {

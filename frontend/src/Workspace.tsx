@@ -22,6 +22,10 @@ import { searchAll, type SearchResult } from "./api/search";
 import { subscribeAppNav } from "./appNav";
 import { notificationToOverlay, type Overlay } from "./overlay";
 import { FinanceScreen } from "./components/finance/FinanceScreen";
+import { MatchOffersScreen } from "./components/coaches/MatchOffersScreen";
+import { MatchRequestScreen } from "./components/coaches/MatchRequestScreen";
+import { TitleWithBack } from "./components/shared/BackArrow";
+import profileStyles from "./components/profile/profile.module.css";
 import { ChatScreen } from "./components/chat/ChatScreen";
 import { useFinanceFeatures } from "./features";
 import { NotificationsScreen } from "./components/notifications/NotificationsScreen";
@@ -459,6 +463,24 @@ function MainContent({
     overlayContent = <ChatScreen token={token} target={overlay.target} myUserId={myUserId} onBack={closeOverlay} />;
   } else if (overlay?.kind === "finance") {
     overlayContent = <FinanceScreen token={token} onBack={closeOverlay} />;
+  } else if (overlay?.kind === "match-offers") {
+    overlayContent = <MatchOffersScreen onBack={closeOverlay} />;
+  } else if (overlay?.kind === "match-requests") {
+    overlayContent = (
+      <div className={profileStyles.screen}>
+        <TitleWithBack onBack={closeOverlay}>
+          <h1 className={profileStyles.pageHeading}>Подбор тренера</h1>
+        </TitleWithBack>
+        <MatchRequestScreen
+          onOpenCoach={(coachUserId) => {
+            setOverlay(null);
+            setMarketplaceStart(null);
+            setMarketplaceCoachId(coachUserId);
+            setPlayerTab("coaches");
+          }}
+        />
+      </div>
+    );
   } else if (overlay?.kind === "my-bookings") {
     overlayContent = (
       <MyBookingsSection
@@ -499,6 +521,9 @@ function MainContent({
             break;
           case "finance":
             setOverlay({ kind: "finance" });
+            break;
+          case "match-offers":
+            setOverlay({ kind: "match-offers" });
             break;
         }
       }),

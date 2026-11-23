@@ -8,6 +8,7 @@ from uuid import UUID
 import asyncpg
 
 from app.core import session_time
+from app.repositories import match_attribution
 from app.repositories import trainings as trainings_repo
 
 _BOOKING_FIELDS = (
@@ -16,7 +17,8 @@ _BOOKING_FIELDS = (
     "b.athlete_notes, "
     "b.starts_at, b.duration_minutes, b.format, b.price_per_session, b.currency, "
     "b.status, b.training_id, t.plan_id AS training_plan_id, tp.name AS training_plan_name, "
-    "t.status AS training_status"
+    "t.status AS training_status, b.created_at, b.match_offer_id, "
+    "(SELECT o.first_session_percent FROM coach_match_offers o WHERE o.id = b.match_offer_id) AS match_percent"
 )
 # Every _BOOKING_FIELDS query needs this pair of joins for the linked
 # training's plan — a booking's training_id is only set once confirmed, so
@@ -28,7 +30,7 @@ _BOOKING_PLAN_JOINS = (
 
 _BOOKING_INSERT_FIELDS = (
     "id, coach_user_id, listing_id, athlete_user_id, starts_at, duration_minutes, format, "
-    "price_per_session, currency, status, training_id, athlete_notes"
+    "price_per_session, currency, status, training_id, athlete_notes, match_offer_id"
 )
 
 
@@ -89,6 +91,7 @@ async def create_booking(
     result["training_plan_id"] = None
     result["training_plan_name"] = None
     result["training_status"] = None
+    result["match_percent"] = None
     return result
 
 
@@ -147,9 +150,11 @@ async def has_booking_between(conn: asyncpg.Connection, coach_user_id: UUID, ath
     """Whether this coach and athlete have ever had a booking together
     (any status) — the basis for letting a coach view an athlete's profile
     outside of a shared team: reviewing a pending request, and continuing
-    to see it afterward in "Записи", both need this."""
+    to see it afterward in "Записи", both need this. A client from «Подобрать тренера» does not count until their first
+    session is paid: before that the trainer must not learn who they are (match_attribution)."""
     return await conn.fetchval(
-        "SELECT EXISTS (SELECT 1 FROM bookings WHERE coach_user_id = $1 AND athlete_user_id = $2)",
+        f"SELECT EXISTS (SELECT 1 FROM bookings WHERE coach_user_id = $1 AND athlete_user_id = $2) "
+        f"AND NOT {match_attribution.hidden_sql('$1::uuid', '$2::uuid')}",
         coach_user_id,
         athlete_user_id,
     )
@@ -312,10 +317,12 @@ async def sweep_expired(conn: asyncpg.Connection, *, older_than: datetime) -> li
 
 async def list_pending_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) -> list[dict[str, Any]]:
     rows = await conn.fetch(
-        """
+        f"""
         SELECT b.id, cl.title AS listing_title, b.athlete_user_id, b.starts_at, b.duration_minutes, b.format,
                b.price_per_session, b.currency, b.created_at, b.athlete_notes,
                u.first_name || COALESCE(' ' || u.last_name, '') AS athlete_full_name,
+               {match_attribution.hidden_sql('b.coach_user_id', 'b.athlete_user_id')} AS athlete_hidden, b.match_offer_id IS NOT NULL AS from_match,
+               (SELECT o.first_session_percent FROM coach_match_offers o WHERE o.id = b.match_offer_id) AS match_percent,
                (SELECT AVG(rating)::float FROM player_reviews pr WHERE pr.athlete_user_id = b.athlete_user_id)
                    AS athlete_rating_average,
                (SELECT COUNT(*) FROM player_reviews pr WHERE pr.athlete_user_id = b.athlete_user_id)

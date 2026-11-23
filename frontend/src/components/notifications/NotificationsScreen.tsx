@@ -25,6 +25,8 @@ const CATEGORY_ICON: Record<NotificationCategory, IconName> = {
   finance_admin: "shield",
   chat_booking: "message",
   chat_team: "message",
+  match_offer: "users",
+  match_offer_reply: "users",
 };
 
 function formatSendAt(iso: string): string {

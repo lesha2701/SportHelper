@@ -13,7 +13,9 @@ export type NotificationCategory =
   | "withdrawal_update"
   | "finance_admin"
   | "chat_booking"
-  | "chat_team";
+  | "chat_team"
+  | "match_offer"
+  | "match_offer_reply";
 
 export const NOTIFICATION_CATEGORY_LABELS: Record<NotificationCategory, string> = {
   training_reminder: "Напоминания о тренировках",
@@ -31,6 +33,8 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<NotificationCategory, string> 
   finance_admin: "Финансовые события (для администратора)",
   chat_booking: "Сообщения в чате личной тренировки",
   chat_team: "Сообщения в чате команды",
+  match_offer: "Предложения клиентов из подбора (для тренера)",
+  match_offer_reply: "Ответы тренеров на мою заявку на подбор",
 };
 
 export interface NotificationPreference {

@@ -95,6 +95,9 @@ export interface BookingDto {
   has_started?: boolean;
   cancellation?: CancellationDto | null;
   session_confirmation?: SessionConfirmationDto | null;
+  from_match?: boolean;
+  match_percent?: number | null;
+  athlete_hidden?: boolean;
 }
 
 /** Whether the session took place (docs/session-confirmation.md), as this side sees it. */
@@ -204,6 +207,12 @@ export interface Booking {
   cancellation: Cancellation | null;
   /** Whether the session took place: null until the booking is confirmed and after it is cancelled. */
   sessionConfirmation: SessionConfirmation | null;
+  /** «Подобрать тренера»: the first session with a client the platform brought; it is paid in the app. */
+  fromMatch?: boolean;
+  /** The platform's share of that session in percent (the trainer's side only). */
+  matchPercent?: number | null;
+  /** The trainer's side: the athlete's name and contacts are hidden until the first session is paid. */
+  athleteHidden?: boolean;
 }
 
 export function mapBookingDto(dto: BookingDto): Booking {
@@ -246,6 +255,9 @@ export function mapBookingDto(dto: BookingDto): Booking {
         }
       : null,
     sessionConfirmation: dto.session_confirmation ? mapSessionConfirmationDto(dto.session_confirmation) : null,
+    fromMatch: dto.from_match ?? false,
+    matchPercent: dto.match_percent ?? null,
+    athleteHidden: dto.athlete_hidden ?? false,
   };
 }
 
@@ -282,6 +294,9 @@ export interface PendingBookingDto {
   created_at: string;
   athlete_rating_average: number | null;
   athlete_review_count: number;
+  from_match?: boolean;
+  match_percent?: number | null;
+  athlete_hidden?: boolean;
 }
 
 export interface PendingBooking {
@@ -299,6 +314,9 @@ export interface PendingBooking {
   /** How other coaches rated this athlete (null while nobody has). */
   athleteRatingAverage: number | null;
   athleteReviewCount: number;
+  fromMatch?: boolean;
+  matchPercent?: number | null;
+  athleteHidden?: boolean;
 }
 
 export function mapPendingBookingDto(dto: PendingBookingDto): PendingBooking {
@@ -316,5 +334,8 @@ export function mapPendingBookingDto(dto: PendingBookingDto): PendingBooking {
     createdAt: dto.created_at,
     athleteRatingAverage: dto.athlete_rating_average ?? null,
     athleteReviewCount: dto.athlete_review_count ?? 0,
+    fromMatch: dto.from_match ?? false,
+    matchPercent: dto.match_percent ?? null,
+    athleteHidden: dto.athlete_hidden ?? false,
   };
 }

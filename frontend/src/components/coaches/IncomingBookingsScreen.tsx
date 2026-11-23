@@ -8,6 +8,7 @@ import { TrainingDetail } from "../trainings/TrainingDetail";
 import { PlayerPublicProfileScreen } from "./PlayerPublicProfileScreen";
 import type { PendingBooking } from "../../types/booking";
 import profileStyles from "../profile/profile.module.css";
+import { MatchBookingNote } from "./MatchBookingNote";
 import styles from "./coaches.module.css";
 import { TitleWithBack } from "../shared/BackArrow";
 
@@ -133,9 +134,13 @@ export function IncomingBookingsScreen({
           ref={b.id === focusBookingId ? (el) => el?.scrollIntoView({ block: "center" }) : undefined}
           style={b.id === focusBookingId ? { outline: "2px solid var(--color-primary)" } : undefined}
         >
-          <button type="button" className={styles.bookingAthleteName} onClick={() => setViewingPlayerId(b.athleteUserId)}>
-            {b.athleteFullName}
-          </button>
+          {b.athleteHidden ? (
+            <strong className={styles.bookingAthleteName}>{b.athleteFullName}</strong>
+          ) : (
+            <button type="button" className={styles.bookingAthleteName} onClick={() => setViewingPlayerId(b.athleteUserId)}>
+              {b.athleteFullName}
+            </button>
+          )}
           <span className={b.athleteRatingAverage !== null && b.athleteRatingAverage < 3 ? `${styles.ratingChip} ${styles.ratingChipLow}` : styles.ratingChip}>
             {b.athleteRatingAverage !== null
               ? `★ ${b.athleteRatingAverage.toFixed(1)} · отзывов тренеров: ${b.athleteReviewCount}`
@@ -145,6 +150,7 @@ export function IncomingBookingsScreen({
           <p className={profileStyles.subtitle}>
             {formatDate(b.startsAt)} · {b.format === "online" ? "Онлайн" : "Очно"}
           </p>
+          <MatchBookingNote side="coach" fromMatch={b.fromMatch ?? false} hidden={b.athleteHidden} percent={b.matchPercent ?? null} />
           {b.athleteNotes && <p className={styles.bookingNotes}>Пожелания: {b.athleteNotes}</p>}
 
           <div className={styles.incomingActions}>

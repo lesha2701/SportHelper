@@ -13,6 +13,7 @@ import { ErrorBox, PageHead, Pager, Pill, ReasonDialog, formatDateTime, useAdmin
 import { BankBalanceCard } from "./BankBalanceCard";
 import { CoachCommissionsCard } from "./CoachCommissionsCard";
 import { CommissionCard } from "./CommissionCard";
+import { MatchCommissionCard } from "./MatchCommissionCard";
 import { DisputesTab } from "./DisputesTab";
 import { EarningsTab } from "./EarningsTab";
 import { PaymentsTab } from "./PaymentsTab";
@@ -92,6 +93,7 @@ function OverviewTab({ onOpen }: { onOpen: (tab: TabId) => void }) {
 
       <h2 className={styles.cardTitle}>Деньги платформы</h2>
       <CommissionCard onChanged={reload} />
+      <MatchCommissionCard />
       <CoachCommissionsCard />
       <div className={styles.grid}>
         <Tile label="Получено от игроков" value={money(o.grossReceivedKopecks)} hint="за вычетом возвратов; это не доход платформы" />

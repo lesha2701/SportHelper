@@ -24,6 +24,10 @@ export const AUDIT_ACTIONS: Record<string, string> = {
   support_take: "Обращение в поддержку взято в работу",
   support_answer: "Ответ на обращение в поддержку",
   support_close: "Обращение в поддержку закрыто",
+  match_request_take: "Заявка на подбор тренера взята в работу",
+  match_request_close: "Заявка на подбор тренера закрыта",
+  match_offer_create: "Заявка на подбор предложена тренеру",
+  match_offer_withdraw: "Предложение тренеру по заявке отозвано",
   mfa_enabled: "Включена двухфакторная защита",
   mfa_disabled: "Отключена двухфакторная защита",
 };
@@ -38,6 +42,7 @@ function targetHref(entry: AuditEntry): string | null {
   if (entry.targetType === "listing") return `/admin/trainings?tab=listings&open=${entry.targetId}`;
   if (entry.targetType === "complaint") return `/admin/reports?q=${entry.targetId}`;
   if (entry.targetType === "support_request") return `/admin/support?q=${entry.targetId}`;
+  if (entry.targetType === "match_request") return `/admin/matching?q=${entry.targetId}`;
   return null;
 }
 
