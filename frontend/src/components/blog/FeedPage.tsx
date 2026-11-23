@@ -17,6 +17,7 @@ import { Link } from "../Link";
 import { StateScreen } from "../StateScreen";
 import { PostCardItem } from "./PostCardItem";
 import { formatPostDate } from "./blogText";
+import { Stat } from "./Stat";
 import styles from "./blog.module.css";
 
 type Tab = "all" | "mine" | "saved";
@@ -212,9 +213,9 @@ function MyPosts() {
                 <span>{formatPostDate(post.publishedAt ?? post.updatedAt)}</span>
                 {post.status === "published" && (
                   <>
-                    <span>♥ {post.likesCount}</span>
-                    <span>💬 {post.commentsCount}</span>
-                    <span>👁 {post.viewsCount}</span>
+                    <Stat icon="heart" value={post.likesCount} label="Нравится" />
+                    <Stat icon="message" value={post.commentsCount} label="Комментарии" />
+                    <Stat icon="eye" value={post.viewsCount} label="Просмотры" />
                   </>
                 )}
               </div>

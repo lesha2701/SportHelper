@@ -101,10 +101,11 @@ describe("an article", () => {
     vi.mocked(blogApi.getPost).mockResolvedValue(post);
     vi.mocked(blogApi.setLike).mockResolvedValue({ liked: true, likesCount: 4 });
     render(<PostPage postId="p1" />);
-    const like = await screen.findByRole("button", { name: /♡ 3/ });
+    const like = await screen.findByRole("button", { name: "Нравится: 3" });
     await waitFor(() => expect(blogApi.countView).toHaveBeenCalledWith("p1"));
     fireEvent.click(like);
-    expect(await screen.findByRole("button", { name: /♥ 4/ })).toBeTruthy();
+    const liked = await screen.findByRole("button", { name: "Нравится: 4" });
+    expect(liked.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("does not count the author's own view and offers edit and delete in the menu", async () => {
