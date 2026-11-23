@@ -1,3 +1,4 @@
+import { FeaturedPost } from "../blog/FeaturedPost";
 import { useCallback, useEffect, useState } from "react";
 import { getCalendar } from "../../api/calendar";
 import { getPlayerStats } from "../../api/stats";
@@ -134,6 +135,7 @@ export function PlayerDashboard({
         <h1 className={styles.heroTitle}>Твой прогресс</h1>
       </div>
 
+      <FeaturedPost />
       <div className={styles.bento}>
         <button type="button" className={`${styles.heroCard} ${styles.span7}`} onClick={() => nextEvent && onOpenEvent(nextEvent)} disabled={!nextEvent}>
           {nextEvent ? (

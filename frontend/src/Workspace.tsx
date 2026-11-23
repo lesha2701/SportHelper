@@ -43,6 +43,14 @@ import type { NotificationCategory } from "./types/notification";
 import { navigate } from "./router";
 import { useActivityPing } from "./hooks/useActivityPing";
 import { loadView, saveView } from "./lib/viewState";
+/** A notification about an article: the blog lives on its own addresses, so this just hands over to it. */
+function BlogPostRedirect({ postId }: { postId: string }) {
+  useEffect(() => {
+    navigate(`/blog/${postId}`);
+  }, [postId]);
+  return null;
+}
+
 function initialOf(name: string): string {
   return name.trim().charAt(0).toUpperCase() || "?";
 }
@@ -463,6 +471,8 @@ function MainContent({
     overlayContent = <ChatScreen token={token} target={overlay.target} myUserId={myUserId} onBack={closeOverlay} />;
   } else if (overlay?.kind === "finance") {
     overlayContent = <FinanceScreen token={token} onBack={closeOverlay} />;
+  } else if (overlay?.kind === "blog-post") {
+    overlayContent = <BlogPostRedirect postId={overlay.postId} />;
   } else if (overlay?.kind === "match-offers") {
     overlayContent = <MatchOffersScreen onBack={closeOverlay} />;
   } else if (overlay?.kind === "match-requests") {

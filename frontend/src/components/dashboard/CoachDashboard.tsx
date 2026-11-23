@@ -1,4 +1,5 @@
 // frontend/src/components/dashboard/CoachDashboard.tsx
+import { FeaturedPost } from "../blog/FeaturedPost";
 import { useCallback, useEffect, useState } from "react";
 import { listMyTeams } from "../../api/teams";
 import { getCalendar } from "../../api/calendar";
@@ -180,6 +181,7 @@ export function CoachDashboard({
         </div>
       )}
 
+      <FeaturedPost />
       <div className={styles.bento}>
         <NextEventCard nextEvent={nextEvent} onOpenEvent={onOpenEvent} />
 

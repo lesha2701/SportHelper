@@ -289,7 +289,7 @@ export { queryString };
 
 // --- media moderation ----------------------------------------------------------------------------------------------
 
-export type MediaKind = "avatar" | "logo" | "listing" | "gallery" | "exercise" | "training" | "chat";
+export type MediaKind = "avatar" | "logo" | "listing" | "gallery" | "exercise" | "training" | "chat" | "blog";
 export type MediaState = "visible" | "hidden";
 
 export interface AdminMedia {
@@ -600,8 +600,8 @@ export async function deleteAdminListing(id: string, reason: string): Promise<Ad
 // --- complaints ---------------------------------------------------------------------------------------------------------
 
 export type ComplaintStatus = "new" | "in_progress" | "resolved" | "rejected";
-export type ComplaintReason = "inappropriate" | "fraud" | "spam" | "false_info" | "other";
-export type ComplaintTarget = "user" | "listing" | "media";
+export type ComplaintReason = "inappropriate" | "fraud" | "spam" | "false_info" | "advertising" | "other";
+export type ComplaintTarget = "user" | "listing" | "media" | "post" | "post_comment";
 
 export interface AdminComplaint {
   id: string;
@@ -1007,4 +1007,112 @@ export async function withdrawMatchOffer(offerId: string): Promise<AdminMatchReq
   return mapMatchRequestAdmin(
     await apiRequest<AdminMatchRequestDto>(`/api/admin/match-requests/offers/${offerId}/withdraw`, { method: "POST", successMessage: "Предложение отозвано" }),
   );
+}
+
+// --- the blog -------------------------------------------------------------------------------------------------------
+
+export interface AdminPostRow {
+  id: string;
+  title: string;
+  sport: string;
+  status: "pending" | "published" | "rejected" | "removed" | "draft";
+  flags: string[];
+  authorId: string;
+  authorName: string;
+  authorEmail: string | null;
+  authorTrusted: boolean;
+  submittedAt: string | null;
+  publishedAt: string | null;
+  reviewedBy: string | null;
+  rejectReason: string | null;
+  openComplaints: number;
+}
+
+export interface AdminPost extends AdminPostRow {
+  blocks: { type: "paragraph" | "heading" | "quote" | "list"; text?: string | null; items?: string[] | null }[];
+  imageIds: string[];
+  likesCount: number;
+  commentsCount: number;
+}
+
+interface AdminPostRowDto {
+  id: string;
+  title: string;
+  sport: string;
+  status: AdminPostRow["status"];
+  flags: string[];
+  author_id: string;
+  author_name: string;
+  author_email: string | null;
+  author_trusted: boolean;
+  submitted_at: string | null;
+  published_at: string | null;
+  reviewed_by: string | null;
+  reject_reason: string | null;
+  open_complaints: number;
+}
+
+const mapAdminPostRow = (d: AdminPostRowDto): AdminPostRow => ({
+  id: d.id,
+  title: d.title,
+  sport: d.sport,
+  status: d.status,
+  flags: d.flags,
+  authorId: d.author_id,
+  authorName: d.author_name,
+  authorEmail: d.author_email,
+  authorTrusted: d.author_trusted,
+  submittedAt: d.submitted_at,
+  publishedAt: d.published_at,
+  reviewedBy: d.reviewed_by,
+  rejectReason: d.reject_reason,
+  openComplaints: d.open_complaints,
+});
+
+const mapAdminPost = (d: AdminPostRowDto & { blocks: AdminPost["blocks"]; image_ids: string[]; likes_count: number; comments_count: number }): AdminPost => ({
+  ...mapAdminPostRow(d),
+  blocks: d.blocks,
+  imageIds: d.image_ids,
+  likesCount: d.likes_count,
+  commentsCount: d.comments_count,
+});
+
+export async function listAdminPosts(query: { status: string; q: string; withComplaints: boolean; limit: number; offset: number }): Promise<Page<AdminPostRow>> {
+  const dto = await apiRequest<{ total: number; limit: number; offset: number; items: AdminPostRowDto[] }>(
+    `/api/admin/blog/posts${queryString({ status: query.status, q: query.q.trim() || undefined, with_complaints: query.withComplaints ? "true" : undefined, limit: query.limit, offset: query.offset })}`,
+    QUIET,
+  );
+  return { total: dto.total, limit: dto.limit, offset: dto.offset, items: dto.items.map(mapAdminPostRow) };
+}
+
+export async function getAdminPost(id: string): Promise<AdminPost> {
+  return mapAdminPost(await apiRequest(`/api/admin/blog/posts/${id}`, QUIET));
+}
+
+export async function approveAdminPost(id: string): Promise<AdminPost> {
+  return mapAdminPost(await apiRequest(`/api/admin/blog/posts/${id}/approve`, { method: "POST", successMessage: "Статья опубликована" }));
+}
+
+export async function rejectAdminPost(id: string, reason: string): Promise<AdminPost> {
+  return mapAdminPost(await apiRequest(`/api/admin/blog/posts/${id}/reject`, { method: "POST", body: { reason }, successMessage: "Статья отклонена" }));
+}
+
+export async function removeAdminPost(id: string, reason: string): Promise<AdminPost> {
+  return mapAdminPost(await apiRequest(`/api/admin/blog/posts/${id}/remove`, { method: "POST", body: { reason }, successMessage: "Статья снята" }));
+}
+
+export async function restoreAdminPost(id: string): Promise<AdminPost> {
+  return mapAdminPost(await apiRequest(`/api/admin/blog/posts/${id}/restore`, { method: "POST", successMessage: "Статья возвращена" }));
+}
+
+export async function hideAdminComment(commentId: string, reason: string): Promise<void> {
+  await apiRequest(`/api/admin/blog/comments/${commentId}/hide`, { method: "POST", body: { reason }, successMessage: "Комментарий скрыт" });
+}
+
+export async function setAuthorTrusted(userId: string, trusted: boolean): Promise<void> {
+  await apiRequest(`/api/admin/blog/authors/${userId}/trusted`, {
+    method: "PUT",
+    body: { trusted },
+    successMessage: trusted ? "Автор отмечен как доверенный" : "Отметка снята",
+  });
 }

@@ -11,6 +11,7 @@ import {
   ResetPasswordPage,
   VerifyEmailPage,
 } from "./components/auth/TokenPages";
+import { BlogApp } from "./components/blog/BlogApp";
 import { LegalDocumentPage } from "./components/legal/LegalDocumentPage";
 import { documentByPath } from "./legal/documents";
 import { HomePage } from "./components/public/HomePage";
@@ -70,6 +71,8 @@ function Routes() {
 
   const open = openPage(path);
   if (open) return <>{open}</>;
+  // The blog is read by guests and signed-in people alike, on addresses that can be shared.
+  if (path === "/blog" || path.startsWith("/blog/")) return <BlogApp path={path} />;
 
   const params = new URLSearchParams(search);
 
