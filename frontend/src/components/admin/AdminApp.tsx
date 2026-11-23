@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { getAdminSession, listAdminComplaints, listAdminMatchRequests, listAdminSupport, type AdminSession } from "../../api/admin";
+import { getAdminSession, listAdminComplaints, listAdminMatchRequests, listAdminPosts, listAdminSupport, type AdminSession } from "../../api/admin";
 import { ApiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { Link } from "../Link";
@@ -13,6 +13,7 @@ import { AuditPage } from "./AuditPage";
 import { ComplaintsPage } from "./ComplaintsPage";
 import { ModerationPage } from "./ModerationPage";
 import { SupportPage } from "./SupportPage";
+import { BlogPostsPage } from "./BlogPostsPage";
 import { MatchRequestsPage } from "./MatchRequestsPage";
 import { TrainingsPage } from "./TrainingsPage";
 import { UsersPage } from "./UsersPage";
@@ -38,6 +39,7 @@ const SECTIONS: Section[] = [
   { path: "/admin/reports", label: "Жалобы", icon: "flag", render: () => <ComplaintsPage /> },
   { path: "/admin/support", label: "Поддержка", icon: "message", render: () => <SupportPage /> },
   { path: "/admin/matching", label: "Подбор тренера", icon: "search", render: () => <MatchRequestsPage /> },
+  { path: "/admin/blog", label: "Статьи", icon: "edit", render: () => <BlogPostsPage /> },
   { path: "/admin/finance", label: "Финансы", icon: "wallet", render: () => <FinancePage />, financeOnly: true },
   { path: "/admin/audit", label: "Журнал", icon: "list", render: () => <AuditPage /> },
 ];
@@ -126,6 +128,7 @@ function AdminShell({ email, finance }: { email: string | null; finance: boolean
   const [newComplaints, setNewComplaints] = useState(0);
   const [newSupport, setNewSupport] = useState(0);
   const [newMatching, setNewMatching] = useState(0);
+  const [pendingPosts, setPendingPosts] = useState(0);
 
   // The number of untouched complaints next to "Жалобы"; refreshed whenever the administrator moves between sections.
   useEffect(() => {
@@ -138,6 +141,9 @@ function AdminShell({ email, finance }: { email: string | null; finance: boolean
     listAdminMatchRequests({ status: "new", q: "", limit: 1, offset: 0 })
       .then((page) => setNewMatching(page.total))
       .catch(() => setNewMatching(0));
+    listAdminPosts({ status: "pending", q: "", withComplaints: false, limit: 1, offset: 0 })
+      .then((page) => setPendingPosts(page.total))
+      .catch(() => setPendingPosts(0));
   }, [path]);
 
   return (
@@ -156,6 +162,7 @@ function AdminShell({ email, finance }: { email: string | null; finance: boolean
             {section.label}
             {section.path === "/admin/reports" && newComplaints > 0 && <span className={styles.navBadge}>{newComplaints}</span>}
             {section.path === "/admin/support" && newSupport > 0 && <span className={styles.navBadge}>{newSupport}</span>}
+            {section.path === "/admin/blog" && pendingPosts > 0 && <span className={styles.navBadge}>{pendingPosts}</span>}
             {section.path === "/admin/matching" && newMatching > 0 && <span className={styles.navBadge}>{newMatching}</span>}
           </Link>
         ))}

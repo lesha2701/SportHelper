@@ -11,6 +11,7 @@ export const REPORT_REASONS: { value: ComplaintReason; label: string }[] = [
   { value: "fraud", label: "Мошенничество" },
   { value: "spam", label: "Спам" },
   { value: "false_info", label: "Ложная информация" },
+  { value: "advertising", label: "Реклама" },
   { value: "other", label: "Другая причина" },
 ];
 
@@ -18,6 +19,8 @@ const TARGET_TITLES: Record<ComplaintTarget, string> = {
   user: "Пожаловаться на профиль",
   listing: "Пожаловаться на объявление",
   media: "Пожаловаться на материал",
+  post: "Пожаловаться на статью",
+  post_comment: "Пожаловаться на комментарий",
 };
 
 /** "Пожаловаться" for a profile, a listing or a public photo/video. Only for signed-in people and never for their

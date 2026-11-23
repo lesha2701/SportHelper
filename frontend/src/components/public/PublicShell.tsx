@@ -30,6 +30,9 @@ export function PublicShell({ children, next }: { children: ReactNode; next?: st
             <Link to="/coaches" className={`${styles.navLink} ${path === "/coaches" ? styles.navLinkActive : ""}`} aria-current={path === "/coaches" ? "page" : undefined}>
               Тренеры
             </Link>
+            <Link to="/blog" className={`${styles.navLink} ${path === "/blog" || path.startsWith("/blog/") ? styles.navLinkActive : ""}`} aria-current={path === "/blog" ? "page" : undefined}>
+              Статьи
+            </Link>
           </nav>
 
           <div className={styles.headerActions}>

@@ -16,6 +16,7 @@ export type OverlayBase =
   | { kind: "finance" }
   | { kind: "match-offers" }
   | { kind: "match-requests" }
+  | { kind: "blog-post"; postId: string }
   | { kind: "chat"; target: ChatTarget };
 
 /** `backTo` is where "Назад" returns: an overlay opened from the notification
@@ -67,6 +68,10 @@ export function notificationToOverlay(category: NotificationCategory, entityId: 
     case "match_offer_reply":
       // A trainer agreed to take the athlete: their requests, where the trainer can be chosen.
       return { kind: "match-requests" };
+    case "post_review":
+    case "post_comment":
+      // entityId is the article: the blog has its own addresses, the workspace just hands over to them.
+      return { kind: "blog-post", postId: entityId };
     default:
       return null;
   }

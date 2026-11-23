@@ -10,6 +10,8 @@ struct ReportTarget: Identifiable {
 
     static func user(_ id: UUID) -> ReportTarget { ReportTarget(kind: .user, id: id, title: "Пожаловаться на пользователя") }
     static func listing(_ id: UUID) -> ReportTarget { ReportTarget(kind: .listing, id: id, title: "Пожаловаться на объявление") }
+    static func post(_ id: UUID) -> ReportTarget { ReportTarget(kind: .post, id: id, title: "Пожаловаться на статью") }
+    static func comment(_ id: UUID) -> ReportTarget { ReportTarget(kind: .postComment, id: id, title: "Пожаловаться на комментарий") }
     /// A photo or video of a gallery, by its file.
     static func media(_ fileId: UUID) -> ReportTarget { ReportTarget(kind: .media, id: fileId, title: "Пожаловаться на материал") }
 }

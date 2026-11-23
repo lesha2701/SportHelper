@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ProBadge } from "../shared/ProBadge";
 import { listListings } from "../../api/coachListings";
+import { FeaturedPost } from "../blog/FeaturedPost";
 import { Link } from "../Link";
 import { Icon } from "../shared/Icon";
 import type { CoachListingCard } from "../../types/coachListing";
@@ -102,6 +103,10 @@ export function HomePage() {
           </div>
         </section>
       )}
+
+      <div style={{ padding: "0 16px" }}>
+        <FeaturedPost />
+      </div>
 
       <section className={styles.section} aria-labelledby="roles-title">
         <div className={styles.sectionHead}>

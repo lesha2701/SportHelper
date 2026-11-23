@@ -28,11 +28,18 @@ export const AUDIT_ACTIONS: Record<string, string> = {
   match_request_close: "Заявка на подбор тренера закрыта",
   match_offer_create: "Заявка на подбор предложена тренеру",
   match_offer_withdraw: "Предложение тренеру по заявке отозвано",
+  post_approve: "Статья блога опубликована",
+  post_reject: "Статья блога отклонена",
+  post_remove: "Статья блога снята",
+  post_restore: "Статья блога возвращена",
+  post_comment_hide: "Комментарий к статье скрыт",
+  post_author_trusted: "Автор статей отмечен как доверенный",
+  post_author_untrusted: "У автора статей снята отметка «доверенный»",
   mfa_enabled: "Включена двухфакторная защита",
   mfa_disabled: "Отключена двухфакторная защита",
 };
 
-const TARGET_LABELS: Record<string, string> = { user: "Пользователь", media: "Файл", listing: "Объявление", complaint: "Жалоба", support_request: "Обращение в поддержку" };
+const TARGET_LABELS: Record<string, string> = { user: "Пользователь", media: "Файл", listing: "Объявление", complaint: "Жалоба", post: "Статья блога", post_comment: "Комментарий к статье", match_request: "Заявка на подбор", support_request: "Обращение в поддержку" };
 const RESULT_LABELS = { success: "выполнено", denied: "отказано", failed: "ошибка" } as const;
 
 function targetHref(entry: AuditEntry): string | null {
@@ -42,6 +49,7 @@ function targetHref(entry: AuditEntry): string | null {
   if (entry.targetType === "listing") return `/admin/trainings?tab=listings&open=${entry.targetId}`;
   if (entry.targetType === "complaint") return `/admin/reports?q=${entry.targetId}`;
   if (entry.targetType === "support_request") return `/admin/support?q=${entry.targetId}`;
+  if (entry.targetType === "post") return `/admin/blog?open=${entry.targetId}`;
   if (entry.targetType === "match_request") return `/admin/matching?q=${entry.targetId}`;
   return null;
 }

@@ -23,14 +23,17 @@ export const COMPLAINT_REASON_LABELS: Record<ComplaintReason, string> = {
   fraud: "Мошенничество",
   spam: "Спам",
   false_info: "Ложная информация",
+  advertising: "Реклама",
   other: "Другая причина",
 };
-const TARGET_LABELS: Record<ComplaintTarget, string> = { user: "Профиль", listing: "Объявление", media: "Фото/видео" };
+const TARGET_LABELS: Record<ComplaintTarget, string> = { user: "Профиль", listing: "Объявление", media: "Фото/видео", post: "Статья", post_comment: "Комментарий" };
 const STATE_LABELS: Record<string, string> = { active: "активен", blocked: "заблокирован", deleted: "удалён", visible: "на сайте", hidden: "скрыто" };
 
 export function targetLink(target: AdminComplaint["target"]): string {
   if (target.type === "user") return `/admin/users?open=${target.id}`;
   if (target.type === "listing") return `/admin/trainings?tab=listings&open=${target.id}`;
+  if (target.type === "post") return `/admin/blog?open=${target.id}`;
+  if (target.type === "post_comment") return `/admin/blog`;
   return `/admin/moderation?open=${target.id}`;
 }
 

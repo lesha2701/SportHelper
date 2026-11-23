@@ -24,6 +24,7 @@ PUBLIC_ROUTES = {
     ("POST", "/api/auth/verify-email/inspect"), ("POST", "/api/auth/verify-email/set-password"),
     ("GET", "/api/coach-listings"), ("GET", "/api/coach-listings/{listing_id}"), ("GET", "/api/coach-listings/{listing_id}/slots"),
     ("GET", "/api/coaches/{coach_user_id}/listings"), ("GET", "/api/coaches/{coach_user_id}/profile"), ("GET", "/api/coaches/{coach_user_id}/reviews"),
+    ("GET", "/api/blog/authors/{author_id}"), ("GET", "/api/blog/featured"), ("GET", "/api/blog/posts"), ("GET", "/api/blog/posts/{post_id}"), ("GET", "/api/blog/posts/{post_id}/comments"), ("GET", "/api/blog/sports"),
     ("GET", "/api/app-config"), ("GET", "/api/features"), ("POST", "/api/payments/yookassa/webhook"), ("GET", "/api/files/{file_id}"), ("GET", "/api/health"), ("GET", "/api/profile/media/{user_id}"),
 }
 _AUTH_DEPENDENCIES = {

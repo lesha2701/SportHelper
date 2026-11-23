@@ -366,8 +366,8 @@ class ListingsPageOut(BaseModel):
 # --- complaints -----------------------------------------------------------------------------------------------------
 
 ComplaintStatus = Literal["new", "in_progress", "resolved", "rejected"]
-ComplaintReason = Literal["inappropriate", "fraud", "spam", "false_info", "other"]
-ComplaintTarget = Literal["user", "listing", "media"]
+ComplaintReason = Literal["inappropriate", "fraud", "spam", "false_info", "advertising", "other"]
+ComplaintTarget = Literal["user", "listing", "media", "post", "post_comment"]
 
 
 class ComplaintIn(BaseModel):

@@ -70,6 +70,7 @@ extension Router {
         case .finance: open(.finance)
         case .matchOffers: open(.matchOffers)
         case .matchRequests: tab = .coaches
+        case .blogPost(let id): open(.blogPost(id))
         case .training, .match, .task, .teamChat, .newPersonalTraining: open(.notifications)
         case .none: break
         }

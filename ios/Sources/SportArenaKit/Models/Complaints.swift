@@ -1,16 +1,17 @@
 import Foundation
 
-/// What can be reported: a person's profile, a coach's listing, a public photo or video. (The server has no complaint about a single
+/// What can be reported: a person's profile, a coach's listing, a public photo or video, a blog article or its comment. (The server has no complaint about a single
 /// chat message: a message is reported as a complaint about its author.)
 public enum ComplaintTarget: String, Codable, Sendable {
-    case user, listing, media
+    case user, listing, media, post
+    case postComment = "post_comment"
 }
 
 /// Why, in the words of the site's «Пожаловаться» dialog.
 public enum ComplaintReason: String, Codable, CaseIterable, Identifiable, Sendable {
     case inappropriate, fraud, spam
     case falseInfo = "false_info"
-    case other
+    case advertising, other
 
     public var id: String { rawValue }
 
@@ -19,6 +20,7 @@ public enum ComplaintReason: String, Codable, CaseIterable, Identifiable, Sendab
         case .inappropriate: "Недопустимый контент"
         case .fraud: "Мошенничество"
         case .spam: "Спам"
+        case .advertising: "Реклама"
         case .falseInfo: "Ложная информация"
         case .other: "Другая причина"
         }

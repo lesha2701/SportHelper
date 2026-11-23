@@ -22,6 +22,10 @@ public enum NotificationCategory: String, Codable, CaseIterable, Identifiable, S
     case matchOffer = "match_offer"
     /// A trainer agreed to take the person who asked for a match (transactional).
     case matchOfferReply = "match_offer_reply"
+    /// The administrators looked at the person's article (transactional).
+    case postReview = "post_review"
+    /// Somebody commented on the person's article (transactional).
+    case postComment = "post_comment"
     case other
 
     public var id: String { rawValue }
@@ -58,6 +62,8 @@ public enum NotificationCategory: String, Codable, CaseIterable, Identifiable, S
         case .chatTeam: "Сообщения в чате команды"
         case .matchOffer: "Предложения клиентов из подбора (для тренера)"
         case .matchOfferReply: "Ответы тренеров на мою заявку на подбор"
+        case .postReview: "Проверка моих статей"
+        case .postComment: "Комментарии к моим статьям"
         case .other: "Другое"
         }
     }
@@ -75,6 +81,7 @@ public enum NotificationCategory: String, Codable, CaseIterable, Identifiable, S
         case .financeAdmin: "shield"
         case .chatBooking, .chatTeam: "bubble.left"
         case .matchOffer, .matchOfferReply: "person.2"
+        case .postReview, .postComment: "doc.text"
         case .other: "bell"
         }
     }
@@ -99,6 +106,8 @@ public enum NotificationTarget: Equatable, Sendable {
     case matchOffers
     /// A trainer agreed to take the person: the tab «Тренеры», where the person chooses.
     case matchRequests
+    /// An article: its review result or a new comment.
+    case blogPost(UUID)
     case none
 }
 
@@ -118,6 +127,7 @@ extension NotificationTarget {
         case .earningUpdate, .withdrawalUpdate: .finance
         case .matchOffer: .matchOffers
         case .matchOfferReply: .matchRequests
+        case .postReview, .postComment: .blogPost(entityId)
         case .financeAdmin, .other: .none
         }
     }

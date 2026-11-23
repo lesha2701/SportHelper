@@ -1471,7 +1471,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BlockIn"
+                "$ref": "#/components/schemas/app__schemas__admin__BlockIn"
               }
             }
           }
@@ -1816,7 +1816,8 @@
                     "gallery",
                     "exercise",
                     "training",
-                    "chat"
+                    "chat",
+                    "blog"
                   ],
                   "type": "string"
                 },
@@ -2776,7 +2777,9 @@
                   "enum": [
                     "user",
                     "listing",
-                    "media"
+                    "media",
+                    "post",
+                    "post_comment"
                   ],
                   "type": "string"
                 },
@@ -2799,6 +2802,7 @@
                     "fraud",
                     "spam",
                     "false_info",
+                    "advertising",
                     "other"
                   ],
                   "type": "string"
@@ -3786,6 +3790,560 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/blog/posts": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Posts",
+        "operationId": "list_posts_api_admin_blog_posts_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "draft",
+                    "pending",
+                    "published",
+                    "rejected",
+                    "removed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "with_complaints",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "With Complaints"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPostPageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/blog/pending-count": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Pending Count",
+        "operationId": "pending_count_api_admin_blog_pending_count_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "type": "object",
+                  "title": "Response Pending Count Api Admin Blog Pending Count Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/blog/posts/{post_id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Post Detail",
+        "operationId": "post_detail_api_admin_blog_posts__post_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPostOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/blog/posts/{post_id}/approve": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Approve",
+        "operationId": "approve_api_admin_blog_posts__post_id__approve_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPostOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/blog/posts/{post_id}/reject": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Reject",
+        "operationId": "reject_api_admin_blog_posts__post_id__reject_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/app__schemas__blog__ReasonIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPostOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/blog/posts/{post_id}/remove": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Remove",
+        "operationId": "remove_api_admin_blog_posts__post_id__remove_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/app__schemas__blog__ReasonIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPostOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/blog/posts/{post_id}/restore": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Restore",
+        "operationId": "restore_api_admin_blog_posts__post_id__restore_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPostOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/blog/comments/{comment_id}/hide": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Hide Comment",
+        "operationId": "hide_comment_api_admin_blog_comments__comment_id__hide_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Comment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/app__schemas__blog__ReasonIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/blog/authors/{user_id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Author Summary",
+        "operationId": "author_summary_api_admin_blog_authors__user_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Author Summary Api Admin Blog Authors  User Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/blog/authors/{user_id}/trusted": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Set Trusted",
+        "description": "A trusted author's articles go live after the automatic check, without waiting for an administrator.",
+        "operationId": "set_trusted_api_admin_blog_authors__user_id__trusted_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrustedIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -6849,6 +7407,1146 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blog/posts": {
+      "get": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Feed",
+        "operationId": "feed_api_blog_posts_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sport",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 60
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sport"
+            }
+          },
+          {
+            "name": "author_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Author Id"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "new",
+                "popular"
+              ],
+              "type": "string",
+              "default": "new",
+              "title": "Sort"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostPageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Create Post",
+        "operationId": "create_post_api_blog_posts_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blog/sports": {
+      "get": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Sports",
+        "operationId": "sports_api_blog_sports_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "title": "Response Sports Api Blog Sports Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blog/featured": {
+      "get": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Featured",
+        "description": "The one article for the home page: the best of the person's sport, else the best of any sport, else any. Re-ranked once an hour.",
+        "operationId": "featured_api_blog_featured_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/PostCardOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Featured Api Blog Featured Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/blog/mine": {
+      "get": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "My Posts",
+        "operationId": "my_posts_api_blog_mine_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MyPostOut"
+                  },
+                  "type": "array",
+                  "title": "Response My Posts Api Blog Mine Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/blog/bookmarks": {
+      "get": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Bookmarks",
+        "operationId": "bookmarks_api_blog_bookmarks_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostPageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blog/settings": {
+      "get": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Get Settings",
+        "operationId": "get_settings_api_blog_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlogSettingsOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Put Settings",
+        "operationId": "put_settings_api_blog_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlogSettingsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlogSettingsOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/blog/authors/{author_id}": {
+      "get": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Author",
+        "operationId": "author_api_blog_authors__author_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "author_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Author Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorProfileOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blog/authors/{author_id}/mute": {
+      "put": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Mute Author",
+        "operationId": "mute_author_api_blog_authors__author_id__mute_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "author_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Author Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Unmute Author",
+        "operationId": "unmute_author_api_blog_authors__author_id__mute_delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "author_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Author Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blog/images": {
+      "post": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Upload Image",
+        "description": "A photo for an article. It belongs to no article until the article names it in `image_ids`.",
+        "operationId": "upload_image_api_blog_images_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_image_api_blog_images_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/blog/posts/{post_id}": {
+      "put": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Update Post",
+        "operationId": "update_post_api_blog_posts__post_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Delete Post",
+        "operationId": "delete_post_api_blog_posts__post_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Read Post",
+        "operationId": "read_post_api_blog_posts__post_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blog/posts/{post_id}/view": {
+      "post": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "View Post",
+        "description": "Counted once per person per day; the author's own views and guests' do not count.",
+        "operationId": "view_post_api_blog_posts__post_id__view_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blog/posts/{post_id}/like": {
+      "put": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Like",
+        "operationId": "like_api_blog_posts__post_id__like_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LikeOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Unlike",
+        "operationId": "unlike_api_blog_posts__post_id__like_delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LikeOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blog/posts/{post_id}/bookmark": {
+      "put": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Bookmark",
+        "operationId": "bookmark_api_blog_posts__post_id__bookmark_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Unbookmark",
+        "operationId": "unbookmark_api_blog_posts__post_id__bookmark_delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blog/posts/{post_id}/hide": {
+      "put": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Hide",
+        "operationId": "hide_api_blog_posts__post_id__hide_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Unhide",
+        "operationId": "unhide_api_blog_posts__post_id__hide_delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blog/posts/{post_id}/comments": {
+      "get": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Comments",
+        "operationId": "comments_api_blog_posts__post_id__comments_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommentOut"
+                  },
+                  "title": "Response Comments Api Blog Posts  Post Id  Comments Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Add Comment",
+        "operationId": "add_comment_api_blog_posts__post_id__comments_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blog/comments/{comment_id}": {
+      "delete": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Delete Comment",
+        "description": "The commenter deletes their own comment; the article's author deletes any comment under their article.",
+        "operationId": "delete_comment_api_blog_comments__comment_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Comment Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -15573,6 +17271,328 @@
         ],
         "title": "AdminOfferOut"
       },
+      "AdminPostOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "sport": {
+            "type": "string",
+            "title": "Sport"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pending",
+              "published",
+              "rejected",
+              "removed"
+            ],
+            "title": "Status"
+          },
+          "flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Flags"
+          },
+          "author_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Author Id"
+          },
+          "author_name": {
+            "type": "string",
+            "title": "Author Name"
+          },
+          "author_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Email"
+          },
+          "author_trusted": {
+            "type": "boolean",
+            "title": "Author Trusted"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "reviewed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By"
+          },
+          "reject_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reject Reason"
+          },
+          "open_complaints": {
+            "type": "integer",
+            "title": "Open Complaints"
+          },
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/BlockOut"
+            },
+            "type": "array",
+            "title": "Blocks"
+          },
+          "image_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Image Ids"
+          },
+          "listing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListingCardOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "likes_count": {
+            "type": "integer",
+            "title": "Likes Count"
+          },
+          "comments_count": {
+            "type": "integer",
+            "title": "Comments Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "sport",
+          "status",
+          "flags",
+          "author_id",
+          "author_name",
+          "author_email",
+          "author_trusted",
+          "submitted_at",
+          "published_at",
+          "reviewed_by",
+          "reject_reason",
+          "open_complaints",
+          "blocks",
+          "image_ids",
+          "likes_count",
+          "comments_count"
+        ],
+        "title": "AdminPostOut"
+      },
+      "AdminPostPageOut": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPostRowOut"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "limit",
+          "offset",
+          "items"
+        ],
+        "title": "AdminPostPageOut"
+      },
+      "AdminPostRowOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "sport": {
+            "type": "string",
+            "title": "Sport"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pending",
+              "published",
+              "rejected",
+              "removed"
+            ],
+            "title": "Status"
+          },
+          "flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Flags"
+          },
+          "author_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Author Id"
+          },
+          "author_name": {
+            "type": "string",
+            "title": "Author Name"
+          },
+          "author_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Email"
+          },
+          "author_trusted": {
+            "type": "boolean",
+            "title": "Author Trusted"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "reviewed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By"
+          },
+          "reject_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reject Reason"
+          },
+          "open_complaints": {
+            "type": "integer",
+            "title": "Open Complaints"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "sport",
+          "status",
+          "flags",
+          "author_id",
+          "author_name",
+          "author_email",
+          "author_trusted",
+          "submitted_at",
+          "published_at",
+          "reviewed_by",
+          "reject_reason",
+          "open_complaints"
+        ],
+        "title": "AdminPostRowOut"
+      },
       "AdminSessionOut": {
         "properties": {
           "is_admin": {
@@ -16415,6 +18435,142 @@
         "title": "AuthOut",
         "description": "Returned by /login and /me: the signed-in user plus `csrf_token`. The\nsession itself travels in an HttpOnly cookie; the CSRF token must be\nechoed in the X-CSRF-Token header on every state-changing request (the\npage keeps it in memory only, never in storage)."
       },
+      "AuthorOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "is_coach": {
+            "type": "boolean",
+            "title": "Is Coach"
+          },
+          "is_pro": {
+            "type": "boolean",
+            "title": "Is Pro",
+            "default": false
+          },
+          "profile_open": {
+            "type": "boolean",
+            "title": "Profile Open"
+          },
+          "avatar_file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar File Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "is_coach",
+          "profile_open"
+        ],
+        "title": "AuthorOut"
+      },
+      "AuthorProfileOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "is_coach": {
+            "type": "boolean",
+            "title": "Is Coach"
+          },
+          "is_pro": {
+            "type": "boolean",
+            "title": "Is Pro",
+            "default": false
+          },
+          "profile_open": {
+            "type": "boolean",
+            "title": "Profile Open"
+          },
+          "avatar_file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar File Id"
+          },
+          "sport": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sport"
+          },
+          "specialization": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specialization"
+          },
+          "experience_years": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Experience Years"
+          },
+          "posts_count": {
+            "type": "integer",
+            "title": "Posts Count",
+            "default": 0
+          },
+          "muted_by_me": {
+            "type": "boolean",
+            "title": "Muted By Me",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "is_coach",
+          "profile_open"
+        ],
+        "title": "AuthorProfileOut",
+        "description": "What anyone may see of an author. A player who has not allowed it is just a first name (profile_open false, nothing else)."
+      },
       "AvailabilityWindowIn": {
         "properties": {
           "weekday": {
@@ -16600,33 +18756,49 @@
         "title": "BankBalanceIn",
         "description": "The balance of the settlement account as the bank shows it, in kopecks (the browser converts roubles exactly)."
       },
-      "BlockIn": {
+      "BlockOut": {
         "properties": {
-          "reason": {
+          "type": {
             "type": "string",
-            "maxLength": 1000,
-            "title": "Reason"
+            "enum": [
+              "paragraph",
+              "heading",
+              "quote",
+              "list"
+            ],
+            "title": "Type"
           },
-          "days": {
+          "text": {
             "anyOf": [
               {
-                "type": "integer",
-                "maximum": 3650.0,
-                "minimum": 1.0
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Days"
+            "title": "Text"
+          },
+          "items": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Items"
           }
         },
-        "additionalProperties": false,
         "type": "object",
         "required": [
-          "reason"
+          "type"
         ],
-        "title": "BlockIn"
+        "title": "BlockOut"
       },
       "BlockedUserOut": {
         "properties": {
@@ -16652,6 +18824,38 @@
           "blocked_at"
         ],
         "title": "BlockedUserOut"
+      },
+      "BlogSettingsIn": {
+        "properties": {
+          "show_profile_in_posts": {
+            "type": "boolean",
+            "title": "Show Profile In Posts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "show_profile_in_posts"
+        ],
+        "title": "BlogSettingsIn"
+      },
+      "BlogSettingsOut": {
+        "properties": {
+          "show_profile_in_posts": {
+            "type": "boolean",
+            "title": "Show Profile In Posts"
+          },
+          "is_coach": {
+            "type": "boolean",
+            "title": "Is Coach"
+          }
+        },
+        "type": "object",
+        "required": [
+          "show_profile_in_posts",
+          "is_coach"
+        ],
+        "title": "BlogSettingsOut"
       },
       "Body_send_media_api_chats__conversation_id__messages_media_post": {
         "properties": {
@@ -16711,6 +18915,20 @@
           "file"
         ],
         "title": "Body_upload_exercise_video_api_exercises__exercise_id__video_post"
+      },
+      "Body_upload_image_api_blog_images_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_image_api_blog_images_post"
       },
       "Body_upload_listing_photo_api_coach_listings__listing_id__photo_post": {
         "properties": {
@@ -19124,6 +21342,67 @@
         "title": "CoachStatusIn",
         "description": "Gives a trainer the Pro status (is_pro true) or takes it back (false), and why."
       },
+      "CommentIn": {
+        "properties": {
+          "body": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Body"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "body"
+        ],
+        "title": "CommentIn"
+      },
+      "CommentOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "post_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Post Id"
+          },
+          "author": {
+            "$ref": "#/components/schemas/AuthorOut"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "contact_hidden": {
+            "type": "boolean",
+            "title": "Contact Hidden"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "is_mine": {
+            "type": "boolean",
+            "title": "Is Mine",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "post_id",
+          "author",
+          "body",
+          "contact_hidden",
+          "created_at"
+        ],
+        "title": "CommentOut"
+      },
       "CommissionIn": {
         "properties": {
           "percent": {
@@ -19186,7 +21465,9 @@
             "enum": [
               "user",
               "listing",
-              "media"
+              "media",
+              "post",
+              "post_comment"
             ],
             "title": "Target Type"
           },
@@ -19202,6 +21483,7 @@
               "fraud",
               "spam",
               "false_info",
+              "advertising",
               "other"
             ],
             "title": "Reason"
@@ -19253,6 +21535,7 @@
               "fraud",
               "spam",
               "false_info",
+              "advertising",
               "other"
             ],
             "title": "Reason"
@@ -19341,7 +21624,9 @@
             "enum": [
               "user",
               "listing",
-              "media"
+              "media",
+              "post",
+              "post_comment"
             ],
             "title": "Type"
           },
@@ -20230,6 +22515,20 @@
         ],
         "title": "IdentityOut"
       },
+      "ImageOut": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "ImageOut"
+      },
       "InviteCreateIn": {
         "properties": {
           "kind": {
@@ -20379,6 +22678,77 @@
           "created_at"
         ],
         "title": "JoinRequestOut"
+      },
+      "LikeOut": {
+        "properties": {
+          "liked": {
+            "type": "boolean",
+            "title": "Liked"
+          },
+          "likes_count": {
+            "type": "integer",
+            "title": "Likes Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "liked",
+          "likes_count"
+        ],
+        "title": "LikeOut"
+      },
+      "ListingCardOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "price_per_session": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Per Session"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "default": "RUB"
+          },
+          "photo_file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo File Id"
+          },
+          "coach_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Coach User Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "coach_user_id"
+        ],
+        "title": "ListingCardOut"
       },
       "ListingDetailOut": {
         "properties": {
@@ -22857,6 +25227,99 @@
         ],
         "title": "ModerationEntryOut"
       },
+      "MyPostOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "sport": {
+            "type": "string",
+            "title": "Sport"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pending",
+              "published",
+              "rejected",
+              "removed"
+            ],
+            "title": "Status"
+          },
+          "reject_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reject Reason"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "likes_count": {
+            "type": "integer",
+            "title": "Likes Count"
+          },
+          "comments_count": {
+            "type": "integer",
+            "title": "Comments Count"
+          },
+          "views_count": {
+            "type": "integer",
+            "title": "Views Count"
+          },
+          "cover_file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover File Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "sport",
+          "status",
+          "published_at",
+          "updated_at",
+          "likes_count",
+          "comments_count",
+          "views_count"
+        ],
+        "title": "MyPostOut"
+      },
       "MySupportRequestOut": {
         "properties": {
           "id": {
@@ -22966,7 +25429,9 @@
               "chat_booking",
               "chat_team",
               "match_offer",
-              "match_offer_reply"
+              "match_offer_reply",
+              "post_review",
+              "post_comment"
             ],
             "title": "Category"
           },
@@ -24725,6 +27190,338 @@
           "personal_records"
         ],
         "title": "PlayerStatsOut"
+      },
+      "PostCardOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "sport": {
+            "type": "string",
+            "title": "Sport"
+          },
+          "excerpt": {
+            "type": "string",
+            "title": "Excerpt"
+          },
+          "cover_file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover File Id"
+          },
+          "images_count": {
+            "type": "integer",
+            "title": "Images Count"
+          },
+          "author": {
+            "$ref": "#/components/schemas/AuthorOut"
+          },
+          "likes_count": {
+            "type": "integer",
+            "title": "Likes Count"
+          },
+          "comments_count": {
+            "type": "integer",
+            "title": "Comments Count"
+          },
+          "views_count": {
+            "type": "integer",
+            "title": "Views Count"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "liked_by_me": {
+            "type": "boolean",
+            "title": "Liked By Me",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "sport",
+          "excerpt",
+          "images_count",
+          "author",
+          "likes_count",
+          "comments_count",
+          "views_count",
+          "published_at"
+        ],
+        "title": "PostCardOut"
+      },
+      "PostIn": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 240,
+            "title": "Title"
+          },
+          "sport": {
+            "type": "string",
+            "maxLength": 60,
+            "title": "Sport"
+          },
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/app__schemas__blog__BlockIn"
+            },
+            "type": "array",
+            "maxItems": 60,
+            "title": "Blocks"
+          },
+          "image_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Image Ids"
+          },
+          "listing_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Id"
+          },
+          "submit": {
+            "type": "boolean",
+            "title": "Submit",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "sport",
+          "blocks"
+        ],
+        "title": "PostIn",
+        "description": "An article as the author sends it. `submit` false keeps a draft; true sends it through the check (and to the administrators)."
+      },
+      "PostOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "sport": {
+            "type": "string",
+            "title": "Sport"
+          },
+          "excerpt": {
+            "type": "string",
+            "title": "Excerpt"
+          },
+          "cover_file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover File Id"
+          },
+          "images_count": {
+            "type": "integer",
+            "title": "Images Count"
+          },
+          "author": {
+            "$ref": "#/components/schemas/AuthorOut"
+          },
+          "likes_count": {
+            "type": "integer",
+            "title": "Likes Count"
+          },
+          "comments_count": {
+            "type": "integer",
+            "title": "Comments Count"
+          },
+          "views_count": {
+            "type": "integer",
+            "title": "Views Count"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "liked_by_me": {
+            "type": "boolean",
+            "title": "Liked By Me",
+            "default": false
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pending",
+              "published",
+              "rejected",
+              "removed"
+            ],
+            "title": "Status"
+          },
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/BlockOut"
+            },
+            "type": "array",
+            "title": "Blocks"
+          },
+          "image_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Image Ids"
+          },
+          "listing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListingCardOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bookmarked_by_me": {
+            "type": "boolean",
+            "title": "Bookmarked By Me",
+            "default": false
+          },
+          "is_mine": {
+            "type": "boolean",
+            "title": "Is Mine",
+            "default": false
+          },
+          "reject_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reject Reason"
+          },
+          "flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Flags"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "sent_for_review": {
+            "type": "boolean",
+            "title": "Sent For Review",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "sport",
+          "excerpt",
+          "images_count",
+          "author",
+          "likes_count",
+          "comments_count",
+          "views_count",
+          "published_at",
+          "status",
+          "blocks",
+          "image_ids",
+          "updated_at"
+        ],
+        "title": "PostOut"
+      },
+      "PostPageOut": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PostCardOut"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "limit",
+          "offset",
+          "items"
+        ],
+        "title": "PostPageOut"
       },
       "PrivacySettingsIn": {
         "properties": {
@@ -29103,6 +31900,20 @@
         ],
         "title": "TransferOwnershipIn"
       },
+      "TrustedIn": {
+        "properties": {
+          "trusted": {
+            "type": "boolean",
+            "title": "Trusted"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trusted"
+        ],
+        "title": "TrustedIn"
+      },
       "UnblockIn": {
         "properties": {
           "reason": {
@@ -29614,6 +32425,34 @@
         "type": "object",
         "title": "WorkoutSet"
       },
+      "app__schemas__admin__BlockIn": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Reason"
+          },
+          "days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3650.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "BlockIn"
+      },
       "app__schemas__admin__ReasonIn": {
         "properties": {
           "reason": {
@@ -29629,6 +32468,69 @@
         ],
         "title": "ReasonIn",
         "description": "Every moderation action carries a written reason (it goes into the audit trail)."
+      },
+      "app__schemas__blog__BlockIn": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "paragraph",
+              "heading",
+              "quote",
+              "list"
+            ],
+            "title": "Type"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 5000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "items": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 30
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "title": "BlockIn"
+      },
+      "app__schemas__blog__ReasonIn": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "ReasonIn"
       },
       "app__schemas__finance__ReasonIn": {
         "properties": {

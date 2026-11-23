@@ -51,6 +51,8 @@ struct ProfileView: View {
                 case .legalDocuments: LegalDocumentsView(isCoach: user.isCoach)
                 case .myAchievements: MyAchievementsView(userId: user.id)
                 case .matchOffers: MatchOffersView()
+                case .blogFeed: BlogFeedView()
+                case .blogPost(let id): BlogPostView(postId: id)
                 }
             }
             .task {
@@ -169,6 +171,7 @@ struct ProfileView: View {
             }
             NavigationLink(value: ProfileRoute.myTasks) { Label("Мои задания", systemImage: "checklist") }
                 .accessibilityIdentifier("profile.myTasks")
+            NavigationLink(value: ProfileRoute.blogFeed) { Label("Статьи", systemImage: "newspaper") }.accessibilityIdentifier("profile.blog")
             NavigationLink(value: ProfileRoute.myStats) { Label("Моя статистика", systemImage: "chart.bar") }
                 .accessibilityIdentifier("profile.stats")
             NavigationLink(value: ProfileRoute.myAchievements) { Label("Мои достижения", systemImage: "trophy") }

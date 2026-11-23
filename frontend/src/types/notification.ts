@@ -15,7 +15,9 @@ export type NotificationCategory =
   | "chat_booking"
   | "chat_team"
   | "match_offer"
-  | "match_offer_reply";
+  | "match_offer_reply"
+  | "post_review"
+  | "post_comment";
 
 export const NOTIFICATION_CATEGORY_LABELS: Record<NotificationCategory, string> = {
   training_reminder: "Напоминания о тренировках",
@@ -35,6 +37,8 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<NotificationCategory, string> 
   chat_team: "Сообщения в чате команды",
   match_offer: "Предложения клиентов из подбора (для тренера)",
   match_offer_reply: "Ответы тренеров на мою заявку на подбор",
+  post_review: "Решения администраторов по моим статьям",
+  post_comment: "Комментарии к моим статьям",
 };
 
 export interface NotificationPreference {

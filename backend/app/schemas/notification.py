@@ -18,7 +18,7 @@ NotificationCategory = Literal[
     "training_reminder", "task_deadline", "new_training", "new_match", "new_task",
     "booking_requested", "booking_decided", "review_requested", "training_nudge",
     "payment_update", "earning_update", "withdrawal_update", "finance_admin",
-    "chat_booking", "chat_team", "match_offer", "match_offer_reply",
+    "chat_booking", "chat_team", "match_offer", "match_offer_reply", "post_review", "post_comment",
 ]
 
 NOTIFICATION_CATEGORIES: tuple[PreferenceCategory, ...] = (
