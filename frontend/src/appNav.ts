@@ -11,7 +11,8 @@ export type AppTarget =
   | { kind: "training-create" }
   | { kind: "my-bookings" }
   | { kind: "incoming-bookings" }
-  | { kind: "finance" };
+  | { kind: "finance" }
+  | { kind: "match-offers" };
 
 type Listener = (target: AppTarget) => void;
 

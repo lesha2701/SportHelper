@@ -14,6 +14,8 @@ export type OverlayBase =
   | { kind: "incoming-bookings"; focusBookingId?: string }
   | { kind: "my-bookings"; reviewBookingId?: string; focusBookingId?: string }
   | { kind: "finance" }
+  | { kind: "match-offers" }
+  | { kind: "match-requests" }
   | { kind: "chat"; target: ChatTarget };
 
 /** `backTo` is where "Назад" returns: an overlay opened from the notification
@@ -59,6 +61,12 @@ export function notificationToOverlay(category: NotificationCategory, entityId: 
     case "chat_team":
       // entityId is the team.
       return { kind: "chat", target: { kind: "team", id: entityId } };
+    case "match_offer":
+      // A trainer was offered a client: the «Подбор клиентов» screen, where the offer waits for an answer.
+      return { kind: "match-offers" };
+    case "match_offer_reply":
+      // A trainer agreed to take the athlete: their requests, where the trainer can be chosen.
+      return { kind: "match-requests" };
     default:
       return null;
   }

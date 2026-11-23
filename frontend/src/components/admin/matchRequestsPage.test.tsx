@@ -15,13 +15,14 @@ function request(over: Partial<adminApi.AdminMatchRequest> = {}): adminApi.Admin
     id: ID, sport: "Теннис", goal: "Поставить удар справа", level: "amateur", format: "offline", city: "Москва", budgetMin: 1500, budgetMax: 3000,
     currency: "RUB", weekdays: [1, 5], dayParts: ["evening"], scheduleNote: "после 19:00", comment: "Занимался в детстве", status: "new",
     createdAt: "2026-11-23T10:00:00Z", author: { id: "u1", name: "Анна Игрок", email: "anna@example.com" }, adminNote: null, handledBy: null,
-    handledAt: null, ...over,
+    handledAt: null, offers: [], ...over,
   };
 }
 const page = (items: adminApi.AdminMatchRequest[]) => ({ total: items.length, limit: 25, offset: 0, items });
 
 beforeEach(() => {
   Object.values(api).forEach((fn) => typeof fn === "function" && "mockReset" in fn && (fn as ReturnType<typeof vi.fn>).mockReset());
+  api.listMatchCandidates.mockResolvedValue([]);
   window.history.replaceState(null, "", "/admin/matching");
 });
 afterEach(cleanup);
@@ -96,5 +97,84 @@ describe("the matching queue", () => {
 
     expect(within(drawer).queryByRole("button", { name: "Закрыть заявку" })).toBeNull();
     expect(within(drawer).getByText("Нет тренеров")).toBeTruthy();
+  });
+});
+
+const offerOf = (over: Partial<adminApi.AdminMatchOffer> = {}): adminApi.AdminMatchOffer => ({
+  id: "o1", status: "proposed", coach: { id: "c1", name: "Иван Тренеров", email: "ivan@example.com" }, coachSport: "Теннис", firstSessionPercent: 50,
+  adminMessage: "Подходит по уровню", coachDeclineReason: null, createdAt: "2026-11-23T11:00:00Z", expiresAt: "2026-11-25T11:00:00Z",
+  athleteExpiresAt: null, coachRespondedAt: null, athleteRespondedAt: null, ...over,
+});
+const candidate = (over: Partial<adminApi.MatchCandidate> = {}): adminApi.MatchCandidate => ({
+  coachUserId: "c2", name: "Пётр Теннисов", isPro: true, sport: "Теннис", specialization: null, experienceYears: 7, averageRating: 4.8, reviewCount: 12,
+  sameSport: true, alreadyOffered: false, ...over,
+});
+const openDrawer = async () => {
+  fireEvent.click(screen.getByText("Теннис"));
+  await flush();
+  return screen.getByRole("complementary", { name: "Заявка на подбор тренера" });
+};
+
+describe("offers to trainers", () => {
+  it("lists the offers with the trainer's answer, the percent fixed in them and the decline reason", async () => {
+    api.listAdminMatchRequests.mockResolvedValue(
+      page([request({ status: "in_progress", offers: [offerOf(), offerOf({ id: "o2", status: "coach_declined", coach: { id: "c3", name: "Олег", email: null }, coachDeclineReason: "Нет времени" })] })]),
+    );
+    await openQueue();
+    const drawer = await openDrawer();
+
+    expect(within(drawer).getByText("Иван Тренеров")).toBeTruthy();
+    expect(within(drawer).getByText("Ждёт ответа тренера")).toBeTruthy();
+    expect(within(drawer).getAllByText(/Первая тренировка: 50%/)).toHaveLength(2);
+    expect(within(drawer).getByText("Тренер отказался")).toBeTruthy();
+    expect(within(drawer).getByText(/Нет времени/)).toBeTruthy();
+    expect(within(drawer).getAllByRole("button", { name: "Отозвать" })).toHaveLength(1); // only the one still waiting
+  });
+
+  it("withdraws a waiting offer", async () => {
+    api.listAdminMatchRequests.mockResolvedValue(page([request({ status: "in_progress", offers: [offerOf()] })]));
+    api.withdrawMatchOffer.mockResolvedValue(request({ status: "in_progress", offers: [offerOf({ status: "withdrawn" })] }));
+    await openQueue();
+    const drawer = await openDrawer();
+
+    fireEvent.click(within(drawer).getByRole("button", { name: "Отозвать" }));
+    await flush();
+
+    expect(api.withdrawMatchOffer).toHaveBeenCalledWith("o1");
+  });
+
+  it("searches the trainers who can be offered and offers one with a message", async () => {
+    api.listAdminMatchRequests.mockResolvedValue(page([request()]));
+    api.listMatchCandidates.mockResolvedValue([candidate(), candidate({ coachUserId: "c4", name: "Уже спрошенный", alreadyOffered: true })]);
+    api.createMatchOffer.mockResolvedValue(request({ status: "in_progress", offers: [offerOf()] }));
+    await openQueue();
+    const drawer = await openDrawer();
+
+    expect(within(drawer).getByText("Пётр Теннисов")).toBeTruthy();
+    expect((within(drawer).getByRole("button", { name: "Уже предлагали" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(within(drawer).getByLabelText("Сообщение тренеру"), { target: { value: " Подходит по уровню " } });
+    fireEvent.click(within(drawer).getByRole("button", { name: "Предложить" }));
+    await flush();
+
+    expect(api.createMatchOffer).toHaveBeenCalledWith(ID, "c2", "Подходит по уровню");
+  });
+
+  it("does not offer trainers on a request that is over, but keeps the history", async () => {
+    api.listAdminMatchRequests.mockResolvedValue(page([request({ status: "closed", offers: [offerOf({ status: "withdrawn" })] })]));
+    await openQueue();
+    const drawer = await openDrawer();
+
+    expect(within(drawer).queryByLabelText("Поиск тренера")).toBeNull();
+    expect(within(drawer).getByText("Отозвано")).toBeTruthy();
+    expect(api.listMatchCandidates).not.toHaveBeenCalled();
+  });
+
+  it("lets a matched request be closed", async () => {
+    api.listAdminMatchRequests.mockResolvedValue(page([request({ status: "matched", offers: [offerOf({ status: "athlete_accepted" })] })]));
+    await openQueue();
+    const drawer = await openDrawer();
+
+    expect(within(drawer).getByRole("button", { name: "Закрыть заявку" })).toBeTruthy();
+    expect(within(drawer).queryByLabelText("Поиск тренера")).toBeNull();
   });
 });

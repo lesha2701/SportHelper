@@ -26,6 +26,8 @@ export const AUDIT_ACTIONS: Record<string, string> = {
   support_close: "Обращение в поддержку закрыто",
   match_request_take: "Заявка на подбор тренера взята в работу",
   match_request_close: "Заявка на подбор тренера закрыта",
+  match_offer_create: "Заявка на подбор предложена тренеру",
+  match_offer_withdraw: "Предложение тренеру по заявке отозвано",
   mfa_enabled: "Включена двухфакторная защита",
   mfa_disabled: "Отключена двухфакторная защита",
 };

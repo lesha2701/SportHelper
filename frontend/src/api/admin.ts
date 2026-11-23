@@ -1,5 +1,5 @@
 import { API_BASE_URL, ApiError, apiRequest } from "./client";
-import { mapMatchRequest, type MatchRequestDto, type MatchRequestFields, type MatchStatus } from "./matchRequests";
+import { mapMatchRequestBase, type MatchOfferStatus, type MatchRequestBaseDto, type MatchRequestFields, type MatchStatus } from "./matchRequests";
 
 /** Admin endpoints are all server-checked on every call (administrator + second factor); nothing here
  * grants anything - the UI only follows what the server answers. Errors are shown by the pages. */
@@ -835,6 +835,22 @@ export async function listAdminAudit(query: {
 
 // --- «Подобрать тренера»: the athletes' requests ----------------------------------------------------------------------
 
+/** One offer of a request to a trainer, as the administrators see it (with the trainer's answer and the percent fixed in it). */
+export interface AdminMatchOffer {
+  id: string;
+  status: MatchOfferStatus;
+  coach: { id: string; name: string; email: string | null };
+  coachSport: string | null;
+  firstSessionPercent: number;
+  adminMessage: string | null;
+  coachDeclineReason: string | null;
+  createdAt: string;
+  expiresAt: string;
+  athleteExpiresAt: string | null;
+  coachRespondedAt: string | null;
+  athleteRespondedAt: string | null;
+}
+
 export interface AdminMatchRequest extends MatchRequestFields {
   id: string;
   status: MatchStatus;
@@ -843,17 +859,68 @@ export interface AdminMatchRequest extends MatchRequestFields {
   adminNote: string | null;
   handledBy: string | null;
   handledAt: string | null;
+  offers: AdminMatchOffer[];
 }
 
-interface AdminMatchRequestDto extends MatchRequestDto {
+/** A trainer who may be offered the request: opted in, with a published listing, no block or history with the athlete. */
+export interface MatchCandidate {
+  coachUserId: string;
+  name: string;
+  isPro: boolean;
+  sport: string;
+  specialization: string | null;
+  experienceYears: number | null;
+  averageRating: number | null;
+  reviewCount: number;
+  sameSport: boolean;
+  alreadyOffered: boolean;
+}
+
+interface AdminMatchOfferDto {
+  id: string;
+  status: MatchOfferStatus;
+  coach: { id: string; name: string; email: string | null };
+  coach_sport: string | null;
+  first_session_percent: number;
+  admin_message: string | null;
+  coach_decline_reason: string | null;
+  created_at: string;
+  expires_at: string;
+  athlete_expires_at: string | null;
+  coach_responded_at: string | null;
+  athlete_responded_at: string | null;
+}
+
+interface AdminMatchRequestDto extends MatchRequestBaseDto {
   author: { id: string; name: string; email: string | null };
   admin_note: string | null;
   handled_by: string | null;
   handled_at: string | null;
+  offers?: AdminMatchOfferDto[];
 }
 
 function mapMatchRequestAdmin(dto: AdminMatchRequestDto): AdminMatchRequest {
-  return { ...mapMatchRequest(dto), author: dto.author, adminNote: dto.admin_note, handledBy: dto.handled_by, handledAt: dto.handled_at };
+  return {
+    ...mapMatchRequestBase(dto),
+    author: dto.author,
+    adminNote: dto.admin_note,
+    handledBy: dto.handled_by,
+    handledAt: dto.handled_at,
+    offers: (dto.offers ?? []).map((o) => ({
+      id: o.id,
+      status: o.status,
+      coach: o.coach,
+      coachSport: o.coach_sport,
+      firstSessionPercent: o.first_session_percent,
+      adminMessage: o.admin_message,
+      coachDeclineReason: o.coach_decline_reason,
+      createdAt: o.created_at,
+      expiresAt: o.expires_at,
+      athleteExpiresAt: o.athlete_expires_at,
+      coachRespondedAt: o.coach_responded_at,
+      athleteRespondedAt: o.athlete_responded_at,
+    })),
+  };
 }
 
 export async function listAdminMatchRequests(query: { status: MatchStatus | ""; q: string; limit: number; offset: number }): Promise<Page<AdminMatchRequest>> {
@@ -873,5 +940,50 @@ export async function takeAdminMatchRequest(id: string): Promise<AdminMatchReque
 export async function closeAdminMatchRequest(id: string, note: string | null): Promise<AdminMatchRequest> {
   return mapMatchRequestAdmin(
     await apiRequest<AdminMatchRequestDto>(`/api/admin/match-requests/${id}/close`, { method: "POST", successMessage: "Заявка закрыта", body: { note } }),
+  );
+}
+
+export async function listMatchCandidates(requestId: string, q: string): Promise<MatchCandidate[]> {
+  const dtos = await apiRequest<
+    {
+      coach_user_id: string;
+      name: string;
+      is_pro: boolean;
+      sport: string;
+      specialization: string | null;
+      experience_years: number | null;
+      average_rating: number | null;
+      review_count: number;
+      same_sport: boolean;
+      already_offered: boolean;
+    }[]
+  >(`/api/admin/match-requests/${requestId}/candidates${queryString({ q: q.trim() || undefined })}`, QUIET);
+  return dtos.map((d) => ({
+    coachUserId: d.coach_user_id,
+    name: d.name,
+    isPro: d.is_pro,
+    sport: d.sport,
+    specialization: d.specialization,
+    experienceYears: d.experience_years,
+    averageRating: d.average_rating,
+    reviewCount: d.review_count,
+    sameSport: d.same_sport,
+    alreadyOffered: d.already_offered,
+  }));
+}
+
+export async function createMatchOffer(requestId: string, coachUserId: string, message: string | null): Promise<AdminMatchRequest> {
+  return mapMatchRequestAdmin(
+    await apiRequest<AdminMatchRequestDto>(`/api/admin/match-requests/${requestId}/offers`, {
+      method: "POST",
+      successMessage: "Предложение отправлено тренеру",
+      body: { coach_user_id: coachUserId, message },
+    }),
+  );
+}
+
+export async function withdrawMatchOffer(offerId: string): Promise<AdminMatchRequest> {
+  return mapMatchRequestAdmin(
+    await apiRequest<AdminMatchRequestDto>(`/api/admin/match-requests/offers/${offerId}/withdraw`, { method: "POST", successMessage: "Предложение отозвано" }),
   );
 }

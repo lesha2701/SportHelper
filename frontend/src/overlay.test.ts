@@ -26,4 +26,9 @@ describe("where a chat notification leads", () => {
   it("opens the chat of that team", () => {
     expect(notificationToOverlay("chat_team", ID)).toEqual({ kind: "chat", target: { kind: "team", id: ID } });
   });
+
+  it("opens the trainer's offers and the athlete's requests for the matching notifications", () => {
+    expect(notificationToOverlay("match_offer", ID)).toEqual({ kind: "match-offers" });
+    expect(notificationToOverlay("match_offer_reply", ID)).toEqual({ kind: "match-requests" });
+  });
 });

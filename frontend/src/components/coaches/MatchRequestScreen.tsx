@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
+  acceptMatchOffer,
   budgetText,
   cancelMatchRequest,
+  declineMatchOffer,
   createMatchRequest,
   DAY_PART_LABELS,
   listMyMatchRequests,
@@ -13,6 +15,7 @@ import {
   type DayPart,
   type MatchFormat,
   type MatchLevel,
+  type MatchOffer,
   type MatchRequest,
 } from "../../api/matchRequests";
 import { ApiError } from "../../api/client";
@@ -48,7 +51,15 @@ function formatWhen(iso: string): string {
 
 /** «Подобрать тренера»: the person says what they are looking for (only the sport is required: the more is filled in, the better the
  *  match), the administrators pick trainers. The person's contacts are not given to anybody. */
-export function MatchRequestScreen({ guest = false, onRequireLogin }: { guest?: boolean; onRequireLogin?: () => void }) {
+export function MatchRequestScreen({
+  guest = false,
+  onRequireLogin,
+  onOpenCoach,
+}: {
+  guest?: boolean;
+  onRequireLogin?: () => void;
+  onOpenCoach?: (coachUserId: string) => void;
+}) {
   const [sport, setSport] = useState("");
   const [goal, setGoal] = useState("");
   const [level, setLevel] = useState<MatchLevel | null>(null);
@@ -148,6 +159,17 @@ export function MatchRequestScreen({ guest = false, onRequireLogin }: { guest?: 
       setMine((list) => list && list.map((x) => (x.id === id ? updated : x)));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Не удалось отозвать заявку.");
+    }
+  };
+
+  const answer = async (offerId: string, accept: boolean) => {
+    setError(null);
+    try {
+      const updated = await (accept ? acceptMatchOffer(offerId) : declineMatchOffer(offerId));
+      setMine((list) => list && list.map((x) => (x.id === updated.id ? updated : x)));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Не удалось ответить. Попробуйте ещё раз.");
+      loadMine();
     }
   };
 
@@ -277,7 +299,13 @@ export function MatchRequestScreen({ guest = false, onRequireLogin }: { guest?: 
           <h2 className={styles.sectionTitle}>Ваши заявки</h2>
           <ul className={styles.list}>
             {mine.map((r) => (
-              <RequestItem key={r.id} request={r} onWithdraw={() => void withdraw(r.id)} />
+              <RequestItem
+                key={r.id}
+                request={r}
+                onWithdraw={() => void withdraw(r.id)}
+                onAnswer={(offerId, accept) => void answer(offerId, accept)}
+                onOpenCoach={onOpenCoach}
+              />
             ))}
           </ul>
         </div>
@@ -286,7 +314,17 @@ export function MatchRequestScreen({ guest = false, onRequireLogin }: { guest?: 
   );
 }
 
-function RequestItem({ request: r, onWithdraw }: { request: MatchRequest; onWithdraw: () => void }) {
+function RequestItem({
+  request: r,
+  onWithdraw,
+  onAnswer,
+  onOpenCoach,
+}: {
+  request: MatchRequest;
+  onWithdraw: () => void;
+  onAnswer: (offerId: string, accept: boolean) => void;
+  onOpenCoach?: (coachUserId: string) => void;
+}) {
   const open = r.status === "new" || r.status === "in_progress";
   const facts: [string, string | null][] = [
     ["Цель", r.goal],
@@ -316,11 +354,74 @@ function RequestItem({ request: r, onWithdraw }: { request: MatchRequest; onWith
             </div>
           ))}
       </dl>
+      {r.offers.length > 0 && (
+        <div className={styles.offers}>
+          <strong>{r.status === "matched" ? "Ваш тренер" : "Тренеры, готовые с вами заниматься"}</strong>
+          {r.status !== "matched" && (
+            <p className={styles.hint}>Мы подобрали их из тренеров, участвующих в подборе. Выберите того, кто вам подходит.</p>
+          )}
+          {r.offers.map((offer) => (
+            <OfferItem key={offer.id} offer={offer} matched={r.status === "matched"} onAnswer={onAnswer} onOpenCoach={onOpenCoach} />
+          ))}
+        </div>
+      )}
       {open && (
         <button type="button" className={styles.link} onClick={onWithdraw}>
           Отозвать заявку
         </button>
       )}
     </li>
+  );
+}
+
+function OfferItem({
+  offer,
+  matched,
+  onAnswer,
+  onOpenCoach,
+}: {
+  offer: MatchOffer;
+  matched: boolean;
+  onAnswer: (offerId: string, accept: boolean) => void;
+  onOpenCoach?: (coachUserId: string) => void;
+}) {
+  const c = offer.coach;
+  const details = [
+    c.sport,
+    c.specialization,
+    c.experienceYears !== null ? `стаж ${c.experienceYears} лет` : null,
+    c.averageRating !== null ? `★ ${c.averageRating.toFixed(1)} (${c.reviewCount})` : null,
+  ].filter(Boolean);
+  return (
+    <div className={styles.offer}>
+      <div>
+        <strong>{c.fullName}</strong>
+        {c.isPro && <span className={styles.pro}>Pro</span>}
+        <div className={styles.hint}>{details.join(" · ")}</div>
+        {offer.listings.length > 0 && (
+          <div className={styles.hint}>
+            {offer.listings.map((l) => (l.pricePerSession !== null ? `${l.title} — ${l.pricePerSession.toLocaleString("ru-RU")} ₽` : l.title)).join("; ")}
+          </div>
+        )}
+        {!matched && offer.expiresAt && <div className={styles.hint}>Выберите до {formatWhen(offer.expiresAt)}</div>}
+      </div>
+      <div className={styles.offerActions}>
+        {onOpenCoach && (
+          <button type="button" className={profileStyles.buttonSecondary} onClick={() => onOpenCoach(c.userId)}>
+            {matched ? "Записаться на тренировку" : "Профиль тренера"}
+          </button>
+        )}
+        {!matched && (
+          <>
+            <button type="button" className={profileStyles.buttonPrimary} onClick={() => onAnswer(offer.id, true)}>
+              Выбрать этого тренера
+            </button>
+            <button type="button" className={styles.link} onClick={() => onAnswer(offer.id, false)}>
+              Не подходит
+            </button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

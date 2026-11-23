@@ -478,7 +478,11 @@ export function CoachMarketplaceScreen({
         {/* on desktop the page heading already shows the title */}
         <h1 className={isDesktop ? `${teamStyles.heading} ${teamStyles.headingDup}` : teamStyles.heading}>Тренеры</h1>
         {tabs}
-        <MatchRequestScreen guest={guest} onRequireLogin={() => navigate(loginUrl("/"))} />
+        <MatchRequestScreen
+          guest={guest}
+          onRequireLogin={() => navigate(loginUrl("/"))}
+          onOpenCoach={(coachUserId) => setView({ screen: "coachProfile", coachUserId })}
+        />
       </div>
     );
   }
