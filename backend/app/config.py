@@ -191,6 +191,8 @@ class Settings(BaseSettings):
     match_first_session_commission_percent: Decimal = Field(default=Decimal("50"), ge=0, le=100, alias="MATCH_FIRST_SESSION_COMMISSION_PERCENT")
     match_coach_reply_hours: int = Field(default=48, ge=1, le=720, alias="MATCH_COACH_REPLY_HOURS")
     match_athlete_reply_hours: int = Field(default=72, ge=1, le=720, alias="MATCH_ATHLETE_REPLY_HOURS")
+    # How long after the athlete chose the trainer their bookings with this trainer follow the matching rules.
+    match_attribution_days: int = Field(default=30, ge=1, le=365, alias="MATCH_ATTRIBUTION_DAYS")
     # An athlete who cancels a confirmed booking at least this many hours before the start gets the money back in full; later, nothing.
     cancel_free_hours: int = Field(default=24, ge=0, le=720, alias="CANCEL_FREE_HOURS")
     trainer_min_withdrawal_rub: int = Field(default=10000, ge=1, alias="TRAINER_MIN_WITHDRAWAL_RUB")

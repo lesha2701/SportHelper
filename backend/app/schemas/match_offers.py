@@ -4,9 +4,10 @@ The trainer sees an anonymous summary of the request (no name, no contacts); the
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.admin import PersonOut
 from app.schemas.coach_listing import CoachListingCardOut
@@ -112,6 +113,11 @@ class AdminOfferOut(BaseModel):
     athlete_expires_at: datetime | None
     coach_responded_at: datetime | None
     athlete_responded_at: datetime | None
+    # Until when the athlete's bookings with this trainer follow the matching rules (set when the athlete chose the trainer).
+    window_ends_at: datetime | None = None
+    # The percent was set for this offer alone (not taken from the general setting), and why.
+    percent_overridden: bool = False
+    percent_reason: str | None = None
 
 
 class CreateOfferIn(BaseModel):
@@ -119,6 +125,17 @@ class CreateOfferIn(BaseModel):
 
     coach_user_id: UUID
     message: str | None = Field(default=None, max_length=500)
+    # Only a finance administrator may set it (otherwise the general percent is used); a reason is then required and goes to the audit.
+    first_session_percent: Decimal | None = Field(default=None, ge=0, le=100, decimal_places=2)
+    percent_reason: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def _percent_needs_reason(self) -> "CreateOfferIn":
+        reason = " ".join((self.percent_reason or "").split())
+        if self.first_session_percent is not None and not reason:
+            raise ValueError("percent_reason is required with first_session_percent")
+        self.percent_reason = reason or None
+        return self
 
     @field_validator("message")
     @classmethod

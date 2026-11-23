@@ -6,15 +6,16 @@ from uuid import UUID
 import asyncpg
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import AuthContext, get_db, get_settings_dep, require_admin_mfa, require_admin_write
+from app.api.deps import AuthContext, get_db, get_settings_dep, is_finance_admin, require_admin_mfa, require_admin_write
 from app.config import Settings
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.repositories import match_offers as offers_repo
 from app.repositories import match_requests as repo
 from app.schemas.admin import PersonOut
 from app.schemas.match_offers import AdminOfferOut, CandidateOut, CreateOfferIn
 from app.schemas.match_requests import CloseMatchRequestIn, MatchRequestAdminOut, MatchRequestPageOut, MatchStatus
 from app.services import admin_audit
+from app.services import commission as commission_service
 from app.services import match_offers as offers_svc
 from app.services import notifications as notifications_service
 
@@ -122,13 +123,21 @@ async def create_offer(
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> MatchRequestAdminOut:
-    """Offers the athlete to a trainer. The platform's share of the first session is fixed in the offer from the current setting."""
+    """Offers the athlete to a trainer. The platform's share of the first session is fixed in the offer: the current general setting, or,
+    for a finance administrator, a percent chosen for this offer (with a reason, which goes to the audit)."""
+    if not settings.payments_enabled:
+        # Without the in-app payment the platform would only hand over a client: nothing to take the share from, no contacts to guard.
+        raise ConflictError("Онлайн-оплата выключена: предложить тренера нельзя, пока она не включена.", code="payments_unavailable")
+    overridden = payload.first_session_percent is not None
+    if overridden and not is_finance_admin(ctx.user, settings):
+        raise ForbiddenError("only a finance administrator can set the percent of an offer", code="finance_access_required")
+    percent = payload.first_session_percent if overridden else await commission_service.first_session_percent(conn, settings)
     try:
         async with conn.transaction():
             offer = await offers_repo.create_offer(
                 conn, request_id, payload.coach_user_id, ctx.user["id"], message=payload.message,
-                percent=settings.match_first_session_commission_percent, terms_version=offers_svc.TERMS_VERSION,
-                coach_hours=settings.match_coach_reply_hours,
+                percent=percent, terms_version=offers_svc.TERMS_VERSION, coach_hours=settings.match_coach_reply_hours,
+                percent_reason=payload.percent_reason if overridden else None,
             )
             if offer is None:
                 raise NotFoundError("match request not found")
@@ -137,7 +146,8 @@ async def create_offer(
                 conn, ctx.user["id"], "match_offer_create", target_type="match_request", target_id=request_id,
                 after={"offer_id": str(offer["id"]), "coach_user_id": str(payload.coach_user_id),
                        "first_session_percent": float(offer["first_session_percent"])},
-                extra={"sport": request["sport"]},
+                reason=payload.percent_reason if overridden else None,
+                extra={"sport": request["sport"], "percent_overridden": overridden},
             )
             await notifications_service.schedule_match_offer_notification(conn, {**offer, "sport": request["sport"]})
     except offers_repo.RequestNotOpen as exc:

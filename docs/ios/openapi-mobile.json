@@ -11125,6 +11125,34 @@
               }
             ],
             "title": "Athlete Responded At"
+          },
+          "window_ends_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Window Ends At"
+          },
+          "percent_overridden": {
+            "type": "boolean",
+            "title": "Percent Overridden",
+            "default": false
+          },
+          "percent_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent Reason"
           }
         },
         "type": "object",
@@ -12879,6 +12907,27 @@
                 "type": "null"
               }
             ]
+          },
+          "from_match": {
+            "type": "boolean",
+            "title": "From Match",
+            "default": false
+          },
+          "match_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match Percent"
+          },
+          "athlete_hidden": {
+            "type": "boolean",
+            "title": "Athlete Hidden",
+            "default": false
           }
         },
         "type": "object",
@@ -15037,6 +15086,34 @@
               }
             ],
             "title": "Message"
+          },
+          "first_session_percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Session Percent"
+          },
+          "percent_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent Reason"
           }
         },
         "additionalProperties": false,
@@ -16266,6 +16343,36 @@
           "paid_amount_kopecks"
         ],
         "title": "MarkPaidIn"
+      },
+      "MatchCommissionIn": {
+        "properties": {
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Percent"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "percent",
+          "reason"
+        ],
+        "title": "MatchCommissionIn",
+        "description": "A new platform share of the first session with a client from «Подобрать тренера» (0-100, at most two decimals) for the offers\ncreated from now on, and why. Offers that already exist keep their percent."
       },
       "MatchCreateIn": {
         "properties": {
@@ -18799,6 +18906,27 @@
             "type": "integer",
             "title": "Athlete Review Count",
             "default": 0
+          },
+          "from_match": {
+            "type": "boolean",
+            "title": "From Match",
+            "default": false
+          },
+          "match_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match Percent"
+          },
+          "athlete_hidden": {
+            "type": "boolean",
+            "title": "Athlete Hidden",
+            "default": false
           }
         },
         "type": "object",

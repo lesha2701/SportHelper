@@ -10,6 +10,7 @@ import asyncpg
 from app.config import Settings
 from app.repositories import coach_commission as coach_commission_repo
 from app.repositories import commission as commission_repo
+from app.repositories import match_commission as match_commission_repo
 
 
 async def current_percent(conn: asyncpg.Connection, settings: Settings) -> Decimal:
@@ -21,6 +22,13 @@ async def percent_for_coach(conn: asyncpg.Connection, settings: Settings, coach_
     """What this trainer pays: his personal percent, or the general one."""
     personal = await coach_commission_repo.latest(conn, coach_user_id)
     return personal if personal is not None else await current_percent(conn, settings)
+
+
+async def first_session_percent(conn: asyncpg.Connection, settings: Settings) -> Decimal:
+    """The platform's share of the first session with a client the platform brought (what an administrator set last, otherwise the
+    environment's MATCH_FIRST_SESSION_COMMISSION_PERCENT). It is copied into each new offer and frozen there."""
+    chosen = await match_commission_repo.latest(conn)
+    return chosen if chosen is not None else Decimal(settings.match_first_session_commission_percent)
 
 
 def percent_text(percent: Decimal) -> str:

@@ -7,6 +7,7 @@ from uuid import UUID
 import asyncpg
 
 from app.repositories import coach_reviews as coach_reviews_repo
+from app.repositories import match_attribution
 from app.repositories.admin_users import like_pattern
 from app.repositories.coach_listings import PUBLIC_LISTING
 
@@ -84,7 +85,7 @@ _ELIGIBLE = f"""
       AND cp.accepts_match_offers AND cp.match_terms_version = $2
       AND u.deleted_at IS NULL AND NOT (u.is_banned AND (u.banned_until IS NULL OR u.banned_until > now()))
       AND u.id <> r.user_id
-      AND EXISTS (SELECT 1 FROM coach_listings cl WHERE cl.coach_user_id = u.id AND {PUBLIC_LISTING})
+      AND EXISTS (SELECT 1 FROM coach_listings cl WHERE cl.coach_user_id = u.id AND {PUBLIC_LISTING} AND cl.price_per_session > 0)
       AND NOT EXISTS (SELECT 1 FROM user_blocks b WHERE (b.blocker_id = u.id AND b.blocked_id = r.user_id)
                                                      OR (b.blocker_id = r.user_id AND b.blocked_id = u.id))
       AND NOT EXISTS (SELECT 1 FROM bookings bk WHERE bk.coach_user_id = u.id AND bk.athlete_user_id = r.user_id
@@ -135,8 +136,9 @@ async def create_offer(
     percent: Any,
     terms_version: str,
     coach_hours: int,
+    percent_reason: str | None = None,
 ) -> dict[str, Any] | None:
-    """None when the request does not exist. A new request is taken into work by the first offer."""
+    """None when the request does not exist. `percent_reason` is set when the percent was chosen for this offer alone. A new request is taken into work by the first offer."""
     async with conn.transaction():
         request = await conn.fetchrow("SELECT status FROM coach_match_requests WHERE id = $1 FOR UPDATE", request_id)
         if request is None:
@@ -152,11 +154,12 @@ async def create_offer(
             raise TooManyOffers
         row = await conn.fetchrow(
             """
-            INSERT INTO coach_match_offers (request_id, coach_user_id, first_session_percent, terms_version, admin_message, created_by, expires_at)
-            VALUES ($1, $2, $3, $4, $5, $6, now() + make_interval(hours => $7))
+            INSERT INTO coach_match_offers (request_id, coach_user_id, first_session_percent, terms_version, admin_message, created_by, expires_at,
+                                            percent_overridden, percent_reason)
+            VALUES ($1, $2, $3, $4, $5, $6, now() + make_interval(hours => $7), $8::text IS NOT NULL, $8::text)
             RETURNING id, request_id, coach_user_id, first_session_percent, expires_at
             """,
-            request_id, coach_user_id, percent, terms_version, message, admin_id, coach_hours,
+            request_id, coach_user_id, percent, terms_version, message, admin_id, coach_hours, percent_reason,
         )
         if request["status"] == "new":
             await conn.execute(
@@ -273,9 +276,12 @@ async def coach_answer(
 # --- offers: the athlete's side --------------------------------------------------------------------------------------
 
 
-async def athlete_answer(conn: asyncpg.Connection, offer_id: UUID, athlete_user_id: UUID, *, accept: bool) -> dict[str, Any] | None:
+async def athlete_answer(
+    conn: asyncpg.Connection, offer_id: UUID, athlete_user_id: UUID, *, accept: bool, attribution_days: int = 30
+) -> dict[str, Any] | None:
     """None if the offer is not about this athlete's request. OfferClosed unless the trainer has agreed and the time is not out.
-    Choosing a trainer makes the request «matched»; declining leaves it with the administrators."""
+    Choosing a trainer makes the request «matched» and opens the attribution window (the athlete's bookings with this trainer follow
+    the matching rules for `attribution_days`); declining leaves the request with the administrators."""
     async with conn.transaction():
         own = await conn.fetchrow(
             "SELECT o.request_id, r.user_id FROM coach_match_offers o JOIN coach_match_requests r ON r.id = o.request_id WHERE o.id = $1", offer_id
@@ -288,13 +294,17 @@ async def athlete_answer(conn: asyncpg.Connection, offer_id: UUID, athlete_user_
             raise OfferClosed(offer["status"] if offer["status"] != "coach_accepted" else request["status"])
         if accept:
             await conn.execute(
-                "UPDATE coach_match_offers SET status = 'athlete_accepted', athlete_responded_at = now(), updated_at = now() WHERE id = $1", offer_id
+                "UPDATE coach_match_offers SET status = 'athlete_accepted', athlete_responded_at = now(), updated_at = now(), "
+                "window_ends_at = now() + make_interval(days => $2) WHERE id = $1",
+                offer_id, attribution_days,
             )
             await conn.execute(
                 "UPDATE coach_match_offers SET status = 'withdrawn', updated_at = now() WHERE request_id = $1 AND id <> $2 AND status IN ('proposed', 'coach_accepted')",
                 offer["request_id"], offer_id,
             )
             await conn.execute("UPDATE coach_match_requests SET status = 'matched', updated_at = now() WHERE id = $1", offer["request_id"])
+            # A booking the athlete already made with this trainer (after the trainer agreed) takes the right of the first session now.
+            await match_attribution.claim_waiting(conn, offer["coach_user_id"], athlete_user_id)
         else:
             await conn.execute(
                 "UPDATE coach_match_offers SET status = 'athlete_declined', athlete_responded_at = now(), updated_at = now() WHERE id = $1", offer_id
@@ -338,6 +348,7 @@ async def all_for_requests(conn: asyncpg.Connection, request_ids: list[UUID]) ->
         f"""
         SELECT o.id, o.request_id, ({EFFECTIVE_STATUS}) AS status, o.first_session_percent, o.admin_message, o.coach_decline_reason,
                o.created_at, o.expires_at, o.athlete_expires_at, o.coach_responded_at, o.athlete_responded_at,
+               o.window_ends_at, o.percent_overridden, o.percent_reason,
                u.id AS coach_user_id, u.email AS coach_email, cp.full_name AS coach_name, cp.sport AS coach_sport
         FROM coach_match_offers o
         JOIN users u ON u.id = o.coach_user_id

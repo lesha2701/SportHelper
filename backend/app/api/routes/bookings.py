@@ -13,6 +13,7 @@ from app.repositories import booking_cancellations as cancellations_repo
 from app.repositories import bookings as bookings_repo
 from app.repositories import coach_listings as listings_repo
 from app.repositories import coach_reviews as coach_reviews_repo
+from app.repositories import match_attribution
 from app.repositories import payments as payments_repo
 from app.repositories import player_reviews as player_reviews_repo
 from app.repositories import plans as plans_repo
@@ -35,6 +36,7 @@ from app.schemas.booking import (
 )
 from app.services import booking_money as booking_money_service
 from app.services import cancellations as cancellations_service
+from app.services import match_offers as match_offers_service
 from app.services import notifications as notifications_service
 from app.services import payments as payments_service
 from app.services import session_confirmation as session_confirmation_service
@@ -44,6 +46,12 @@ router = APIRouter(prefix="/api/bookings", tags=["bookings"])
 
 
 async def _to_out(conn: asyncpg.Connection, booking: dict, viewer_id: UUID) -> BookingOut:
+    # A client from «Подобрать тренера» stays anonymous to the trainer until the first session is paid.
+    hidden = viewer_id == booking["coach_user_id"] and await match_attribution.athlete_hidden(conn, booking["coach_user_id"], booking["athlete_user_id"])
+    if hidden:
+        booking = match_offers_service.hide_athlete(booking)
+    if viewer_id != booking["coach_user_id"]:
+        booking = {**booking, "match_percent": None}  # the platform's share is the trainer's business, not the athlete's
     review = await coach_reviews_repo.get_by_booking(conn, booking["id"])
     player_review = await player_reviews_repo.get_by_booking(conn, booking["id"])
     payment = await payments_repo.summary_for_booking(conn, booking["id"])
@@ -73,6 +81,8 @@ async def _to_out(conn: asyncpg.Connection, booking: dict, viewer_id: UUID) -> B
         is_completed=bookings_repo.is_completed(booking),
         has_review=review is not None,
         has_player_review=player_review is not None,
+        from_match=booking.get("match_offer_id") is not None,
+        athlete_hidden=hidden,
     )
 
 
@@ -92,6 +102,11 @@ async def create_booking(
     if payload.format == "offline" and not listing["offers_offline"]:
         raise APIError("coach does not offer this format", code="format_not_offered", status_code=400)
 
+    if await match_attribution.has_open_first_session(conn, listing["coach_user_id"], user["id"]):
+        raise APIError(
+            "У вас уже есть неоплаченная первая тренировка с этим тренером. Оплатите её или отмените, потом запишитесь снова.",
+            code="match_booking_open", status_code=409,
+        )
     open_slots = await listings_repo.compute_open_slots(
         conn, payload.listing_id, payload.starts_at.date(), payload.starts_at.date()
     )
@@ -112,6 +127,9 @@ async def create_booking(
     )
     if booking is None:
         raise APIError("slot was just booked by someone else", code="slot_unavailable", status_code=409)
+    # The first session with a client from «Подобрать тренера» (from any listing of that trainer, the catalogue included) carries the raised share.
+    if await match_attribution.claim(conn, booking) is not None:
+        booking = await bookings_repo.get_booking(conn, booking["id"])
     await notifications_service.schedule_booking_requested_notification(conn, booking)
     return await _to_out(conn, booking, user["id"])
 
@@ -131,7 +149,7 @@ async def list_pending_bookings(
     conn: asyncpg.Connection = Depends(get_db),
 ) -> list[PendingBookingOut]:
     rows = await bookings_repo.list_pending_for_coach(conn, user["id"])
-    return [PendingBookingOut(**row) for row in rows]
+    return [PendingBookingOut(**(match_offers_service.hide_athlete(row) if row.get("athlete_hidden") else row)) for row in rows]
 
 
 @router.get("/coach", response_model=list[BookingOut])
@@ -196,6 +214,9 @@ async def confirm_booking(
         raise NotFoundError("booking not found")
     if booking["coach_user_id"] != user["id"]:
         raise ForbiddenError("you can only confirm your own bookings")
+    if booking.get("match_offer_id") is not None and not get_settings_dep().payments_enabled:
+        # The first session of a client from the matching is paid in the app; with the payment off it could not be.
+        raise APIError("Онлайн-оплата сейчас выключена: подтвердить запись из подбора нельзя.", code="payments_unavailable", status_code=409)
     confirmed = await bookings_repo.confirm_booking(conn, booking_id=booking_id, coach_user_id=user["id"])
     if confirmed is None:
         raise APIError("booking is no longer pending", code="booking_not_pending", status_code=409)
@@ -357,6 +378,10 @@ async def complete_booking_session(
         raise APIError("this session was cancelled", code="session_cancelled", status_code=409)
     if not bookings_repo.has_started(booking):
         raise APIError("the session has not started yet", code="session_not_started", status_code=409)
+    if booking.get("match_offer_id") is not None and payments_service.payment_status_of(booking, await payments_repo.summary_for_booking(conn, booking_id)) not in ("paid", "refund_pending"):
+        raise APIError(
+            "Эта запись из подбора не оплачена в приложении: отметить тренировку проведённой нельзя.", code="payment_required", status_code=409
+        )
     # The coach's word is recorded, but it does not open the trainer's money: the athlete's confirmation, the athlete's code or the 48 hours
     # do (docs/session-confirmation.md, TR-06).
     await session_confirmation_service.mark_by_coach(conn, booking_id)

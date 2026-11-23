@@ -513,6 +513,22 @@ def client(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(payments_module, "summary_for_booking", fake_payment_summary)
 
+    # «Подобрать тренера» is tested against the real database (tests/test_match_commission.py): here nobody comes from the matching.
+    import app.repositories.match_attribution as match_attribution_module
+
+    async def fake_athlete_hidden(conn, coach_user_id, athlete_user_id):
+        return False
+
+    async def fake_claim(conn, booking):
+        return None
+
+    async def fake_has_open_first_session(conn, coach_user_id, athlete_user_id):
+        return False
+
+    monkeypatch.setattr(match_attribution_module, "athlete_hidden", fake_athlete_hidden)
+    monkeypatch.setattr(match_attribution_module, "claim", fake_claim)
+    monkeypatch.setattr(match_attribution_module, "has_open_first_session", fake_has_open_first_session)
+
     import app.repositories.earnings as earnings_module
 
     async def fake_confirm_session(conn, booking_id):

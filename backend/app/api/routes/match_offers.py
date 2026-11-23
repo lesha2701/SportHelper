@@ -14,6 +14,7 @@ from app.core.exceptions import APIError, ConflictError, NotFoundError
 from app.repositories import match_offers as repo
 from app.repositories import profiles as profiles_repo
 from app.schemas.match_offers import CoachOfferOut, DeclineOfferIn, MatchOfferSettingsIn, MatchOfferSettingsOut
+from app.services import commission as commission_service
 from app.services import match_offers as svc
 from app.services import notifications as notifications_service
 
@@ -27,8 +28,8 @@ async def _coach(conn: asyncpg.Connection, user: dict) -> dict:
     return settings
 
 
-def _settings_out(row: dict, config: Settings) -> MatchOfferSettingsOut:
-    percent = config.match_first_session_commission_percent
+async def _settings_out(conn: asyncpg.Connection, row: dict, config: Settings) -> MatchOfferSettingsOut:
+    percent = await commission_service.first_session_percent(conn, config)  # what a new offer would carry
     accepted = row["match_terms_version"] == svc.TERMS_VERSION
     return MatchOfferSettingsOut(
         enabled=bool(row["accepts_match_offers"] and accepted),
@@ -37,7 +38,7 @@ def _settings_out(row: dict, config: Settings) -> MatchOfferSettingsOut:
         terms_accepted=accepted,
         first_session_percent=float(percent),
         terms_title=svc.TERMS_TITLE,
-        terms=svc.terms_paragraphs(percent),
+        terms=svc.terms_paragraphs(percent, config.match_attribution_days),
     )
 
 
@@ -45,7 +46,7 @@ def _settings_out(row: dict, config: Settings) -> MatchOfferSettingsOut:
 async def get_settings(
     user: dict = Depends(get_current_user), conn: asyncpg.Connection = Depends(get_db), config: Settings = Depends(get_settings_dep)
 ) -> MatchOfferSettingsOut:
-    return _settings_out(await _coach(conn, user), config)
+    return await _settings_out(conn, await _coach(conn, user), config)
 
 
 @router.put("/settings", response_model=MatchOfferSettingsOut)
@@ -59,7 +60,7 @@ async def put_settings(
     if payload.enabled and payload.accept_terms_version != svc.TERMS_VERSION:
         raise ConflictError("Условия подбора обновились. Прочитайте их и примите заново.", code="terms_required")
     await repo.set_settings(conn, user["id"], enabled=payload.enabled, terms_version=payload.accept_terms_version if payload.enabled else None)
-    return _settings_out(await _coach(conn, user), config)
+    return await _settings_out(conn, await _coach(conn, user), config)
 
 
 @router.get("/incoming", response_model=list[CoachOfferOut])

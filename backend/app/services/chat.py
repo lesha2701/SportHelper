@@ -20,6 +20,7 @@ from app.core.exceptions import APIError, ForbiddenError, NotFoundError
 from app.repositories import blocks as blocks_repo
 from app.repositories import bookings as bookings_repo
 from app.repositories import chat as chat_repo
+from app.repositories import match_attribution
 from app.repositories import payments as payments_repo
 from app.repositories import rate_limits as rate_limits_repo
 from app.repositories import teams as teams_repo
@@ -70,6 +71,8 @@ async def _booking_access(conn: asyncpg.Connection, user: dict, booking: dict[st
     if open_now and await blocks_repo.either_blocked(conn, booking["athlete_user_id"], booking["coach_user_id"]):
         open_now, why = False, "Переписка в этом чате ограничена."  # worded the same for both people: nobody is told who blocked whom
     other = booking["coach_full_name"] if user["id"] == booking["athlete_user_id"] else booking["athlete_full_name"]
+    if user["id"] == booking["coach_user_id"] and await match_attribution.athlete_hidden(conn, booking["coach_user_id"], booking["athlete_user_id"]):
+        other = match_attribution.HIDDEN_NAME
     when = booking["starts_at"].strftime("%d.%m.%Y %H:%M")
     subtitle = f"{booking['listing_title'] or 'Индивидуальная тренировка'} · {when}"
     return ChatAccess(

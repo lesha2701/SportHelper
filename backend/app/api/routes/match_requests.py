@@ -62,9 +62,9 @@ async def _own_request(conn: asyncpg.Connection, request_id: UUID, user_id: UUID
     return (await offers_svc.athlete_requests_out(conn, rows))[0]
 
 
-async def _athlete_answer(conn: asyncpg.Connection, user: dict, offer_id: UUID, *, accept: bool) -> MatchRequestOut:
+async def _athlete_answer(conn: asyncpg.Connection, user: dict, offer_id: UUID, *, accept: bool, settings: Settings) -> MatchRequestOut:
     try:
-        offer = await offers_repo.athlete_answer(conn, offer_id, user["id"], accept=accept)
+        offer = await offers_repo.athlete_answer(conn, offer_id, user["id"], accept=accept, attribution_days=settings.match_attribution_days)
     except offers_repo.OfferClosed as exc:
         text = "Время выбора вышло." if exc.status == "expired" else "Этот тренер уже недоступен или вы уже ответили."
         raise ConflictError(text, code="offer_closed") from None
@@ -74,12 +74,16 @@ async def _athlete_answer(conn: asyncpg.Connection, user: dict, offer_id: UUID, 
 
 
 @router.post("/offers/{offer_id}/accept", response_model=MatchRequestOut)
-async def accept_offer(offer_id: UUID, user: dict = Depends(get_current_user), conn: asyncpg.Connection = Depends(get_db)) -> MatchRequestOut:
+async def accept_offer(
+    offer_id: UUID, user: dict = Depends(get_current_user), conn: asyncpg.Connection = Depends(get_db), settings: Settings = Depends(get_settings_dep)
+) -> MatchRequestOut:
     """The athlete chooses this trainer; the request becomes «matched» and the other offers are taken back."""
-    return await _athlete_answer(conn, user, offer_id, accept=True)
+    return await _athlete_answer(conn, user, offer_id, accept=True, settings=settings)
 
 
 @router.post("/offers/{offer_id}/decline", response_model=MatchRequestOut)
-async def decline_offer(offer_id: UUID, user: dict = Depends(get_current_user), conn: asyncpg.Connection = Depends(get_db)) -> MatchRequestOut:
+async def decline_offer(
+    offer_id: UUID, user: dict = Depends(get_current_user), conn: asyncpg.Connection = Depends(get_db), settings: Settings = Depends(get_settings_dep)
+) -> MatchRequestOut:
     """The athlete does not want this trainer; the request stays with the administrators."""
-    return await _athlete_answer(conn, user, offer_id, accept=False)
+    return await _athlete_answer(conn, user, offer_id, accept=False, settings=settings)

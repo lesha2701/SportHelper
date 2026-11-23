@@ -16,7 +16,7 @@ def format_percent(percent: Decimal | float) -> str:
     return text.replace(".", ",")
 
 
-def terms_paragraphs(percent: Decimal | float) -> list[str]:
+def terms_paragraphs(percent: Decimal | float, window_days: int = 30) -> list[str]:
     p = format_percent(percent)
     return [
         "Мы подбираем тренеров спортсменам, которые сами не нашли подходящего в каталоге. Если вы включите подбор, мы сможем предлагать вам таких людей.",
@@ -26,6 +26,8 @@ def terms_paragraphs(percent: Decimal | float) -> list[str]:
         "обязательств брать клиента нет. Если вы отказались или не ответили вовремя, ничего не меняется.",
         "До выбора и оплаты первой тренировки имя и контакты спортсмена вам не показываются: вы видите только анкету. "
         "Первую тренировку с таким клиентом оплачивают в приложении — так мы можем засчитать её как привлечённую нами.",
+        f"Первой считается первая оплаченная запись этого спортсмена к вам в течение {window_days} дн. после того, как он выбрал вас (на любое ваше объявление). "
+        "Если эта запись отклонена, отменена или деньги возвращены полностью, повышенный процент переходит на следующую запись.",
         "Подбор можно выключить в любой момент. Уже принятые предложения остаются в силе.",
     ]
 
@@ -46,6 +48,13 @@ def mask_contacts(text: str | None) -> str | None:
     for pattern in _PATTERNS:
         text = pattern.sub(HIDDEN, text)
     return text
+
+
+def hide_athlete(row: dict) -> dict:
+    """A booking as the trainer sees it before the first session of a client from the matching is paid: no name, no contacts in the note."""
+    from app.repositories.match_attribution import HIDDEN_NAME
+
+    return {**row, "athlete_full_name": HIDDEN_NAME, "athlete_notes": mask_contacts(row.get("athlete_notes"))}
 
 
 # --- shaping offers for the people who see them ----------------------------------------------------------------------
@@ -78,7 +87,8 @@ def admin_offer_out(row: dict):
         coach_sport=row["coach_sport"], first_session_percent=row["first_session_percent"], admin_message=row["admin_message"],
         coach_decline_reason=row["coach_decline_reason"], created_at=row["created_at"], expires_at=row["expires_at"],
         athlete_expires_at=row["athlete_expires_at"], coach_responded_at=row["coach_responded_at"],
-        athlete_responded_at=row["athlete_responded_at"],
+        athlete_responded_at=row["athlete_responded_at"], window_ends_at=row["window_ends_at"],
+        percent_overridden=row["percent_overridden"], percent_reason=row["percent_reason"],
     )
 
 

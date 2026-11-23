@@ -12,7 +12,7 @@ from app.repositories import users as users_repo
 from app.services import match_offers as svc
 
 from tests.admin_world import Browser, live_client, pg, publish_listing, sql, world  # noqa: F401
-from tests.finance_helpers import confirmed_booking
+from tests.finance_helpers import FakeProvider, confirmed_booking, enable_payments
 from tests.live_helpers import sql_value
 
 MINE = "/api/match-requests"
@@ -21,6 +21,14 @@ SETTINGS = "/api/match-offers/settings"
 INCOMING = "/api/match-offers/incoming"
 
 CONTACTS = "Звоните +7 999 123-45-67, пишите ivan@mail.ru или @ivan_tennis, ещё https://t.me/ivan"
+
+
+@pytest.fixture(autouse=True)
+def payments(world, monkeypatch) -> FakeProvider:
+    """The matching hands over a client only where the client pays in the app, so offers need the online payment to be on."""
+    provider = FakeProvider()
+    enable_payments(monkeypatch, provider)
+    return provider
 
 
 @pytest.fixture

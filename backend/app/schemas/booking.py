@@ -167,6 +167,12 @@ class BookingOut(BaseModel):
     cancellation: CancellationOut | None = None
     # confirming that the session took place (docs/session-confirmation.md); None until the booking is confirmed or after it is cancelled
     session_confirmation: SessionConfirmationOut | None = None
+    # «Подобрать тренера»: this booking is the first session with a client the platform brought. Paying in the app is then required; the
+    # platform's share is match_percent (a number of percent, shown to the trainer). For the trainer the athlete's name and contacts are
+    # hidden (athlete_hidden) until the first session is paid.
+    from_match: bool = False
+    match_percent: float | None = None
+    athlete_hidden: bool = False
 
 
 class PaymentStartOut(BaseModel):
@@ -190,6 +196,10 @@ class PendingBookingOut(BaseModel):
     # How other coaches rated this athlete; None/0 while they have no reviews.
     athlete_rating_average: float | None = None
     athlete_review_count: int = 0
+    # «Подобрать тренера»: see BookingOut. With athlete_hidden the name is a placeholder and the profile must not be offered.
+    from_match: bool = False
+    match_percent: float | None = None
+    athlete_hidden: bool = False
 
 
 class BookingPlanIn(BaseModel):

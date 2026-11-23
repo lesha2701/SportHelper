@@ -22,12 +22,13 @@ from app.repositories import commission as commission_repo
 from app.repositories import earnings as earnings_repo
 from app.repositories import finance_views
 from app.repositories import ledger
+from app.repositories import match_commission as match_commission_repo
 from app.repositories import payments as payments_repo
 from app.repositories import payouts as payouts_repo
 from app.repositories import refunds as refunds_repo
 from app.repositories import session_confirmations as confirmations_repo
 from app.repositories import withdrawals as withdrawals_repo
-from app.schemas.finance import BankBalanceIn, CoachCommissionIn, CommissionIn, MarkPaidIn, OptionalNoteIn, ReasonIn, RefundIn, RejectIn, ResolveDisputeIn, ResolveIncidentIn
+from app.schemas.finance import BankBalanceIn, CoachCommissionIn, CommissionIn, MarkPaidIn, MatchCommissionIn, OptionalNoteIn, ReasonIn, RefundIn, RejectIn, ResolveDisputeIn, ResolveIncidentIn
 from app.services import admin_audit
 from app.services import commission as commission_service
 from app.services import earnings as earnings_service
@@ -128,6 +129,55 @@ async def set_commission(
             before={"percent": commission_service.percent_text(before)}, after={"percent": commission_service.percent_text(payload.percent)},
         )
     return _commission_view(payload.percent, "admin", await commission_repo.history(conn), settings)
+
+
+def _match_commission_view(percent, source: str, history: list[dict[str, Any]], settings: Settings) -> dict[str, Any]:
+    return {
+        "percent": commission_service.percent_text(percent),
+        "source": source,  # "admin": set here; "environment": nobody has changed it yet (MATCH_FIRST_SESSION_COMMISSION_PERCENT)
+        "environment_percent": commission_service.percent_text(settings.match_first_session_commission_percent),
+        "max_percent": "100",
+        "attribution_days": settings.match_attribution_days,
+        "applies_to": "new_offers",  # an offer keeps the percent it was created with; a payment keeps the offer's
+        "history": [
+            {"id": h["id"], "percent": commission_service.percent_text(h["percent"]),
+             "previous": None if h["previous"] is None else commission_service.percent_text(h["previous"]),
+             "reason": h["reason"], "changed_by_email": h["changed_by_email"], "created_at": h["created_at"]}
+            for h in history
+        ],
+    }
+
+
+@router.get("/match-commission")
+async def get_match_commission(
+    ctx: AuthContext = Depends(require_finance_admin), conn: asyncpg.Connection = Depends(get_db), settings: Settings = Depends(get_settings_dep)
+) -> dict[str, Any]:
+    """The platform's share of the first session with a client from «Подобрать тренера»: in force, where it comes from, the history."""
+    chosen = await match_commission_repo.latest(conn)
+    percent = chosen if chosen is not None else settings.match_first_session_commission_percent
+    return _match_commission_view(percent, "admin" if chosen is not None else "environment", await match_commission_repo.history(conn), settings)
+
+
+@router.put("/match-commission")
+async def set_match_commission(
+    payload: MatchCommissionIn,
+    ctx: AuthContext = Depends(require_finance_recent_mfa),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> dict[str, Any]:
+    """Changes the share for the offers created from now on. Offers and payments that already exist keep theirs. Needs the second
+    factor entered a moment ago; audited."""
+    async with conn.transaction():
+        await conn.execute("SELECT pg_advisory_xact_lock(hashtext('match_commission_changes'))")
+        before = await commission_service.first_session_percent(conn, settings)
+        if payload.percent == before:
+            raise APIError("Это и так текущий процент.", code="commission_unchanged", status_code=409)
+        await match_commission_repo.record_change(conn, percent=payload.percent, previous=before, reason=payload.reason.strip(), changed_by=ctx.user["id"])
+        await admin_audit.record(
+            conn, ctx.user["id"], "finance.match_commission.change", target_type="commission", target_id="match_first_session", reason=payload.reason,
+            before={"percent": commission_service.percent_text(before)}, after={"percent": commission_service.percent_text(payload.percent)},
+        )
+    return _match_commission_view(payload.percent, "admin", await match_commission_repo.history(conn), settings)
 
 
 def _coach_commission_view(row: dict[str, Any], general: Any) -> dict[str, Any]:

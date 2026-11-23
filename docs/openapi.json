@@ -3699,7 +3699,7 @@
           "admin"
         ],
         "summary": "Create Offer",
-        "description": "Offers the athlete to a trainer. The platform's share of the first session is fixed in the offer from the current setting.",
+        "description": "Offers the athlete to a trainer. The platform's share of the first session is fixed in the offer: the current general setting, or,\nfor a finance administrator, a percent chosen for this offer (with a reason, which goes to the audit).",
         "operationId": "create_offer_api_admin_match_requests__request_id__offers_post",
         "security": [
           {
@@ -3880,6 +3880,80 @@
                 "schema": {
                   "type": "object",
                   "title": "Response Set Commission Api Admin Finance Commission Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/finance/match-commission": {
+      "get": {
+        "tags": [
+          "admin-finance"
+        ],
+        "summary": "Get Match Commission",
+        "description": "The platform's share of the first session with a client from «Подобрать тренера»: in force, where it comes from, the history.",
+        "operationId": "get_match_commission_api_admin_finance_match_commission_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Match Commission Api Admin Finance Match Commission Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "admin-finance"
+        ],
+        "summary": "Set Match Commission",
+        "description": "Changes the share for the offers created from now on. Offers and payments that already exist keep theirs. Needs the second\nfactor entered a moment ago; audited.",
+        "operationId": "set_match_commission_api_admin_finance_match_commission_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchCommissionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Set Match Commission Api Admin Finance Match Commission Put"
                 }
               }
             }
@@ -15452,6 +15526,34 @@
               }
             ],
             "title": "Athlete Responded At"
+          },
+          "window_ends_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Window Ends At"
+          },
+          "percent_overridden": {
+            "type": "boolean",
+            "title": "Percent Overridden",
+            "default": false
+          },
+          "percent_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent Reason"
           }
         },
         "type": "object",
@@ -17206,6 +17308,27 @@
                 "type": "null"
               }
             ]
+          },
+          "from_match": {
+            "type": "boolean",
+            "title": "From Match",
+            "default": false
+          },
+          "match_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match Percent"
+          },
+          "athlete_hidden": {
+            "type": "boolean",
+            "title": "Athlete Hidden",
+            "default": false
           }
         },
         "type": "object",
@@ -19364,6 +19487,34 @@
               }
             ],
             "title": "Message"
+          },
+          "first_session_percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Session Percent"
+          },
+          "percent_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent Reason"
           }
         },
         "additionalProperties": false,
@@ -20593,6 +20744,36 @@
           "paid_amount_kopecks"
         ],
         "title": "MarkPaidIn"
+      },
+      "MatchCommissionIn": {
+        "properties": {
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Percent"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "percent",
+          "reason"
+        ],
+        "title": "MatchCommissionIn",
+        "description": "A new platform share of the first session with a client from «Подобрать тренера» (0-100, at most two decimals) for the offers\ncreated from now on, and why. Offers that already exist keep their percent."
       },
       "MatchCreateIn": {
         "properties": {
@@ -23126,6 +23307,27 @@
             "type": "integer",
             "title": "Athlete Review Count",
             "default": 0
+          },
+          "from_match": {
+            "type": "boolean",
+            "title": "From Match",
+            "default": false
+          },
+          "match_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match Percent"
+          },
+          "athlete_hidden": {
+            "type": "boolean",
+            "title": "Athlete Hidden",
+            "default": false
           }
         },
         "type": "object",

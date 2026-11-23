@@ -11,6 +11,7 @@ import asyncpg
 
 from app.config import Settings
 from app.core import session_time
+from app.repositories import match_attribution
 from app.repositories import notifications as notifications_repo
 from app.repositories import teams as teams_repo
 from app.repositories import users as users_repo
@@ -197,6 +198,8 @@ async def schedule_booking_requested_notification(conn: asyncpg.Connection, book
     """Pings the coach that a new booking request is waiting on them."""
     athlete = await users_repo.get_by_id(conn, booking["athlete_user_id"])
     athlete_name = athlete["first_name"] if athlete else "Атлет"
+    if await match_attribution.athlete_hidden(conn, booking["coach_user_id"], booking["athlete_user_id"]):
+        athlete_name = match_attribution.HIDDEN_NAME  # a client of «Подобрать тренера» is anonymous until the first session is paid
     when = booking["starts_at"].strftime("%d.%m в %H:%M")
     await _notify_recipients(
         conn,
@@ -244,7 +247,10 @@ async def schedule_booking_cancelled_notification(
     when = booking["starts_at"].strftime("%d.%m в %H:%M")
     if by_role == "athlete":
         recipient = booking["coach_user_id"]
-        body = f"Игрок {booking['athlete_full_name']} отменил тренировку {when}."
+        name = booking["athlete_full_name"]
+        if await match_attribution.athlete_hidden(conn, booking["coach_user_id"], booking["athlete_user_id"]):
+            name = match_attribution.HIDDEN_NAME
+        body = f"Игрок {name} отменил тренировку {when}."
         if paid:
             body += " Оплата остаётся у вас." if refund_percent == 0 else " Деньги возвращаются игроку, начисление за это занятие снято."
     else:
