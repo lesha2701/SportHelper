@@ -18,6 +18,10 @@ public enum NotificationCategory: String, Codable, CaseIterable, Identifiable, S
     case financeAdmin = "finance_admin"
     case chatBooking = "chat_booking"
     case chatTeam = "chat_team"
+    /// A trainer was offered a client (transactional: no switch).
+    case matchOffer = "match_offer"
+    /// A trainer agreed to take the person who asked for a match (transactional).
+    case matchOfferReply = "match_offer_reply"
     case other
 
     public var id: String { rawValue }
@@ -52,6 +56,8 @@ public enum NotificationCategory: String, Codable, CaseIterable, Identifiable, S
         case .financeAdmin: "Финансовые события (для администратора)"
         case .chatBooking: "Сообщения в чате личной тренировки"
         case .chatTeam: "Сообщения в чате команды"
+        case .matchOffer: "Предложения клиентов из подбора (для тренера)"
+        case .matchOfferReply: "Ответы тренеров на мою заявку на подбор"
         case .other: "Другое"
         }
     }
@@ -68,6 +74,7 @@ public enum NotificationCategory: String, Codable, CaseIterable, Identifiable, S
         case .paymentUpdate, .earningUpdate, .withdrawalUpdate: "creditcard"
         case .financeAdmin: "shield"
         case .chatBooking, .chatTeam: "bubble.left"
+        case .matchOffer, .matchOfferReply: "person.2"
         case .other: "bell"
         }
     }
@@ -88,6 +95,10 @@ public enum NotificationTarget: Equatable, Sendable {
     case newPersonalTraining
     /// An earning or a withdrawal changed: the coach's «Финансы».
     case finance
+    /// A trainer was offered a client: «Подбор клиентов».
+    case matchOffers
+    /// A trainer agreed to take the person: the tab «Тренеры», where the person chooses.
+    case matchRequests
     case none
 }
 
@@ -105,6 +116,8 @@ extension NotificationTarget {
         case .chatBooking: .bookingChat(entityId)
         case .chatTeam: .teamChat(entityId)
         case .earningUpdate, .withdrawalUpdate: .finance
+        case .matchOffer: .matchOffers
+        case .matchOfferReply: .matchRequests
         case .financeAdmin, .other: .none
         }
     }

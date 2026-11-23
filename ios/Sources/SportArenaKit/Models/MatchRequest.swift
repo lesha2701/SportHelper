@@ -49,6 +49,8 @@ public enum MatchWeekday {
 public enum MatchRequestStatus: String, Decodable, Sendable {
     case new
     case inProgress = "in_progress"
+    /// The person chose one of the trainers who agreed.
+    case matched
     case closed
     case canceled
 
@@ -56,6 +58,7 @@ public enum MatchRequestStatus: String, Decodable, Sendable {
         switch self {
         case .new: "Отправлена"
         case .inProgress: "Подбираем тренера"
+        case .matched: "Тренер выбран"
         case .closed: "Обработана"
         case .canceled: "Отозвана"
         }
@@ -63,6 +66,96 @@ public enum MatchRequestStatus: String, Decodable, Sendable {
 
     /// Still waiting for the administrators: the person may withdraw it.
     public var isOpen: Bool { self == .new || self == .inProgress }
+}
+
+/// Where an offer of a request to a trainer stands. An unknown value (a later server) reads as `.other`.
+public enum MatchOfferStatus: String, Decodable, Sendable {
+    case proposed
+    case coachDeclined = "coach_declined"
+    case coachAccepted = "coach_accepted"
+    case athleteDeclined = "athlete_declined"
+    case athleteAccepted = "athlete_accepted"
+    case withdrawn
+    case expired
+    case other
+
+    public init(from decoder: Decoder) throws {
+        self = MatchOfferStatus(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .other
+    }
+}
+
+/// The trainer in an offer: the card the person chooses by.
+public struct MatchOfferCoach: Decodable, Equatable, Sendable {
+    public let userId: UUID
+    public let fullName: String
+    public let isPro: Bool
+    public let photoUrl: String?
+    public let sport: String
+    public let specialization: String?
+    public let experienceYears: Int?
+    public let averageRating: Double?
+    public let reviewCount: Int
+
+    public init(
+        userId: UUID, fullName: String, isPro: Bool = false, photoUrl: String? = nil, sport: String, specialization: String? = nil,
+        experienceYears: Int? = nil, averageRating: Double? = nil, reviewCount: Int = 0
+    ) {
+        self.userId = userId
+        self.fullName = fullName
+        self.isPro = isPro
+        self.photoUrl = photoUrl
+        self.sport = sport
+        self.specialization = specialization
+        self.experienceYears = experienceYears
+        self.averageRating = averageRating
+        self.reviewCount = reviewCount
+    }
+
+    /// «Теннис · Подача · стаж 8 лет · ★ 4.9 (14)».
+    public var summary: String {
+        [
+            sport, specialization, experienceYears.map { "стаж \($0) лет" },
+            averageRating.map { "★ \(String(format: "%.1f", $0)) (\(reviewCount))" },
+        ].compactMap { $0 }.joined(separator: " · ")
+    }
+}
+
+/// One of the trainer's published listings in an offer (the full card is in the catalogue).
+public struct MatchOfferListing: Decodable, Equatable, Identifiable, Sendable {
+    public let id: UUID
+    public let title: String
+    public let pricePerSession: Decimal?
+    public let currency: String
+
+    public init(id: UUID, title: String, pricePerSession: Decimal? = nil, currency: String = "RUB") {
+        self.id = id
+        self.title = title
+        self.pricePerSession = pricePerSession
+        self.currency = currency
+    }
+
+    public var text: String { pricePerSession.map { "\(title) — \(Money.format($0, currency: currency))" } ?? title }
+}
+
+/// A trainer who agreed to take the person (`AthleteOfferOut`): the person chooses one (and books a session as usual) or declines.
+public struct MatchOffer: Decodable, Equatable, Identifiable, Sendable {
+    public let id: UUID
+    public let status: MatchOfferStatus
+    /// Until when the person can choose this trainer (nil once chosen).
+    public let expiresAt: Date?
+    public let coach: MatchOfferCoach
+    public let listings: [MatchOfferListing]
+
+    public init(id: UUID, status: MatchOfferStatus = .coachAccepted, expiresAt: Date? = nil, coach: MatchOfferCoach, listings: [MatchOfferListing] = []) {
+        self.id = id
+        self.status = status
+        self.expiresAt = expiresAt
+        self.coach = coach
+        self.listings = listings
+    }
+
+    /// The person can still choose or decline this trainer.
+    public var isOpen: Bool { status == .coachAccepted }
 }
 
 /// A «Подобрать тренера» request of the person (`MatchRequestOut`).
@@ -82,11 +175,37 @@ public struct MatchRequest: Decodable, Equatable, Identifiable, Sendable {
     public let comment: String?
     public let status: MatchRequestStatus
     public let createdAt: Date
+    /// The trainers who agreed to take the person.
+    public let offers: [MatchOffer]
+
+    private enum CodingKeys: String, CodingKey {
+        case id, sport, goal, level, format, city, budgetMin, budgetMax, currency, weekdays, dayParts, scheduleNote, comment, status, createdAt, offers
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        sport = try c.decode(String.self, forKey: .sport)
+        goal = try c.decodeIfPresent(String.self, forKey: .goal)
+        level = try c.decodeIfPresent(MatchLevel.self, forKey: .level)
+        format = try c.decodeIfPresent(MatchFormat.self, forKey: .format)
+        city = try c.decodeIfPresent(String.self, forKey: .city)
+        budgetMin = try c.decodeIfPresent(Decimal.self, forKey: .budgetMin)
+        budgetMax = try c.decodeIfPresent(Decimal.self, forKey: .budgetMax)
+        currency = try c.decode(String.self, forKey: .currency)
+        weekdays = try c.decode([Int].self, forKey: .weekdays)
+        dayParts = try c.decode([DayPart].self, forKey: .dayParts)
+        scheduleNote = try c.decodeIfPresent(String.self, forKey: .scheduleNote)
+        comment = try c.decodeIfPresent(String.self, forKey: .comment)
+        status = try c.decode(MatchRequestStatus.self, forKey: .status)
+        createdAt = try c.decode(Date.self, forKey: .createdAt)
+        offers = try c.decodeIfPresent([MatchOffer].self, forKey: .offers) ?? []
+    }
 
     public init(
         id: UUID, sport: String, goal: String? = nil, level: MatchLevel? = nil, format: MatchFormat? = nil, city: String? = nil,
         budgetMin: Decimal? = nil, budgetMax: Decimal? = nil, currency: String = "RUB", weekdays: [Int] = [], dayParts: [DayPart] = [],
-        scheduleNote: String? = nil, comment: String? = nil, status: MatchRequestStatus = .new, createdAt: Date
+        scheduleNote: String? = nil, comment: String? = nil, status: MatchRequestStatus = .new, createdAt: Date, offers: [MatchOffer] = []
     ) {
         self.id = id
         self.sport = sport
@@ -103,6 +222,7 @@ public struct MatchRequest: Decodable, Equatable, Identifiable, Sendable {
         self.comment = comment
         self.status = status
         self.createdAt = createdAt
+        self.offers = offers
     }
 
     /// «от 1 500 ₽ до 3 000 ₽», «до 3 000 ₽», «от 1 500 ₽»; nil when no budget was given.

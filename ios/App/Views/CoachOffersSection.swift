@@ -9,6 +9,8 @@ struct CoachOffersSection: View {
         Section(sag: "Объявления") {
             NavigationLink(value: ProfileRoute.myListings) { Label("Мои объявления", systemImage: "megaphone") }
                 .accessibilityIdentifier("profile.myListings")
+            NavigationLink(value: ProfileRoute.matchOffers) { Label("Подбор клиентов", systemImage: "person.badge.plus") }
+                .accessibilityIdentifier("profile.matchOffers")
             if auth.features.trainerBalance { FinanceLink() }
             NavigationLink(value: ProfileRoute.coachCatalog) { Label("Каталог тренеров", systemImage: "person.2") }
                 .accessibilityIdentifier("profile.coachCatalog")

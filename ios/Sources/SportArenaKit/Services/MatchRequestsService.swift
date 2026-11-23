@@ -19,4 +19,14 @@ public final class MatchRequestsService: Sendable {
     public func cancel(_ id: UUID) async throws -> MatchRequest {
         try await client.send(.post, "/api/match-requests/\(id.uuidString.lowercased())/cancel")
     }
+
+    /// The person chooses this trainer: the request becomes «Тренер выбран» and the other offers are taken back.
+    public func accept(offer id: UUID) async throws -> MatchRequest {
+        try await client.send(.post, "/api/match-requests/offers/\(id.uuidString.lowercased())/accept")
+    }
+
+    /// The person does not want this trainer; the request stays with the administrators.
+    public func decline(offer id: UUID) async throws -> MatchRequest {
+        try await client.send(.post, "/api/match-requests/offers/\(id.uuidString.lowercased())/decline")
+    }
 }

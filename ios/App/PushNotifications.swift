@@ -68,6 +68,8 @@ extension Router {
         case .myBookings, .reviewBooking: open(.myBookings)
         case .bookingChat(let id): open(.bookingChat(id))
         case .finance: open(.finance)
+        case .matchOffers: open(.matchOffers)
+        case .matchRequests: tab = .coaches
         case .training, .match, .task, .teamChat, .newPersonalTraining: open(.notifications)
         case .none: break
         }

@@ -112,7 +112,7 @@ struct MatchRequestView: View {
         case .loaded(let requests) where !requests.isEmpty:
             Section(sag: "Ваши заявки") {
                 ForEach(requests) { request in
-                    MatchRequestRow(request: request) { Task { await withdraw(request) } }
+                    MatchRequestRow(request: request, onWithdraw: { Task { await withdraw(request) } }, onAnswer: { offer, accept in Task { await answer(offer, accept: accept) } })
                 }
             }
         case .loaded:
@@ -146,6 +146,19 @@ struct MatchRequestView: View {
         }
     }
 
+    private func answer(_ offer: MatchOffer, accept: Bool) async {
+        error = nil
+        do {
+            let updated = accept ? try await auth.matchRequests.accept(offer: offer.id) : try await auth.matchRequests.decline(offer: offer.id)
+            mine = .loaded((mine.value ?? []).map { $0.id == updated.id ? updated : $0 })
+        } catch let failure as APIError {
+            error = failure.message
+            await loadMine()
+        } catch {
+            self.error = APIError.unknown.message
+        }
+    }
+
     private func withdraw(_ request: MatchRequest) async {
         do {
             let updated = try await auth.matchRequests.cancel(request.id)
@@ -161,6 +174,7 @@ struct MatchRequestView: View {
 private struct MatchRequestRow: View {
     let request: MatchRequest
     let onWithdraw: () -> Void
+    let onAnswer: (MatchOffer, Bool) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -177,12 +191,50 @@ private struct MatchRequestRow: View {
                     Text(fact.1).font(.footnote)
                 }
             }
+            if !request.offers.isEmpty { offersBlock }
             if request.status.isOpen {
                 Button("Отозвать заявку", role: .destructive, action: onWithdraw).font(.footnote).buttonStyle(.borderless)
                     .accessibilityIdentifier("match.withdraw")
             }
         }
         .padding(.vertical, 2)
+    }
+
+    private var matched: Bool { request.status == .matched }
+
+    /// The trainers who agreed to take the person: the person chooses one or says no (the administrators keep looking).
+    private var offersBlock: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(matched ? "Ваш тренер" : "Тренеры, готовые с вами заниматься").font(.subheadline.weight(.semibold))
+            if !matched {
+                Text("Мы подобрали их из тренеров, участвующих в подборе. Выберите того, кто вам подходит.").font(.footnote).foregroundStyle(.secondary)
+            }
+            ForEach(request.offers) { offer in
+                VStack(alignment: .leading, spacing: 6) {
+                    CoachNameLabel(name: offer.coach.fullName, isPro: offer.coach.isPro).font(Theme.body(16, weight: .semibold))
+                    Text(offer.coach.summary).font(.footnote).foregroundStyle(.secondary)
+                    ForEach(offer.listings) { listing in Text(listing.text).font(.footnote) }
+                    if !matched, let until = offer.expiresAt {
+                        Text("Выберите до \(until.formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(.secondary)
+                    }
+                    NavigationLink { CoachProfileView(coachUserId: offer.coach.userId) } label: {
+                        Text(matched ? "Профиль тренера и запись" : "Профиль тренера").font(.footnote.weight(.semibold))
+                    }
+                    .accessibilityIdentifier("match.offer.profile")
+                    if offer.isOpen {
+                        HStack {
+                            Button("Выбрать этого тренера") { onAnswer(offer, true) }.buttonStyle(.borderedProminent).tint(Theme.primary)
+                                .accessibilityIdentifier("match.offer.accept")
+                            Button("Не подходит", role: .destructive) { onAnswer(offer, false) }.buttonStyle(.borderless)
+                                .accessibilityIdentifier("match.offer.decline")
+                        }
+                        .font(.footnote)
+                    }
+                }
+                .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+            }
+        }
     }
 
     private var facts: [(String, String)] {

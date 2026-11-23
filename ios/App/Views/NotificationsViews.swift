@@ -59,7 +59,7 @@ struct NotificationsView: View {
     @Environment(AuthStore.self) private var auth
 
     private enum Destination: Hashable {
-        case training(UUID, String), finance, myBookings, reviewBooking(UUID), incomingRequests, myTasks, chat(UUID, isTeam: Bool), settings
+        case training(UUID, String), finance, matchOffers, myBookings, reviewBooking(UUID), incomingRequests, myTasks, chat(UUID, isTeam: Bool), settings
     }
 
     @State private var destination: Destination?
@@ -98,6 +98,7 @@ struct NotificationsView: View {
             switch screen {
             case .training(let id, let title): TrainingDetailView(trainingId: id, title: title, teamName: nil)
             case .finance: FinanceView()
+            case .matchOffers: MatchOffersView()
             case .myBookings: MyBookingsView()
             case .reviewBooking(let id): MyBookingsView(reviewBookingId: id)
             case .incomingRequests: IncomingRequestsView()
@@ -157,6 +158,8 @@ struct NotificationsView: View {
             auth.router.tab = .teams  // the match belongs to a team the notification does not name: the teams are the way to it
         } else if case .newPersonalTraining = item.target {
             planning = true
+        } else if case .matchRequests = item.target {
+            auth.router.tab = .coaches  // the trainers who agreed wait in «Подобрать тренера» of that tab
         }
         await read
     }
@@ -172,7 +175,8 @@ struct NotificationsView: View {
         case .bookingChat(let id): .chat(id, isTeam: false)
         case .teamChat(let id): .chat(id, isTeam: true)
         case .finance: auth.features.trainerBalance ? .finance : nil
-        case .match, .newPersonalTraining, .none: nil
+        case .matchOffers: .matchOffers
+        case .match, .matchRequests, .newPersonalTraining, .none: nil
         }
     }
 }
