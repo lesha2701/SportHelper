@@ -44,6 +44,9 @@ struct BookingCardView: View {
             if let notes = booking.athleteNotes, !notes.isEmpty, viewer == .coach {
                 Text("Пожелания: \(notes)").font(.footnote).foregroundStyle(.secondary)
             }
+            if let note = booking.matchNote(viewerIsCoach: viewer == .coach) {
+                Text(note).font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("booking.matchNote")
+            }
             if viewer == .coach, let onOpenPlayer {
                 Button(action: onOpenPlayer) { Label("Профиль игрока", systemImage: "person.crop.circle").frame(maxWidth: .infinity) }
                     .buttonStyle(.bordered)

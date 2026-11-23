@@ -37,7 +37,7 @@ struct CoachSessionCard: View {
             onChoosePlan: { plan in Task { await choosePlan(plan, of: booking) } },
             onComplete: { Task { await complete(booking) } },
             onReviewPlayer: { reviewing = booking },
-            onOpenPlayer: { viewing = PlayerRef(id: booking.athleteUserId) },
+            onOpenPlayer: booking.athleteHidden ? nil : { viewing = PlayerRef(id: booking.athleteUserId) },
             isCompleting: completing,
             onCancel: { cancelling = booking }
         )

@@ -208,6 +208,9 @@ private struct MatchRequestRow: View {
             Text(matched ? "Ваш тренер" : "Тренеры, готовые с вами заниматься").font(.subheadline.weight(.semibold))
             if !matched {
                 Text("Мы подобрали их из тренеров, участвующих в подборе. Выберите того, кто вам подходит.").font(.footnote).foregroundStyle(.secondary)
+            } else {
+                Text("Первую тренировку с этим тренером вы оплачиваете в приложении (цена не меняется): после оплаты откроется чат с тренером.")
+                    .font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("match.paidInApp")
             }
             ForEach(request.offers) { offer in
                 VStack(alignment: .leading, spacing: 6) {

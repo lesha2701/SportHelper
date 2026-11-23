@@ -57,11 +57,16 @@ struct IncomingRequestsView: View {
     private func requestCard(_ request: PendingBooking) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(request.athleteFullName).font(.headline)
-            Button { viewing = PlayerRef(id: request.athleteUserId) } label: {
-                Label("Профиль игрока", systemImage: "person.crop.circle").frame(maxWidth: .infinity)
+            if !request.athleteHidden {
+                Button { viewing = PlayerRef(id: request.athleteUserId) } label: {
+                    Label("Профиль игрока", systemImage: "person.crop.circle").frame(maxWidth: .infinity)
+                }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("requests.playerProfile")
             }
-                .buttonStyle(.bordered)
-                .accessibilityIdentifier("requests.playerProfile")
+            if let note = request.matchNote {
+                Text(note).font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("requests.matchNote")
+            }
             if let average = request.athleteRatingAverage, (request.athleteReviewCount ?? 0) > 0 {
                 Label(String(format: "%.1f", average).replacingOccurrences(of: ".", with: ","), systemImage: "star.fill")
                     .font(.footnote).foregroundStyle(.orange)
@@ -183,7 +188,7 @@ struct CoachBookingsView: View {
                         onChoosePlan: { [id = $0.id] plan in Task { planError = await store.setPlan(plan, of: id) } },
                         onComplete: { [booking = $0] in Task { await complete(booking) } },
                         onReviewPlayer: { [booking = $0] in reviewingPlayer = booking },
-                        onOpenPlayer: { [id = $0.athleteUserId] in viewingPlayer = PlayerRef(id: id) },
+                        onOpenPlayer: $0.athleteHidden ? nil : { [id = $0.athleteUserId] in viewingPlayer = PlayerRef(id: id) },
                         isCompleting: completing.contains($0.id),
                         onCancel: { [booking = $0] in cancelling = booking }
                     )

@@ -120,10 +120,19 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
     public let cancellation: Cancellation?
     /// Whether the session took place: nil until the booking is confirmed, after it is cancelled, and from an older server.
     public let sessionConfirmation: SessionConfirmation?
+    /// «Подобрать тренера»: the first session with a client the platform brought (paid in the app); absent from an older server.
+    private let fromMatchRaw: Bool?
+    /// The platform's share of that session in percent: the trainer's side only.
+    public let matchPercent: Decimal?
+    /// The trainer's side: the athlete's name and contacts are hidden until the first session is paid.
+    private let athleteHiddenRaw: Bool?
 
     private enum CodingKeys: String, CodingKey {
         case id, coachUserId, coachFullName, coachIsPro, listingId, listingTitle, athleteUserId, athleteFullName, athleteNotes, startsAt
         case durationMinutes, format, pricePerSession, currency, isCompleted, trainingId, trainingPlanId, trainingPlanName, hasReview, paidAt, trainingStatus, cancellation, sessionConfirmation
+        case matchPercent
+        case fromMatchRaw = "fromMatch"
+        case athleteHiddenRaw = "athleteHidden"
         case canCancelRaw = "canCancel"
         case hasStartedRaw = "hasStarted"
         case hasPlayerReviewRaw = "hasPlayerReview"
@@ -132,6 +141,13 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
     }
 
     public var isProCoach: Bool { coachIsPro ?? false }
+    public var fromMatch: Bool { fromMatchRaw ?? false }
+    public var athleteHidden: Bool { athleteHiddenRaw ?? false }
+
+    /// What each side is told about the first session of a client from «Подобрать тренера» (nil for an ordinary booking).
+    public func matchNote(viewerIsCoach: Bool) -> String? {
+        MatchBookingNote.text(viewerIsCoach: viewerIsCoach, fromMatch: fromMatch, hidden: athleteHidden, percent: matchPercent, paid: paymentStatus == .paid || paymentStatus == .refundPending)
+    }
     public var status: BookingStatus { BookingStatus(raw: statusRaw) }
     /// The coach has already reviewed the athlete (an older server that does not say it counts as no).
     public var hasPlayerReview: Bool { hasPlayerReviewRaw ?? false }
@@ -186,6 +202,21 @@ public struct Booking: Decodable, Equatable, Identifiable, Sendable {
     }
 }
 
+/// The note under a booking from «Подобрать тренера»: the trainer is told who is hidden and what the platform keeps, the athlete that the
+/// first session is paid in the app.
+public enum MatchBookingNote {
+    public static func text(viewerIsCoach: Bool, fromMatch: Bool, hidden: Bool, percent: Decimal?, paid: Bool) -> String? {
+        guard fromMatch || hidden else { return nil }
+        guard viewerIsCoach else {
+            return paid ? nil : "Первая тренировка с этим тренером из подбора оплачивается в приложении. После оплаты откроется чат с тренером."
+        }
+        let share = percent.map { " Платформа удерживает \(NSDecimalNumber(decimal: $0).stringValue)% с этой тренировки (обычная комиссия за неё не берётся)." } ?? ""
+        return hidden
+            ? "Клиент из подбора: имя и контакты откроются после оплаты первой тренировки в приложении.\(share)"
+            : "Клиент из подбора.\(share)"
+    }
+}
+
 /// A request waiting for the coach's answer (`PendingBookingOut`).
 public struct PendingBooking: Decodable, Equatable, Identifiable, Sendable {
     public let id: UUID
@@ -201,7 +232,21 @@ public struct PendingBooking: Decodable, Equatable, Identifiable, Sendable {
     public let createdAt: Date
     public let athleteRatingAverage: Double?
     public let athleteReviewCount: Int?
+    private let fromMatchRaw: Bool?
+    public let matchPercent: Decimal?
+    private let athleteHiddenRaw: Bool?
 
+    private enum CodingKeys: String, CodingKey {
+        case id, listingTitle, athleteUserId, athleteFullName, athleteNotes, startsAt, durationMinutes, format, pricePerSession, currency
+        case createdAt, athleteRatingAverage, athleteReviewCount, matchPercent
+        case fromMatchRaw = "fromMatch"
+        case athleteHiddenRaw = "athleteHidden"
+    }
+
+    public var fromMatch: Bool { fromMatchRaw ?? false }
+    /// The name and contacts are hidden until the first session is paid: no profile link is offered.
+    public var athleteHidden: Bool { athleteHiddenRaw ?? false }
+    public var matchNote: String? { MatchBookingNote.text(viewerIsCoach: true, fromMatch: fromMatch, hidden: athleteHidden, percent: matchPercent, paid: false) }
     public var bookingFormat: BookingFormat? { BookingFormat(rawValue: format) }
     public var day: LocalDate { startsAt.serverDay }
     public var time: LocalTime { startsAt.serverTime }
