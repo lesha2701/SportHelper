@@ -6,20 +6,43 @@ struct CoachesView: View {
     @Environment(AuthStore.self) private var auth
     @Bindable var store: CoachesStore
     @State private var query = ""
+    @State private var mode = Mode.catalogue
     /// Shown inside another navigation stack (a coach reaches the catalogue from the profile) instead of being a tab of its own.
     var embedded = false
+
+    /// The two halves of the tab: the trainers' offers, and the form for someone who did not find who they need.
+    private enum Mode: String, CaseIterable, Identifiable {
+        case catalogue = "Каталог"
+        case match = "Подобрать тренера"
+
+        var id: String { rawValue }
+    }
 
     var body: some View {
         if embedded { screen } else { NavigationStack { screen } }
     }
 
     private var screen: some View {
+        VStack(spacing: 0) {
+            Picker("Раздел", selection: $mode) {
+                ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented).padding(.horizontal, 16).padding(.vertical, 8)
+            .accessibilityIdentifier("coaches.mode")
+            switch mode {
+            case .catalogue: catalogue
+            case .match: MatchRequestView()
+            }
+        }
+        .sagMainBar("Тренеры")
+        .navigationDestination(for: CoachListingCard.self) { ListingDetailView(card: $0, store: store) }
+    }
+
+    private var catalogue: some View {
         content
-            .sagMainBar("Тренеры")
             .searchable(text: $query, prompt: "Имя тренера или объявление")
             .toolbar { ToolbarItem(placement: .topBarTrailing) { filterMenu } }
             .task(id: store.filter) { await store.reload() }
-            .navigationDestination(for: CoachListingCard.self) { ListingDetailView(card: $0, store: store) }
     }
 
     @ViewBuilder private var content: some View {
