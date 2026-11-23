@@ -52,24 +52,42 @@ export function FeedPage() {
         </Link>
       </div>
 
-      {signedIn && (
-        <div className={styles.tabs} role="tablist" aria-label="Раздел">
-          {([["all", "Все статьи"], ["mine", "Мои"], ["saved", "Сохранённые"]] as [Tab, string][]).map(([key, label]) => (
-            <button key={key} type="button" role="tab" aria-selected={tab === key} className={`${styles.chip} ${tab === key ? styles.chipOn : ""}`} onClick={() => change({ tab: key === "all" ? null : key })}>
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className={styles.toolbar}>
+        {signedIn && (
+          <div className={styles.segmented} role="tablist" aria-label="Раздел">
+            {([["all", "Все статьи"], ["mine", "Мои"], ["saved", "Сохранённые"]] as [Tab, string][]).map(([key, label]) => (
+              <button key={key} type="button" role="tab" aria-selected={tab === key} className={`${styles.segment} ${tab === key ? styles.segmentOn : ""}`} onClick={() => change({ tab: key === "all" ? null : key })}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+        {tab === "all" && (
+          <div className={styles.filters}>
+            <select className={styles.filterSelect} aria-label="Вид спорта" value={sport} onChange={(e) => change({ sport: e.target.value || null })}>
+              <option value="">Все виды спорта</option>
+              {COMMON_SPORTS.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <select className={styles.filterSelect} aria-label="Порядок" value={sort} onChange={(e) => change({ sort: e.target.value === "new" ? null : e.target.value })}>
+              <option value="new">Сначала новые</option>
+              <option value="popular">Сначала популярные</option>
+            </select>
+          </div>
+        )}
+      </div>
 
-      {tab === "all" && <AllPosts sport={sport} sort={sort} onSport={(value) => change({ sport: value || null })} onSort={(value) => change({ sort: value === "new" ? null : value })} />}
+      {tab === "all" && <AllPosts sport={sport} sort={sort} />}
       {tab === "mine" && <MyPosts />}
       {tab === "saved" && <SavedPosts />}
     </div>
   );
 }
 
-function AllPosts({ sport, sort, onSport, onSort }: { sport: string; sort: FeedSort; onSport: (value: string) => void; onSort: (value: FeedSort) => void }) {
+function AllPosts({ sport, sort }: { sport: string; sort: FeedSort }) {
   const [items, setItems] = useState<PostCard[]>([]);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -98,24 +116,6 @@ function AllPosts({ sport, sort, onSport, onSort }: { sport: string; sort: FeedS
 
   return (
     <>
-      <div className={styles.chips} role="group" aria-label="Вид спорта">
-        <button type="button" className={`${styles.chip} ${sport === "" ? styles.chipOn : ""}`} aria-pressed={sport === ""} onClick={() => onSport("")}>
-          Все виды спорта
-        </button>
-        {COMMON_SPORTS.map((name) => (
-          <button key={name} type="button" className={`${styles.chip} ${sport === name ? styles.chipOn : ""}`} aria-pressed={sport === name} onClick={() => onSport(name)}>
-            {name}
-          </button>
-        ))}
-      </div>
-      <div className={styles.chips} role="group" aria-label="Порядок">
-        {([["new", "Новые"], ["popular", "Популярные"]] as [FeedSort, string][]).map(([key, label]) => (
-          <button key={key} type="button" className={`${styles.chip} ${sort === key ? styles.chipOn : ""}`} aria-pressed={sort === key} onClick={() => onSort(key)}>
-            {label}
-          </button>
-        ))}
-      </div>
-
       {status === "loading" && <StateScreen kind="loading" title="Загружаем статьи…" />}
       {status === "error" && <StateScreen kind="error" title="Не удалось загрузить статьи" onRetry={() => void load(0)} />}
       {status === "ready" && items.length === 0 && <p className={styles.empty}>{sport ? `Статей про «${sport}» пока нет.` : "Статей пока нет."} Напишите первую!</p>}
