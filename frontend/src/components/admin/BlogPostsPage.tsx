@@ -194,7 +194,7 @@ function PostDrawer({ id, onClose, onChanged }: { id: string; onClose: () => voi
                   <>
                     <dt>Читатели</dt>
                     <dd>
-                      ♥ {post.likesCount} · 💬 {post.commentsCount}
+                      Лайков: {post.likesCount} · комментариев: {post.commentsCount}
                     </dd>
                   </>
                 )}

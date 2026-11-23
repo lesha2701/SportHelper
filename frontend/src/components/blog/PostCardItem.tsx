@@ -3,6 +3,7 @@ import { Link } from "../Link";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { ProBadge } from "../shared/ProBadge";
 import { formatPostDate } from "./blogText";
+import { Stat } from "./Stat";
 import styles from "./blog.module.css";
 
 /** An article in a list or in the home block: the cover, the sport, the title, the first lines and the numbers. */
@@ -20,8 +21,8 @@ export function PostCardItem({ post }: { post: PostCard }) {
             {post.author.isPro && <ProBadge />}
           </span>
           <span>{formatPostDate(post.publishedAt)}</span>
-          <span>♥ {post.likesCount}</span>
-          <span>💬 {post.commentsCount}</span>
+          <Stat icon="heart" value={post.likesCount} label="Нравится" />
+          <Stat icon="message" value={post.commentsCount} label="Комментарии" />
         </div>
       </div>
     </Link>

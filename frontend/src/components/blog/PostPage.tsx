@@ -12,6 +12,8 @@ import { Carousel } from "./Carousel";
 import { Avatar, Comments } from "./Comments";
 import { PostBody, formatPostDate } from "./blogText";
 import { PostMenu } from "./PostMenu";
+import { Stat } from "./Stat";
+import { Icon } from "../shared/Icon";
 import styles from "./blog.module.css";
 
 /** One article, readable without signing in. A signed-in reader can like, save, comment, hide and report; the author edits and deletes. */
@@ -109,7 +111,7 @@ export function PostPage({ postId }: { postId: string }) {
         <PostMenu post={post} signedIn={signedIn} onChanged={patch} onDelete={() => setConfirmDelete(true)} />
       </div>
 
-      <div className={styles.row} style={{ marginBottom: 12 }}>
+      <div className={styles.articleMeta}>
         {post.author.profileOpen ? (
           <Link to={`/blog/authors/${post.author.id}`} className={styles.author}>
             <Avatar author={post.author} />
@@ -125,7 +127,8 @@ export function PostPage({ postId }: { postId: string }) {
           </span>
         )}
         <span className={styles.meta}>
-          {formatPostDate(post.publishedAt)} · 👁 {post.viewsCount}
+          <span>{formatPostDate(post.publishedAt)}</span>
+          <Stat icon="eye" value={post.viewsCount} label="Просмотры" />
         </span>
       </div>
 
@@ -149,10 +152,11 @@ export function PostPage({ postId }: { postId: string }) {
       )}
 
       <div className={styles.actions}>
-        <button type="button" className={`${styles.like} ${post.likedByMe ? styles.likeOn : ""}`} aria-pressed={post.likedByMe} onClick={toggleLike}>
-          {post.likedByMe ? "♥" : "♡"} {post.likesCount}
+        <button type="button" className={`${styles.like} ${post.likedByMe ? styles.likeOn : ""}`} aria-pressed={post.likedByMe} aria-label={`Нравится: ${post.likesCount}`} onClick={toggleLike}>
+          <Icon name="heart" size={17} fill={post.likedByMe ? "currentColor" : "none"} />
+          {post.likesCount}
         </button>
-        <span className={styles.meta}>💬 {post.commentsCount}</span>
+        <Stat icon="message" value={post.commentsCount} label="Комментарии" />
       </div>
 
       {post.status === "published" && (
