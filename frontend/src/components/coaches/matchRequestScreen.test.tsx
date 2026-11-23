@@ -175,6 +175,7 @@ describe("the trainers who agreed", () => {
     expect(acceptMatchOffer).toHaveBeenCalledWith("o1");
     expect(screen.getByText("Ваш тренер")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Записаться на тренировку" })).toBeTruthy();
+    expect(screen.getByText(/оплачиваете в приложении/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Выбрать этого тренера" })).toBeNull();
   });
 

@@ -28,7 +28,7 @@ export function CoachSessionCard({
     <div className={profileStyles.card}>
       <h2 className={profileStyles.title}>Занятие с {booking.athleteFullName}</h2>
       <CoachSessionActions token={token} booking={booking} onChange={setBooking} />
-      {onOpenPlayer && (
+      {onOpenPlayer && !booking.athleteHidden && (
         <button type="button" className={profileStyles.buttonSecondary} onClick={() => onOpenPlayer(booking.athleteUserId)}>
           Посмотреть профиль игрока
         </button>

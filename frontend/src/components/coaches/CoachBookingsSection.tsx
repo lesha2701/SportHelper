@@ -13,6 +13,7 @@ import styles from "./coaches.module.css";
 import { CancelBooking, CancellationNote } from "./CancelBooking";
 import { SessionConfirmation } from "./SessionConfirmation";
 import { CoachSessionActions } from "./CoachSessionActions";
+import { MatchBookingNote } from "./MatchBookingNote";
 import { PlanPickerModal } from "./PlanPickerModal";
 import { PlayerPublicProfileScreen } from "./PlayerPublicProfileScreen";
 import { TitleWithBack } from "../shared/BackArrow";
@@ -45,9 +46,13 @@ function BookingCard({
     <div className={`${profileStyles.card} ${styles.bookingCard}`}>
       <div className={styles.bookingCardTop}>
         <div>
-          <button type="button" className={styles.bookingAthleteName} onClick={() => onOpenPlayer(booking.athleteUserId)}>
-            {booking.athleteFullName}
-          </button>
+          {booking.athleteHidden ? (
+            <strong className={styles.bookingAthleteName}>{booking.athleteFullName}</strong>
+          ) : (
+            <button type="button" className={styles.bookingAthleteName} onClick={() => onOpenPlayer(booking.athleteUserId)}>
+              {booking.athleteFullName}
+            </button>
+          )}
           {booking.listingTitle && <p className={profileStyles.subtitle}>{booking.listingTitle}</p>}
           <p className={profileStyles.subtitle}>
             {formatDate(booking.startsAt)} · {booking.format === "online" ? "Онлайн" : "Очно"}
@@ -55,6 +60,7 @@ function BookingCard({
         </div>
         {statusBadge}
       </div>
+      <MatchBookingNote side="coach" fromMatch={booking.fromMatch ?? false} hidden={booking.athleteHidden} percent={booking.matchPercent ?? null} />
       {booking.athleteNotes && <p className={styles.bookingNotes}>Пожелания: {booking.athleteNotes}</p>}
       {showPlanRow && (
         <div className={styles.bookingPlanRow}>

@@ -71,7 +71,8 @@ export default function AdminApp() {
   }, []);
 
   useEffect(check, [check]);
-  const context = useMemo(() => ({ recheck: check }), [check]);
+  const finance = gate.kind === "ready" && gate.session.finance;
+  const context = useMemo(() => ({ recheck: check, finance }), [check, finance]);
 
   if (gate.kind === "loading") return <StateScreen kind="loading" title="Проверяем доступ…" />;
   if (gate.kind === "denied") {

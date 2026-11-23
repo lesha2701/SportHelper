@@ -267,6 +267,15 @@ export interface Commission {
   history: CommissionChange[];
 }
 
+/** The platform's share of the FIRST session with a client from «Подобрать тренера»: same shape as the commission, plus the attribution window. */
+export interface MatchCommission extends Omit<Commission, "source"> {
+  source: "admin" | "environment";
+  attributionDays: number;
+}
+
+export const getMatchCommission = () => get<MatchCommission>("/api/admin/finance/match-commission");
+export const setMatchCommission = (percent: string, reason: string) => put<MatchCommission>("/api/admin/finance/match-commission", { percent, reason });
+
 export const getCommission = () => get<Commission>("/api/admin/finance/commission");
 export const setCommission = (percent: string, reason: string) => put<Commission>("/api/admin/finance/commission", { percent, reason });
 

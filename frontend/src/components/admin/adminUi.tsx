@@ -3,8 +3,9 @@ import { ApiError } from "../../api/client";
 import { navigate, useLocation } from "../../router";
 import styles from "./admin.module.css";
 
-/** Lets any admin page ask the shell to re-check the administrator's access (the server may have revoked it). */
-export const AdminContext = createContext<{ recheck: () => void }>({ recheck: () => {} });
+/** Lets any admin page ask the shell to re-check the administrator's access (the server may have revoked it), and tells whether this
+ * administrator is also a finance one (a convenience for what to show; the server decides on every request). */
+export const AdminContext = createContext<{ recheck: () => void; finance: boolean }>({ recheck: () => {}, finance: false });
 
 export type Query<T> = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; data: T };
 

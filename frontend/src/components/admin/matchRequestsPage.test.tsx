@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as adminApi from "../../api/admin";
+import { AdminContext } from "./adminUi";
 import { MatchRequestsPage } from "./MatchRequestsPage";
 
 vi.mock("../../api/admin");
@@ -27,8 +28,12 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-const openQueue = async () => {
-  render(<MatchRequestsPage />);
+const openQueue = async (finance = false) => {
+  render(
+    <AdminContext.Provider value={{ recheck: () => {}, finance }}>
+      <MatchRequestsPage />
+    </AdminContext.Provider>,
+  );
   await flush();
 };
 
@@ -156,7 +161,47 @@ describe("offers to trainers", () => {
     fireEvent.click(within(drawer).getByRole("button", { name: "Предложить" }));
     await flush();
 
-    expect(api.createMatchOffer).toHaveBeenCalledWith(ID, "c2", "Подходит по уровню");
+    expect(api.createMatchOffer).toHaveBeenCalledWith(ID, "c2", "Подходит по уровню", undefined);
+  });
+
+  it("lets only a finance administrator set a percent for one offer, with a reason", async () => {
+    api.listAdminMatchRequests.mockResolvedValue(page([request()]));
+    api.listMatchCandidates.mockResolvedValue([candidate()]);
+    api.createMatchOffer.mockResolvedValue(request({ status: "in_progress", offers: [offerOf({ percentOverridden: true, percentReason: "Особые условия", firstSessionPercent: 30 })] }));
+    await openQueue(true);
+    const drawer = await openDrawer();
+
+    fireEvent.change(within(drawer).getByLabelText("Особый процент"), { target: { value: "30" } });
+    fireEvent.click(within(drawer).getByRole("button", { name: "Предложить" }));
+    await flush();
+    expect(api.createMatchOffer).not.toHaveBeenCalled();
+    expect(within(drawer).getByText("Укажите причину особого процента.")).toBeTruthy();
+
+    fireEvent.change(within(drawer).getByLabelText("Причина особого процента"), { target: { value: " Особые условия " } });
+    fireEvent.click(within(drawer).getByRole("button", { name: "Предложить" }));
+    await flush();
+    expect(api.createMatchOffer).toHaveBeenCalledWith(ID, "c2", null, { percent: "30", reason: "Особые условия" });
+  });
+
+  it("does not show the override to an ordinary administrator", async () => {
+    api.listAdminMatchRequests.mockResolvedValue(page([request()]));
+    api.listMatchCandidates.mockResolvedValue([candidate()]);
+    await openQueue(false);
+    const drawer = await openDrawer();
+
+    expect(within(drawer).queryByLabelText("Особый процент")).toBeNull();
+  });
+
+  it("shows an offer's own percent with the reason and until when the matching rules apply", async () => {
+    api.listAdminMatchRequests.mockResolvedValue(
+      page([request({ status: "matched", offers: [offerOf({ status: "athlete_accepted", percentOverridden: true, percentReason: "Договорились", windowEndsAt: "2026-12-25T10:00:00Z" })] })]),
+    );
+    await openQueue(true);
+    const drawer = await openDrawer();
+
+    expect(within(drawer).getByText(/особый процент/)).toBeTruthy();
+    expect(within(drawer).getByText(/Причина особого процента: Договорились/)).toBeTruthy();
+    expect(within(drawer).getByText(/идут по правилам подбора до/)).toBeTruthy();
   });
 
   it("does not offer trainers on a request that is over, but keeps the history", async () => {

@@ -404,6 +404,11 @@ function OfferItem({
           </div>
         )}
         {!matched && offer.expiresAt && <div className={styles.hint}>Выберите до {formatWhen(offer.expiresAt)}</div>}
+        {matched && (
+          <div className={styles.hint}>
+            Первую тренировку с этим тренером вы оплачиваете в приложении (цена не меняется): после оплаты откроется чат с тренером.
+          </div>
+        )}
       </div>
       <div className={styles.offerActions}>
         {onOpenCoach && (

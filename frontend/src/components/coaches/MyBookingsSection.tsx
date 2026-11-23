@@ -2,6 +2,7 @@
 import { ProBadge } from "../shared/ProBadge";
 import { syncBookingPayment } from "../../api/payments";
 import { BookingPayment } from "./BookingPayment";
+import { MatchBookingNote } from "./MatchBookingNote";
 import { useEffect, useRef, useState } from "react";
 import { listMyBookings, reviewBooking } from "../../api/bookings";
 import { ApiError } from "../../api/client";
@@ -267,6 +268,7 @@ export function MyBookingsSection({
             </div>
             <span className={styles.bookingStatus}>Подтверждена</span>
           </div>
+          <MatchBookingNote side="athlete" fromMatch={b.fromMatch ?? false} paid={b.paymentStatus === "paid" || b.paymentStatus === "refund_pending"} />
           <BookingPayment token={token} booking={b} />
           <SessionConfirmation token={token} booking={b} side="athlete" onChange={updateBooking} />
           <CancelBooking token={token} booking={b} side="athlete" onCancelled={updateBooking} />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   closeAdminMatchRequest,
   createMatchOffer,
@@ -22,7 +22,7 @@ import { ApiError } from "../../api/client";
 import { useLocation } from "../../router";
 import { Link } from "../Link";
 import { Icon } from "../shared/Icon";
-import { ErrorBox, PageHead, Pager, Pill, ReasonDialog, errorText, formatDateTime, useAdminQuery, useDebounced } from "./adminUi";
+import { AdminContext, ErrorBox, PageHead, Pager, Pill, ReasonDialog, errorText, formatDateTime, useAdminQuery, useDebounced } from "./adminUi";
 import styles from "./admin.module.css";
 
 const PAGE_SIZE = 25;
@@ -259,6 +259,9 @@ function OffersSection({ request: r, canOffer, onChanged }: { request: AdminMatc
   const [text, setText] = useState("");
   const [message, setMessage] = useState("");
   const [candidates, setCandidates] = useState<MatchCandidate[] | null>(null);
+  const [overridePercent, setOverridePercent] = useState("");
+  const [overrideReason, setOverrideReason] = useState("");
+  const { finance } = useContext(AdminContext);
   const q = useDebounced(text);
 
   useEffect(() => {
@@ -285,6 +288,18 @@ function OffersSection({ request: r, canOffer, onChanged }: { request: AdminMatc
     }
   };
 
+  const offerTo = async (coachUserId: string) => {
+    const percent = overridePercent.trim().replace(",", ".");
+    if (finance && percent) {
+      if (!/^\d{1,3}(\.\d{1,2})?$/.test(percent) || Number(percent) > 100) throw new ApiError(422, "invalid_percent", "Введите процент числом от 0 до 100.");
+      if (!overrideReason.trim()) throw new ApiError(422, "reason_required", "Укажите причину особого процента.");
+    }
+    const override = finance && percent ? { percent, reason: overrideReason.trim() } : undefined;
+    await createMatchOffer(r.id, coachUserId, message.trim() || null, override);
+    setOverridePercent("");
+    setOverrideReason("");
+  };
+
   const waiting = (o: AdminMatchOffer) => o.status === "proposed" || o.status === "coach_accepted";
 
   return (
@@ -298,10 +313,12 @@ function OffersSection({ request: r, canOffer, onChanged }: { request: AdminMatc
             <li key={o.id}>
               <strong>{o.coach.name || o.coach.email}</strong> <Pill tone={OFFER_TONE[o.status] ?? "neutral"}>{MATCH_OFFER_LABELS[o.status]}</Pill>
               <div className={styles.muted}>
-                Первая тренировка: {o.firstSessionPercent}% · отправлено {formatDateTime(o.createdAt)}
+                Первая тренировка: {o.firstSessionPercent}%{o.percentOverridden && " (особый процент)"} · отправлено {formatDateTime(o.createdAt)}
                 {o.status === "proposed" && ` · ответить до ${formatDateTime(o.expiresAt)}`}
                 {o.status === "coach_accepted" && o.athleteExpiresAt && ` · выбор до ${formatDateTime(o.athleteExpiresAt)}`}
               </div>
+              {o.percentReason && <div className={styles.muted}>Причина особого процента: {o.percentReason}</div>}
+              {o.windowEndsAt && <div className={styles.muted}>Записи спортсмена к этому тренеру идут по правилам подбора до {formatDateTime(o.windowEndsAt)}</div>}
               {o.adminMessage && <div className={styles.muted}>Ваше сообщение: {o.adminMessage}</div>}
               {o.coachDeclineReason && <div className={styles.muted}>Причина отказа: {o.coachDeclineReason}</div>}
               {waiting(o) && (
@@ -324,6 +341,17 @@ function OffersSection({ request: r, canOffer, onChanged }: { request: AdminMatc
           </p>
           <input className={styles.input} type="search" placeholder="Имя, вид спорта, специализация" value={text} maxLength={100} onChange={(e) => setText(e.target.value)} aria-label="Поиск тренера" />
           <input className={styles.input} type="text" placeholder="Сообщение тренеру (необязательно)" value={message} maxLength={500} onChange={(e) => setMessage(e.target.value)} aria-label="Сообщение тренеру" style={{ marginTop: 8 }} />
+          {finance && (
+            <details style={{ marginTop: 8 }}>
+              <summary>Особый процент для этого предложения</summary>
+              <p className={styles.pageHint}>
+                По умолчанию берётся общий процент первой тренировки из раздела «Финансы». Здесь можно задать другой для одного предложения; причина
+                попадёт в журнал действий.
+              </p>
+              <input className={styles.input} inputMode="decimal" placeholder="Процент платформы, например 30" value={overridePercent} maxLength={6} onChange={(e) => setOverridePercent(e.target.value)} aria-label="Особый процент" />
+              <input className={styles.input} type="text" placeholder="Причина (обязательна с особым процентом)" value={overrideReason} maxLength={500} onChange={(e) => setOverrideReason(e.target.value)} aria-label="Причина особого процента" style={{ marginTop: 8 }} />
+            </details>
+          )}
           {candidates && candidates.length === 0 && <p className={styles.pageHint}>Подходящих тренеров нет.</p>}
           <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
             {candidates?.map((c) => (
@@ -340,7 +368,7 @@ function OffersSection({ request: r, canOffer, onChanged }: { request: AdminMatc
                   type="button"
                   className={styles.button}
                   disabled={busy || c.alreadyOffered}
-                  onClick={() => void perform(() => createMatchOffer(r.id, c.coachUserId, message.trim() || null))}
+                  onClick={() => void perform(() => offerTo(c.coachUserId))}
                 >
                   {c.alreadyOffered ? "Уже предлагали" : "Предложить"}
                 </button>

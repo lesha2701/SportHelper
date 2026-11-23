@@ -849,6 +849,11 @@ export interface AdminMatchOffer {
   athleteExpiresAt: string | null;
   coachRespondedAt: string | null;
   athleteRespondedAt: string | null;
+  /** Until when the athlete's bookings with this trainer follow the matching rules (set when the athlete chose the trainer). */
+  windowEndsAt?: string | null;
+  /** The percent was set for this offer alone (by a finance administrator), and why. */
+  percentOverridden?: boolean;
+  percentReason?: string | null;
 }
 
 export interface AdminMatchRequest extends MatchRequestFields {
@@ -889,6 +894,9 @@ interface AdminMatchOfferDto {
   athlete_expires_at: string | null;
   coach_responded_at: string | null;
   athlete_responded_at: string | null;
+  window_ends_at?: string | null;
+  percent_overridden?: boolean;
+  percent_reason?: string | null;
 }
 
 interface AdminMatchRequestDto extends MatchRequestBaseDto {
@@ -919,6 +927,9 @@ function mapMatchRequestAdmin(dto: AdminMatchRequestDto): AdminMatchRequest {
       athleteExpiresAt: o.athlete_expires_at,
       coachRespondedAt: o.coach_responded_at,
       athleteRespondedAt: o.athlete_responded_at,
+      windowEndsAt: o.window_ends_at ?? null,
+      percentOverridden: o.percent_overridden === true,
+      percentReason: o.percent_reason ?? null,
     })),
   };
 }
@@ -972,12 +983,22 @@ export async function listMatchCandidates(requestId: string, q: string): Promise
   }));
 }
 
-export async function createMatchOffer(requestId: string, coachUserId: string, message: string | null): Promise<AdminMatchRequest> {
+/** `override`: a percent for this offer alone instead of the general one (finance administrators only; the reason goes to the audit). */
+export async function createMatchOffer(
+  requestId: string,
+  coachUserId: string,
+  message: string | null,
+  override?: { percent: string; reason: string },
+): Promise<AdminMatchRequest> {
   return mapMatchRequestAdmin(
     await apiRequest<AdminMatchRequestDto>(`/api/admin/match-requests/${requestId}/offers`, {
       method: "POST",
       successMessage: "Предложение отправлено тренеру",
-      body: { coach_user_id: coachUserId, message },
+      body: {
+        coach_user_id: coachUserId,
+        message,
+        ...(override ? { first_session_percent: override.percent, percent_reason: override.reason } : {}),
+      },
     }),
   );
 }
