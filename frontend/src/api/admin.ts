@@ -1,4 +1,5 @@
 import { API_BASE_URL, ApiError, apiRequest } from "./client";
+import { mapMatchRequest, type MatchRequestDto, type MatchRequestFields, type MatchStatus } from "./matchRequests";
 
 /** Admin endpoints are all server-checked on every call (administrator + second factor); nothing here
  * grants anything - the UI only follows what the server answers. Errors are shown by the pages. */
@@ -830,4 +831,47 @@ export async function listAdminAudit(query: {
       admin: e.admin,
     })),
   };
+}
+
+// --- «Подобрать тренера»: the athletes' requests ----------------------------------------------------------------------
+
+export interface AdminMatchRequest extends MatchRequestFields {
+  id: string;
+  status: MatchStatus;
+  createdAt: string;
+  author: { id: string; name: string; email: string | null };
+  adminNote: string | null;
+  handledBy: string | null;
+  handledAt: string | null;
+}
+
+interface AdminMatchRequestDto extends MatchRequestDto {
+  author: { id: string; name: string; email: string | null };
+  admin_note: string | null;
+  handled_by: string | null;
+  handled_at: string | null;
+}
+
+function mapMatchRequestAdmin(dto: AdminMatchRequestDto): AdminMatchRequest {
+  return { ...mapMatchRequest(dto), author: dto.author, adminNote: dto.admin_note, handledBy: dto.handled_by, handledAt: dto.handled_at };
+}
+
+export async function listAdminMatchRequests(query: { status: MatchStatus | ""; q: string; limit: number; offset: number }): Promise<Page<AdminMatchRequest>> {
+  const dto = await apiRequest<{ total: number; limit: number; offset: number; items: AdminMatchRequestDto[] }>(
+    `/api/admin/match-requests${queryString({ status: query.status, q: query.q.trim() || undefined, limit: query.limit, offset: query.offset })}`,
+    QUIET,
+  );
+  return { total: dto.total, limit: dto.limit, offset: dto.offset, items: dto.items.map(mapMatchRequestAdmin) };
+}
+
+export async function takeAdminMatchRequest(id: string): Promise<AdminMatchRequest> {
+  return mapMatchRequestAdmin(
+    await apiRequest<AdminMatchRequestDto>(`/api/admin/match-requests/${id}/take`, { method: "POST", successMessage: "Заявка взята в работу" }),
+  );
+}
+
+export async function closeAdminMatchRequest(id: string, note: string | null): Promise<AdminMatchRequest> {
+  return mapMatchRequestAdmin(
+    await apiRequest<AdminMatchRequestDto>(`/api/admin/match-requests/${id}/close`, { method: "POST", successMessage: "Заявка закрыта", body: { note } }),
+  );
 }

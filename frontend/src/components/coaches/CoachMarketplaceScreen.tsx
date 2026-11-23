@@ -11,6 +11,9 @@ import { ListingPublicProfileScreen } from "./ListingPublicProfileScreen";
 import { CoachPublicProfileScreen } from "./CoachPublicProfileScreen";
 import { BookingFlow } from "./BookingFlow";
 import { ListingEditScreen } from "./ListingEditScreen";
+import { MatchRequestScreen } from "./MatchRequestScreen";
+import { loginUrl, navigate } from "../../router";
+import matchStyles from "./matchRequest.module.css";
 import { useHeadingAction, useHeadingActionVisible } from "../../hooks/useHeadingAction";
 import { useIsDesktop } from "../../hooks/useIsDesktop";
 import type { CoachListingCard, CoachListingFilters, CoachListingProfile } from "../../types/coachListing";
@@ -25,6 +28,8 @@ type View =
   | { screen: "list" }
   /** A coach starting a new listing straight from this tab. */
   | { screen: "createListing" }
+  /** «Подобрать тренера»: the form for athletes who did not find who they need in the catalogue. */
+  | { screen: "match" }
   | { screen: "coachProfile"; coachUserId: string }
   /** `coachUserId` is unknown when a listing is opened straight from a link. */
   | { screen: "profile"; listingId: string; coachUserId: string | null }
@@ -456,6 +461,28 @@ export function CoachMarketplaceScreen({
     );
   }
 
+  const tabs = (
+    <div className={matchStyles.tabs} role="group" aria-label="Раздел">
+      <button type="button" className={view.screen === "match" ? matchStyles.tab : `${matchStyles.tab} ${matchStyles.tabOn}`} aria-pressed={view.screen !== "match"} onClick={() => setView({ screen: "list" })}>
+        Каталог
+      </button>
+      <button type="button" className={view.screen === "match" ? `${matchStyles.tab} ${matchStyles.tabOn}` : matchStyles.tab} aria-pressed={view.screen === "match"} onClick={() => setView({ screen: "match" })}>
+        Подобрать тренера
+      </button>
+    </div>
+  );
+
+  if (view.screen === "match") {
+    return (
+      <div className={teamStyles.screen}>
+        {/* on desktop the page heading already shows the title */}
+        <h1 className={isDesktop ? `${teamStyles.heading} ${teamStyles.headingDup}` : teamStyles.heading}>Тренеры</h1>
+        {tabs}
+        <MatchRequestScreen guest={guest} onRequireLogin={() => navigate(loginUrl("/"))} />
+      </div>
+    );
+  }
+
   return (
     <div className={teamStyles.screen}>
       {isDesktop ? (
@@ -472,6 +499,8 @@ export function CoachMarketplaceScreen({
           )}
         </div>
       )}
+
+      {tabs}
 
       <div className={styles.marketplaceLayout}>
         <div className={styles.filterPanel}>
