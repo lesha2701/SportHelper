@@ -17,6 +17,7 @@ from app.api.routes import (
     admin_finance,
     admin_media,
     admin_support,
+    admin_match_requests,
     ai,
     auth,
     bookings,
@@ -44,6 +45,7 @@ from app.api.routes import (
     reports,
     stats,
     support,
+    match_requests,
     task_templates,
     tasks,
     teams,
@@ -226,12 +228,14 @@ def create_app() -> FastAPI:
     app.include_router(admin_content.router)
     app.include_router(admin_complaints.router)
     app.include_router(admin_support.router)
+    app.include_router(admin_match_requests.router)
     app.include_router(admin_finance.router)
     app.include_router(finance.router)
     app.include_router(blocks.router)
     app.include_router(chat.router)
     app.include_router(complaints.router)
     app.include_router(support.router)
+    app.include_router(match_requests.router)
     app.include_router(health.router)
     app.include_router(profile.router)
     app.include_router(teams.router)

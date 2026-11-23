@@ -3367,6 +3367,261 @@
         }
       }
     },
+    "/api/admin/match-requests": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Requests",
+        "operationId": "list_requests_api_admin_match_requests_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "new",
+                    "in_progress",
+                    "closed",
+                    "canceled"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRequestPageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/match-requests/{request_id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Request Detail",
+        "operationId": "request_detail_api_admin_match_requests__request_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRequestAdminOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/match-requests/{request_id}/take": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Take Request",
+        "operationId": "take_request_api_admin_match_requests__request_id__take_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRequestAdminOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/match-requests/{request_id}/close": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Close Request",
+        "operationId": "close_request_api_admin_match_requests__request_id__close_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseMatchRequestIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRequestAdminOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/finance/overview": {
       "get": {
         "tags": [
@@ -6117,6 +6372,130 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MySupportRequestOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/match-requests": {
+      "post": {
+        "tags": [
+          "match-requests"
+        ],
+        "summary": "Create Request",
+        "operationId": "create_request_api_match_requests_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchRequestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRequestOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/match-requests/mine": {
+      "get": {
+        "tags": [
+          "match-requests"
+        ],
+        "summary": "My Requests",
+        "operationId": "my_requests_api_match_requests_mine_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MatchRequestOut"
+                  },
+                  "type": "array",
+                  "title": "Response My Requests Api Match Requests Mine Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/match-requests/{request_id}/cancel": {
+      "post": {
+        "tags": [
+          "match-requests"
+        ],
+        "summary": "Cancel Request",
+        "operationId": "cancel_request_api_match_requests__request_id__cancel_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRequestOut"
                 }
               }
             }
@@ -16705,6 +17084,25 @@
         ],
         "title": "ClaimInspectOut"
       },
+      "CloseMatchRequestIn": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CloseMatchRequestIn"
+      },
       "CloseSupportIn": {
         "properties": {
           "note": {
@@ -19542,6 +19940,574 @@
           "updated_at"
         ],
         "title": "MatchOut"
+      },
+      "MatchRequestAdminOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "sport": {
+            "type": "string",
+            "title": "Sport"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "beginner",
+                  "amateur",
+                  "advanced",
+                  "pro"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "online",
+                  "offline",
+                  "any"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "budget_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Min"
+          },
+          "budget_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Max"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Weekdays"
+          },
+          "day_parts": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "morning",
+                "day",
+                "evening"
+              ]
+            },
+            "type": "array",
+            "title": "Day Parts"
+          },
+          "schedule_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Note"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "in_progress",
+              "closed",
+              "canceled"
+            ],
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "author": {
+            "$ref": "#/components/schemas/PersonOut"
+          },
+          "admin_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Note"
+          },
+          "handled_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handled By"
+          },
+          "handled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handled At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "sport",
+          "goal",
+          "level",
+          "format",
+          "city",
+          "budget_min",
+          "budget_max",
+          "currency",
+          "weekdays",
+          "day_parts",
+          "schedule_note",
+          "comment",
+          "status",
+          "created_at",
+          "author",
+          "admin_note",
+          "handled_by",
+          "handled_at"
+        ],
+        "title": "MatchRequestAdminOut"
+      },
+      "MatchRequestIn": {
+        "properties": {
+          "sport": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Sport"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "beginner",
+                  "amateur",
+                  "advanced",
+                  "pro"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "online",
+                  "offline",
+                  "any"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "budget_min": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 99999999.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Min"
+          },
+          "budget_max": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 99999999.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Max"
+          },
+          "currency": {
+            "type": "string",
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Currency",
+            "default": "RUB"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 7,
+            "title": "Weekdays"
+          },
+          "day_parts": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "morning",
+                "day",
+                "evening"
+              ]
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Day Parts"
+          },
+          "schedule_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Note"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sport"
+        ],
+        "title": "MatchRequestIn",
+        "description": "Only the sport is required; everything else the person may leave empty."
+      },
+      "MatchRequestOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "sport": {
+            "type": "string",
+            "title": "Sport"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "beginner",
+                  "amateur",
+                  "advanced",
+                  "pro"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "online",
+                  "offline",
+                  "any"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "budget_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Min"
+          },
+          "budget_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Max"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Weekdays"
+          },
+          "day_parts": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "morning",
+                "day",
+                "evening"
+              ]
+            },
+            "type": "array",
+            "title": "Day Parts"
+          },
+          "schedule_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Note"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "in_progress",
+              "closed",
+              "canceled"
+            ],
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "sport",
+          "goal",
+          "level",
+          "format",
+          "city",
+          "budget_min",
+          "budget_max",
+          "currency",
+          "weekdays",
+          "day_parts",
+          "schedule_note",
+          "comment",
+          "status",
+          "created_at"
+        ],
+        "title": "MatchRequestOut"
+      },
+      "MatchRequestPageOut": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MatchRequestAdminOut"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "limit",
+          "offset",
+          "items"
+        ],
+        "title": "MatchRequestPageOut"
       },
       "MatchResultIn": {
         "properties": {
