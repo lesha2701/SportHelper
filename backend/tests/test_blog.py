@@ -119,6 +119,24 @@ def test_a_draft_is_not_sent_and_flags_are_only_for_the_author(world) -> None:
     assert world.admin.ok("GET", f"{ADMIN}/posts", params={"status": "draft"})["total"] == 0  # drafts are not the administrators' business
 
 
+def test_submit_saved_draft_checks_author_and_content(world) -> None:
+    author = player(world)
+    reader = player(world, "other@example.com")
+    short = author.ok("POST", POSTS, json=article(submit=False, blocks=[{"type": "paragraph", "text": "черновик"}]))
+    path = f"{POSTS}/{short['id']}/submit"
+    assert reader.call("POST", path).status_code == 404
+    assert author.call("POST", path).status_code == 422
+    assert author.ok("GET", f"{POSTS}/{short['id']}")["status"] == "draft"
+
+    draft = author.ok("POST", POSTS, json=article(submit=False))
+    path = f"{POSTS}/{draft['id']}/submit"
+    submitted = author.ok("POST", path)
+    assert submitted["status"] == "pending"
+    assert submitted["blocks"] == draft["blocks"]
+    assert author.ok("POST", path)["status"] == "pending"
+    assert world.admin.ok("GET", f"{ADMIN}/pending-count") == {"pending": 1}
+
+
 def test_the_markup_is_kept_as_text_and_unknown_blocks_are_dropped(world) -> None:
     author = player(world)
     body = [

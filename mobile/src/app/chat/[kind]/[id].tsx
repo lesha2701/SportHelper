@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Keyboard, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, type UploadFile } from "@/api/client";
+import { blockUser } from "@/api/blocks";
 import { deleteChatMessage, getChat, listChatMessages, markChatRead, openChat, sendChatMedia, sendChatMessage } from "@/api/chat";
 import { useAuth } from "@/auth/AuthProvider";
 import { pickMedia } from "@/lib/pickImage";
@@ -49,6 +50,9 @@ export default function ChatScreen() {
   const [file, setFile] = useState<(UploadFile & { video: boolean }) | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blocking, setBlocking] = useState<ChatMessage | null>(null);
+  const [blockBusy, setBlockBusy] = useState(false);
+  const blockedHere = useRef(new Set<string>());
   const [deleting, setDeleting] = useState<ChatMessage | null>(null);
   const [viewing, setViewing] = useState<number | null>(null);
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -72,7 +76,7 @@ export default function ChatScreen() {
   const merge = useCallback((incoming: ChatMessage[]) => {
     setMessages((prev) => {
       const byId = new Map(prev.map((m) => [m.id, m]));
-      for (const m of incoming) byId.set(m.id, m);
+      for (const m of incoming) if (!blockedHere.current.has(m.senderId)) byId.set(m.id, m);
       return [...byId.values()].sort((a, b) => a.id - b.id);
     });
   }, []);
@@ -93,9 +97,10 @@ export default function ChatScreen() {
     };
   }, []);
 
-  // Open the chat, then its latest page.
-  useEffect(() => {
+  // Reload on focus to pick up a block or unblock made in Settings.
+  useFocusEffect(useCallback(() => {
     let cancelled = false;
+    blockedHere.current.clear();
     openChat({ kind: kind === "team" ? "team" : "booking", id })
       .then(async (opened) => {
         const page = await listChatMessages(opened.id, { limit: PAGE });
@@ -113,16 +118,17 @@ export default function ChatScreen() {
     return () => {
       cancelled = true;
     };
-  }, [kind, id, markRead]);
+  }, [kind, id, markRead]));
 
   // New messages every few seconds, only while the app is in front; the chat's own state (may I still write) less often.
   useEffect(() => {
     if (!chatId) return;
+    let active = true;
     const timer = setInterval(() => {
       if (AppState.currentState !== "active") return;
       listChatMessages(chatId, { afterId: lastIdRef.current })
         .then((page) => {
-          if (page.items.length === 0) return;
+          if (!active || page.items.length === 0) return;
           merge(page.items);
           lastIdRef.current = Math.max(lastIdRef.current, page.items.at(-1)?.id ?? 0);
           markRead(chatId, lastIdRef.current);
@@ -131,14 +137,38 @@ export default function ChatScreen() {
     }, POLL_EVERY_MS);
     const refresh = setInterval(() => {
       getChat(chatId)
-        .then((fresh) => setLoad({ status: "ready", chat: fresh }))
+        .then((fresh) => { if (active) setLoad({ status: "ready", chat: fresh }); })
         .catch(() => undefined);
     }, REFRESH_CHAT_EVERY_MS);
     return () => {
+      active = false;
       clearInterval(timer);
       clearInterval(refresh);
     };
   }, [chatId, merge, markRead]);
+
+  async function block() {
+    if (!blocking || !chatId || blockBusy) return;
+    const author = blocking.senderId;
+    setBlockBusy(true);
+    setError(null);
+    try {
+      await blockUser(author);
+      blockedHere.current.add(author);
+      setViewing(null);
+      setMessages((previous) => previous.filter((message) => message.senderId !== author));
+      setBlocking(null);
+      if (kind === "booking" && chat) {
+        setLoad({ status: "ready", chat: { ...chat, canSend: false, sendBlockedReason: "Переписка в этом чате ограничена." } });
+      }
+      const fresh = await getChat(chatId);
+      setLoad({ status: "ready", chat: fresh });
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Не удалось обновить чат.");
+    } finally {
+      setBlockBusy(false);
+    }
+  }
 
   async function loadOlder() {
     const oldest = messages[0];
@@ -292,6 +322,11 @@ export default function ChatScreen() {
                       <Text variant="caption" style={{ color: mine ? colors.primaryText : colors.textTertiary, opacity: 0.85 }}>
                         {time(m.createdAt)}
                       </Text>
+                      {!mine && !m.deleted ? (
+                        <Pressable accessibilityRole="button" accessibilityLabel={`Заблокировать автора: ${m.senderName}`} onPress={() => setBlocking(m)} hitSlop={8}>
+                          <Text variant="caption" muted>Заблокировать</Text>
+                        </Pressable>
+                      ) : null}
                       {canDelete ? (
                         <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setDeleting(m)}>
                           <Text variant="caption" style={{ color: mine ? colors.primaryText : colors.textSecondary, textDecorationLine: "underline" }}>
@@ -360,6 +395,7 @@ export default function ChatScreen() {
       </View>
 
       <MediaViewer items={gallery} index={viewing} onIndex={setViewing} onClose={() => setViewing(null)} />
+      <ConfirmModal visible={blocking !== null} title={`Заблокировать ${blocking?.senderName ?? "автора"}?`} message="Сообщения автора скроются. Разблокировать его можно в настройках." confirmLabel="Заблокировать" destructive onCancel={() => { if (!blockBusy) setBlocking(null); }} onConfirm={() => void block()} />
       <ConfirmModal visible={deleting !== null} title="Удалить сообщение?" message="Оно исчезнет у всех участников чата." confirmLabel="Удалить" destructive onCancel={() => setDeleting(null)} onConfirm={() => void remove()} />
     </>
   );

@@ -41,8 +41,8 @@ Push — копия уведомления, которое уже лежит в 
 Notifications для `ru.sportarenaglobal.app`. В `ios/project.yml` уже есть `aps-environment` (при подписи для App Store Xcode сам
 меняет его на production). Push не работает в симуляторе без настройки и не работает без платного аккаунта разработчика.
 
-**Android.** Создать проект Firebase с приложением `ru.sportarena.app`, скачать `google-services.json`, положить в `mobile/` и указать в
-`app.json`: `"android": { "googleServicesFile": "./google-services.json" }`. Файл не коммитить (ключи проекта). Push не работает в Expo Go:
+**Android.** Создать проект Firebase с приложением `ru.sportarena.app`, скачать `google-services.json` и положить в `mobile/` для локальной сборки либо задать `GOOGLE_SERVICES_JSON`
+как файловую переменную для облачной сборки. `mobile/app.config.js` подставит путь автоматически. Файл не коммитить. Push не работает в Expo Go:
 нужна собственная сборка (`eas build` или `expo run:android`). Канал уведомлений `default` приложение создаёт само.
 
 ## Проверка
@@ -58,8 +58,7 @@ Notifications для `ru.sportarenaglobal.app`. В `ios/project.yml` уже ес
 
 1. [ ] **Ключ APNs.** В аккаунте Apple Developer создать ключ (Keys → Apple Push Notifications service), включить Push Notifications
    для `ru.sportarenaglobal.app`; заполнить `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY` в `.env` сервера. Для сборок из Xcode `APNS_SANDBOX=true`.
-2. [ ] **Проект Firebase.** Создать проект с приложением `ru.sportarena.app`, скачать `google-services.json` в `mobile/`, прописать
-   `android.googleServicesFile` в `app.json`; ключ сервисного аккаунта — в `FCM_SERVICE_ACCOUNT_JSON` на сервере. Файл не коммитить.
+2. [ ] **Проект Firebase.** Создать проект с приложением `ru.sportarena.app`, настроить `google-services.json` для сборки по инструкции выше; ключ сервисного аккаунта — в `FCM_SERVICE_ACCOUNT_JSON` на сервере. Файл не коммитить.
 3. [ ] **Собрать iPhone-приложение на Mac.** Swift-код push писался без Mac и не компилировался: `xcodegen generate`, сборка, тесты
    `PushTests` (при необходимости поправить сигнатуры делегата `UNUserNotificationCenterDelegate` под Swift 6).
 4. [ ] **Собрать Android-приложение** (`eas build` / `expo run:android`; в Expo Go push не работает) и проверить: разрешение, токен в

@@ -2,10 +2,11 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { useAuth } from "@/auth/AuthProvider";
+import { getAthleteBookingByTraining } from "@/api/bookings";
 import { getTeam } from "@/api/teams";
 import { cancelTrainingSeries, deleteTraining, getAttendance, getTraining, getTrainingWorkout, setAttendanceStatus, updateTraining } from "@/api/trainings";
 import { toFormError } from "@/lib/formError";
-import { AthleteSessionCard, CoachSessionCard, PlayerAiAnalysisCard } from "@/booking/SessionParts";
+import { AthleteSessionCard, CoachSessionCard } from "@/booking/SessionParts";
 import { useLoad } from "@/lib/useLoad";
 import { formatDayTitle, shortTime, todayIso } from "@/shared/lib/dates";
 import { parseExerciseChecklist } from "@/shared/lib/trainingDescription";
@@ -93,21 +94,25 @@ export default function TrainingScreen() {
   const toast = useToast();
   const training = useLoad(async () => {
     const t = await getTraining(id);
-    const team = t.teamId ? await getTeam(t.teamId) : null;
-    return { t, team };
-  }, [id]);
+    const [team, athleteBooking] = await Promise.all([
+      t.teamId ? getTeam(t.teamId) : null,
+      t.type === "personal" && t.createdBy === user?.id ? getAthleteBookingByTraining(t.id) : null,
+    ]);
+    return { t, team, athleteBooking };
+  }, [id, user?.id]);
   const [confirm, setConfirm] = useState<"delete" | "complete" | "cancel" | null>(null);
   const [seriesChoice, setSeriesChoice] = useState(false);
 
   if (training.loading && !training.data) return <LoadingView />;
   if (training.error || !training.data) return <ErrorView message={training.error ?? "Тренировка не найдена"} onRetry={training.reload} />;
-  const { t, team } = training.data;
+  const { t, team, athleteBooking } = training.data;
 
   const staff = team ? team.myRole === "head_coach" || team.myRole === "assistant_coach" : false;
   const mine = t.type === "personal" && t.createdBy === user?.id;
   // A personal training that is not mine and still opens: I am the coach the athlete booked (read-only for me).
   const bookedCoach = t.type === "personal" && !mine;
-  const checklist = mine && t.description ? parseExerciseChecklist(t.description) : null;
+  const canManageTraining = (staff || mine) && !athleteBooking;
+  const checklist = mine && !athleteBooking && t.description ? parseExerciseChecklist(t.description) : null;
 
   async function setStatus(status: TrainingStatus) {
     setConfirm(null);
@@ -177,8 +182,7 @@ export default function TrainingScreen() {
         ) : null}
 
         {bookedCoach ? <CoachSessionCard trainingId={t.id} onChanged={training.reload} /> : null}
-        {bookedCoach ? <PlayerAiAnalysisCard trainingId={t.id} /> : null}
-        {mine ? <AthleteSessionCard trainingId={t.id} /> : null}
+        {athleteBooking ? <AthleteSessionCard key={athleteBooking.id} booking={athleteBooking} onChanged={training.reload} /> : null}
         {mine ? <SavedWorkout trainingId={t.id} /> : null}
         {t.status === "completed" && !bookedCoach ? <FeedbackCard trainingId={t.id} teamCoach={staff && t.type !== "personal"} /> : null}
         {staff ? <Attendance training={t} /> : null}
@@ -188,11 +192,11 @@ export default function TrainingScreen() {
 
         {(staff || mine) && t.status !== "cancelled" ? <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/training/new", params: { id: t.id } })} /> : null}
         {staff && t.status === "scheduled" ? <Button title="Отметить проведённой" variant="secondary" onPress={() => setConfirm("complete")} /> : null}
-        {(staff || mine) && t.status === "scheduled" ? (
+        {canManageTraining && t.status === "scheduled" ? (
           <Button title="Отменить тренировку" variant="secondary" onPress={() => (t.recurrenceGroupId ? setSeriesChoice(true) : setConfirm("cancel"))} />
         ) : null}
-        {(staff || mine) && t.status !== "scheduled" ? <Button title="Вернуть в расписание" variant="secondary" onPress={() => void setStatus("scheduled")} /> : null}
-        {staff || mine ? <Button title="Удалить тренировку" variant="ghost" onPress={() => setConfirm("delete")} /> : null}
+        {canManageTraining && t.status !== "scheduled" ? <Button title="Вернуть в расписание" variant="secondary" onPress={() => void setStatus("scheduled")} /> : null}
+        {canManageTraining ? <Button title="Удалить тренировку" variant="ghost" onPress={() => setConfirm("delete")} /> : null}
 
         <ConfirmModal
           visible={confirm !== null}

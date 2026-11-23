@@ -3,6 +3,7 @@
 export interface CoachPublicProfileDto {
   user_id: string;
   full_name: string;
+  is_pro?: boolean;
   sport: string;
   specialization: string | null;
   experience_years: number | null;
@@ -16,6 +17,7 @@ export interface CoachPublicProfileDto {
 export interface CoachPublicProfile {
   userId: string;
   fullName: string;
+  isPro: boolean;
   sport: string;
   specialization: string | null;
   experienceYears: number | null;
@@ -30,6 +32,7 @@ export function mapCoachPublicProfileDto(dto: CoachPublicProfileDto): CoachPubli
   return {
     userId: dto.user_id,
     fullName: dto.full_name,
+    isPro: dto.is_pro === true,
     sport: dto.sport,
     specialization: dto.specialization,
     experienceYears: dto.experience_years,

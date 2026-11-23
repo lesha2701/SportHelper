@@ -1,3 +1,4 @@
+import { ProBadge } from "@/ui/ProBadge";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -35,18 +36,21 @@ const RATINGS = [
 function ListingCard({ l }: { l: CoachListingCard }) {
   const { colors } = useTheme();
   return (
-    <Card onPress={() => router.push({ pathname: "/listing/[id]", params: { id: l.id } })}>
-      <View style={styles.cardHead}>
-        <Avatar name={l.coachFullName} size={48} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
-            {l.title}
-          </Text>
-          <Text variant="caption" muted numberOfLines={2}>
-            {[l.coachFullName, l.sport, l.experienceYears != null ? `${l.experienceYears} лет опыта` : null].filter(Boolean).join(" · ")}
-          </Text>
+    <Card>
+      <Pressable accessibilityRole="button" accessibilityLabel={l.title} onPress={() => router.push({ pathname: "/listing/[id]", params: { id: l.id } })}>
+        <View style={styles.cardHead}>
+          <Avatar name={l.coachFullName} size={48} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
+              {l.title}
+            </Text>
+            <Text variant="caption" muted numberOfLines={2}>
+              {[l.coachFullName, l.sport, l.experienceYears != null ? `${l.experienceYears} лет опыта` : null].filter(Boolean).join(" · ")}
+              {l.coachIsPro ? <> <ProBadge /></> : null}
+            </Text>
+          </View>
         </View>
-      </View>
+      </Pressable>
       <PhotoBox fileId={l.photoFileId} height={170} />
       <View style={styles.cardFoot}>
         <Text style={[styles.price, { color: colors.primary }]}>{l.pricePerSession !== null ? `${l.pricePerSession} ₽` : "Цена по договорённости"}</Text>
@@ -64,9 +68,11 @@ function ListingCard({ l }: { l: CoachListingCard }) {
           <Ionicons name={l.location ? "location-outline" : "videocam-outline"} size={14} color={colors.textSecondary} />
           <Text variant="caption" muted numberOfLines={2} style={{ flex: 1 }}>
             {[l.location, l.offersOnline ? "онлайн" : null, l.offersOffline && !l.location ? "очно" : null].filter(Boolean).join(" · ")}
+            {l.coachIsPro ? <> <ProBadge /></> : null}
           </Text>
         </View>
       ) : null}
+      <Button title="Записаться" onPress={() => router.push({ pathname: "/listing/[id]", params: { id: l.id, booking: "1" } })} />
     </Card>
   );
 }
@@ -76,7 +82,7 @@ export default function CoachesScreen() {
   const { user } = useAuth();
   const { colors } = useTheme();
   const { state: profile } = useProfile();
-  const isCoach = user?.preferredRole === "coach";
+  const isCoach = (profile.status === "ready" ? profile.data.activeMode ?? user?.preferredRole : user?.preferredRole) === "coach";
   // The catalogue opens on the sport the person gave at sign-up (the one of their current role).
   const mySport = profile.status === "ready" ? ((isCoach ? profile.data.coach?.sport : profile.data.player?.sport) ?? profile.data.player?.sport ?? profile.data.coach?.sport ?? "") : "";
   const [applied, setApplied] = useState<MarketFilterForm>({ ...EMPTY_FILTERS, sport: mySport });
@@ -103,6 +109,7 @@ export default function CoachesScreen() {
     <Screen header onRefresh={listings.reload} refreshing={listings.loading && !!listings.data}>
       {isCoach ? <Button title="Мои предложения" variant="secondary" onPress={() => router.push("/my-listings")} /> : null}
 
+      {!isCoach ? <Button title="Подобрать тренера" variant="secondary" onPress={() => router.push("/match-requests")} /> : null}
       <SelectField label="Вид спорта" options={sports} value={applied.sport} onChange={(sport) => setApplied((a) => ({ ...a, sport }))} />
       <Pressable
         accessibilityRole="button"

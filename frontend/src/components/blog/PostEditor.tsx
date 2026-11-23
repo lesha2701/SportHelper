@@ -61,7 +61,7 @@ const fromBlocks = (blocks: PostBlock[]): DraftBlock[] =>
 
 /** Writing and editing an article. The text is a list of blocks (paragraph, heading, quote, list) with **bold** and *italic*; up to three photos;
  *  a trainer may attach one of his listings. «Отправить» runs the automatic check on the server and shows what it refused, if anything. */
-export function PostEditor({ postId }: { postId: string | null }) {
+export function PostEditor({ postId, feedUrl }: { postId: string | null; feedUrl: string }) {
   const [loaded, setLoaded] = useState<"loading" | "ready" | "failed" | "forbidden">(postId ? "loading" : "ready");
   const [existing, setExisting] = useState<Post | null>(null);
   const [title, setTitle] = useState("");
@@ -172,7 +172,7 @@ export function PostEditor({ postId }: { postId: string | null }) {
 
   return (
     <div className={styles.page}>
-      <Link to={existing ? `/blog/${existing.id}` : "/blog"} className={styles.moreLink}>
+      <Link to={existing ? `/blog/${existing.id}` : feedUrl} className={styles.moreLink}>
         ← Назад
       </Link>
       <h1 className={styles.title} style={{ margin: "12px 0 16px" }}>

@@ -48,7 +48,7 @@ export function ReportButton({ targetType, targetId, ownerUserId }: { targetType
         <Pressable style={[styles.backdrop, { backgroundColor: colors.overlay }]} onPress={() => setOpen(false)}>
           <Pressable style={[styles.sheet, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => {}}>
             <Text variant="heading">Пожаловаться</Text>
-            <Choice options={REPORT_REASONS.map((r) => ({ value: r.value, title: r.label }))} value={reason} onChange={setReason} />
+            <Choice options={REPORT_REASONS.filter((r) => r.value !== "advertising" || targetType === "post" || targetType === "post_comment").map((r) => ({ value: r.value, title: r.label }))} value={reason} onChange={setReason} />
             {reason ? <TextField label={needsComment ? "Опишите причину *" : "Комментарий"} value={comment} onChangeText={setComment} multiline numberOfLines={3} maxLength={1000} /> : null}
             {error ? <Notice kind="danger">{error}</Notice> : null}
             <View style={styles.actions}>

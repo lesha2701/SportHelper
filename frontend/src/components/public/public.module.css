@@ -535,6 +535,23 @@
   color: var(--color-link);
 }
 
+@media (max-width: 440px) {
+  .headerInner {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .headerActions {
+    margin-left: auto;
+  }
+
+  .nav {
+    order: 1;
+    flex-basis: 100%;
+    margin: 0;
+  }
+}
+
 @media (min-width: 720px) {
   .brandName {
     display: inline;

@@ -37,7 +37,7 @@ describe("a coach who is not in a team", () => {
     expect(screen.getByText("Эта неделя")).toBeTruthy();
     expect(screen.getByText("Событий в ближайшие 2 недели")).toBeTruthy();
     expect(await screen.findByText("3")).toBeTruthy(); // new requests
-    expect(screen.getByRole("button", { name: "Создать команду" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Создать команду" })).toBeNull();
     expect(screen.queryByText("Пока нет команд")).toBeNull();
   });
 

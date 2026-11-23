@@ -6,7 +6,7 @@ import { radius } from "@/theme/tokens";
 import { Text } from "@/ui/Text";
 
 /** The way into the team's chat, as in a messenger: a wide row right under the team's card, with the unread count. */
-export function TeamChatRow({ teamId, members, unread }: { teamId: string; members: number; unread: number }) {
+export function TeamChatRow({ teamId, members, unread }: { teamId: string; members: number | null; unread: number }) {
   const { colors } = useTheme();
   return (
     <Pressable
@@ -26,7 +26,7 @@ export function TeamChatRow({ teamId, members, unread }: { teamId: string; membe
           Чат команды
         </Text>
         <Text variant="caption" muted numberOfLines={1}>
-          {unread > 0 ? `Новых сообщений: ${unread}` : `Участников: ${members}`}
+          {unread > 0 ? `Новых сообщений: ${unread}` : members === null ? "Сообщения команды" : `Участников: ${members}`}
         </Text>
       </View>
       {unread > 0 ? (

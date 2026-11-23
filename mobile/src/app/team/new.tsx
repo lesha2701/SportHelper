@@ -91,7 +91,7 @@ export default function NewTeamScreen() {
         {loadError ? <Notice kind="danger">{loadError}</Notice> : null}
         {errors.form ? <Notice kind="danger">{errors.form}</Notice> : null}
         <TextField label="Название" required value={name} onChangeText={setName} maxLength={100} error={errors.name} />
-        <Choice label="Вид спорта *" layout="chips" options={COMMON_SPORTS.map((s) => ({ value: s, title: s }))} value={sport || null} onChange={setSport} error={errors.sport} />
+        <Choice label="Вид спорта *" layout="chips" options={[...new Set([...COMMON_SPORTS, ...(sport ? [sport] : [])])].map((s) => ({ value: s, title: s }))} value={sport || null} onChange={setSport} error={errors.sport} />
         <TextField label="Возрастная категория" value={age} onChangeText={setAge} maxLength={50} />
         <Choice label="Уровень" layout="chips" options={LEVELS} value={level} onChange={setLevel} />
         <TextField label="Описание" value={description} onChangeText={setDescription} multiline numberOfLines={3} maxLength={1000} />

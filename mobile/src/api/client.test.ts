@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
-import { ApiError, apiRequest, onSessionExpired, parseResponse } from "./client";
+import { ApiError, apiRequest, apiUpload, onSessionExpired, parseResponse } from "./client";
+import { requireClientUpdate } from "@/config/clientVersion";
 
+jest.mock("@/config/clientVersion", () => ({
+  clientVersionHeaders: { "X-Client-Platform": "android", "X-Client-Version": "0.1.0" },
+  requireClientUpdate: jest.fn(),
+}));
 jest.mock("./tokenStore", () => ({ getToken: jest.fn(async () => "tok123") }));
 
 function respond(status: number, body: unknown): Response {
@@ -26,6 +31,13 @@ describe("parseResponse", () => {
     });
   });
 
+  it("reports a required upgrade from 426, including its store URL", async () => {
+    const url = "https://play.google.com/store/apps/details?id=ru.sportarena.app";
+    await expect(parseResponse(respond(426, { error: { code: "client_update_required", message: "Обновите", update_url: url } })))
+      .rejects.toMatchObject({ code: "client_update_required", status: 426 });
+    expect(requireClientUpdate).toHaveBeenCalledWith(url);
+  });
+
   it("explains FastAPI's own validation answer", async () => {
     await expect(parseResponse(respond(422, { detail: [{ loc: ["body", "x"], msg: "bad" }] }))).rejects.toMatchObject({ code: "validation_error", status: 422 });
   });
@@ -44,6 +56,14 @@ describe("apiRequest", () => {
     const init = fetchMock.mock.calls[0][1] as RequestInit;
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer tok123");
     expect((init.headers as Record<string, string>)["X-CSRF-Token"]).toBeUndefined();
+    expect(init.headers).toMatchObject({ "X-Client-Platform": "android", "X-Client-Version": "0.1.0" });
+  });
+
+  it("sends the Android version on multipart uploads", async () => {
+    const fetchMock = jest.spyOn(globalThis, "fetch").mockResolvedValue(respond(200, { id: 1 }));
+    await apiUpload("/api/blog/images", { formData: new FormData() });
+    const headers = fetchMock.mock.calls[0][1]?.headers;
+    expect(headers).toMatchObject({ "X-Client-Platform": "android", "X-Client-Version": "0.1.0" });
   });
 
   it("reports a network failure as ApiError(network_error)", async () => {

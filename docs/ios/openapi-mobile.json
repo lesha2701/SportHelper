@@ -3156,6 +3156,54 @@
         }
       }
     },
+    "/api/blog/posts/{post_id}/submit": {
+      "post": {
+        "tags": [
+          "blog"
+        ],
+        "summary": "Submit Draft",
+        "operationId": "submit_draft_api_blog_posts__post_id__submit_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/blog/posts/{post_id}/view": {
       "post": {
         "tags": [

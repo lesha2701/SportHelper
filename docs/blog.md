@@ -1,7 +1,7 @@
 # Блог (статьи тренеров и игроков)
 
 Проект и решения: [docs/superpowers/specs/2026-11-23-blog-design.md](superpowers/specs/2026-11-23-blog-design.md).
-Сервер, сайт и iPhone готовы. Этот документ — для Android (`mobile/`): всё, что нужно, чтобы повторить блог по API.
+Блог реализован на сервере, сайте, iPhone и Android. Этот документ описывает используемый клиентами API.
 Точные схемы — в `docs/openapi.json` (теги `blog`, `admin-blog`).
 
 ## Что видит человек

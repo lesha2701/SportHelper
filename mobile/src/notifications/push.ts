@@ -72,6 +72,7 @@ export function watchTaps(open: (data: unknown) => void): () => void {
       if (handled.has(id)) return;
       handled.add(id);
       open(response.notification.request.content.data);
+      void N.clearLastNotificationResponseAsync().catch(() => undefined);
     };
     handle(N.getLastNotificationResponse());
     const sub = N.addNotificationResponseReceivedListener(handle);

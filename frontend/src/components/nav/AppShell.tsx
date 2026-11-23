@@ -27,6 +27,7 @@ interface AppShellProps<T extends string> {
    * heading (title/kicker/CTA) shown above `children`. Omitted for screens (mostly overlays) that still
    * render their own in-content header. */
   topBar?: TopBarConfig;
+  hidePageHeading?: boolean;
   children: ReactNode;
 }
 
@@ -49,6 +50,7 @@ export function AppShell<T extends string>({
   onOpenSettings,
   onOpenAdmin,
   topBar,
+  hidePageHeading,
   children,
 }: AppShellProps<T>) {
   const isDesktop = useIsDesktop();
@@ -72,9 +74,9 @@ export function AppShell<T extends string>({
             {topBar && <TopBarActions {...topBar} />}
           </div>
         </header>
-        <div className={styles.desktopContent}>
-          <div className={topBar ? styles.desktopContentInner : `${styles.desktopContentInner} ${styles.desktopContentNoHeading}`}>
-            {topBar && <PageHeading {...topBar} />}
+        <div className={styles.desktopContent} data-workspace-scroll>
+          <div className={topBar && !hidePageHeading ? styles.desktopContentInner : `${styles.desktopContentInner} ${styles.desktopContentNoHeading}`}>
+            {topBar && !hidePageHeading && <PageHeading {...topBar} />}
             {children}
           </div>
           <SiteFooter />
@@ -89,7 +91,7 @@ export function AppShell<T extends string>({
 
   return (
     <div className={styles.mobileShell}>
-      <div className={styles.mobileScroll}>
+      <div className={styles.mobileScroll} data-workspace-scroll>
         <div className={styles.mobileContent}>{children}</div>
         <SiteFooter />
       </div>

@@ -1,3 +1,4 @@
+import { clientVersionHeaders, requireClientUpdate } from "@/config/clientVersion";
 import { API_BASE_URL } from "@/config";
 import { getToken } from "./tokenStore";
 
@@ -17,7 +18,7 @@ export class ApiError extends Error {
 }
 
 interface ApiErrorBody {
-  error: { code: string; message: string; field?: string; retry_after?: number };
+  error: { code: string; message: string; field?: string; retry_after?: number; update_url?: string | null };
 }
 
 function isApiErrorBody(value: unknown): value is ApiErrorBody {
@@ -37,7 +38,10 @@ export async function parseResponse<T>(response: Response): Promise<T> {
   }
   if (!response.ok) {
     if (isApiErrorBody(data)) {
-      const { code, message, field, retry_after } = data.error;
+      const { code, message, field, retry_after, update_url } = data.error;
+      if (response.status === 426 && code === "client_update_required") {
+        requireClientUpdate(typeof update_url === "string" ? update_url : null);
+      }
       throw new ApiError(response.status, code, message, field ?? null, retry_after ?? null);
     }
     if (response.status === 422) {
@@ -92,7 +96,7 @@ export interface UploadFile {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: "application/json", ...clientVersionHeaders };
   const token = await getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
@@ -122,7 +126,7 @@ export async function apiUpload<T>(
   path: string,
   options: { formData: FormData; method?: "POST" | "PUT"; successMessage?: string; silent?: boolean },
 ): Promise<T> {
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: "application/json", ...clientVersionHeaders };
   const token = await getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
   let response: Response;

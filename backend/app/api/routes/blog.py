@@ -285,6 +285,35 @@ async def update_post(
     return await _post_out(conn, await repo.get_post(conn, post_id, user["id"]), user, sent_for_review=sent_for_review)
 
 
+@router.post("/posts/{post_id}/submit", response_model=PostOut)
+async def submit_draft(
+    post_id: UUID,
+    request: Request,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> PostOut:
+    await accounts_svc.enforce_rate_limit(request, conn, settings, "blog_post", str(user["id"]), limit=_POSTS_PER_DAY * 3, window_seconds=86400)
+    async with conn.transaction():
+        owned = await conn.fetchval(
+            "SELECT id FROM posts WHERE id = $1 AND author_id = $2 AND deleted_at IS NULL FOR UPDATE",
+            post_id, user["id"],
+        )
+        if owned is None:
+            raise NotFoundError("Статья не найдена.", code="post_not_found")
+        row = await repo.get_post(conn, post_id, user["id"])
+        if row["status"] not in ("draft", "pending", "published"):
+            raise ConflictError("Этот черновик больше нельзя отправить. Обновите страницу.", code="post_not_draft")
+        if row["status"] == "draft":
+            payload = PostIn(
+                title=row["title"], sport=row["sport"], blocks=row["body"],
+                image_ids=row["image_ids"], listing_id=row["listing_id"], submit=True,
+            )
+            await _save(conn, user, payload, existing=row, post_id=post_id)
+            row = await repo.get_post(conn, post_id, user["id"])
+        return await _post_out(conn, row, user)
+
+
 @router.delete("/posts/{post_id}", status_code=204, response_model=None)
 async def delete_post(post_id: UUID, user: dict = Depends(get_current_user), conn: asyncpg.Connection = Depends(get_db)) -> None:
     row = await repo.get_post(conn, post_id, user["id"])

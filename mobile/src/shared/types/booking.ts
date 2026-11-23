@@ -155,9 +155,13 @@ export interface BookingDto {
   id: string;
   coach_user_id: string;
   coach_full_name: string;
+  coach_is_pro?: boolean;
   listing_id: string | null;
   listing_title: string | null;
   athlete_user_id: string;
+  from_match?: boolean;
+  match_percent?: number | null;
+  athlete_hidden?: boolean;
   athlete_full_name: string;
   athlete_notes: string | null;
   starts_at: string;
@@ -185,9 +189,13 @@ export interface Booking {
   id: string;
   coachUserId: string;
   coachFullName: string;
+  coachIsPro: boolean;
   listingId: string | null;
   listingTitle: string | null;
   athleteUserId: string;
+  fromMatch: boolean;
+  matchPercent: number | null;
+  athleteHidden: boolean;
   athleteFullName: string;
   athleteNotes: string | null;
   startsAt: string;
@@ -223,9 +231,13 @@ export function mapBookingDto(dto: BookingDto): Booking {
     id: dto.id,
     coachUserId: dto.coach_user_id,
     coachFullName: dto.coach_full_name,
+    coachIsPro: dto.coach_is_pro === true,
     listingId: dto.listing_id,
     listingTitle: dto.listing_title,
     athleteUserId: dto.athlete_user_id,
+    fromMatch: dto.from_match === true,
+    matchPercent: dto.match_percent ?? null,
+    athleteHidden: dto.athlete_hidden === true,
     athleteFullName: dto.athlete_full_name,
     athleteNotes: dto.athlete_notes,
     startsAt: dto.starts_at,
@@ -257,7 +269,7 @@ export interface BookingInput {
   listing_id: string;
   starts_at: string;
   format: "online" | "offline";
-  athlete_notes: string | null;
+  athlete_notes?: string | null;
 }
 
 export interface ReviewInput {
@@ -276,6 +288,9 @@ export interface PendingBookingDto {
   id: string;
   listing_title: string | null;
   athlete_user_id: string;
+  from_match?: boolean;
+  match_percent?: number | null;
+  athlete_hidden?: boolean;
   athlete_full_name: string;
   athlete_notes: string | null;
   starts_at: string;
@@ -292,6 +307,9 @@ export interface PendingBooking {
   id: string;
   listingTitle: string | null;
   athleteUserId: string;
+  fromMatch: boolean;
+  matchPercent: number | null;
+  athleteHidden: boolean;
   athleteFullName: string;
   athleteNotes: string | null;
   startsAt: string;
@@ -310,6 +328,9 @@ export function mapPendingBookingDto(dto: PendingBookingDto): PendingBooking {
     id: dto.id,
     listingTitle: dto.listing_title,
     athleteUserId: dto.athlete_user_id,
+    fromMatch: dto.from_match === true,
+    matchPercent: dto.match_percent ?? null,
+    athleteHidden: dto.athlete_hidden === true,
     athleteFullName: dto.athlete_full_name,
     athleteNotes: dto.athlete_notes,
     startsAt: dto.starts_at,

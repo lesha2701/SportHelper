@@ -22,6 +22,7 @@ vi.mock("../../api/blog", async (importOriginal) => ({
   setLike: vi.fn(),
   countView: vi.fn(),
   deletePost: vi.fn(),
+  submitDraft: vi.fn(),
 }));
 
 const author = { id: "a1", name: "Иван Тренер", isCoach: true, isPro: false, profileOpen: true, avatarFileId: null };
@@ -132,6 +133,28 @@ describe("an article", () => {
     render(<PostPage postId="p1" />);
     const link = await screen.findByRole("link", { name: "Записаться" });
     expect(link.getAttribute("href")).toBe("/coaches?listing=l1");
+  });
+
+  it("submits an author's draft directly and shows the review status", async () => {
+    vi.mocked(blogApi.getPost).mockResolvedValue({ ...post, isMine: true, status: "draft" });
+    vi.mocked(blogApi.submitDraft).mockResolvedValue({ ...post, isMine: true, status: "pending" });
+    render(<PostPage postId="p1" />);
+    const submit = await screen.findByRole("button", { name: "Отправить на проверку" });
+    expect(screen.getByRole("link", { name: "Редактировать" }).getAttribute("href")).toBe("/blog/p1/edit");
+    fireEvent.click(submit);
+    expect(await screen.findByText("На проверке.")).toBeTruthy();
+    expect(blogApi.submitDraft).toHaveBeenCalledExactlyOnceWith("p1");
+    expect(screen.queryByRole("button", { name: "Отправить на проверку" })).toBeNull();
+  });
+
+  it("keeps an invalid draft on screen with the reason and the edit link", async () => {
+    vi.mocked(blogApi.getPost).mockResolvedValue({ ...post, isMine: true, status: "draft" });
+    const { ApiError } = await import("../../api/client");
+    vi.mocked(blogApi.submitDraft).mockRejectedValue(new ApiError(422, "article_rejected", "Дополните текст статьи."));
+    render(<PostPage postId="p1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Отправить на проверку" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("Дополните текст статьи.");
+    expect(screen.getByRole("link", { name: "Редактировать" })).toBeTruthy();
   });
 
   it("tells the author why an article is not public", async () => {

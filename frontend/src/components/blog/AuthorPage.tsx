@@ -9,7 +9,7 @@ import { PostCardItem } from "./PostCardItem";
 import styles from "./blog.module.css";
 
 /** An author's card: a trainer's data and a way to his listings; a player's only if the player allowed it. Then their articles. */
-export function AuthorPage({ authorId }: { authorId: string }) {
+export function AuthorPage({ authorId, feedUrl, onFeedChange }: { authorId: string; feedUrl: string; onFeedChange: () => void }) {
   const { state } = useAuth();
   const signedIn = state.status === "ready";
   const me = state.status === "ready" ? state.user.id : null;
@@ -36,6 +36,7 @@ export function AuthorPage({ authorId }: { authorId: string }) {
   const toggleMute = async () => {
     try {
       await setAuthorMuted(author.id, !author.mutedByMe);
+      onFeedChange();
       setAuthor({ ...author, mutedByMe: !author.mutedByMe });
     } catch {
       /* the API layer already told the person why */
@@ -44,8 +45,8 @@ export function AuthorPage({ authorId }: { authorId: string }) {
 
   return (
     <div className={styles.page}>
-      <Link to="/blog" className={styles.moreLink}>
-        ← Все статьи
+      <Link to={feedUrl} className={styles.moreLink}>
+        ← К статьям
       </Link>
       <div className={styles.authorHero} style={{ marginTop: 12 }}>
         <Avatar author={author} />

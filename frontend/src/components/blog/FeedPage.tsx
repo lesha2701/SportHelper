@@ -11,7 +11,7 @@ import {
   type PostCard,
 } from "../../api/blog";
 import { useAuth } from "../../context/AuthContext";
-import { loginUrl, navigate, useLocation } from "../../router";
+import { loginUrl, navigate } from "../../router";
 import { COMMON_SPORTS } from "../../types/profile";
 import { Link } from "../Link";
 import { StateScreen } from "../StateScreen";
@@ -24,8 +24,7 @@ type Tab = "all" | "mine" | "saved";
 const PAGE = 20;
 
 /** The news tab: every article (filter by sport, newest or most popular), the person's own articles and the ones they saved. */
-export function FeedPage() {
-  const { search } = useLocation();
+export function FeedPage({ search, active }: { search: string; active: boolean }) {
   const { state } = useAuth();
   const signedIn = state.status === "ready";
   const params = new URLSearchParams(search);
@@ -82,8 +81,8 @@ export function FeedPage() {
       </div>
 
       {tab === "all" && <AllPosts sport={sport} sort={sort} />}
-      {tab === "mine" && <MyPosts />}
-      {tab === "saved" && <SavedPosts />}
+      {tab === "mine" && <MyPosts active={active} />}
+      {tab === "saved" && <SavedPosts active={active} />}
     </div>
   );
 }
@@ -144,14 +143,21 @@ function AllPosts({ sport, sort }: { sport: string; sort: FeedSort }) {
   );
 }
 
-function SavedPosts() {
+function SavedPosts({ active }: { active: boolean }) {
   const [items, setItems] = useState<PostCard[] | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
+    if (!active) return;
+    let cancelled = false;
     listSavedPosts()
-      .then((page) => setItems(page.items))
-      .catch(() => setFailed(true));
-  }, []);
+      .then((page) => {
+        if (cancelled) return;
+        setItems(page.items);
+        setFailed(false);
+      })
+      .catch(() => { if (!cancelled) setFailed(true); });
+    return () => { cancelled = true; };
+  }, [active]);
   if (failed) return <StateScreen kind="error" title="Не удалось загрузить сохранённые статьи" />;
   if (!items) return <StateScreen kind="loading" title="Загружаем…" />;
   if (items.length === 0) return <p className={styles.empty}>Здесь будут статьи, которые вы сохранили («⋯» → «Сохранить»).</p>;
@@ -164,19 +170,26 @@ function SavedPosts() {
   );
 }
 
-function MyPosts() {
+function MyPosts({ active }: { active: boolean }) {
   const [items, setItems] = useState<MyPost[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [settings, setSettings] = useState<{ showProfileInPosts: boolean; isCoach: boolean } | null>(null);
 
   useEffect(() => {
+    if (!active) return;
+    let cancelled = false;
     listMyPosts()
-      .then(setItems)
-      .catch(() => setFailed(true));
+      .then((posts) => {
+        if (cancelled) return;
+        setItems(posts);
+        setFailed(false);
+      })
+      .catch(() => { if (!cancelled) setFailed(true); });
     getBlogSettings()
-      .then(setSettings)
+      .then((value) => { if (!cancelled) setSettings(value); })
       .catch(() => undefined);
-  }, []);
+    return () => { cancelled = true; };
+  }, [active]);
 
   const toggleProfile = async (value: boolean) => {
     if (!settings) return;

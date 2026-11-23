@@ -1,3 +1,4 @@
+import type { ComponentRef, Ref } from "react";
 import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -13,10 +14,11 @@ interface Props {
   /** Pull-down to refresh: called when the person pulls; `refreshing` shows the spinner. */
   onRefresh?: () => void;
   refreshing?: boolean;
+  scrollRef?: Ref<ComponentRef<typeof ScrollView>>;
 }
 
 /** The standard screen frame: safe area, theme background, keyboard avoidance, a readable column on wide screens. */
-export function Screen({ children, centered, fixed, header, onRefresh, refreshing }: Props) {
+export function Screen({ children, centered, fixed, header, onRefresh, refreshing, scrollRef }: Props) {
   const { colors } = useTheme();
   return (
     <SafeAreaView edges={header ? ["bottom", "left", "right"] : ["top", "bottom", "left", "right"]} style={[styles.fill, { backgroundColor: colors.bg }]}>
@@ -25,6 +27,7 @@ export function Screen({ children, centered, fixed, header, onRefresh, refreshin
           <View style={[styles.column, styles.fill]}>{children}</View>
         ) : (
           <ScrollView
+            ref={scrollRef}
             contentContainerStyle={[styles.content, centered && styles.centered]}
             keyboardShouldPersistTaps="handled"
             refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} /> : undefined}

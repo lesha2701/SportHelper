@@ -1,9 +1,12 @@
+import { ProBadge } from "@/ui/ProBadge";
+import { MatchBookingNote } from "@/booking/MatchBookingNote";
 import { Stack, router } from "expo-router";
 import { CancelBooking, CancellationNote } from "@/booking/CancelBooking";
 import { CoachSessionActions, PlanPicker, ReviewSheet } from "@/booking/SessionParts";
 import { SessionConfirmation } from "@/booking/SessionConfirmation";
 import { useState } from "react";
 import { useChatUnread } from "@/lib/useChatUnread";
+import { useProfile } from "@/profile/ProfileProvider";
 import { bookingHasChat } from "@/shared/types/chat";
 import { confirmBooking, declineBooking, listCoachBookings, listCoachPendingBookings, listMyBookings, reviewBooking } from "@/api/bookings";
 import { openPaymentPage, startBookingPayment, syncBookingPayment } from "@/api/payments";
@@ -22,7 +25,7 @@ import { useToast } from "@/ui/Toast";
 
 /** «Чат с тренером» / «Чат с игроком»: only for a confirmed lesson that is paid (or free), when the server opens the chat. */
 function ChatButton({ b, label, unread }: { b: Booking; label: string; unread: number }) {
-  if (!bookingHasChat(b)) return null;
+  if (!bookingHasChat(b) || (b.fromMatch && b.paymentStatus !== "paid")) return null;
   return (
     <Button
       title={unread > 0 ? `${label} · ${unread > 9 ? "9+" : unread}` : label}
@@ -66,7 +69,7 @@ function PlayerBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => 
     <Card>
       <Text variant="label">{b.listingTitle ?? "Занятие"}</Text>
       <Text muted>
-        {b.coachFullName} · {formatStart(b.startsAt)} · {b.durationMinutes} мин · {b.format === "online" ? "онлайн" : "очно"}
+        {b.coachFullName}{b.coachIsPro ? <> <ProBadge /></> : null} · {formatStart(b.startsAt)} · {b.durationMinutes} мин · {b.format === "online" ? "онлайн" : "очно"}
       </Text>
       <Text variant="caption">
         {bookingStatusLabel(b.status)}
@@ -82,6 +85,7 @@ function PlayerBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => 
       <ChatButton b={b} label="Чат с тренером" unread={unread} />
       {b.trainingId && b.status !== "cancelled" ? <Button title="Открыть тренировку" variant="secondary" onPress={() => router.push({ pathname: "/training/[id]", params: { id: b.trainingId! } })} /> : null}
       {b.isCompleted && !b.hasReview ? <Button title="Оставить отзыв" variant="secondary" onPress={() => setReviewing(true)} /> : null}
+      <MatchBookingNote booking={b} side="athlete" />
       <SessionConfirmation booking={b} side="athlete" onChange={onChanged} />
       <CancelBooking booking={b} side="athlete" onCancelled={onChanged} />
       <CancellationNote cancellation={b.cancellation} side="athlete" />
@@ -102,6 +106,7 @@ function PlayerBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => 
 
 function PendingRequest({ b, onChanged }: { b: PendingBooking; onChanged: () => void }) {
   const toast = useToast();
+  const features = useFeatures();
 
   async function decide(accept: boolean) {
     try {
@@ -120,9 +125,10 @@ function PendingRequest({ b, onChanged }: { b: PendingBooking; onChanged: () => 
         {b.listingTitle ?? "Занятие"} · {formatStart(b.startsAt)} · {b.durationMinutes} мин · {b.format === "online" ? "онлайн" : "очно"}
       </Text>
       {b.athleteRatingAverage !== null ? <Text variant="caption">Оценка спортсмена: ★ {b.athleteRatingAverage.toFixed(1)} ({b.athleteReviewCount})</Text> : null}
+      <MatchBookingNote booking={b} side="coach" />
       {b.athleteNotes ? <Text>{b.athleteNotes}</Text> : null}
-      <Button title="Профиль игрока и отзывы" variant="secondary" onPress={() => router.push({ pathname: "/player/[id]", params: { id: b.athleteUserId } })} />
-      <Button title="Подтвердить" onPress={() => void decide(true)} />
+      {!b.athleteHidden ? <Button title="Профиль игрока и отзывы" variant="secondary" onPress={() => router.push({ pathname: "/player/[id]", params: { id: b.athleteUserId } })} /> : null}
+      <Button title="Подтвердить" disabled={b.fromMatch && !features.payments} onPress={() => void decide(true)} />
       <Button title="Отклонить" variant="secondary" onPress={() => void decide(false)} />
     </Card>
   );
@@ -130,6 +136,7 @@ function PendingRequest({ b, onChanged }: { b: PendingBooking; onChanged: () => 
 
 function CoachBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => void; unread: number }) {
   const toast = useToast();
+  const features = useFeatures();
 
   async function decide(accept: boolean) {
     try {
@@ -147,6 +154,7 @@ function CoachBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => v
       <Text muted>
         {b.listingTitle ?? "Занятие"} · {formatStart(b.startsAt)} · {b.durationMinutes} мин
       </Text>
+      <MatchBookingNote booking={b} side="coach" />
       {b.athleteNotes ? <Text>{b.athleteNotes}</Text> : null}
       <Text variant="caption">
         {bookingStatusLabel(b.status)}
@@ -154,7 +162,7 @@ function CoachBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => v
       </Text>
       {b.status === "pending" ? (
         <>
-          <Button title="Подтвердить" onPress={() => void decide(true)} />
+          <Button title="Подтвердить" disabled={b.fromMatch && !features.payments} onPress={() => void decide(true)} />
           <Button title="Отклонить" variant="secondary" onPress={() => void decide(false)} />
         </>
       ) : null}
@@ -165,7 +173,7 @@ function CoachBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => v
       <SessionConfirmation booking={b} side="coach" onChange={onChanged} />
       <CancelBooking booking={b} side="coach" onCancelled={onChanged} />
       <CancellationNote cancellation={b.cancellation} side="coach" />
-      <Button title="Профиль игрока" variant="ghost" onPress={() => router.push({ pathname: "/player/[id]", params: { id: b.athleteUserId } })} />
+      {!b.athleteHidden ? <Button title="Профиль игрока" variant="ghost" onPress={() => router.push({ pathname: "/player/[id]", params: { id: b.athleteUserId } })} /> : null}
     </Card>
   );
 }
@@ -174,7 +182,8 @@ function CoachBooking({ b, onChanged, unread }: { b: Booking; onChanged: () => v
 export default function BookingsScreen() {
   const { user } = useAuth();
   const chats = useChatUnread();
-  const isCoach = user?.preferredRole === "coach";
+  const { state: profile } = useProfile();
+  const isCoach = (profile.status === "ready" ? profile.data.activeMode ?? user?.preferredRole : user?.preferredRole) === "coach";
   const data = useLoad(async () => {
     if (!isCoach) return { pending: [] as PendingBooking[], bookings: await listMyBookings() };
     const [pending, bookings] = await Promise.all([listCoachPendingBookings(), listCoachBookings()]);

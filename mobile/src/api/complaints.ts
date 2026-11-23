@@ -1,13 +1,14 @@
 import { apiRequest } from "./client";
 
-export type ComplaintTarget = "user" | "listing" | "media";
-export type ComplaintReason = "inappropriate" | "fraud" | "spam" | "false_info" | "other";
+export type ComplaintTarget = "user" | "listing" | "media" | "post" | "post_comment";
+export type ComplaintReason = "inappropriate" | "fraud" | "spam" | "false_info" | "advertising" | "other";
 
 export const REPORT_REASONS: { value: ComplaintReason; label: string }[] = [
   { value: "inappropriate", label: "Недопустимый контент" },
   { value: "fraud", label: "Мошенничество" },
   { value: "spam", label: "Спам" },
   { value: "false_info", label: "Ложная информация" },
+  { value: "advertising", label: "Реклама" },
   { value: "other", label: "Другая причина" },
 ];
 

@@ -3,7 +3,7 @@
  * Workspace subscribes and maps these to its tabs/overlays. Same idea as the
  * toast store — usable from anywhere, no React context needed. */
 
-export type AppTab = "dashboard" | "teams" | "calendar" | "coaches";
+export type AppTab = "dashboard" | "calendar" | "coaches";
 
 export type AppTarget =
   | { kind: "tab"; tab: AppTab }

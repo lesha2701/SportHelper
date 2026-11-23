@@ -59,7 +59,7 @@ export default function FinanceScreen() {
       <Screen header>
         <StatGrid>
           <StatTile value={formatKopecks(s.availableKopecks)} label="доступно к выводу" />
-          <StatTile value={formatKopecks(s.pendingKopecks)} label="ожидает" />
+          <StatTile value={formatKopecks(s.pendingKopecks)} label="ждёт подтверждения занятия" />
           <StatTile value={formatKopecks(s.reservedKopecks)} label="в заявках на вывод" />
           <StatTile value={formatKopecks(s.paidOutKopecks)} label="выплачено" />
         </StatGrid>
@@ -77,7 +77,7 @@ export default function FinanceScreen() {
           </Text>
         ) : null}
         <Text variant="caption" muted>
-          Деньги за занятие становятся доступными к выводу после того, как вы отметите занятие проведённым и платформа его подтвердит. Комиссия платформы — {s.commissionPercent}% с каждой оплаты.
+          Занятие подтверждает спортсмен, его код или система через 48 часов после окончания, если никто не сообщил о проблеме. Ваша обычная комиссия — {s.commissionPercent}%. Для первой записи из подбора процент указан в предложении.
           Выплаты выполняются вручную, после проверки заявки.
         </Text>
 

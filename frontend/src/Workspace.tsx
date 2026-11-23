@@ -4,9 +4,7 @@ import { ProfileProvider, useProfile } from "./context/ProfileContext";
 import { useAuth } from "./context/AuthContext";
 import { ProfileScreen } from "./components/profile/ProfileScreen";
 import { DashboardScreen } from "./components/dashboard/DashboardScreen";
-import { TeamsScreen } from "./components/teams/TeamsScreen";
 import { TeamDetailScreen } from "./components/teams/TeamDetailScreen";
-import { MyTeamsScreen } from "./components/teams/MyTeamsScreen";
 import { InviteAcceptScreen } from "./components/teams/InviteAcceptScreen";
 import { LibraryScreen } from "./components/library/LibraryScreen";
 import { TrainingForm } from "./components/trainings/TrainingForm";
@@ -31,23 +29,25 @@ import { useFinanceFeatures } from "./features";
 import { NotificationsScreen } from "./components/notifications/NotificationsScreen";
 import { StateScreen } from "./components/StateScreen";
 import type { NavItem } from "./components/nav/BottomNav";
-import type { SideNavTeam, SideNavUser } from "./components/nav/SideNav";
+import type { SideNavUser } from "./components/nav/SideNav";
 import type { TopBarConfig } from "./components/nav/TopBar";
 import { AppShell } from "./components/nav/AppShell";
 import { listMyTeams } from "./api/teams";
 import { listCoachPendingBookings } from "./api/bookings";
 import { listNotifications } from "./api/notifications";
-import { TEAM_ROLE_LABELS, type Team } from "./types/team";
+import type { Team } from "./types/team";
+import { BlogApp } from "./components/blog/BlogApp";
 import type { CalendarEvent } from "./types/calendar";
 import type { NotificationCategory } from "./types/notification";
-import { navigate } from "./router";
+import { navigate, useLocation } from "./router";
 import { useActivityPing } from "./hooks/useActivityPing";
 import { loadView, saveView } from "./lib/viewState";
 /** A notification about an article: the blog lives on its own addresses, so this just hands over to it. */
-function BlogPostRedirect({ postId }: { postId: string }) {
+function BlogPostRedirect({ postId, onOpen }: { postId: string; onOpen: () => void }) {
   useEffect(() => {
+    onOpen();
     navigate(`/blog/${postId}`);
-  }, [postId]);
+  }, [postId, onOpen]);
   return null;
 }
 
@@ -102,25 +102,25 @@ function readNotificationDeepLink(): DeepLink | null {
   return { category: category as NotificationCategory, entityId };
 }
 
-type CoachTab = "dashboard" | "teams" | "library" | "calendar" | "coaches" | "profile";
+type CoachTab = "dashboard" | "library" | "calendar" | "coaches" | "profile";
 // "Тренировки" was merged into "Календарь" and "Задания" now only lives
 // inside each team screen — see the "Доработки после итерации 15" README
 // section for why. "Главная" (dashboard) was added in the MBA redesign,
 // see docs/superpowers/specs/2026-08-17-mba-redesign-design.md.
-type PlayerTab = "dashboard" | "teams" | "calendar" | "coaches" | "profile";
+type PlayerTab = "dashboard" | "calendar" | "coaches" | "profile";
 
-const COACH_NAV_ITEMS: NavItem<CoachTab>[] = [
+const COACH_NAV_ITEMS: NavItem<CoachTab | "blog">[] = [
   { key: "dashboard", label: "Главная", icon: "home" },
-  { key: "teams", label: "Команды", icon: "trophy" },
+  { key: "blog", label: "Статьи", icon: "book" },
   { key: "library", label: "Библиотека", icon: "book" },
   { key: "calendar", label: "Календарь", icon: "calendar" },
   { key: "coaches", label: "Тренеры", icon: "users" },
   { key: "profile", label: "Профиль", icon: "user" },
 ];
 
-const PLAYER_NAV_ITEMS: NavItem<PlayerTab>[] = [
+const PLAYER_NAV_ITEMS: NavItem<PlayerTab | "blog">[] = [
   { key: "dashboard", label: "Главная", icon: "home" },
-  { key: "teams", label: "Команды", icon: "trophy" },
+  { key: "blog", label: "Статьи", icon: "book" },
   { key: "calendar", label: "Календарь", icon: "calendar" },
   { key: "coaches", label: "Тренеры", icon: "users" },
   { key: "profile", label: "Профиль", icon: "user" },
@@ -146,8 +146,6 @@ function coachTopBar(tab: CoachTab, onCreateTraining: () => void, onHeadingActio
   switch (tab) {
     case "dashboard":
       return { kicker: dateKicker(), title: "Тренерская панель", cta: { label: "Тренировка", icon: "plus", onClick: onCreateTraining } };
-    case "teams":
-      return { kicker: "Команды", title: "Команды", cta: { label: "Создать команду", icon: "plus", onClick: onHeadingAction } };
     case "library":
       return { kicker: "Упражнения, планы, шаблоны", title: "Библиотека", cta: { label: "Создать", icon: "plus", onClick: onHeadingAction } };
     case "calendar":
@@ -163,8 +161,6 @@ function playerTopBar(tab: PlayerTab, onCreateTraining: () => void): TopBarConfi
   switch (tab) {
     case "dashboard":
       return { kicker: dateKicker(), title: "Твой прогресс", cta: { label: "Тренировка", icon: "plus", onClick: onCreateTraining } };
-    case "teams":
-      return { kicker: "Команды", title: "Команды" };
     case "calendar":
       return { kicker: monthKicker(), title: "Календарь", cta: { label: "Добавить тренировку", icon: "plus", onClick: onCreateTraining } };
     case "coaches":
@@ -218,8 +214,6 @@ export function CoachTabContent({
           onOpenMyStats={onOpenMyStats}
         />
       );
-    case "teams":
-      return <TeamsScreen token={token} createRequest={headingRequest} />;
     case "library":
       return <LibraryScreen token={token} createRequest={headingRequest} />;
     case "calendar":
@@ -256,7 +250,9 @@ function MainContent({
   deepLink,
   initialTeamId,
   marketplaceIntent,
+  blogPath,
 }: {
+  blogPath: string | null;
   token: string;
   deepLink: DeepLink | null;
   initialTeamId?: string | null;
@@ -275,8 +271,8 @@ function MainContent({
   const [savedView] = useState(() =>
     loadView(
       myUserId,
-      COACH_NAV_ITEMS.map((item) => item.key),
-      PLAYER_NAV_ITEMS.map((item) => item.key),
+      COACH_NAV_ITEMS.flatMap((item) => item.key === "blog" ? [] : [item.key]),
+      PLAYER_NAV_ITEMS.flatMap((item) => item.key === "blog" ? [] : [item.key]),
     ),
   );
   const startsFromLink = !!(marketplaceIntent || deepLink || initialTeamId);
@@ -320,16 +316,6 @@ function MainContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const primaryTeam = teams && teams.length > 0 ? teams[0]! : null;
-  const sideTeam: SideNavTeam | null = primaryTeam
-    ? {
-        name: primaryTeam.name,
-        roleLabel: primaryTeam.myRole ? TEAM_ROLE_LABELS[primaryTeam.myRole] : "Участник",
-        initial: initialOf(primaryTeam.name),
-        logo: primaryTeam.logoFileId ? { token, fileId: primaryTeam.logoFileId } : null,
-      }
-    : null;
-
   let sideUser: SideNavUser = { name: "…", sub: "", photoUrl: myPhotoUrl, avatar: myAvatar, initial: "?" };
   if (state.status === "ready") {
     const mode = state.data.activeMode ?? (state.data.player ? "player" : "coach");
@@ -355,6 +341,18 @@ function MainContent({
   useEffect(() => {
     saveView(myUserId, { coachTab, playerTab, overlay });
   }, [myUserId, coachTab, playerTab, overlay]);
+  const { search: routeSearch } = useLocation();
+  const blogFeedUrl = useRef("/blog");
+  useEffect(() => {
+    if (blogPath === "/blog") blogFeedUrl.current = `/blog${routeSearch}`;
+  }, [blogPath, routeSearch]);
+  const openBlog = () => {
+    if (blogPath !== "/blog") navigate(blogFeedUrl.current);
+  };
+  const leaveBlog = useCallback(() => {
+    if (blogPath) navigate("/");
+  }, [blogPath]);
+  const clearOverlay = useCallback(() => setOverlay(null), []);
   const closeOverlay = () => setOverlay(overlay?.backTo ?? null);
   const isStaffOfTeam = (teamId: string) =>
     (teams ?? []).some((t) => t.id === teamId && (t.myRole === "head_coach" || t.myRole === "assistant_coach"));
@@ -472,7 +470,7 @@ function MainContent({
   } else if (overlay?.kind === "finance") {
     overlayContent = <FinanceScreen token={token} onBack={closeOverlay} />;
   } else if (overlay?.kind === "blog-post") {
-    overlayContent = <BlogPostRedirect postId={overlay.postId} />;
+    overlayContent = <BlogPostRedirect postId={overlay.postId} onOpen={clearOverlay} />;
   } else if (overlay?.kind === "match-offers") {
     overlayContent = <MatchOffersScreen onBack={closeOverlay} />;
   } else if (overlay?.kind === "match-requests") {
@@ -502,13 +500,15 @@ function MainContent({
     );
   }
 
-  const hasOverlay = overlayContent !== null;
+  const hasOverlay = !blogPath && overlayContent !== null;
+  const blogContent = blogPath ? <BlogApp embedded path={blogPath} /> : null;
 
   // Anything in the app can send the user elsewhere (a toast action, a success
   // card's button, an empty state) without knowing the shell's layout.
   useEffect(
     () =>
       subscribeAppNav((target) => {
+        leaveBlog();
         switch (target.kind) {
           case "tab":
             setOverlay(null);
@@ -537,9 +537,10 @@ function MainContent({
             break;
         }
       }),
-    [isCoachMode],
+    [isCoachMode, leaveBlog],
   );
   const handleSearchSelect = (result: SearchResult) => {
+    leaveBlog();
     switch (result.type) {
       case "team":
         setOverlay({ kind: "team", teamId: result.id });
@@ -576,7 +577,10 @@ function MainContent({
     onSelect: handleSearchSelect,
   };
   const onCreateTraining = () => setOverlay({ kind: "training-create" });
-  const onOpenTeam = primaryTeam ? () => setOverlay({ kind: "team", teamId: primaryTeam.id }) : undefined;
+  const openTopOverlay = (kind: "notifications" | "finance") => {
+    leaveBlog();
+    setOverlay({ kind });
+  };
 
   if (state.status === "ready" && state.data.activeMode === "coach") {
     const coachNavItems = COACH_NAV_ITEMS.map((item) => (item.key === "profile" ? { ...item, badge: pendingBookings } : item));
@@ -584,8 +588,13 @@ function MainContent({
       <HeadingActionVisibility.Provider value={setHeadingActionVisible}>
       <AppShell
         navItems={coachNavItems}
-        activeTab={coachTab}
+        activeTab={blogPath ? "blog" : coachTab}
         onChangeTab={(tab) => {
+          if (tab === "blog") {
+            openBlog();
+            return;
+          }
+          leaveBlog();
           setOverlay(null);
           setMarketplaceCoachId(null);
           setMarketplaceStart(null);
@@ -593,15 +602,16 @@ function MainContent({
           setCoachTab(tab);
         }}
         hasOverlay={hasOverlay}
-        sideTeam={sideTeam}
-        onOpenTeam={onOpenTeam}
+        hidePageHeading={!!blogPath}
         sideUser={sideUser}
         onOpenAdmin={openAdmin}
         onOpenProfile={() => {
+          leaveBlog();
           setOverlay(null);
           setCoachTab("profile");
         }}
         onOpenSettings={() => {
+          leaveBlog();
           setOverlay(null);
           setCoachTab("profile");
           setProfileSettingsRequested(true);
@@ -612,13 +622,13 @@ function MainContent({
             : {
                 ...withoutHeadingAction(coachTopBar(coachTab, onCreateTraining, () => setHeadingRequest((n) => n + 1)), !headingActionVisible),
                 unreadNotifications,
-                onOpenNotifications: () => setOverlay({ kind: "notifications" }),
-                onOpenFinance: trainerBalance ? () => setOverlay({ kind: "finance" }) : undefined,
+                onOpenNotifications: () => openTopOverlay("notifications"),
+                onOpenFinance: trainerBalance ? () => openTopOverlay("finance") : undefined,
                 search: searchConfig,
               }
         }
       >
-        {overlayContent ?? (
+        {blogContent ?? overlayContent ?? (
           <CoachTabContent
             key={tabResetKey}
             initialCoachUserId={marketplaceCoachId}
@@ -645,8 +655,13 @@ function MainContent({
   return (
     <AppShell
       navItems={PLAYER_NAV_ITEMS}
-      activeTab={playerTab}
+      activeTab={blogPath ? "blog" : playerTab}
       onChangeTab={(tab) => {
+        if (tab === "blog") {
+          openBlog();
+          return;
+        }
+        leaveBlog();
         setOverlay(null);
         setMarketplaceCoachId(null);
         setMarketplaceStart(null);
@@ -654,15 +669,16 @@ function MainContent({
         setPlayerTab(tab);
       }}
       hasOverlay={hasOverlay}
-      sideTeam={sideTeam}
-      onOpenTeam={onOpenTeam}
+      hidePageHeading={!!blogPath}
       sideUser={sideUser}
       onOpenAdmin={openAdmin}
       onOpenProfile={() => {
+        leaveBlog();
         setOverlay(null);
         setPlayerTab("profile");
       }}
       onOpenSettings={() => {
+        leaveBlog();
         setOverlay(null);
         setPlayerTab("profile");
         setProfileSettingsRequested(true);
@@ -673,12 +689,12 @@ function MainContent({
           : {
               ...playerTopBar(playerTab, onCreateTraining),
               unreadNotifications,
-              onOpenNotifications: () => setOverlay({ kind: "notifications" }),
+              onOpenNotifications: () => openTopOverlay("notifications"),
               search: searchConfig,
             }
       }
     >
-      {overlayContent ?? (
+      {blogContent ?? overlayContent ?? (
         <Fragment key={tabResetKey}>
           {playerTab === "dashboard" && myUserId && (
             <DashboardScreen
@@ -689,9 +705,6 @@ function MainContent({
               onCreateTraining={() => setOverlay({ kind: "training-create" })}
               onOpenMyStats={() => setOverlay({ kind: "my-stats" })}
             />
-          )}
-          {playerTab === "teams" && (
-            <MyTeamsScreen token={token} onOpenTeam={(teamId) => setOverlay({ kind: "team", teamId })} />
           )}
           {playerTab === "calendar" && (
             <CalendarScreen
@@ -726,7 +739,7 @@ function MainContent({
   );
 }
 
-export function Workspace({ token }: { token: string }) {
+export function Workspace({ token, blogPath = null }: { token: string; blogPath?: string | null }) {
   const [inviteToken, setInviteToken] = useState<string | null>(readInviteToken);
   const [deepLink] = useState<DeepLink | null>(readNotificationDeepLink);
   const [marketplaceIntent] = useState<MarketplaceIntent | null>(readMarketplaceIntent);
@@ -768,7 +781,7 @@ export function Workspace({ token }: { token: string }) {
       {inviteToken ? (
         <InviteAcceptScreenGate token={token} inviteToken={inviteToken} onDone={clearInvite} />
       ) : (
-        <MainContent token={token} deepLink={deepLink} initialTeamId={teamToOpen} marketplaceIntent={marketplaceIntent} />
+        <MainContent blogPath={blogPath} token={token} deepLink={deepLink} initialTeamId={teamToOpen} marketplaceIntent={marketplaceIntent} />
       )}
     </ProfileProvider>
   );

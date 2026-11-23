@@ -8,6 +8,12 @@ describe("routeForNotification", () => {
     expect(routeForNotification("match", "m1")).toEqual({ pathname: "/match/[id]", params: { id: "m1" } });
   });
 
+  it("opens blog and matching destinations from the shared notification router", () => {
+    expect(routeForNotification("post", "p1", "post_comment")).toEqual({ pathname: "/blog/[id]", params: { id: "p1" } });
+    expect(routeForNotification("match_request", "r1", "match_offer_reply")).toEqual({ pathname: "/match-requests", params: { id: "r1" } });
+    expect(routeForNotification("match_offer", "o1", "match_offer")).toEqual({ pathname: "/match-offers", params: { id: "o1" } });
+  });
+
   it("sends money and booking news to their lists, and leaves the rest as text", () => {
     expect(routeForNotification("booking", "b")).toEqual({ pathname: "/bookings" });
     expect(routeForNotification("payment", "p")).toEqual({ pathname: "/bookings" });

@@ -49,7 +49,7 @@ function TeamCard({ team }: { team: Team }) {
             {team.status === "without_coach" ? <Badge text="Без тренера" warning /> : null}
           </View>
           <Text variant="caption" muted>
-            {[team.sport, team.ageCategory, `${team.membersCount} чел.`].filter(Boolean).join(" · ")}
+            {[team.sport, team.ageCategory, `Игроков: ${team.membersCount}`].filter(Boolean).join(" · ")}
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />

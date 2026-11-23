@@ -1,7 +1,7 @@
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { getTeam, leaveTeam, listApplications, uploadTeamLogo } from "@/api/teams";
+import { getTeam, leaveTeam, listApplications, listMembers, uploadTeamLogo } from "@/api/teams";
 import { toFormError } from "@/lib/formError";
 import { pickSquareImage } from "@/lib/pickImage";
 import { useLoad } from "@/lib/useLoad";
@@ -42,8 +42,12 @@ export default function TeamScreen() {
   const team = useLoad(async () => {
     const t = await getTeam(id);
     const staff = t.myRole === "head_coach" || t.myRole === "assistant_coach";
-    const requests = staff ? (await listApplications(t.id).catch(() => [])).filter((a) => a.status === "pending").length : 0;
-    return { t, staff, requests };
+    const [applications, members] = await Promise.all([
+      staff ? listApplications(t.id).catch(() => []) : [],
+      listMembers(t.id).catch(() => null),
+    ]);
+    const requests = applications.filter((application) => application.status === "pending").length;
+    return { t, staff, requests, memberCount: members?.length ?? null };
   }, [id]);
   const chats = useChatUnread();
   const [leaving, setLeaving] = useState(false);
@@ -51,7 +55,7 @@ export default function TeamScreen() {
 
   if (team.loading && !team.data) return <LoadingView />;
   if (team.error || !team.data) return <ErrorView message={team.error ?? "Команда не найдена"} onRetry={team.reload} />;
-  const { t, staff, requests } = team.data;
+  const { t, staff, requests, memberCount } = team.data;
   const head = t.myRole === "head_coach";
   const open = (section: TeamSection) => router.push({ pathname: "/team/[id]/[section]", params: { id: t.id, section } });
 
@@ -70,7 +74,7 @@ export default function TeamScreen() {
     setLeaving(false);
     try {
       await leaveTeam(t.id);
-      router.replace("/teams");
+      router.replace("/home");
     } catch (e) {
       toast.error(toFormError(e).message);
     }
@@ -91,7 +95,7 @@ export default function TeamScreen() {
                 </Text>
               ) : null}
               <Text variant="caption" muted>
-                {count(t.membersCount, "участник", "участника", "участников")}
+                {count(t.membersCount, "игрок", "игрока", "игроков")}
               </Text>
             </View>
           </View>
@@ -101,15 +105,15 @@ export default function TeamScreen() {
             {t.ageCategory ? <Tag text={t.ageCategory} /> : null}
           </View>
           {t.description ? <Text>{t.description}</Text> : null}
-          {head ? (
+          {staff ? (
             <View style={styles.headRow}>
-              <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/team/new", params: { id: t.id } })} style={{ flex: 1 }} />
+              {head ? <Button title="Изменить" variant="secondary" onPress={() => router.push({ pathname: "/team/new", params: { id: t.id } })} style={{ flex: 1 }} /> : null}
               <Button title="Логотип" variant="secondary" onPress={changeLogo} style={{ flex: 1 }} />
             </View>
           ) : null}
         </Card>
 
-        <TeamChatRow teamId={t.id} members={t.membersCount} unread={chats.team[t.id] ?? 0} />
+        <TeamChatRow teamId={t.id} members={memberCount} unread={chats.team[t.id] ?? 0} />
 
         <View style={styles.tiles}>
           <TeamTile icon="people-outline" title="Состав" subtitle="Игроки и тренеры, роли" onPress={() => open("members")} />
@@ -118,7 +122,7 @@ export default function TeamScreen() {
           <TeamTile icon="clipboard-outline" title="Задания" subtitle={staff ? "Задания и отчёты" : "Что задал тренер"} onPress={() => open("tasks")} />
           <TeamTile icon="book-outline" title="Упражнения и планы" subtitle={staff ? "Открыть команде материалы" : "Материалы тренера"} onPress={() => open("library")} />
           <TeamTile icon="stats-chart-outline" title="Статистика" subtitle="Посещаемость, задания, матчи" onPress={() => open("stats")} />
-          {staff ? <TeamTile icon="person-add-outline" title="Приглашения" subtitle="Ссылка и заявки" badge={requests} onPress={() => open("invites")} /> : null}
+          {staff ? <TeamTile icon="person-add-outline" title="Приглашения и заявки" subtitle="Ссылка и заявки" badge={requests} onPress={() => open("invites")} /> : null}
         </View>
 
         {head ? <Button title="Передать роль главного тренера" variant="secondary" onPress={() => setTransferring(true)} /> : null}

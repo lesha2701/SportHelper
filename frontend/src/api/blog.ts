@@ -287,6 +287,10 @@ export async function updatePost(id: string, input: PostInput): Promise<Post> {
   return mapPost(await apiRequest<PostDto>(`/api/blog/posts/${id}`, { method: "PUT", body: body(input), silent: true }));
 }
 
+export async function submitDraft(id: string): Promise<Post> {
+  return mapPost(await apiRequest<PostDto>(`/api/blog/posts/${id}/submit`, { method: "POST", silent: true }));
+}
+
 export async function deletePost(id: string): Promise<void> {
   await apiRequest<void>(`/api/blog/posts/${id}`, { method: "DELETE", successMessage: "Статья удалена" });
 }

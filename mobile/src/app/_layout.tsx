@@ -11,6 +11,7 @@ import { ProfileProvider } from "@/profile/ProfileProvider";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { fonts } from "@/theme/tokens";
 import { useActivityPing } from "@/lib/useActivityPing";
+import { ClientVersionGate } from "@/ui/ClientVersionGate";
 import { LoadingView } from "@/ui/StateViews";
 import { ToastProvider } from "@/ui/Toast";
 
@@ -75,6 +76,9 @@ function Routes() {
           <Stack.Screen name="library/template/new" />
           <Stack.Screen name="library/template/[id]" />
           <Stack.Screen name="my-listings" />
+          <Stack.Screen name="match-requests" />
+          <Stack.Screen name="match-offers" />
+          <Stack.Screen name="support" />
           <Stack.Screen name="library/exercise/new" />
           <Stack.Screen name="library/exercise/[id]" />
           <Stack.Screen name="library/plan/new" />
@@ -105,11 +109,13 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider>
         <ToastProvider>
-          <AuthProvider>
-            <ProfileProvider>
-              <UnreadProvider>{fontsLoaded || fontError ? <Routes /> : <LoadingView />}</UnreadProvider>
-            </ProfileProvider>
-          </AuthProvider>
+          <ClientVersionGate>
+            <AuthProvider>
+              <ProfileProvider>
+                <UnreadProvider>{fontsLoaded || fontError ? <Routes /> : <LoadingView />}</UnreadProvider>
+              </ProfileProvider>
+            </AuthProvider>
+          </ClientVersionGate>
         </ToastProvider>
       </ThemeProvider>
     </SafeAreaProvider>

@@ -1,6 +1,8 @@
 import { Stack, router } from "expo-router";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
+import { getBlogSettings, saveBlogSettings } from "@/api/blog";
+import { listBlockedUsers, unblockUser } from "@/api/blocks";
 import { logoutAll } from "@/api/auth";
 import { getNotificationPreferences, setNotificationPreference } from "@/api/profile";
 import { getAiAnalysisConsent, setAiAnalysisConsent } from "@/api/privacy";
@@ -29,6 +31,9 @@ const THEMES: { value: ThemePreference; title: string }[] = [
 /** «Конфиденциальность» (as on the website): may a personal coach run the AI analysis on my sports data. */
 function PrivacySettings() {
   const consent = useLoad(getAiAnalysisConsent);
+  const blog = useLoad(getBlogSettings);
+  const [blogBusy, setBlogBusy] = useState(false);
+  const toast = useToast();
   const [value, setValue] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const allowed = value ?? consent.data ?? false;
@@ -56,6 +61,57 @@ function PrivacySettings() {
         статистику, историю тренировок, посещаемость, показатели, задания и отчёты. Фото и видео из отчётов тренеру не открываются. По умолчанию выключено; если
         отключить, уже подготовленные анализы будут удалены.
       </Text>
+      {blog.data && !blog.data.isCoach ? (
+        <SwitchRow label="Показывать мой профиль в статьях" value={blog.data.showProfileInPosts} onChange={async (next) => {
+          if (blogBusy) return;
+          setBlogBusy(true);
+          try {
+            await saveBlogSettings(next);
+            blog.reload();
+          } catch (e) {
+            toast.error(toFormError(e).message);
+          } finally {
+            setBlogBusy(false);
+          }
+        }} />
+      ) : null}
+    </Card>
+  );
+}
+
+function BlockedUsers() {
+  const blocked = useLoad(listBlockedUsers);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+
+  async function unblock() {
+    if (!selected || busy) return;
+    setBusy(true);
+    try {
+      await unblockUser(selected);
+      setSelected(null);
+      blocked.reload();
+    } catch (e) {
+      toast.error(toFormError(e).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <Text variant="heading">Заблокированные пользователи</Text>
+      {blocked.error ? <Notice kind="danger">{blocked.error}</Notice> : null}
+      {blocked.loading && !blocked.data ? <Text muted>Загрузка…</Text> : null}
+      {blocked.data?.length === 0 ? <Text muted>Список пуст.</Text> : null}
+      {blocked.data?.map((user) => (
+        <View key={user.user_id} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Text style={{ flex: 1 }}>{user.full_name}</Text>
+          <Button title="Разблокировать" variant="ghost" disabled={busy} onPress={() => setSelected(user.user_id)} />
+        </View>
+      ))}
+      <ConfirmModal visible={selected !== null} title="Разблокировать пользователя?" confirmLabel="Разблокировать" onCancel={() => { if (!busy) setSelected(null); }} onConfirm={() => void unblock()} />
     </Card>
   );
 }
@@ -118,6 +174,7 @@ export default function SettingsScreen() {
         </Card>
         <NotificationSettings />
         <PrivacySettings />
+        <BlockedUsers />
         <Button title="Аккаунт и безопасность" variant="secondary" onPress={() => router.push("/account")} />
         <Button title="Выйти" variant="secondary" onPress={() => setConfirm("out")} />
         <Button title="Выйти на всех устройствах" variant="ghost" onPress={() => setConfirm("all")} />

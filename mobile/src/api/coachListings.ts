@@ -17,6 +17,8 @@ import {
   type CoachListingInput,
   type CoachListingProfile,
   type CoachListingProfileDto,
+  type OneOffDateDto,
+  type OneOffDateInput,
   type OpenSlot,
   type OpenSlotDto,
 } from "@/shared/types/coachListing";
@@ -54,6 +56,18 @@ export async function replaceListingAvailability(
     body: windows,
   });
   return dtos.map(mapAvailabilityWindowDto);
+}
+
+export function listListingDates(listingId: string): Promise<OneOffDateDto[]> {
+  return apiRequest(`/api/coach-listings/${listingId}/dates`);
+}
+
+export function addListingDate(listingId: string, body: OneOffDateInput): Promise<OneOffDateDto> {
+  return apiRequest(`/api/coach-listings/${listingId}/dates`, { method: "POST", body });
+}
+
+export async function removeListingDate(listingId: string, dateId: string): Promise<void> {
+  await apiRequest(`/api/coach-listings/${listingId}/dates/${dateId}`, { method: "DELETE" });
 }
 
 export async function uploadListingPhoto(listingId: string, file: UploadFile): Promise<CoachListing> {

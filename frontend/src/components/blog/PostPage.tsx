@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { countView, deletePost, getPost, POST_STATUS_LABELS, setLike, type Post } from "../../api/blog";
+import { countView, deletePost, getPost, POST_STATUS_LABELS, setLike, submitDraft, type Post } from "../../api/blog";
 import { ApiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { currentPathWithSearch, loginUrl, navigate } from "../../router";
+import { toast } from "../../toast";
 import { Link } from "../Link";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
 import { ConfirmModal } from "../shared/ConfirmModal";
@@ -17,13 +18,15 @@ import { Icon } from "../shared/Icon";
 import styles from "./blog.module.css";
 
 /** One article, readable without signing in. A signed-in reader can like, save, comment, hide and report; the author edits and deletes. */
-export function PostPage({ postId }: { postId: string }) {
+export function PostPage({ postId, feedUrl = "/blog", onFeedChange }: { postId: string; feedUrl?: string; onFeedChange?: () => void }) {
   const { state } = useAuth();
   const signedIn = state.status === "ready";
   const [post, setPost] = useState<Post | null>(null);
   const [error, setError] = useState<{ notFound: boolean; message: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,8 +57,8 @@ export function PostPage({ postId }: { postId: string }) {
           onRetry={error.notFound ? undefined : () => navigate(currentPathWithSearch(), { replace: true })}
         />
         <p>
-          <Link to="/blog" className={styles.moreLink}>
-            ← Все статьи
+          <Link to={feedUrl} className={styles.moreLink}>
+            ← К статьям
           </Link>
         </p>
       </div>
@@ -76,10 +79,28 @@ export function PostPage({ postId }: { postId: string }) {
     }
   };
 
+  const isOwnDraft = signedIn && post.isMine && post.status === "draft";
+
+  const submit = async () => {
+    if (!isOwnDraft || submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const submitted = await submitDraft(post.id);
+      setPost(submitted);
+      if (submitted.status === "published") toast.success("Статья опубликована");
+    } catch (err) {
+      setSubmitError(err instanceof ApiError ? err.message : "Не удалось отправить статью. Попробуйте ещё раз.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const remove = async () => {
     setBusy(true);
     try {
       await deletePost(post.id);
+      onFeedChange?.();
       navigate("/blog?tab=mine", { replace: true });
     } catch {
       setBusy(false);
@@ -89,26 +110,44 @@ export function PostPage({ postId }: { postId: string }) {
 
   return (
     <div className={`${styles.page} ${styles.article}`}>
-      <Link to="/blog" className={styles.moreLink}>
-        ← Все статьи
+      <Link to={feedUrl} className={styles.moreLink}>
+        ← К статьям
       </Link>
 
-      {post.status !== "published" && (
+      {isOwnDraft ? (
+        <section className={styles.draftPanel} aria-label="Черновик статьи">
+          <div className={styles.draftSummary}>
+            <strong>Черновик</strong>
+            <p>Статью видите только вы.</p>
+          </div>
+          <div className={styles.draftActions}>
+            {submitting ? (
+              <button type="button" className={styles.secondary} disabled>Редактировать</button>
+            ) : (
+              <Link to={`/blog/${post.id}/edit`} className={styles.secondary}>Редактировать</Link>
+            )}
+            <button type="button" className={styles.primary} disabled={submitting} onClick={submit}>
+              {submitting ? "Отправляем…" : "Отправить на проверку"}
+            </button>
+          </div>
+          {submitError && <p className={styles.draftError} role="alert">{submitError}</p>}
+        </section>
+      ) : post.status !== "published" ? (
         <div className={styles.notice} role="status">
           <strong>{POST_STATUS_LABELS[post.status]}.</strong>{" "}
-          {post.status === "pending" && "Статью проверяет администратор: пока её видите только вы."}
-          {post.status === "draft" && "Это черновик: его видите только вы."}
+          {post.status === "pending" && "Статью проверяет администратор. Пока её видите только вы."}
+          {post.status === "draft" && "Статью видит только автор."}
           {post.status === "rejected" && `Статью не опубликовали: ${post.rejectReason ?? "причина не указана"}. Исправьте её и отправьте снова.`}
           {post.status === "removed" && `Статью сняли: ${post.rejectReason ?? "причина не указана"}.`}
         </div>
-      )}
+      ) : null}
 
       <div className={styles.articleHead}>
         <div>
           <span className={styles.sport}>{post.sport}</span>
           <h1>{post.title}</h1>
         </div>
-        <PostMenu post={post} signedIn={signedIn} onChanged={patch} onDelete={() => setConfirmDelete(true)} />
+        {!submitting && <PostMenu post={post} signedIn={signedIn} onChanged={patch} onFeedChange={onFeedChange} feedUrl={feedUrl} onDelete={() => setConfirmDelete(true)} />}
       </div>
 
       <div className={styles.articleMeta}>
@@ -126,10 +165,12 @@ export function PostPage({ postId }: { postId: string }) {
             <span className={styles.authorName}>{post.author.name}</span>
           </span>
         )}
-        <span className={styles.meta}>
-          <span>{formatPostDate(post.publishedAt)}</span>
-          <Stat icon="eye" value={post.viewsCount} label="Просмотры" />
-        </span>
+        {post.status === "published" && (
+          <span className={styles.meta}>
+            <span>{formatPostDate(post.publishedAt)}</span>
+            <Stat icon="eye" value={post.viewsCount} label="Просмотры" />
+          </span>
+        )}
       </div>
 
       <Carousel imageIds={post.imageIds} title={post.title} />
@@ -145,19 +186,23 @@ export function PostPage({ postId }: { postId: string }) {
               {post.listing.pricePerSession !== null ? ` · ${post.listing.pricePerSession} ${post.listing.currency}` : ""}
             </span>
           </div>
-          <Link to={`/coaches?listing=${post.listing.id}`} className={styles.primary}>
-            Записаться
-          </Link>
+          {post.status === "published" && (
+            <Link to={`/coaches?listing=${post.listing.id}`} className={styles.primary}>
+              Записаться
+            </Link>
+          )}
         </div>
       )}
 
-      <div className={styles.actions}>
-        <button type="button" className={`${styles.like} ${post.likedByMe ? styles.likeOn : ""}`} aria-pressed={post.likedByMe} aria-label={`Нравится: ${post.likesCount}`} onClick={toggleLike}>
-          <Icon name="heart" size={17} fill={post.likedByMe ? "currentColor" : "none"} />
-          {post.likesCount}
-        </button>
-        <Stat icon="message" value={post.commentsCount} label="Комментарии" />
-      </div>
+      {post.status === "published" && (
+        <div className={styles.actions}>
+          <button type="button" className={`${styles.like} ${post.likedByMe ? styles.likeOn : ""}`} aria-pressed={post.likedByMe} aria-label={`Нравится: ${post.likesCount}`} onClick={toggleLike}>
+            <Icon name="heart" size={17} fill={post.likedByMe ? "currentColor" : "none"} />
+            {post.likesCount}
+          </button>
+          <Stat icon="message" value={post.commentsCount} label="Комментарии" />
+        </div>
+      )}
 
       {post.status === "published" && (
         <Comments postId={post.id} isPostAuthor={post.isMine} signedIn={signedIn} onCount={setCount} nextUrl={currentPathWithSearch()} />

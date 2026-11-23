@@ -24,6 +24,16 @@ export interface AvailabilityWindowInput {
   end_time: string;
 }
 
+export interface OneOffDateInput {
+  slot_date: string;
+  start_time: string;
+  end_time: string;
+}
+
+export interface OneOffDateDto extends OneOffDateInput {
+  id: string;
+}
+
 export interface CoachListingDto {
   id: string;
   coach_user_id: string;
@@ -92,6 +102,7 @@ export interface CoachListingCardDto {
   description: string | null;
   coach_user_id: string;
   coach_full_name: string;
+  coach_is_pro?: boolean;
   coach_photo_url: string | null;
   sport: string;
   specialization: string | null;
@@ -113,6 +124,7 @@ export interface CoachListingCard {
   description: string | null;
   coachUserId: string;
   coachFullName: string;
+  coachIsPro: boolean;
   coachPhotoUrl: string | null;
   sport: string;
   specialization: string | null;
@@ -135,6 +147,7 @@ export function mapCoachListingCardDto(dto: CoachListingCardDto): CoachListingCa
     description: dto.description,
     coachUserId: dto.coach_user_id,
     coachFullName: dto.coach_full_name,
+    coachIsPro: dto.coach_is_pro === true,
     coachPhotoUrl: dto.coach_photo_url,
     sport: dto.sport,
     specialization: dto.specialization,
@@ -176,6 +189,7 @@ export interface CoachListingProfileDto extends CoachListingCardDto {
   session_duration_minutes: number | null;
   video_file_id: string | null;
   availability: AvailabilityWindowDto[];
+  one_off_dates?: OneOffDateDto[];
   recent_reviews: CoachReviewDto[];
 }
 
@@ -184,6 +198,7 @@ export interface CoachListingProfile extends CoachListingCard {
   sessionDurationMinutes: number | null;
   videoFileId: string | null;
   availability: AvailabilityWindow[];
+  oneOffDates: OneOffDateDto[];
   recentReviews: CoachReview[];
 }
 
@@ -194,6 +209,7 @@ export function mapCoachListingProfileDto(dto: CoachListingProfileDto): CoachLis
     sessionDurationMinutes: dto.session_duration_minutes,
     videoFileId: dto.video_file_id,
     availability: dto.availability.map(mapAvailabilityWindowDto),
+    oneOffDates: dto.one_off_dates ?? [],
     recentReviews: dto.recent_reviews.map(mapCoachReviewDto),
   };
 }

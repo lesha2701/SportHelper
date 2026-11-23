@@ -18,7 +18,7 @@ const icon = (name: IconName) =>
     return <Ionicons name={name} color={color as string} size={size} />;
   };
 
-/** The main sections, in the website's order: home, teams, calendar, coaches, profile. Tasks live inside teams. */
+/** The primary sections for both player and coach profiles. */
 export default function TabsLayout() {
   const { colors } = useTheme();
   const { user, refreshUser } = useAuth();
@@ -68,7 +68,8 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="home" options={{ title: "Главная", headerTitle: "SportArena", tabBarIcon: icon("home-outline") }} />
-      <Tabs.Screen name="teams" options={{ title: "Команды", tabBarIcon: icon("people-outline") }} />
+      <Tabs.Screen name="blog" options={{ title: "Статьи", tabBarIcon: icon("newspaper-outline"), headerShown: false }} />
+      <Tabs.Screen name="teams" options={{ href: null, title: "Команды" }} />
       <Tabs.Screen name="calendar" options={{ title: "Календарь", tabBarIcon: icon("calendar-outline") }} />
       <Tabs.Screen name="coaches" options={{ title: "Тренеры", tabBarIcon: icon("barbell-outline"), href: isCoach ? null : undefined }} />
       <Tabs.Screen name="library" options={{ title: "Библиотека", tabBarIcon: icon("library-outline"), href: isCoach ? undefined : null }} />

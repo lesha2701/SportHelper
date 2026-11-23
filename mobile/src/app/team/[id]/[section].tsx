@@ -18,7 +18,7 @@ const TITLES: Record<string, string> = {
   tasks: "Задания",
   library: "Упражнения и планы",
   stats: "Статистика",
-  invites: "Приглашения",
+  invites: "Приглашения и заявки",
 };
 
 /** One section of a team (opened from its tile). */

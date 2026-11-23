@@ -1,3 +1,4 @@
+import { ProBadge } from "@/ui/ProBadge";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -186,7 +187,7 @@ export default function ProfileScreen() {
             <Ionicons name="camera" size={15} color="#fff" />
           </View>
         </Pressable>
-        <Text style={[styles.heroName, { color: colors.text }]}>{name}</Text>
+        <Text style={[styles.heroName, { color: colors.text }]}>{name}{mode === "coach" && coach?.isPro ? <> <ProBadge /></> : null}</Text>
         <View style={[styles.rolePill, { backgroundColor: colors.primaryGlow }]}>
           <Text variant="label" style={{ color: colors.primary }}>
             {mode === "coach" ? "Тренер" : "Игрок"}
@@ -242,6 +243,7 @@ export default function ProfileScreen() {
       <AchievementsGallery userId={user.id} editable />
 
       <View style={{ gap: 8 }}>
+        {mode === "coach" ? <ListRow icon="people-outline" title="Подбор клиентов" onPress={() => router.push("/match-offers")} /> : null}
         {mode === "coach" ? <ListRow icon="pricetag-outline" title="Мои объявления" onPress={() => router.push("/my-listings")} /> : null}
         {mode === "coach" ? (
           <ListRow icon="mail-unread-outline" title="Входящие заявки" badge={extra.data?.pending} onPress={() => router.push("/bookings")} />
@@ -252,6 +254,7 @@ export default function ProfileScreen() {
         <ListRow icon="notifications-outline" title="Уведомления" badge={unread.count} onPress={() => router.push("/notifications")} />
         <ListRow icon="shield-checkmark-outline" title="Аккаунт и безопасность" subtitle="Пароль, почта, устройства" onPress={() => router.push("/account")} />
         <ListRow icon="settings-outline" title="Настройки" subtitle="Тема, уведомления" onPress={() => router.push("/settings")} />
+        <ListRow icon="chatbubble-ellipses-outline" title="Поддержка" onPress={() => router.push("/support")} />
         <ListRow icon="help-circle-outline" title="Помощь" subtitle="Как всё устроено" onPress={() => router.push("/help")} />
         <ListRow icon="document-text-outline" title="Документы" onPress={() => setDocs(true)} />
       </View>

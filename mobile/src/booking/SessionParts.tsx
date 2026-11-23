@@ -1,9 +1,13 @@
+import { ProBadge } from "@/ui/ProBadge";
+import { MatchBookingNote } from "./MatchBookingNote";
+import { CancelBooking, CancellationNote } from "./CancelBooking";
+import { SessionConfirmation } from "./SessionConfirmation";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { analyzePersonalTrainingPlayer, getPersonalTrainingPlayerAnalysis, type PlayerPreSessionAnalysis } from "@/api/ai";
-import { completeBookingSession, getCoachBookingByTraining, listMyBookings, reviewBooking, reviewPlayer, setBookingPlan } from "@/api/bookings";
+import { completeBookingSession, getCoachBookingByTraining, reviewBooking, reviewPlayer, setBookingPlan } from "@/api/bookings";
 import { ApiError } from "@/api/client";
 import { listMyPlans } from "@/api/plans";
 import { toFormError } from "@/lib/formError";
@@ -93,7 +97,7 @@ export function CoachSessionActions({ booking, onChange }: { booking: Booking; o
   if (booking.status !== "confirmed" || booking.trainingStatus === "cancelled") return null;
 
   // The server says whether the session has begun: startsAt is wall-clock time, so the device's clock can't tell (REF-19).
-  const canMarkConducted = booking.trainingStatus === "scheduled" && booking.hasStarted;
+  const canMarkConducted = booking.trainingStatus === "scheduled" && booking.hasStarted && (!booking.fromMatch || booking.paymentStatus === "paid");
   const canReview = booking.isCompleted && !booking.hasPlayerReview && !canMarkConducted;
 
   async function markConducted() {
@@ -186,47 +190,59 @@ export function CoachSessionCard({ trainingId, onChanged }: { trainingId: string
   const [override, setOverride] = useState<Booking | null>(null);
   const booking = override ?? loaded.data ?? null;
   if (!booking) return null;
+  function updateBooking(updated: Booking) {
+    setOverride(updated);
+    onChanged?.();
+  }
+
   return (
-    <Card>
-      <Text variant="heading">Занятие с {booking.athleteFullName}</Text>
-      <CoachSessionActions
-        booking={booking}
-        onChange={(b) => {
-          setOverride(b);
+    <>
+      <Card>
+        <Text variant="heading">Занятие с {booking.athleteFullName}</Text>
+        <MatchBookingNote booking={booking} side="coach" />
+        <CoachSessionActions
+          booking={booking}
+          onChange={updateBooking}
+        />
+        <SessionConfirmation booking={booking} side="coach" onChange={() => {
+          setOverride(null);
+          loaded.reload();
           onChanged?.();
-        }}
-      />
-      <PlanPicker
-        booking={booking}
-        onChange={(b) => {
-          setOverride(b);
-          onChanged?.();
-        }}
-      />
-      <Button title="Профиль игрока" variant="secondary" onPress={() => router.push({ pathname: "/player/[id]", params: { id: booking.athleteUserId } })} />
-    </Card>
+        }} />
+        <CancelBooking booking={booking} side="coach" onCancelled={updateBooking} />
+        <CancellationNote cancellation={booking.cancellation} side="coach" />
+        <PlanPicker
+          booking={booking}
+          onChange={updateBooking}
+        />
+        {!booking.athleteHidden ? <Button title="Профиль игрока" variant="secondary" onPress={() => router.push({ pathname: "/player/[id]", params: { id: booking.athleteUserId } })} /> : null}
+      </Card>
+      {!booking.athleteHidden ? <PlayerAiAnalysisCard trainingId={trainingId} /> : null}
+    </>
   );
 }
 
 /** On the athlete's own booked training: once it is conducted, the review of the coach is right here. */
-export function AthleteSessionCard({ trainingId }: { trainingId: string }) {
-  const loaded = useLoad(async () => (await listMyBookings()).find((b) => b.trainingId === trainingId) ?? null, [trainingId]);
+export function AthleteSessionCard({ booking, onChanged }: { booking: Booking; onChanged: () => void }) {
   const [reviewed, setReviewed] = useState(false);
   const [open, setOpen] = useState(false);
-  const booking = loaded.data;
-  if (!booking || booking.status !== "confirmed") return null;
+
   const hasReview = booking.hasReview || reviewed;
   return (
     <Card>
-      <Text variant="heading">Занятие с тренером {booking.coachFullName}</Text>
-      {booking.isCompleted && !hasReview ? (
+      <Text variant="heading">Занятие с тренером {booking.coachFullName}{booking.coachIsPro ? <> <ProBadge /></> : null}</Text>
+      <MatchBookingNote booking={booking} side="athlete" />
+      <CancellationNote cancellation={booking.cancellation} side="athlete" />
+      <SessionConfirmation booking={booking} side="athlete" onChange={onChanged} />
+      <CancelBooking booking={booking} side="athlete" onCancelled={onChanged} />
+      {booking.status === "confirmed" && booking.isCompleted && !hasReview ? (
         <>
           <Text muted>Занятие прошло. Оцените тренера — это поможет другим игрокам.</Text>
           <Button title="Оставить отзыв" onPress={() => setOpen(true)} />
         </>
       ) : null}
       {hasReview ? <Text muted>✓ Вы оставили отзыв о тренере</Text> : null}
-      {!booking.isCompleted ? <Text muted>Отзыв можно оставить после занятия — когда тренер отметит его проведённым или когда пройдёт время занятия.</Text> : null}
+      {booking.status === "confirmed" && !booking.isCompleted ? <Text muted>Отзыв можно оставить после занятия — когда тренер отметит его проведённым или когда пройдёт время занятия.</Text> : null}
       <ReviewSheet
         visible={open}
         title={`Отзыв о тренере ${booking.coachFullName}`}
@@ -313,7 +329,7 @@ function AnalysisResult({ a }: { a: PlayerPreSessionAnalysis }) {
 }
 
 /** The coach's «prepare for the session»: AI analysis of the booked player, if the player allowed it. */
-export function PlayerAiAnalysisCard({ trainingId }: { trainingId: string }) {
+function PlayerAiAnalysisCard({ trainingId }: { trainingId: string }) {
   const { colors } = useTheme();
   const status = useLoad(() => getPersonalTrainingPlayerAnalysis(trainingId), [trainingId]);
   const [result, setResult] = useState<PlayerPreSessionAnalysis | null>(null);

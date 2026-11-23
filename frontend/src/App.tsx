@@ -72,7 +72,7 @@ function Routes() {
   const open = openPage(path);
   if (open) return <>{open}</>;
   // The blog is read by guests and signed-in people alike, on addresses that can be shared.
-  if (path === "/blog" || path.startsWith("/blog/")) return <BlogApp path={path} />;
+  const blogPath = path === "/blog" || path.startsWith("/blog/") ? path : null;
 
   const params = new URLSearchParams(search);
 
@@ -97,16 +97,16 @@ function Routes() {
         </Suspense>
       );
     }
-    // The signed-in app lives at "/" only; any other address goes home.
-    if (path !== "/") return <Redirect to="/" />;
+    if (path !== "/" && !blogPath) return <Redirect to="/" />;
     return (
       <OnboardingGate token={state.token} user={state.user} onUserUpdated={updateUser}>
-        <Workspace token={state.token} />
+        <Workspace key={path === "/" && APP_INTENT_PARAMS.some((key) => params.has(key)) ? search : "workspace"} token={state.token} blogPath={blogPath} />
       </OnboardingGate>
     );
   }
 
   // Guest.
+  if (blogPath) return <BlogApp path={blogPath} />;
   if (path === "/payments/return") return <Redirect to={loginUrl(`${path}${search}`)} />; // sign in, then come straight back to the result
   switch (path) {
     case "/login":

@@ -40,7 +40,7 @@ export interface NotificationPreference {
 
 export interface NotificationItemDto {
   id: string;
-  category: NotificationCategory;
+  category: string;
   title: string;
   body: string;
   entity_type: string;
@@ -51,7 +51,7 @@ export interface NotificationItemDto {
 
 export interface NotificationItem {
   id: string;
-  category: NotificationCategory;
+  category: string;
   title: string;
   body: string;
   entityType: string;

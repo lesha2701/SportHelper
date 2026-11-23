@@ -1,3 +1,4 @@
+import { ProBadge } from "@/ui/ProBadge";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { getCoachPublicProfile, listCoachPublicListings, listCoachPublicReviews } from "@/api/coaches";
@@ -25,7 +26,7 @@ export default function CoachScreen() {
     <>
       <Stack.Screen options={{ headerShown: true, title: "Тренер" }} />
       <Screen header>
-        <Text variant="title">{p.fullName}</Text>
+        <Text variant="title">{p.fullName}{p.isPro ? <> <ProBadge /></> : null}</Text>
         <Text muted>{[p.sport, p.specialization, p.experienceYears != null ? `опыт ${p.experienceYears} л.` : null].filter(Boolean).join(" · ")}</Text>
         {p.averageRating !== null ? <Text>★ {p.averageRating.toFixed(1)} · отзывов: {p.reviewCount}</Text> : null}
         {p.description ? <Text>{p.description}</Text> : null}

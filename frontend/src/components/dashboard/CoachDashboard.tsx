@@ -16,8 +16,6 @@ import type { PlayerActivity, TeamStats } from "../../types/stats";
 import { formatRate } from "../../types/stats";
 import type { Match } from "../../types/match";
 import styles from "./dashboard.module.css";
-import profileStyles from "../profile/profile.module.css";
-import { navigateApp } from "../../appNav";
 import { WeekOverview } from "./WeekOverview";
 import { count } from "../../lib/plural";
 
@@ -203,7 +201,7 @@ export function CoachDashboard({
           )}
         </div>
 
-        <div className={`${styles.card} ${styles.span12}`}>
+        <div className={`${styles.card} ${styles.span8}`}>
           <WeekOverview weekDays={weekDays} events={events} today={today} onOpenEvent={onOpenEvent} />
         </div>
 
@@ -409,18 +407,8 @@ function CoachWithoutTeam({ token, events, onOpenEvent }: { token: string; event
           <StatTile value={pending ?? "—"} label="Новых заявок" />
         </div>
 
-        <div className={`${styles.card} ${styles.span8}`}>
+        <div className={`${styles.card} ${styles.span12}`}>
           <WeekOverview weekDays={weekDays} events={events} today={today} onOpenEvent={onOpenEvent} />
-        </div>
-
-        <div className={`${styles.card} ${styles.span4}`}>
-          <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Команда</h3>
-          </div>
-          <p className={styles.emptyHint}>Создайте команду, чтобы видеть здесь посещаемость, нагрузку и матчи.</p>
-          <button type="button" className={profileStyles.buttonPrimary} onClick={() => navigateApp({ kind: "tab", tab: "teams" })}>
-            Создать команду
-          </button>
         </div>
       </div>
     </div>

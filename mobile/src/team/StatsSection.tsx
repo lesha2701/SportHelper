@@ -21,7 +21,7 @@ export function StatsSection({ team, staff }: { team: Team; staff: boolean }) {
   return (
     <>
       <StatGrid>
-        <StatTile value={s.membersCount} label="участников" />
+        <StatTile value={s.membersCount} label="игроков" />
         <StatTile value={formatRate(s.attendanceRate)} label="посещаемость" />
         <StatTile value={s.trainingsCompleted} label="тренировок проведено" />
         <StatTile value={s.trainingsUpcoming} label="впереди" />

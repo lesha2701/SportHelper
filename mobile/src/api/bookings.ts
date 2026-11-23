@@ -27,6 +27,10 @@ export async function listMyBookings(): Promise<Booking[]> {
   return dtos.map(mapBookingDto);
 }
 
+export async function getAthleteBookingByTraining(trainingId: string): Promise<Booking | null> {
+  return (await listMyBookings()).find((booking) => booking.trainingId === trainingId) ?? null;
+}
+
 export async function reviewBooking(bookingId: string, input: ReviewInput): Promise<void> {
   await apiRequest<ReviewDto>(`/api/bookings/${bookingId}/reviews`, { method: "POST", successMessage: "Отзыв отправлен", body: input });
 }

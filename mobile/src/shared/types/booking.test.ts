@@ -20,6 +20,19 @@ describe("whether a booked session has begun", () => {
   });
 });
 
+describe("booking through matching", () => {
+  it("keeps the profile hidden until payment and preserves the coach's first-session commission", () => {
+    expect(mapBookingDto(dto({ from_match: true, athlete_hidden: true, match_percent: 0, coach_is_pro: true })))
+      .toMatchObject({ fromMatch: true, athleteHidden: true, matchPercent: 0, coachIsPro: true });
+    expect(mapBookingDto(dto({ from_match: true, athlete_hidden: false, payment_status: "paid" })))
+      .toMatchObject({ fromMatch: true, athleteHidden: false, paymentStatus: "paid" });
+  });
+
+  it("reads older booking responses without requiring the new fields", () => {
+    expect(mapBookingDto(dto({}))).toMatchObject({ fromMatch: false, athleteHidden: false, matchPercent: null, coachIsPro: false });
+  });
+});
+
 describe("cancellation of a booking", () => {
   it("shows the cancel button only when the server says so", () => {
     expect(mapBookingDto(dto({ can_cancel: true })).canCancel).toBe(true);

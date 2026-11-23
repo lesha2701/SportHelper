@@ -1,6 +1,8 @@
 import { router, type Href } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
+import { featuredPost } from "@/api/blog";
+import { PostPreview } from "@/blog/BlogContent";
 import { listCoachPendingBookings } from "@/api/bookings";
 import { getCalendar } from "@/api/calendar";
 import { getProgressAnalysis } from "@/api/ai";
@@ -62,22 +64,22 @@ export default function HomeScreen() {
     const events = await getCalendar(monday, addDays(today, 30)).catch(() => [] as CalendarEvent[]);
     const now = new Date();
     const nowTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-    const next =
-      [...events]
-        .filter((e) => pending(e) && (e.date > today || (e.date === today && (e.time ?? "99:99").slice(0, 5) >= nowTime)))
-        .sort((a, b) => (a.date + (a.time ?? "")).localeCompare(b.date + (b.time ?? "")))[0] ?? null;
+    const ahead = events
+      .filter((e) => pending(e) && (e.date > today || (e.date === today && (e.time ?? "99:99").slice(0, 5) >= nowTime)))
+      .sort((a, b) => (a.date + (a.time ?? "")).localeCompare(b.date + (b.time ?? "")));
+    const next = ahead[0] ?? null;
 
     if (mode === "player") {
       const [stats, tasks] = await Promise.all([getPlayerStats(user!.id).catch(() => null), listMyTasks().catch(() => [])]);
       const openTasks = tasks.filter((t) => ["assigned", "viewed", "in_progress", "needs_revision"].includes(t.assignment.status)).length;
-      return { events, next, stats, openTasks, teams: [] as Team[], requests: 0, toReview: 0 };
+      return { events, next, ahead, stats, openTasks, teams: [] as Team[], requests: 0, toReview: 0 };
     }
     const [teams, requests] = await Promise.all([listMyTeams().catch(() => [] as Team[]), listCoachPendingBookings().catch(() => [])]);
     const staffTeams = teams.filter((t) => t.myRole === "head_coach" || t.myRole === "assistant_coach");
     const tasks = (await Promise.all(staffTeams.map((t) => listTeamTasks(t.id).catch(() => [])))).flat();
     const toReview = tasks.reduce((n, t) => n + t.assignments.filter((a) => a.status === "submitted").length, 0);
     // The website's coach panel: load, who needs attention and recent results of the (first) team.
-    return { events, next, stats: null, openTasks: 0, teams: staffTeams, requests: requests.length, toReview };
+    return { events, next, ahead, stats: null, openTasks: 0, teams: staffTeams, requests: requests.length, toReview };
   }, [mode, user?.id]);
 
   // The coach's panel works on one team at a time (the website's team chips); the first one until another is picked.
@@ -85,6 +87,7 @@ export default function HomeScreen() {
   const selectedTeam = coachTeams.find((t) => t.id === pickedTeam) ?? coachTeams[0] ?? null;
   const teamStatsLoad = useLoad(async () => (selectedTeam ? await getTeamStats(selectedTeam.id).catch(() => null) : null), [selectedTeam?.id]);
   const teamStats = teamStatsLoad.data ?? null;
+  const featured = useLoad(async () => user ? featuredPost().catch(() => null) : null, [user?.id]);
 
   if (state.status !== "ready") return null;
   const d = data.data;
@@ -101,8 +104,8 @@ export default function HomeScreen() {
     const teams = d?.teams ?? [];
     if (selectedTeam) go(kind, selectedTeam.id);
     else if (teams.length === 1) go(kind, teams[0]!.id);
-    else if (teams.length === 0) router.push("/teams");
-    else setCreating(kind);
+    else if (teams.length === 0 && kind === "training") router.push("/training/new");
+    else if (teams.length > 0) setCreating(kind);
   }
   function go(kind: CreateKind, teamId: string) {
     setCreating(null);
@@ -127,6 +130,7 @@ export default function HomeScreen() {
       header
       onRefresh={() => {
         data.reload();
+        featured.reload();
         unread.refresh();
       }}
       refreshing={data.loading && !!d}
@@ -156,7 +160,14 @@ export default function HomeScreen() {
           <BigStat value={d.stats.tasksOverdue} label="Просрочено" />
         </View>
       ) : null}
-      {mode === "coach" && d ? (
+      {mode === "coach" && d && !d.teams.length ? (
+        <View style={homeStyles.grid2}>
+          <BigStat value={d.ahead.filter((event) => event.date <= addDays(monday, 6)).length} label="Занятий на этой неделе" />
+          <BigStat value={d.ahead.filter((event) => event.date <= addDays(today, 14)).length} label="Событий в ближайшие 2 недели" />
+          <BigStat value={d.requests} label="Новых заявок" />
+        </View>
+      ) : null}
+      {mode === "coach" && d?.teams.length ? (
         <View style={homeStyles.grid2}>
           <BigStat value={d.teams.length} label="Команд" />
           <BigStat value={weekEvents.filter(pending).length} label="Событий на неделе" />
@@ -165,19 +176,25 @@ export default function HomeScreen() {
         </View>
       ) : null}
 
+      {featured.data ? (
+        <>
+          <PostPreview post={featured.data} />
+          <ListRow icon="newspaper-outline" title="Все статьи" onPress={() => router.navigate("/blog")} />
+        </>
+      ) : null}
       <View style={homeStyles.quickRow}>
         <QuickAction icon="barbell-outline" label="Тренировка" onPress={() => create("training")} />
-        {mode === "coach" ? (
+        {mode === "coach" && d?.teams.length ? (
           <>
             <QuickAction icon="clipboard-outline" label="Задание" onPress={() => create("task")} />
             <QuickAction icon="football-outline" label="Матч" onPress={() => create("match")} />
           </>
-        ) : (
+        ) : mode === "player" ? (
           <>
             <QuickAction icon="clipboard-outline" label="Задания" onPress={() => router.push("/my-tasks")} />
             <QuickAction icon="stats-chart-outline" label="Статистика" onPress={() => router.push("/stats")} />
           </>
-        )}
+        ) : null}
       </View>
 
       {attention.length > 0 ? (

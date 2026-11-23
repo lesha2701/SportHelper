@@ -10,11 +10,15 @@ export function PostMenu({
   post,
   signedIn,
   onChanged,
+  onFeedChange,
+  feedUrl,
   onDelete,
 }: {
   post: Post;
   signedIn: boolean;
   onChanged: (patch: Partial<Post>) => void;
+  onFeedChange?: () => void;
+  feedUrl: string;
   onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -94,7 +98,7 @@ export function PostMenu({
                   type="button"
                   role="menuitem"
                   className={styles.menuItem}
-                  onClick={() => act(() => setPostHidden(post.id, true), () => navigate("/blog"))}
+                  onClick={() => act(() => setPostHidden(post.id, true), () => { onFeedChange?.(); navigate(feedUrl); })}
                 >
                   Скрыть статью
                 </button>
@@ -102,7 +106,7 @@ export function PostMenu({
                   type="button"
                   role="menuitem"
                   className={styles.menuItem}
-                  onClick={() => act(() => setAuthorMuted(post.author.id, true), () => navigate("/blog"))}
+                  onClick={() => act(() => setAuthorMuted(post.author.id, true), () => { onFeedChange?.(); navigate(feedUrl); })}
                 >
                   Скрыть автора
                 </button>

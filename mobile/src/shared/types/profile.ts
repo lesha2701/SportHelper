@@ -44,6 +44,7 @@ export interface PlayerProfile {
 }
 
 export interface CoachProfile {
+  isPro: boolean;
   userId: string;
   fullName: string;
   sport: string;
@@ -72,6 +73,7 @@ export interface PlayerProfileDto {
 }
 
 interface CoachProfileDto {
+  is_pro?: boolean;
   user_id: string;
   full_name: string;
   sport: string;
@@ -105,6 +107,7 @@ function mapCoachDto(dto: CoachProfileDto): CoachProfile {
   return {
     userId: dto.user_id,
     fullName: dto.full_name,
+    isPro: dto.is_pro === true,
     sport: dto.sport,
     experienceYears: dto.experience_years,
     specialization: dto.specialization,

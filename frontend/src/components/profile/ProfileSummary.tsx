@@ -227,9 +227,6 @@ export function ProfileSummary({
   const actionRows: ActionRowDef[] = [];
   actionRows.push({ key: "stats", icon: "award", label: "Моя статистика", onClick: onOpenMyStats });
   if (mode !== "coach") actionRows.push({ key: "bookings", icon: "calendar", label: "Мои брони", onClick: onOpenMyBookings });
-  // The blog lives on its own addresses: the feed (with «Мои» and «Сохранённые») and the editor.
-  actionRows.push({ key: "blog", icon: "list", label: "Статьи", onClick: () => navigate("/blog") });
-  actionRows.push({ key: "blog-write", icon: "edit", label: "Написать статью", onClick: () => navigate("/blog/new") });
   actionRows.push({
     key: "notifications",
     icon: "bell",

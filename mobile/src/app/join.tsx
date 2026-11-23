@@ -60,8 +60,10 @@ export default function JoinScreen() {
         {result ? (
           <>
             <Text variant="title">{result === "joined" ? "Вы в команде" : "Заявка отправлена"}</Text>
-            <Text muted>{result === "joined" ? "Команда появилась в вашем списке." : "Тренер рассмотрит заявку, мы сообщим о решении."}</Text>
-            <Button title="К командам" onPress={() => router.replace("/teams")} />
+            <Text muted>{result === "joined" ? "Можете открыть команду по приглашению." : "Тренер рассмотрит заявку, мы сообщим о решении."}</Text>
+            {result === "joined" && team ? (
+              <Button title="Открыть команду" onPress={() => router.replace({ pathname: "/team/[id]", params: { id: team.id } })} />
+            ) : <Button title="На главную" onPress={() => router.replace("/home")} />}
           </>
         ) : (
           <>
