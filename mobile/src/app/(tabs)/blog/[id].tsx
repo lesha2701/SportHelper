@@ -2,7 +2,7 @@ import * as Clipboard from "expo-clipboard";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { addComment, countView, deleteComment, deletePost, getPost, listComments, POST_STATUS_LABELS, setBookmark, setLike, setPostHidden, submitDraft, type Post } from "@/api/blog";
-import { PostAuthorLink, PostBody, PostPhotos, PostStats } from "@/blog/BlogContent";
+import { PostArticle, PostAuthorLink, PostStats } from "@/blog/BlogContent";
 import { SITE_URL } from "@/config";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
@@ -78,11 +78,7 @@ export default function BlogPostScreen() {
             ) : post.isMine ? (
               <Notice>{POST_STATUS_LABELS[post.status] ?? "Статус обновляется"}{post.rejectReason ? `. ${post.rejectReason}` : ""}</Notice>
             ) : null}
-            <Text variant="title">{post.title || "Без заголовка"}</Text>
-            <Text muted>{post.sport}{post.publishedAt ? ` · ${new Date(post.publishedAt).toLocaleDateString("ru-RU")}` : ""}</Text>
-            <PostAuthorLink author={post.author} />
-            <PostPhotos ids={post.imageIds} />
-            <PostBody blocks={post.blocks} />
+            <PostArticle post={post} />
             {!isOwnDraft && error ? <Notice kind="danger">{error}</Notice> : null}
             {post.listing ? (
               <Card>

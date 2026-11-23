@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { Fragment } from "react";
 import { ScrollView, View } from "react-native";
-import type { PostBlock, PostCard } from "@/api/blog";
+import type { Post, PostBlock, PostCard } from "@/api/blog";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Avatar } from "@/ui/Avatar";
 import { Button } from "@/ui/Button";
@@ -47,15 +47,27 @@ export function PostStats({ post }: { post: PostCard }) {
   return <Text variant="caption" muted>Понравилось: {post.likesCount} · Комментарии: {post.commentsCount} · Просмотры: {post.viewsCount}</Text>;
 }
 
-export function PostPreview({ post }: { post: PostCard }) {
+export function PostPreview({ post, guest = false }: { post: PostCard; guest?: boolean }) {
   return (
-    <Card onPress={() => router.push({ pathname: "/blog/[id]", params: { id: post.id } })}>
+    <Card onPress={() => router.push({ pathname: guest ? "/guest/articles/[id]" : "/blog/[id]", params: { id: post.id } })}>
       {post.coverFileId ? <PhotoBox fileId={post.coverFileId} height={170} /> : null}
       <Text variant="heading">{post.title}</Text>
       <Text variant="caption" muted>{post.sport} · {post.author.name}{post.author.isPro ? <> <ProBadge /></> : null}</Text>
       <Text numberOfLines={3}>{post.excerpt}</Text>
       <PostStats post={post} />
     </Card>
+  );
+}
+
+export function PostArticle({ post, guest = false }: { post: Post; guest?: boolean }) {
+  return (
+    <>
+      <Text variant="title" accessibilityRole="header">{post.title || "Без заголовка"}</Text>
+      <Text muted>{post.sport}{post.publishedAt ? ` · ${new Date(post.publishedAt).toLocaleDateString("ru-RU")}` : ""}</Text>
+      {guest ? <Text variant="label">{post.author.name}</Text> : <PostAuthorLink author={post.author} />}
+      <PostPhotos ids={post.imageIds} />
+      <PostBody blocks={post.blocks} />
+    </>
   );
 }
 

@@ -85,7 +85,9 @@ function Routes() {
           <Stack.Screen name="library/plan/[id]" />
         </Stack.Protected>
         <Stack.Protected guard={!signedIn}>
-          <Stack.Screen name="login" />
+          <Stack.Screen name="guest/articles/index" options={{ headerShown: true, title: "Статьи" }} />
+          <Stack.Screen name="guest/articles/[id]" options={{ headerShown: true, title: "Статья" }} />
+          <Stack.Screen name="login" options={{ headerShown: true, title: "Вход" }} />
           <Stack.Screen name="register" />
           <Stack.Screen name="check-email" />
           <Stack.Screen name="verify" />
