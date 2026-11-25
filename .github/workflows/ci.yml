@@ -119,6 +119,8 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          # A cold Docker build on the server can take longer than the action's 10m default.
+          command_timeout: 30m
           script: |
             set -e
             cd ${{ secrets.DEPLOY_PATH }}
