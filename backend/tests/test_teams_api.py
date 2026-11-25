@@ -4,6 +4,28 @@ from fastapi.testclient import TestClient
 
 
 def _create_coach_profile(client: TestClient, token: str, sport: str = "Футбол") -> None:
+    # These API fixtures represent coaches who already existed before applications
+    # became mandatory. Give them their established role before creating a profile.
+    from app.security.tokens import hash_token
+    token_hash = hash_token(token)
+    if hasattr(client, "real_dsn"):
+        import asyncio
+        import asyncpg
+
+        async def mark_existing_coach() -> None:
+            conn = await asyncpg.connect(client.real_dsn)
+            try:
+                await conn.execute(
+                    "UPDATE users SET preferred_role='coach' WHERE id=(SELECT user_id FROM user_sessions WHERE token_hash=$1)",
+                    token_hash,
+                )
+            finally:
+                await conn.close()
+
+        asyncio.run(mark_existing_coach())
+    else:
+        session = next(row for row in client.auth_store.sessions.values() if row["token_hash"] == token_hash)
+        client.auth_store.users[session["user_id"]]["preferred_role"] = "coach"
     resp = client.put(
         "/api/profile/coach",
         headers={"Authorization": f"Bearer {token}"},

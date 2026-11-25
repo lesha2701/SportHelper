@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+from tests.test_teams_api import _create_coach_profile
 
 
 def test_profile_me_is_empty_before_any_profile_created(logged_in_client) -> None:
@@ -78,7 +79,7 @@ def test_switch_active_mode_succeeds_when_profile_exists(logged_in_client) -> No
     client, token = logged_in_client
     headers = {"Authorization": f"Bearer {token}"}
 
-    client.put("/api/profile/coach", headers=headers, json={"full_name": "Тренер", "sport": "хоккей"})
+    _create_coach_profile(client, token, sport="хоккей")
 
     response = client.post("/api/profile/active-mode", headers=headers, json={"mode": "coach"})
 
