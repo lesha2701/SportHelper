@@ -47,6 +47,47 @@
         }
       }
     },
+    "/api/auth/register-coach": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register Coach",
+        "operationId": "register_coach_api_auth_register_coach_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_register_coach_api_auth_register_coach_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/verify-email/inspect": {
       "post": {
         "tags": [
@@ -1200,6 +1241,314 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/api/coach-applications/mine": {
+      "get": {
+        "tags": [
+          "coach-applications"
+        ],
+        "summary": "Mine",
+        "operationId": "mine_api_coach_applications_mine_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ApplicationOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Mine Api Coach Applications Mine Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/coach-applications/mine/resubmit": {
+      "post": {
+        "tags": [
+          "coach-applications"
+        ],
+        "summary": "Resubmit",
+        "operationId": "resubmit_api_coach_applications_mine_resubmit_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_resubmit_api_coach_applications_mine_resubmit_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/coach-applications/documents/{document_id}": {
+      "get": {
+        "tags": [
+          "coach-applications"
+        ],
+        "summary": "My Document",
+        "operationId": "my_document_api_coach_applications_documents__document_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/coach-applications": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Queue",
+        "operationId": "queue_api_admin_coach_applications_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationOut"
+                  },
+                  "type": "array",
+                  "title": "Response Queue Api Admin Coach Applications Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/coach-applications/{application_id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Detail",
+        "operationId": "detail_api_admin_coach_applications__application_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/coach-applications/documents/{document_id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Admin Document",
+        "operationId": "admin_document_api_admin_coach_applications_documents__document_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/coach-applications/{application_id}/decision": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Decide",
+        "operationId": "decide_api_admin_coach_applications__application_id__decision_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/admin/session": {
@@ -18058,6 +18407,148 @@
         ],
         "title": "AnswerSupportIn"
       },
+      "ApplicationOut": {
+        "properties": {
+          "sport": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Sport"
+          },
+          "qualification": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 2,
+            "title": "Qualification"
+          },
+          "experience": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 2,
+            "title": "Experience"
+          },
+          "about": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "About",
+            "default": ""
+          },
+          "links": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Links"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "needs_info",
+              "approved",
+              "rejected"
+            ],
+            "title": "Status"
+          },
+          "admin_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Note"
+          },
+          "resubmit_after": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resubmit After"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentOut"
+            },
+            "type": "array",
+            "title": "Documents",
+            "default": []
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sport",
+          "qualification",
+          "experience",
+          "id",
+          "user_id",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ApplicationOut"
+      },
       "ApplyResultOut": {
         "properties": {
           "status": {
@@ -18413,6 +18904,17 @@
               }
             ],
             "title": "Preferred Role"
+          },
+          "coach_application_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coach Application Status"
           },
           "created_at": {
             "type": "string",
@@ -18904,6 +19406,54 @@
           "is_coach"
         ],
         "title": "BlogSettingsOut"
+      },
+      "Body_register_coach_api_auth_register_coach_post": {
+        "properties": {
+          "payload": {
+            "type": "string",
+            "title": "Payload"
+          },
+          "details": {
+            "type": "string",
+            "title": "Details"
+          },
+          "documents": {
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "type": "array",
+            "title": "Documents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "payload",
+          "details",
+          "documents"
+        ],
+        "title": "Body_register_coach_api_auth_register_coach_post"
+      },
+      "Body_resubmit_api_coach_applications_mine_resubmit_post": {
+        "properties": {
+          "details": {
+            "type": "string",
+            "title": "Details"
+          },
+          "documents": {
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "type": "array",
+            "title": "Documents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "details"
+        ],
+        "title": "Body_resubmit_api_coach_applications_mine_resubmit_post"
       },
       "Body_send_media_api_chats__conversation_id__messages_media_post": {
         "properties": {
@@ -22025,6 +22575,30 @@
         ],
         "title": "DayCountOut"
       },
+      "DecisionIn": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "needs_info",
+              "reject"
+            ],
+            "title": "Action"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "title": "DecisionIn"
+      },
       "DeclineOfferIn": {
         "properties": {
           "reason": {
@@ -22043,6 +22617,36 @@
         "additionalProperties": false,
         "type": "object",
         "title": "DeclineOfferIn"
+      },
+      "DocumentOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime Type"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "filename",
+          "mime_type",
+          "created_at"
+        ],
+        "title": "DocumentOut"
       },
       "DocumentRefIn": {
         "properties": {
@@ -25111,6 +25715,17 @@
               }
             ],
             "title": "Preferred Role"
+          },
+          "coach_application_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coach Application Status"
           },
           "created_at": {
             "type": "string",
@@ -32081,6 +32696,17 @@
               }
             ],
             "title": "Preferred Role"
+          },
+          "coach_application_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coach Application Status"
           },
           "created_at": {
             "type": "string",

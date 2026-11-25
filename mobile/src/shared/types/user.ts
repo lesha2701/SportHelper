@@ -10,6 +10,7 @@ export interface User {
   photoUrl: string | null;
   avatarFileId: string | null;
   preferredRole: Role | null;
+  coachApplicationStatus: "pending" | "needs_info" | "approved" | "rejected" | null;
   isAdmin: boolean;
   /** Set while an account deletion is scheduled (and can still be cancelled). */
   deletionRequestedAt: string | null;
@@ -28,6 +29,7 @@ export interface UserDto {
   photo_url: string | null;
   avatar_file_id: string | null;
   preferred_role?: Role | null;
+  coach_application_status?: User["coachApplicationStatus"];
   is_admin?: boolean;
   deletion_requested_at?: string | null;
   completed_onboarding_version?: number;
@@ -45,6 +47,7 @@ export function mapUserDto(dto: UserDto): User {
     photoUrl: dto.photo_url,
     avatarFileId: dto.avatar_file_id,
     preferredRole: dto.preferred_role ?? null,
+    coachApplicationStatus: dto.coach_application_status ?? null,
     isAdmin: dto.is_admin ?? false,
     deletionRequestedAt: dto.deletion_requested_at ?? null,
     completedOnboardingVersion: dto.completed_onboarding_version ?? 0,

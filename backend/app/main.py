@@ -24,6 +24,7 @@ from app.api.routes import (
     bookings,
     calendar,
     coach_listings,
+    coach_applications,
     coaches,
     complaints,
     devices,
@@ -225,6 +226,8 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=exc.status_code, content={"error": error}, headers=headers)
 
     app.include_router(auth.router)
+    app.include_router(coach_applications.router)
+    app.include_router(coach_applications.admin_router)
     app.include_router(admin.router)
     app.include_router(activity.router)
     app.include_router(admin_media.router)

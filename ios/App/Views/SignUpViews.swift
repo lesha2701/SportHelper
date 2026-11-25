@@ -139,6 +139,11 @@ struct RegisterView: View {
                     AuthNotice(kind: .danger, text: formError).accessibilityIdentifier("register.error")
                 }
                 roles
+                if form.role == .coach {
+                    AuthNotice(kind: .info, text: "Для заявки тренера нужны сведения об опыте и документы. Заполните анкету на сайте; после подтверждения email статус появится в приложении.")
+                    Link("Открыть анкету тренера", destination: auth.client.baseURL.appendingPathComponent("register"))
+                        .buttonStyle(.sag)
+                } else {
                 AuthField(label: "Имя", required: true, error: errors[.firstName]) {
                     TextField("Имя", text: $form.firstName)
                         .textContentType(.givenName)
@@ -184,6 +189,7 @@ struct RegisterView: View {
                 .disabled(working)
                 .padding(.top, 4)
                 .accessibilityIdentifier("register.submit")
+                }
             }
             .padding(24)
         }

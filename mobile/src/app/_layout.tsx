@@ -16,11 +16,12 @@ import { LoadingView } from "@/ui/StateViews";
 import { ToastProvider } from "@/ui/Toast";
 
 function Routes() {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   const { colors, dark } = useTheme();
   const signedIn = status === "signedIn";
-  useActivityPing(signedIn);
-  usePush(signedIn);
+  const candidate = signedIn && user?.preferredRole === "coach" && !!user.coachApplicationStatus && user.coachApplicationStatus !== "approved" && !user.isAdmin;
+  useActivityPing(signedIn && !candidate);
+  usePush(signedIn && !candidate);
   // Until the saved sign-in is checked, no route can be matched: mounting the navigator now would drop a deep link
   // (a notification, an invitation) onto the start page. Wait, then open exactly what was asked for.
   if (status === "loading") return <LoadingView />;
@@ -39,14 +40,11 @@ function Routes() {
         <Stack.Screen name="index" />
         <Stack.Screen name="legal/[key]" />
         <Stack.Screen name="confirm-email" />
-        <Stack.Protected guard={signedIn}>
+        <Stack.Protected guard={signedIn && !candidate}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="profile-edit" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="guide" />
-          <Stack.Screen name="help" />
-          <Stack.Screen name="account" />
-          <Stack.Screen name="delete-account" />
           <Stack.Screen name="join" />
           <Stack.Screen name="team/new" />
           <Stack.Screen name="team/[id]" />
@@ -83,6 +81,14 @@ function Routes() {
           <Stack.Screen name="library/exercise/[id]" />
           <Stack.Screen name="library/plan/new" />
           <Stack.Screen name="library/plan/[id]" />
+        </Stack.Protected>
+        <Stack.Protected guard={signedIn}>
+          <Stack.Screen name="help" />
+          <Stack.Screen name="account" />
+          <Stack.Screen name="delete-account" />
+        </Stack.Protected>
+        <Stack.Protected guard={candidate}>
+          <Stack.Screen name="coach-application" />
         </Stack.Protected>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="guest/articles/index" options={{ headerShown: true, title: "Статьи" }} />

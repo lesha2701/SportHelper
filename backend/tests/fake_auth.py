@@ -32,11 +32,14 @@ class FakeAuthStore:
         self.rate_hits: dict[str, list[float]] = {}
         self.audit: list[dict[str, Any]] = []
         self.acceptances: list[dict[str, Any]] = []
+        self.coach_applications: dict[UUID, dict[str, Any]] = {}
 
     # --- helpers ---------------------------------------------------------
     def user_view(self, record: dict[str, Any]) -> dict[str, Any]:
         view = {k: v for k, v in record.items() if k not in ("password_hash", "failed_login_count", "locked_until")}
         view["has_password"] = record.get("password_hash") is not None
+        application = self.coach_applications.get(record["id"])
+        view["coach_application_status"] = application["status"] if application else None
         return view
 
     def find_by_email(self, email: str) -> dict[str, Any] | None:
@@ -85,6 +88,35 @@ def install(monkeypatch: pytest.MonkeyPatch, store: FakeAuthStore) -> None:
     import app.repositories.mfa as mfa
     import app.repositories.sessions as sessions
     import app.repositories.users as users
+    import app.repositories.coach_applications as coach_applications
+
+    async def ca_replace(conn, user_id, details, files):
+        store.coach_applications[user_id] = {
+            "id": uuid4(), "user_id": user_id, "status": "pending",
+            "sport": details.sport, "qualification": details.qualification,
+            "experience": details.experience, "about": details.about,
+            "links": details.links, "files": files, "admin_note": None, "resubmit_after": None,
+            "created_at": _now(), "updated_at": _now(),
+        }
+
+    async def ca_delete(conn, user_id):
+        store.coach_applications.pop(user_id, None)
+
+    async def ca_get_for_user(conn, user_id):
+        row = store.coach_applications.get(user_id)
+        return dict(row) if row else None
+
+    async def ca_documents(conn, application_id):
+        for row in store.coach_applications.values():
+            if row["id"] == application_id:
+                return [{"id": uuid4(), "filename": name, "mime_type": mime, "created_at": row["created_at"]}
+                        for name, mime, _ in row["files"]]
+        return []
+
+    monkeypatch.setattr(coach_applications, "replace_unverified", ca_replace)
+    monkeypatch.setattr(coach_applications, "delete_for_user", ca_delete)
+    monkeypatch.setattr(coach_applications, "get_for_user", ca_get_for_user)
+    monkeypatch.setattr(coach_applications, "documents", ca_documents)
 
     # ---- users ----------------------------------------------------------
     async def get_by_id(conn, user_id):
@@ -192,6 +224,7 @@ def install(monkeypatch: pytest.MonkeyPatch, store: FakeAuthStore) -> None:
         store.tokens[:] = [t for t in store.tokens if t["user_id"] != user_id]
         store.mfa.pop(user_id, None)
         store.identities[:] = [i for i in store.identities if i["user_id"] != user_id]
+        store.coach_applications.pop(user_id, None)
 
     async def get_consent(conn, user_id):
         return store.consents.get(user_id, False)

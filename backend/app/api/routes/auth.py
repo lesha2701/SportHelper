@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 import asyncpg
-from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, UploadFile, File, Form
 
 from app.api.deps import (
     AuthContext,
@@ -78,6 +78,8 @@ from app.services import claim as claim_service
 from app.services import identities as identities_service
 from app.services import legal as legal_service
 from app.services import email_templates as templates
+from app.services import coach_application as coach_application_service
+from app.repositories import coach_applications as coach_application_repo
 
 logger = logging.getLogger("teamflow.auth")
 
@@ -113,6 +115,29 @@ async def register(
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> RegisterOut:
+    if payload.role == "coach":
+        raise APIError("Для тренера нужна анкета с документами.", code="coach_application_required", status_code=422)
+    return await _register_impl(payload, request, background, conn, settings, None, None)
+
+
+@router.post("/register-coach", response_model=RegisterOut, status_code=201)
+async def register_coach(
+    request: Request, background: BackgroundTasks,
+    payload: str = Form(...), details: str = Form(...), documents: list[UploadFile] = File(...),
+    conn: asyncpg.Connection = Depends(get_db), settings: Settings = Depends(get_settings_dep),
+) -> RegisterOut:
+    try:
+        parsed = RegisterIn.model_validate_json(payload)
+    except ValueError as exc:
+        raise APIError("Проверьте поля регистрации.", code="invalid_registration", status_code=422) from exc
+    if parsed.role != "coach":
+        raise APIError("Укажите роль тренера.", code="invalid_role", status_code=422)
+    application = coach_application_service.parse_details(details)
+    files = await coach_application_service.read_documents(documents)
+    return await _register_impl(parsed, request, background, conn, settings, application, files)
+
+
+async def _register_impl(payload, request, background, conn, settings, application, files) -> RegisterOut:
     await svc.enforce_rate_limit(request, conn, settings, "register-ip", svc.ip_of(request, settings), limit=10, window_seconds=3600)
 
     first_name = svc.clean_name(payload.first_name, required=True, field="first_name", label="имя")
@@ -161,6 +186,10 @@ async def register(
                 )
             except asyncpg.UniqueViolationError as exc:  # lost a race with a concurrent sign-up
                 raise taken from exc
+        if application is not None:
+            await coach_application_repo.replace_unverified(conn, user["id"], application, files)
+        else:
+            await coach_application_repo.delete_for_user(conn, user["id"])
         for consent, documents in accepted:
             await legal_repo.record(
                 conn,
