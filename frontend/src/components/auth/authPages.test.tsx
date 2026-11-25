@@ -67,6 +67,13 @@ function fillRegistration(overrides: Partial<Record<"name" | "email" | "password
   type("Повторите пароль", overrides.confirm ?? overrides.password ?? STRONG);
 }
 
+function fillCoachEvidence() {
+  type("Вид спорта", "Теннис");
+  type(/Квалификация/, "Лицензия тренера");
+  type(/Опыт работы/, "Три года работы");
+  fireEvent.change(screen.getByLabelText(/Документы/), { target: { files: [new File(["%PDF-1.4"], "license.pdf", { type: "application/pdf" })] } });
+}
+
 describe("registration form", () => {
   it("explains every problem inline and sends nothing while the form is invalid", () => {
     render(<RegisterPage />);
@@ -112,6 +119,7 @@ describe("registration form", () => {
     render(<RegisterPage />);
     chooseRole(/Я тренер/);
     fillRegistration();
+    fillCoachEvidence();
     tickAll();
 
     click("Зарегистрироваться");
@@ -130,6 +138,8 @@ describe("registration form", () => {
         { key: "data_dissemination", documents: [{ key: "consent-coach-dissemination", version: "2026-10-20" }] },
       ],
       next: null,
+      coachDetails: { sport: "Теннис", qualification: "Лицензия тренера", experience: "Три года работы", about: "", links: [] },
+      coachDocuments: [expect.objectContaining({ name: "license.pdf" })],
     });
     expect(screen.getByText("alice@example.com")).toBeTruthy();
   });

@@ -41,13 +41,18 @@ struct RootView: View {
         case .signedOut:
             LoginView()
         case .signedIn(let user):
-            MainTabView(user: user)
-                .fullScreenCover(isPresented: Binding(get: { user.needsOnboarding && tourClosedFor != user.id }, set: { _ in })) {
-                    WelcomeGuideView(ownRole: user.isCoach ? "coach" : "player") {
-                        tourClosedFor = user.id
-                        Task { await auth.finishOnboarding() }
+            if user.preferredRole == "coach", let status = user.coachApplicationStatus,
+               status != "approved", !user.isAdministrator {
+                CoachApplicationView(user: user)
+            } else {
+                MainTabView(user: user)
+                    .fullScreenCover(isPresented: Binding(get: { user.needsOnboarding && tourClosedFor != user.id }, set: { _ in })) {
+                        WelcomeGuideView(ownRole: user.isCoach ? "coach" : "player") {
+                            tourClosedFor = user.id
+                            Task { await auth.finishOnboarding() }
+                        }
                     }
-                }
+            }
         }
     }
 }

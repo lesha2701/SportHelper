@@ -17,7 +17,8 @@ _SELECT_FIELDS = (
     "language_code, (is_banned AND (banned_until IS NULL OR banned_until > now())) AS is_banned, banned_at, active_mode, last_login_at, created_at, updated_at, "
     "completed_onboarding_version, email, email_verified_at, preferred_role, "
     "terms_accepted_at, terms_version, password_changed_at, deletion_requested_at, deleted_at, "
-    "(password_hash IS NOT NULL) AS has_password"
+    "(password_hash IS NOT NULL) AS has_password, "
+    "(SELECT status FROM coach_applications ca WHERE ca.user_id = users.id) AS coach_application_status"
 )
 
 
@@ -241,6 +242,8 @@ async def anonymize(conn: asyncpg.Connection, user_id: UUID) -> None:
         await conn.execute("DELETE FROM auth_tokens WHERE user_id = $1", user_id)
         await conn.execute("DELETE FROM user_mfa WHERE user_id = $1", user_id)
         await conn.execute("DELETE FROM user_identities WHERE user_id = $1", user_id)
+        # Qualification evidence can contain identity documents; remove it when the account is anonymised.
+        await conn.execute("DELETE FROM coach_applications WHERE user_id = $1", user_id)
         # The «Подобрать тренера» forms are the person's own words (goals, comments): they go with the account.
         await conn.execute("DELETE FROM coach_match_requests WHERE user_id = $1", user_id)
         # The blog: the person's articles (with their photos, likes and comments), their comments elsewhere and every mark they left.

@@ -12,6 +12,7 @@ export interface User {
   languageCode: string | null;
   /** The role picked at sign-up; only a hint for the first-run screen. */
   preferredRole: Role | null;
+  coachApplicationStatus?: "pending" | "needs_info" | "approved" | "rejected" | null;
   createdAt: string;
   lastLoginAt: string | null;
   /** Telegram is an optional notification channel, not a way to sign in. */
@@ -36,6 +37,7 @@ export interface UserDto {
   avatar_file_id: string | null;
   language_code: string | null;
   preferred_role: Role | null;
+  coach_application_status?: "pending" | "needs_info" | "approved" | "rejected" | null;
   created_at: string;
   last_login_at: string | null;
   telegram_linked: boolean;
@@ -57,6 +59,7 @@ export function mapUserDto(dto: UserDto): User {
     avatarFileId: dto.avatar_file_id,
     languageCode: dto.language_code,
     preferredRole: dto.preferred_role ?? null,
+    coachApplicationStatus: dto.coach_application_status ?? null,
     createdAt: dto.created_at,
     lastLoginAt: dto.last_login_at,
     telegramLinked: dto.telegram_linked ?? false,

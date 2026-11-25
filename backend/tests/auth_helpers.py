@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import json
 from urllib.parse import parse_qs, urlparse
 
 from fastapi.testclient import TestClient
@@ -50,7 +51,16 @@ def mails_to(client: TestClient, address: str) -> list:
 
 
 def register(client: TestClient, **overrides):
-    return client.post("/api/auth/register", json=register_payload(**overrides))
+    return register_request(client, register_payload(**overrides))
+
+
+def register_request(client: TestClient, payload: dict):
+    if payload.get("role") == "coach":
+        return client.post("/api/auth/register-coach", data={
+            "payload": json.dumps(payload),
+            "details": json.dumps({"sport": "Теннис", "qualification": "Лицензия тренера", "experience": "Три года работы", "about": "", "links": []}),
+        }, files=[("documents", ("license.pdf", b"%PDF-1.4\nfixture", "application/pdf"))])
+    return client.post("/api/auth/register", json=payload)
 
 
 def verify_latest(client: TestClient, address: str, password: str = PASSWORD) -> None:
@@ -63,9 +73,25 @@ def verify_latest(client: TestClient, address: str, password: str = PASSWORD) ->
 def sign_up(client: TestClient, **overrides) -> dict:
     """Registers and verifies an account; returns the registration payload."""
     payload = register_payload(**overrides)
-    resp = client.post("/api/auth/register", json=payload)
+    resp = register_request(client, payload)
     assert resp.status_code == 201, resp.text
     verify_latest(client, resp.json()["email"], payload["password"])
+    if payload["role"] == "coach":
+        # Existing role tests exercise an approved coach; approval workflow has separate tests.
+        if hasattr(client, "auth_store"):
+            user = client.auth_store.find_by_email(payload["email"])
+            client.auth_store.coach_applications[user["id"]]["status"] = "approved"
+        else:
+            import asyncio
+            import asyncpg
+            from app.config import get_settings
+            async def approve():
+                conn = await asyncpg.connect(get_settings().database_url)
+                try:
+                    await conn.execute("UPDATE coach_applications SET status='approved' WHERE user_id=(SELECT id FROM users WHERE email=$1)", payload["email"])
+                finally:
+                    await conn.close()
+            asyncio.run(approve())
     return payload
 
 

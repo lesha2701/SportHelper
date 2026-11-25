@@ -1,5 +1,6 @@
 import type { ConsentKey, DocumentKey } from "../legal/documents";
-import { apiRequest } from "./client";
+import { apiRequest, apiUpload } from "./client";
+import type { ApplicationDetails } from "./coachApplications";
 import { mapUserDto, type Role, type User, type UserDto } from "../types/user";
 
 interface AuthDto extends UserDto {
@@ -36,23 +37,25 @@ export interface RegisterInput {
   consents: ConsentAcceptance[];
   /** Where the visitor was heading; the confirmation email carries it back. */
   next?: string | null;
+  coachDetails?: ApplicationDetails;
+  coachDocuments?: File[];
 }
 
 export async function register(input: RegisterInput): Promise<{ email: string }> {
-  return apiRequest<{ email: string }>("/api/auth/register", {
-    method: "POST",
-    ...QUIET,
-    body: {
-      first_name: input.firstName,
-      last_name: input.lastName || null,
-      email: input.email,
-      password: input.password,
-      password_confirm: input.passwordConfirm,
-      role: input.role,
-      consents: input.consents,
-      next: input.next ?? null,
-    },
-  });
+  const body = {
+    first_name: input.firstName, last_name: input.lastName || null, email: input.email,
+    password: input.password, password_confirm: input.passwordConfirm, role: input.role,
+    consents: input.consents, next: input.next ?? null,
+  };
+  if (input.role === 'coach') {
+    if (!input.coachDetails || !input.coachDocuments?.length) throw new Error('Заполните анкету тренера и приложите документ.');
+    const formData = new FormData();
+    formData.append('payload', JSON.stringify(body));
+    formData.append('details', JSON.stringify(input.coachDetails));
+    input.coachDocuments.forEach((file) => formData.append('documents', file));
+    return apiUpload<{ email: string }>('/api/auth/register-coach', { formData, silent: true });
+  }
+  return apiRequest<{ email: string }>('/api/auth/register', { method: 'POST', ...QUIET, body });
 }
 
 export async function login(email: string, password: string): Promise<AuthResult> {

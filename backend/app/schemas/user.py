@@ -26,6 +26,7 @@ class UserOut(BaseModel):
     active_mode: str | None = None
     # Role picked at sign-up ("player" / "coach"); only a hint for onboarding.
     preferred_role: str | None = None
+    coach_application_status: str | None = None
     created_at: datetime
     last_login_at: datetime | None = None
     # Telegram is an optional notification channel, not an identity.

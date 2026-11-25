@@ -13,11 +13,13 @@ export function CheckEmailScreen({
   email,
   onChangeEmail,
   next = null,
+  coach = false,
 }: {
   email: string;
   onChangeEmail?: () => void;
   /** Where the person was heading; carried through the confirmation email. */
   next?: string | null;
+  coach?: boolean;
 }) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -45,7 +47,7 @@ export function CheckEmailScreen({
       </div>
       <p className={styles.lead} style={{ margin: 0 }}>
         Мы отправили письмо со ссылкой на <span className={styles.address}>{email}</span>. Откройте его, нажмите «Подтвердить
-        email» и введите пароль — вы сразу попадёте в приложение. Ссылка действует 24 часа.
+        email» и введите пароль — {coach ? "вы увидите заявку на проверке; после одобрения откроется аккаунт тренера" : "вы сразу попадёте в приложение"}. Ссылка действует 24 часа.
       </p>
 
       <div className={styles.stack}>

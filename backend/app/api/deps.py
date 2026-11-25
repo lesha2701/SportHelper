@@ -114,6 +114,10 @@ async def get_auth_context(
         raise UnauthorizedError("authentication required")
     if ctx.user["is_banned"]:
         raise ForbiddenError("user is banned")
+    if ctx.user.get("coach_application_status") in ("pending", "needs_info", "rejected") and not is_admin(ctx.user, settings):
+        path = request.url.path
+        if not (path.startswith("/api/auth/") or path.startswith("/api/coach-applications/") or path == "/api/coach-applications" or path in ("/api/features", "/api/app-config", "/api/health")):
+            raise ForbiddenError("Заявка тренера ещё не одобрена.", code="coach_application_pending")
     return ctx
 
 

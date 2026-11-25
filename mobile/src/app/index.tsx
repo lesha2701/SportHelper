@@ -4,7 +4,8 @@ import { GuestHome } from "@/guest/GuestHome";
 import { LoadingView } from "@/ui/StateViews";
 
 export default function Index() {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   if (status === "loading") return <LoadingView />;
-  return status === "signedIn" ? <Redirect href="/home" /> : <GuestHome />;
+  const candidate = user?.preferredRole === "coach" && !!user.coachApplicationStatus && user.coachApplicationStatus !== "approved" && !user.isAdmin;
+  return status === "signedIn" ? <Redirect href={candidate ? "/coach-application" : "/home"} /> : <GuestHome />;
 }

@@ -632,6 +632,41 @@
   gap: 12px;
 }
 
+.coachEvidence {
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.coachEvidence h2,
+.coachEvidence p {
+  margin: 0;
+}
+
+.coachEvidence label {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.coachEvidence textarea,
+.coachEvidence input[type="file"] {
+  width: 100%;
+  min-height: 80px;
+  padding: 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 400;
+}
+
+.coachEvidence input[type="file"] {
+  min-height: 0;
+}
+
 @media (min-width: 560px) {
   .row2 {
     grid-template-columns: 1fr 1fr;

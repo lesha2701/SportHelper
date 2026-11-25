@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import type { ApplicationDetails } from "../../api/coachApplications";
 import { register } from "../../api/auth";
 import type { Role } from "../../types/user";
 import { loginUrl, safeNext, useLocation } from "../../router";
@@ -37,6 +38,8 @@ export function RegisterPage() {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [role, setRole] = useState<Role | null>(null);
+  const [coachDetails, setCoachDetails] = useState<ApplicationDetails>({ sport: "", qualification: "", experience: "", about: "", links: [] });
+  const [coachDocuments, setCoachDocuments] = useState<File[]>([]);
   const [consents, setConsents] = useState<ConsentState>({});
   const [consentErrors, setConsentErrors] = useState<Partial<Record<ConsentKey, string>>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -50,7 +53,7 @@ export function RegisterPage() {
 
   if (sentTo) {
     // Everything typed stays in state, so "change the address" returns to a filled-in form.
-    return <CheckEmailScreen email={sentTo} next={next} onChangeEmail={() => setSentTo(null)} />;
+    return <CheckEmailScreen email={sentTo} next={next} coach={role === 'coach'} onChangeEmail={() => setSentTo(null)} />;
   }
 
   const chooseRole = (next: Role) => {
@@ -70,6 +73,15 @@ export function RegisterPage() {
     if (length < PASSWORD_MIN_LENGTH) found.password = `Пароль слишком короткий: минимум ${PASSWORD_MIN_LENGTH} символов.`;
     if (password !== passwordConfirm) found.passwordConfirm = "Пароли не совпадают.";
     if (!role) found.role = "Выберите, кто вы: игрок или тренер.";
+    if (role === 'coach' && (!coachDetails.sport.trim() || !coachDetails.qualification.trim() || !coachDetails.experience.trim() || !coachDocuments.length)) {
+      found.role = 'Заполните анкету тренера и приложите документ.';
+    }
+    if (role === 'coach' && (coachDocuments.length > 3 || coachDocuments.some(file => file.size > 5 * 1024 * 1024))) {
+      found.role = 'Приложите не более трёх файлов размером до 5 МБ каждый.';
+    }
+    if (role === 'coach' && (coachDetails.links.length > 5 || coachDetails.links.some(link => !/^https:\/\/[^\s/]+/i.test(link)))) {
+      found.role = 'Укажите не более пяти ссылок, каждая должна начинаться с https://.';
+    }
     return found;
   };
 
@@ -106,6 +118,7 @@ export function RegisterPage() {
           documents: consent.documents.map((doc) => ({ key: doc, version: DOCUMENTS[doc].version })),
         })),
         next,
+        ...(role === 'coach' ? { coachDetails, coachDocuments } : {}),
       });
       setSentTo(result.email);
     } catch (err) {
@@ -244,6 +257,20 @@ export function RegisterPage() {
           error={errors.passwordConfirm}
           disabled={submitting}
         />
+
+        {role === 'coach' && (
+          <section className={`${styles.stack} ${styles.coachEvidence}`} aria-label="Анкета тренера">
+            <h2>Проверка тренера</h2>
+            <p>Расскажите о квалификации и приложите документ. После подтверждения почты заявка поступит администраторам.</p>
+            <TextField label="Вид спорта" required value={coachDetails.sport} onChange={(e) => setCoachDetails({ ...coachDetails, sport: e.target.value })} disabled={submitting} />
+            <label>Квалификация *<textarea required maxLength={1000} value={coachDetails.qualification} onChange={(e) => setCoachDetails({ ...coachDetails, qualification: e.target.value })} disabled={submitting} /></label>
+            <label>Опыт работы *<textarea required maxLength={2000} value={coachDetails.experience} onChange={(e) => setCoachDetails({ ...coachDetails, experience: e.target.value })} disabled={submitting} /></label>
+            <label>О себе<textarea maxLength={2000} value={coachDetails.about} onChange={(e) => setCoachDetails({ ...coachDetails, about: e.target.value })} disabled={submitting} /></label>
+            <label>Ссылки на сведения о вас (по одной HTTPS-ссылке в строке)<textarea value={coachDetails.links.join('\n')} onChange={(e) => setCoachDetails({ ...coachDetails, links: e.target.value.split('\n').map(v => v.trim()).filter(Boolean) })} disabled={submitting} /></label>
+            <label>Документы * (PDF, JPG, PNG, WebP; до 3 файлов по 5 МБ)<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => setCoachDocuments(Array.from(e.target.files ?? []))} disabled={submitting} /></label>
+            {errors.role && <p role="alert">{errors.role}</p>}
+          </section>
+        )}
 
         {role ? (
           <ConsentChecks

@@ -1,4 +1,6 @@
 import { router } from "expo-router";
+import * as Linking from "expo-linking";
+import { API_BASE_URL } from "@/config";
 import { useState } from "react";
 import { View } from "react-native";
 import { register } from "@/api/auth";
@@ -151,7 +153,8 @@ export default function RegisterScreen() {
         error={errors.role}
         disabled={busy}
       />
-      <TextField
+      {role === "coach" ? <Notice kind="info">Для заявки тренера нужны сведения об опыте и документы. Заполните анкету на сайте; после подтверждения email статус появится в приложении.</Notice> : null}
+      {role === "coach" ? <Button title="Открыть анкету тренера" onPress={() => void Linking.openURL(`${API_BASE_URL}/register`)} /> : <><TextField
         label="Имя"
         required
         value={firstName}
@@ -221,7 +224,7 @@ export default function RegisterScreen() {
         </View>
       ) : null}
 
-      <Button title="Зарегистрироваться" onPress={submit} loading={busy} />
+      <Button title="Зарегистрироваться" onPress={submit} loading={busy} /></>}
       <Text muted style={{ textAlign: "center" }}>
         Уже есть аккаунт? <LinkText onPress={() => router.replace("/login")}>Войти</LinkText>
       </Text>

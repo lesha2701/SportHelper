@@ -29,6 +29,8 @@ async def _check_role(conn: asyncpg.Connection, user: dict, role: str, settings:
         return
     current = user.get("preferred_role")
     if current is None:
+        if role == "coach" and await profiles_repo.get_coach_profile(conn, user["id"]) is None:
+            raise APIError("Для нового профиля тренера нужна заявка с документами.", code="coach_application_required", status_code=403)
         await users_repo.set_preferred_role(conn, user["id"], role)
     elif current != role:
         raise APIError(_ROLE_LOCKED, code="role_locked", status_code=403)

@@ -14,6 +14,7 @@ import { ComplaintsPage } from "./ComplaintsPage";
 import { ModerationPage } from "./ModerationPage";
 import { SupportPage } from "./SupportPage";
 import { BlogPostsPage } from "./BlogPostsPage";
+import { CoachApplicationsPage } from "./CoachApplicationsPage";
 import { MatchRequestsPage } from "./MatchRequestsPage";
 import { TrainingsPage } from "./TrainingsPage";
 import { UsersPage } from "./UsersPage";
@@ -38,6 +39,7 @@ const SECTIONS: Section[] = [
   { path: "/admin/trainings", label: "Тренировки", icon: "dumbbell", render: () => <TrainingsPage /> },
   { path: "/admin/reports", label: "Жалобы", icon: "flag", render: () => <ComplaintsPage /> },
   { path: "/admin/support", label: "Поддержка", icon: "message", render: () => <SupportPage /> },
+  { path: "/admin/coach-applications", label: "Проверка тренеров", icon: "users", render: () => <CoachApplicationsPage /> },
   { path: "/admin/matching", label: "Подбор тренера", icon: "search", render: () => <MatchRequestsPage /> },
   { path: "/admin/blog", label: "Статьи", icon: "edit", render: () => <BlogPostsPage /> },
   { path: "/admin/finance", label: "Финансы", icon: "wallet", render: () => <FinancePage />, financeOnly: true },

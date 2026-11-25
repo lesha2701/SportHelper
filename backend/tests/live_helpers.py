@@ -8,7 +8,7 @@ from typing import Any
 import asyncpg
 
 from app.security import totp
-from tests.auth_helpers import PASSWORD, consents_for, link_token
+from tests.auth_helpers import PASSWORD, consents_for, link_token, register_request
 
 
 class Browser:
@@ -20,8 +20,11 @@ class Browser:
         role = role or "player"  # the role is required at registration
         payload = {"first_name": first_name, "email": email, "password": password, "password_confirm": password,
                    "role": role, "consents": consents_for(role)}
-        assert client.post("/api/auth/register", json=payload).status_code == 201
+        assert register_request(client, payload).status_code == 201
         assert client.post("/api/auth/verify-email", json={"token": link_token(client.outbox[-1]), "password": password}).status_code == 200
+        if role == "coach":
+            from app.config import get_settings
+            sql(get_settings().database_url, "UPDATE coach_applications SET status='approved' WHERE user_id=(SELECT id FROM users WHERE email=$1)", email)
         self.login()
 
     def login(self) -> "Browser":

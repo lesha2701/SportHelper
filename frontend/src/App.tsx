@@ -1,3 +1,4 @@
+import { CoachApplicationGate } from "./components/auth/CoachApplicationGate";
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { loginUrl, navigate, safeNext, useLocation } from "./router";
@@ -77,6 +78,7 @@ function Routes() {
   const params = new URLSearchParams(search);
 
   if (state.status === "ready") {
+    if (state.user.coachApplicationStatus && state.user.coachApplicationStatus !== "approved" && !state.user.isAdmin) return <CoachApplicationGate />;
     // Signed in: the auth pages have nothing to offer — continue where the person was headed.
     if (path === "/login" || path === "/register" || path === "/forgot-password") {
       return <Redirect to={safeNext(params.get("next")) ?? "/"} />;

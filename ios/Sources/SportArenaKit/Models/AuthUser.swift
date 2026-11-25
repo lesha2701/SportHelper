@@ -13,6 +13,7 @@ public struct AuthUser: Decodable, Equatable, Sendable, Identifiable {
     /// "player" or "coach": the part of the app they are working in. A person's role is chosen at sign-up and stays.
     public let activeMode: String?
     public let preferredRole: String?
+    public let coachApplicationStatus: String?
     public let createdAt: Date
     public let isAdmin: Bool?
     public let hasPassword: Bool?

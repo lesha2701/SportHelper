@@ -18,6 +18,7 @@ PUBLIC_ROUTES = {
     ("POST", "/api/payments/yookassa/webhook"),  # called by ЮKassa; it believes nothing it is told (see the payments tests)
     # sign-up, sign-in and account recovery (these ARE the way in)
     ("POST", "/api/auth/register"),
+    ("POST", "/api/auth/register-coach"),
     ("POST", "/api/auth/login"),
     ("POST", "/api/auth/mobile/login"), ("POST", "/api/auth/mobile/verify-email"),
     ("POST", "/api/auth/logout"),  # idempotent: nothing to end without a session
