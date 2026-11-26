@@ -75,7 +75,8 @@ struct CalendarView: View {
                 Button("Повторить") { Task { await store.reload() } }
             }
             .frame(maxHeight: .infinity)
-        case .loaded(let events):
+        case .loaded(let loadedEvents):
+            let events = loadedEvents.filter(FeatureVisibility.calendar)
             switch store.mode {
             case .list: list(events)
             case .week: week(events)
@@ -87,7 +88,7 @@ struct CalendarView: View {
         let grouped = CalendarGrouping.list(events, today: store.today)
         return List {
             if events.isEmpty {
-                ContentUnavailableView("Пока ничего нет", systemImage: "calendar", description: Text("Здесь появятся тренировки, матчи и сроки заданий."))
+                ContentUnavailableView("Пока ничего нет", systemImage: "calendar", description: Text("Здесь появятся ваши тренировки и занятия."))
                     .listRowBackground(Color.clear)
             }
             if !grouped.overdue.isEmpty {

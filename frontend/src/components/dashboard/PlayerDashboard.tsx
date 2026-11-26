@@ -13,6 +13,7 @@ import { formatRate, type PlayerStats } from "../../types/stats";
 import styles from "./dashboard.module.css";
 import aiStyles from "../stats/stats.module.css";
 import { WeekOverview } from "./WeekOverview";
+import { TEAM_FEATURES_VISIBLE, isVisibleCalendarEvent } from "../../featureVisibility";
 
 function toIso(d: Date): string {
   const y = d.getFullYear();
@@ -75,7 +76,7 @@ export function PlayerDashboard({
     setState({ status: "loading" });
     const weekStart = toIso(startOfWeek(new Date()));
     Promise.all([getCalendar(token, weekStart, isoDatePlusDays(13)), getPlayerStats(token, userId)])
-      .then(([events, stats]) => setState({ status: "ready", events, stats }))
+      .then(([events, stats]) => setState({ status: "ready", events: events.filter(isVisibleCalendarEvent), stats }))
       .catch((error: unknown) => {
         const message = error instanceof ApiError ? error.message : "Не удалось загрузить данные";
         setState({ status: "error", message });
@@ -166,17 +167,17 @@ export function PlayerDashboard({
         </button>
 
         <div className={`${styles.kpiRow} ${styles.span5}`}>
-          <StatTile value={formatRate(stats.attendanceRate)} label="Посещаемость" tone="dark" />
-          <StatTile value={stats.activityStreak} label="Серия посещений" />
-          <StatTile value={stats.tasksCompleted} label="Заданий выполнено" />
-          <StatTile value={stats.tasksOverdue} label="Просрочено" />
+          {TEAM_FEATURES_VISIBLE ? <StatTile value={formatRate(stats.attendanceRate)} label="Посещаемость" tone="dark" /> : <StatTile value={stats.personalTrainingsCount} label="Личных тренировок" tone="dark" />}
+          {TEAM_FEATURES_VISIBLE ? <StatTile value={stats.activityStreak} label="Серия посещений" /> : <StatTile value={stats.metrics.length} label="Показателей" />}
+          {TEAM_FEATURES_VISIBLE && <StatTile value={stats.tasksCompleted} label="Заданий выполнено" />}
+          {TEAM_FEATURES_VISIBLE && <StatTile value={stats.tasksOverdue} label="Просрочено" />}
         </div>
 
         <div className={`${styles.card} ${styles.span8}`}>
           <WeekOverview weekDays={weekDays} events={events} today={today} onOpenEvent={onOpenEvent} />
         </div>
 
-        <div className={`${aiStyles.aiCard} ${styles.span4}`}>
+        {TEAM_FEATURES_VISIBLE && <div className={`${aiStyles.aiCard} ${styles.span4}`}>
           <div className={aiStyles.aiCardHead}>
             <Icon name="sparkles" size={18} />
             <span className={aiStyles.aiCardTitle}>Рекомендации ИИ</span>
@@ -197,9 +198,9 @@ export function PlayerDashboard({
           >
             {aiLoading ? "Анализирую…" : aiRecommendation ? "Обновить разбор" : "Получить рекомендации"}
           </button>
-        </div>
+        </div>}
 
-        <div className={`${styles.card} ${styles.span8}`}>
+        {TEAM_FEATURES_VISIBLE && <div className={`${styles.card} ${styles.span8}`}>
           <div className={styles.cardHeader}>
             <h3 className={styles.cardTitle}>Последние матчи</h3>
           </div>
@@ -223,7 +224,7 @@ export function PlayerDashboard({
               ))}
             </div>
           )}
-        </div>
+        </div>}
 
         <div className={`${styles.quickTileCol} ${styles.span4}`}>
           <button type="button" className={styles.quickTile} onClick={onCreateTraining}>

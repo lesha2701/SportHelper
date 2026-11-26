@@ -1,6 +1,7 @@
 import { Stack, router } from "expo-router";
 import { listNotifications, markAllNotificationsRead, markNotificationRead } from "@/api/notifications";
 import { toFormError } from "@/lib/formError";
+import { isVisibleNotification } from "@/lib/featureVisibility";
 import { useLoad } from "@/lib/useLoad";
 import { useUnread } from "@/notifications/UnreadProvider";
 import { routeForNotification } from "@/shared/lib/notificationRoute";
@@ -30,7 +31,7 @@ export default function NotificationsScreen() {
 
   if (list.loading && !list.data) return <LoadingView />;
   if (list.error && !list.data) return <ErrorView message={list.error} onRetry={list.reload} />;
-  const items = list.data ?? [];
+  const items = (list.data ?? []).filter(isVisibleNotification);
   const unread = items.filter((n) => !n.readAt).length;
 
   async function open(n: NotificationItem) {

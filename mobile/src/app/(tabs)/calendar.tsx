@@ -8,6 +8,7 @@ import { useLoad } from "@/lib/useLoad";
 import { chronological, groupByDay, listRange, upcomingFirst } from "@/shared/lib/calendarView";
 import { addDays, formatDayTitle, parseIso, startOfWeekIso, todayIso } from "@/shared/lib/dates";
 import type { CalendarEvent } from "@/shared/types/calendar";
+import { isVisibleCalendarEvent } from "@/lib/featureVisibility";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Button } from "@/ui/Button";
 import { Screen } from "@/ui/Screen";
@@ -74,7 +75,7 @@ export default function CalendarScreen() {
   if (events.loading && !events.data) body = <LoadingView />;
   else if (events.error && !events.data) body = <ErrorView message={events.error} onRetry={events.reload} />;
   else {
-    const all = events.data ?? [];
+    const all = (events.data ?? []).filter(isVisibleCalendarEvent);
     const sorted = mode === "week" ? upcomingFirst(all, today) : chronological(all);
     body = (
       <>
@@ -92,7 +93,7 @@ export default function CalendarScreen() {
           <>
             <EmptyView
               title={mode === "day" ? "В этот день ничего нет" : "Пока ничего нет"}
-              hint="Здесь появятся тренировки, матчи и дедлайны заданий."
+              hint="Здесь появятся ваши тренировки и занятия."
             />
             <Button title="Запланировать тренировку" onPress={() => router.push("/training/new")} />
           </>

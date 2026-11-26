@@ -94,13 +94,13 @@ describe("automatic onboarding", () => {
     expect(screen.getByText("Всё важное — в одном месте")).not.toBeNull();
 
     click("Далее");
-    expect(screen.getByText("Ваша команда и ваш прогресс")).not.toBeNull();
+    expect(screen.getByText("Ваши тренировки и прогресс")).not.toBeNull();
 
     click("Назад");
     expect(screen.getByText("Всё важное — в одном месте")).not.toBeNull();
   });
 
-  it("explains the main things in some detail: solo trainings, team management, the library, tasks, personal coaches", () => {
+  it("explains solo training, the library and personal coaching without team features", () => {
     renderGate(0);
     const seen: string[] = [];
     click("Начать знакомство");
@@ -112,9 +112,9 @@ describe("automatic onboarding", () => {
 
     expect(all).toContain("Личные тренировки — для себя");
     expect(all).toContain("круговую тренировку"); // the circuit style
-    expect(all).toContain("Гибкое управление командой");
     expect(all).toContain("Библиотека упражнений");
-    expect(all).toContain("Задания и отчёты");
+    expect(all).not.toContain("Гибкое управление командой");
+    expect(all).not.toContain("Задания и отчёты");
     expect(all).toContain("Личный тренер"); // a player books a coach
     expect(all).toContain("Свои занятия с игроками"); // a coach runs personal sessions
     expect(all).toContain("ИИ и уведомления");

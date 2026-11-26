@@ -74,22 +74,21 @@ struct PlayerStatsView: View {
     // MARK: content
 
     @ViewBuilder private func content(_ stats: PlayerStats) -> some View {
-        if stats.hasActivity {
-            attendanceCard(stats)
-            StatTiles([
-                ("\(stats.activityStreak)", "Серия подряд"), ("\(stats.tasksCompleted)/\(stats.tasksTotal)", "Заданий выполнено"),
-                (StatsFormat.duration(minutes: stats.trainingMinutes), "Тренировочное время"), ("\(stats.personalTrainingsCount)", "Личных тренировок"),
-            ])
+        if FeatureVisibility.teams ? stats.hasActivity : (stats.personalTrainingsCount > 0 || !stats.metrics.isEmpty) {
+            if FeatureVisibility.teams { attendanceCard(stats) }
+            StatTiles(FeatureVisibility.teams
+                ? [("\(stats.activityStreak)", "Серия подряд"), (StatsFormat.duration(minutes: stats.trainingMinutes), "Тренировочное время"), ("\(stats.personalTrainingsCount)", "Личных тренировок"), ("\(stats.tasksCompleted)/\(stats.tasksTotal)", "Заданий выполнено")]
+                : [("\(stats.personalTrainingsCount)", "Личных тренировок"), ("\(stats.metrics.count)", "Показателей")])
         } else {
             DashboardCard("Статистика появится позже") {
-                Text("Она соберётся после первых тренировок, матчей или отчётов по заданиям. Показатели можно добавлять и сейчас — ниже.")
+                Text("Она соберётся после первых тренировок. Показатели можно добавлять и сейчас — ниже.")
                     .font(.subheadline).foregroundStyle(.secondary)
             }
             .accessibilityIdentifier("playerStats.empty")
         }
-        if isOwn {
+        if FeatureVisibility.teams && isOwn {
             AnalysisCard(
-                title: "Рекомендации ИИ", hint: "ИИ проанализирует прогресс по тренировкам, заданиям и показателям.",
+                title: "Рекомендации ИИ", hint: "ИИ проанализирует прогресс по тренировкам и показателям.",
                 button: "Получить рекомендации", identifier: "playerStats.ai"
             ) { await auth.stats.progressAnalysis() }
         }
@@ -100,7 +99,7 @@ struct PlayerStatsView: View {
                 }
             }
         }
-        if !stats.coachComments.isEmpty {
+        if FeatureVisibility.teams && !stats.coachComments.isEmpty {
             DashboardCard("Комментарии тренера") {
                 ForEach(stats.coachComments) { comment in
                     VStack(alignment: .leading, spacing: 2) {
@@ -114,7 +113,7 @@ struct PlayerStatsView: View {
             }
         }
         metricsCard(stats)
-        if !stats.playedMatches.isEmpty {
+        if FeatureVisibility.teams && !stats.playedMatches.isEmpty {
             DashboardCard("История матчей") {
                 ForEach(stats.playedMatches) { match in
                     HStack {

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { AppState } from "react-native";
 import { listNotifications } from "@/api/notifications";
 import { useAuth } from "@/auth/AuthProvider";
+import { isVisibleNotification } from "@/lib/featureVisibility";
 
 interface Unread {
   count: number;
@@ -20,7 +21,7 @@ export function UnreadProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(() => {
     listNotifications()
-      .then((items) => setCount(items.filter((n) => !n.readAt).length))
+      .then((items) => setCount(items.filter((n) => !n.readAt && isVisibleNotification(n)).length))
       .catch(() => {});
   }, []);
 

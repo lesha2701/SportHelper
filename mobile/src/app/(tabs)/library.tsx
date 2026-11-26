@@ -4,6 +4,7 @@ import { listMyExercises } from "@/api/exercises";
 import { listMyPlans } from "@/api/plans";
 import { listMyTemplates } from "@/api/taskTemplates";
 import { useLoad } from "@/lib/useLoad";
+import { TEAM_FEATURES_VISIBLE } from "@/lib/featureVisibility";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { Choice } from "@/ui/Choice";
@@ -87,12 +88,12 @@ export default function LibraryScreen() {
           options={[
             { value: "exercises", title: "Упражнения" },
             { value: "plans", title: "Планы" },
-            { value: "templates", title: "Шаблоны" },
+            ...(TEAM_FEATURES_VISIBLE ? [{ value: "templates" as const, title: "Шаблоны" }] : []),
           ]}
           value={tab}
           onChange={setTab}
         />
-        {tab === "exercises" ? <Exercises /> : tab === "plans" ? <Plans /> : <Templates />}
+        {tab === "exercises" ? <Exercises /> : tab === "plans" ? <Plans /> : TEAM_FEATURES_VISIBLE ? <Templates /> : null}
       </Screen>
     </>
   );

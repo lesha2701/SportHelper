@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { SearchResult, SearchResultType } from "../../api/search";
 import { Icon, type IconName } from "../shared/Icon";
 import styles from "./TopBar.module.css";
+import { isVisibleSearchResult } from "../../featureVisibility";
 
 export interface TopBarCta {
   label: string;
@@ -66,7 +67,7 @@ function SearchBox({ search }: { search: NonNullable<TopBarConfig["search"]> }) 
         .run(trimmed)
         .then((found) => {
           if (requestId !== requestIdRef.current) return;
-          setResults(found);
+          setResults(found.filter(isVisibleSearchResult));
           setFailed(false);
         })
         .catch(() => {

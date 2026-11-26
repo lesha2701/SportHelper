@@ -12,6 +12,7 @@ import { listMyTeams } from "@/api/teams";
 import { useAuth } from "@/auth/AuthProvider";
 import { eventIcon, homeStyles, BigStat, NextEventHero, QuickAction, WeekStrip } from "@/home/HomeParts";
 import { useFeatures } from "@/lib/useFeatures";
+import { TEAM_FEATURES_VISIBLE, isVisibleCalendarEvent } from "@/lib/featureVisibility";
 import { useLoad } from "@/lib/useLoad";
 import { useUnread } from "@/notifications/UnreadProvider";
 import { useProfile } from "@/profile/ProfileProvider";
@@ -61,7 +62,7 @@ export default function HomeScreen() {
   const [pickedTeam, setPickedTeam] = useState<string | null>(null);
 
   const data = useLoad(async () => {
-    const events = await getCalendar(monday, addDays(today, 30)).catch(() => [] as CalendarEvent[]);
+    const events = (await getCalendar(monday, addDays(today, 30)).catch(() => [] as CalendarEvent[])).filter(isVisibleCalendarEvent);
     const now = new Date();
     const nowTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
     const ahead = events
@@ -70,13 +71,13 @@ export default function HomeScreen() {
     const next = ahead[0] ?? null;
 
     if (mode === "player") {
-      const [stats, tasks] = await Promise.all([getPlayerStats(user!.id).catch(() => null), listMyTasks().catch(() => [])]);
+      const [stats, tasks] = await Promise.all([getPlayerStats(user!.id).catch(() => null), TEAM_FEATURES_VISIBLE ? listMyTasks().catch(() => []) : Promise.resolve([])]);
       const openTasks = tasks.filter((t) => ["assigned", "viewed", "in_progress", "needs_revision"].includes(t.assignment.status)).length;
       return { events, next, ahead, stats, openTasks, teams: [] as Team[], requests: 0, toReview: 0 };
     }
-    const [teams, requests] = await Promise.all([listMyTeams().catch(() => [] as Team[]), listCoachPendingBookings().catch(() => [])]);
+    const [teams, requests] = await Promise.all([TEAM_FEATURES_VISIBLE ? listMyTeams().catch(() => [] as Team[]) : Promise.resolve([] as Team[]), listCoachPendingBookings().catch(() => [])]);
     const staffTeams = teams.filter((t) => t.myRole === "head_coach" || t.myRole === "assistant_coach");
-    const tasks = (await Promise.all(staffTeams.map((t) => listTeamTasks(t.id).catch(() => [])))).flat();
+    const tasks = TEAM_FEATURES_VISIBLE ? (await Promise.all(staffTeams.map((t) => listTeamTasks(t.id).catch(() => [])))).flat() : [];
     const toReview = tasks.reduce((n, t) => n + t.assignments.filter((a) => a.status === "submitted").length, 0);
     // The website's coach panel: load, who needs attention and recent results of the (first) team.
     return { events, next, ahead, stats: null, openTasks: 0, teams: staffTeams, requests: requests.length, toReview };
@@ -85,7 +86,7 @@ export default function HomeScreen() {
   // The coach's panel works on one team at a time (the website's team chips); the first one until another is picked.
   const coachTeams = data.data?.teams ?? [];
   const selectedTeam = coachTeams.find((t) => t.id === pickedTeam) ?? coachTeams[0] ?? null;
-  const teamStatsLoad = useLoad(async () => (selectedTeam ? await getTeamStats(selectedTeam.id).catch(() => null) : null), [selectedTeam?.id]);
+  const teamStatsLoad = useLoad(async () => (TEAM_FEATURES_VISIBLE && selectedTeam ? await getTeamStats(selectedTeam.id).catch(() => null) : null), [selectedTeam?.id]);
   const teamStats = teamStatsLoad.data ?? null;
   const featured = useLoad(async () => user ? featuredPost().catch(() => null) : null, [user?.id]);
 
@@ -121,8 +122,8 @@ export default function HomeScreen() {
   const attention = [
     unread.count > 0 ? { icon: "notifications-outline" as const, title: "Новые уведомления", badge: unread.count, to: "/notifications" as Href } : null,
     d && d.requests > 0 ? { icon: "person-add-outline" as const, title: "Заявки на запись", badge: d.requests, to: "/bookings" as Href } : null,
-    d && d.toReview > 0 ? { icon: "checkmark-done-outline" as const, title: "Отчёты ждут проверки", badge: d.toReview, to: "/my-tasks" as Href } : null,
-    d && d.openTasks > 0 ? { icon: "clipboard-outline" as const, title: "Задания к выполнению", badge: d.openTasks, to: "/my-tasks" as Href } : null,
+    TEAM_FEATURES_VISIBLE && d && d.toReview > 0 ? { icon: "checkmark-done-outline" as const, title: "Отчёты ждут проверки", badge: d.toReview, to: "/my-tasks" as Href } : null,
+    TEAM_FEATURES_VISIBLE && d && d.openTasks > 0 ? { icon: "clipboard-outline" as const, title: "Задания к выполнению", badge: d.openTasks, to: "/my-tasks" as Href } : null,
   ].filter((x): x is NonNullable<typeof x> => x !== null);
 
   return (
@@ -149,15 +150,15 @@ export default function HomeScreen() {
       <NextEventHero
         event={d?.next ?? null}
         onPress={() => (d?.next ? openEvent(d.next) : router.push("/calendar"))}
-        emptyText={mode === "coach" ? "Создайте тренировку или матч для команды." : "Создайте личную тренировку или найдите тренера."}
+        emptyText={mode === "coach" ? "Добавьте тренировку или примите запись на занятие." : "Создайте личную тренировку или найдите тренера."}
       />
 
       {mode === "player" && d?.stats ? (
         <View style={homeStyles.grid2}>
-          <BigStat value={formatRate(d.stats.attendanceRate)} label="Посещаемость" />
-          <BigStat value={d.stats.activityStreak} label="Серия посещений" />
-          <BigStat value={d.stats.tasksCompleted} label="Заданий выполнено" />
-          <BigStat value={d.stats.tasksOverdue} label="Просрочено" />
+          {TEAM_FEATURES_VISIBLE ? <BigStat value={formatRate(d.stats.attendanceRate)} label="Посещаемость" /> : <BigStat value={d.stats.personalTrainingsCount} label="Личных тренировок" />}
+          {TEAM_FEATURES_VISIBLE ? <BigStat value={d.stats.activityStreak} label="Серия посещений" /> : <BigStat value={d.stats.metrics.length} label="Показателей" />}
+          {TEAM_FEATURES_VISIBLE && <BigStat value={d.stats.tasksCompleted} label="Заданий выполнено" />}
+          {TEAM_FEATURES_VISIBLE && <BigStat value={d.stats.tasksOverdue} label="Просрочено" />}
         </View>
       ) : null}
       {mode === "coach" && d && !d.teams.length ? (
@@ -167,7 +168,7 @@ export default function HomeScreen() {
           <BigStat value={d.requests} label="Новых заявок" />
         </View>
       ) : null}
-      {mode === "coach" && d?.teams.length ? (
+      {TEAM_FEATURES_VISIBLE && mode === "coach" && d?.teams.length ? (
         <View style={homeStyles.grid2}>
           <BigStat value={d.teams.length} label="Команд" />
           <BigStat value={weekEvents.filter(pending).length} label="Событий на неделе" />
@@ -184,14 +185,14 @@ export default function HomeScreen() {
       ) : null}
       <View style={homeStyles.quickRow}>
         <QuickAction icon="barbell-outline" label="Тренировка" onPress={() => create("training")} />
-        {mode === "coach" && d?.teams.length ? (
+        {TEAM_FEATURES_VISIBLE && mode === "coach" && d?.teams.length ? (
           <>
             <QuickAction icon="clipboard-outline" label="Задание" onPress={() => create("task")} />
             <QuickAction icon="football-outline" label="Матч" onPress={() => create("match")} />
           </>
         ) : mode === "player" ? (
           <>
-            <QuickAction icon="clipboard-outline" label="Задания" onPress={() => router.push("/my-tasks")} />
+            {TEAM_FEATURES_VISIBLE && <QuickAction icon="clipboard-outline" label="Задания" onPress={() => router.push("/my-tasks")} />}
             <QuickAction icon="stats-chart-outline" label="Статистика" onPress={() => router.push("/stats")} />
           </>
         ) : null}
@@ -206,7 +207,7 @@ export default function HomeScreen() {
         </Card>
       ) : null}
 
-      {mode === "coach" && selectedTeam && teamStats ? (
+      {TEAM_FEATURES_VISIBLE && mode === "coach" && selectedTeam && teamStats ? (
         <>
           <Card>
             <Text variant="heading">Нагрузка команды{coachTeams.length > 1 ? ` · ${selectedTeam.name}` : ""}</Text>
@@ -241,8 +242,8 @@ export default function HomeScreen() {
 
       {mode === "player" && d?.stats ? (
         <>
-          <AiText title="Рекомендации ИИ" heading="Рекомендации ИИ" load={getProgressAnalysis} />
-          <Card>
+          {TEAM_FEATURES_VISIBLE && <AiText title="Рекомендации ИИ" heading="Рекомендации ИИ" load={getProgressAnalysis} />}
+          {TEAM_FEATURES_VISIBLE && <Card>
             <Text variant="heading">Последние матчи</Text>
             {d.stats.matchesHistory.length === 0 ? <Text muted>Пока нет сыгранных матчей.</Text> : null}
             {d.stats.matchesHistory.slice(0, 3).map((m, i) => (
@@ -250,7 +251,7 @@ export default function HomeScreen() {
                 {m.opponentName} · {m.ourScore ?? "–"}:{m.opponentScore ?? "–"} · {formatDayTitle(m.matchDate)}
               </Text>
             ))}
-          </Card>
+          </Card>}
         </>
       ) : null}
 

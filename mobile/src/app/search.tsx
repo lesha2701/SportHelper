@@ -2,6 +2,7 @@ import { Stack, router } from "expo-router";
 import { useEffect, useState } from "react";
 import { searchAll, type SearchResult, type SearchResultType } from "@/api/search";
 import { toFormError } from "@/lib/formError";
+import { isVisibleSearchResult } from "@/lib/featureVisibility";
 import { Card } from "@/ui/Card";
 import { Notice } from "@/ui/Notice";
 import { Screen } from "@/ui/Screen";
@@ -44,7 +45,7 @@ export default function SearchScreen() {
     let current = true;
     const timer = setTimeout(() => {
       searchAll(text)
-        .then((found) => current && (setResults(found), setError(null)))
+        .then((found) => current && (setResults(found.filter(isVisibleSearchResult)), setError(null)))
         .catch((e: unknown) => current && setError(toFormError(e).message));
     }, 350);
     return () => {
@@ -57,7 +58,7 @@ export default function SearchScreen() {
     <>
       <Stack.Screen options={{ headerShown: true, title: "Поиск" }} />
       <Screen header>
-        <TextField label="Что искать" value={query} onChangeText={setQuery} autoFocus placeholder="Команда, игрок, упражнение…" />
+        <TextField label="Что искать" value={query} onChangeText={setQuery} autoFocus placeholder="Тренер, тренировка, упражнение…" />
         {error ? <Notice kind="danger">{error}</Notice> : null}
         {results?.length === 0 ? <Text muted>Ничего не найдено.</Text> : null}
         {results?.map((r) => (
