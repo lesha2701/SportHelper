@@ -42,6 +42,7 @@ import type { NotificationCategory } from "./types/notification";
 import { navigate, useLocation } from "./router";
 import { useActivityPing } from "./hooks/useActivityPing";
 import { loadView, saveView } from "./lib/viewState";
+import { TEAM_FEATURES_VISIBLE, isVisibleNotification, isVisibleSearchResult } from "./featureVisibility";
 /** A notification about an article: the blog lives on its own addresses, so this just hands over to it. */
 function BlogPostRedirect({ postId, onOpen }: { postId: string; onOpen: () => void }) {
   useEffect(() => {
@@ -66,7 +67,7 @@ function monthKicker(): string {
 }
 
 function readInviteToken(): string | null {
-  return new URLSearchParams(window.location.search).get("invite");
+  return TEAM_FEATURES_VISIBLE ? new URLSearchParams(window.location.search).get("invite") : null;
 }
 
 interface DeepLink {
@@ -98,7 +99,7 @@ function readNotificationDeepLink(): DeepLink | null {
   const params = new URLSearchParams(window.location.search);
   const category = params.get("open");
   const entityId = params.get("id");
-  if (!category || !entityId) return null;
+  if (!category || !entityId || !isVisibleNotification({ category })) return null;
   return { category: category as NotificationCategory, entityId };
 }
 
@@ -147,7 +148,7 @@ function coachTopBar(tab: CoachTab, onCreateTraining: () => void, onHeadingActio
     case "dashboard":
       return { kicker: dateKicker(), title: "Тренерская панель", cta: { label: "Тренировка", icon: "plus", onClick: onCreateTraining } };
     case "library":
-      return { kicker: "Упражнения, планы, шаблоны", title: "Библиотека", cta: { label: "Создать", icon: "plus", onClick: onHeadingAction } };
+      return { kicker: TEAM_FEATURES_VISIBLE ? "Упражнения, планы, шаблоны" : "Упражнения и планы", title: "Библиотека", cta: { label: "Создать", icon: "plus", onClick: onHeadingAction } };
     case "calendar":
       return { kicker: monthKicker(), title: "Календарь", cta: { label: "Добавить тренировку", icon: "plus", onClick: onCreateTraining } };
     case "coaches":
@@ -286,6 +287,7 @@ function MainContent({
 
   const [teams, setTeams] = useState<Team[] | null>(null);
   useEffect(() => {
+    if (!TEAM_FEATURES_VISIBLE) { setTeams([]); return; }
     listMyTeams(token)
       .then(setTeams)
       .catch(() => setTeams([]));
@@ -306,7 +308,7 @@ function MainContent({
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const refreshUnreadNotifications = () => {
     listNotifications(token)
-      .then((items) => setUnreadNotifications(items.filter((n) => !n.readAt).length))
+      .then((items) => setUnreadNotifications(items.filter((n) => !n.readAt && isVisibleNotification(n)).length))
       .catch(() => {});
   };
   useEffect(() => {
@@ -337,7 +339,7 @@ function MainContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
-  const [overlay, setOverlay] = useState<Overlay>(startsFromLink ? null : (savedView.overlay ?? null));
+  const [overlay, setOverlay] = useState<Overlay>(startsFromLink ? null : (savedView.overlay && (TEAM_FEATURES_VISIBLE || !["team", "match-detail", "task-detail"].includes(savedView.overlay.kind)) ? savedView.overlay : null));
   useEffect(() => {
     saveView(myUserId, { coachTab, playerTab, overlay });
   }, [myUserId, coachTab, playerTab, overlay]);
@@ -373,12 +375,12 @@ function MainContent({
     if (!deepLink || appliedDeepLinkRef.current) return;
     appliedDeepLinkRef.current = true;
     const target = notificationToOverlay(deepLink.category, deepLink.entityId);
-    if (target) setOverlay(target);
+    if (target && (TEAM_FEATURES_VISIBLE || !["team", "match-detail", "task-detail"].includes(target.kind))) setOverlay(target);
   }, [deepLink]);
 
   const initialTeamAppliedRef = useRef(false);
   useEffect(() => {
-    if (!initialTeamId || initialTeamAppliedRef.current) return;
+    if (!TEAM_FEATURES_VISIBLE || !initialTeamId || initialTeamAppliedRef.current) return;
     initialTeamAppliedRef.current = true;
     setOverlay({ kind: "team", teamId: initialTeamId });
   }, [initialTeamId]);
@@ -390,7 +392,7 @@ function MainContent({
   let overlayContent: ReactNode = null;
   if (overlay?.kind === "my-stats" && myUserId) {
     overlayContent = <PlayerStatsScreen token={token} userId={myUserId} onBack={closeOverlay} />;
-  } else if (overlay?.kind === "team") {
+  } else if (TEAM_FEATURES_VISIBLE && overlay?.kind === "team") {
     overlayContent = <TeamDetailScreen token={token} teamId={overlay.teamId} onBack={closeOverlay} />;
   } else if (overlay?.kind === "training-create") {
     overlayContent = (
@@ -426,7 +428,7 @@ function MainContent({
         onEdit={(training) => setOverlay({ kind: "training-edit", training })}
       />
     );
-  } else if (overlay?.kind === "match-detail") {
+  } else if (TEAM_FEATURES_VISIBLE && overlay?.kind === "match-detail") {
     overlayContent = (
       <MatchDetail
         token={token}
@@ -437,7 +439,7 @@ function MainContent({
         onDeleted={closeOverlay}
       />
     );
-  } else if (overlay?.kind === "task-detail") {
+  } else if (TEAM_FEATURES_VISIBLE && overlay?.kind === "task-detail") {
     overlayContent = (
       <TaskDetail
         token={token}
@@ -458,7 +460,7 @@ function MainContent({
         }}
         onOpen={(notification) => {
           setUnreadNotifications((prev) => Math.max(0, prev - (notification.readAt ? 0 : 1)));
-          const target = notificationToOverlay(notification.category, notification.entityId);
+          const target = isVisibleNotification(notification) ? notificationToOverlay(notification.category, notification.entityId) : null;
           setOverlay(target ? { ...target, backTo: { kind: "notifications" } } : null);
         }}
       />
@@ -540,6 +542,7 @@ function MainContent({
     [isCoachMode, leaveBlog],
   );
   const handleSearchSelect = (result: SearchResult) => {
+    if (!isVisibleSearchResult(result)) return;
     leaveBlog();
     switch (result.type) {
       case "team":
@@ -573,7 +576,7 @@ function MainContent({
   };
   const searchConfig = {
     run: (query: string) =>
-      searchAll(token, query).then((found) => (isCoachMode ? found : found.filter((r) => r.type !== "exercise"))),
+      searchAll(token, query).then((found) => (isCoachMode ? found : found.filter((r) => r.type !== "exercise")).filter(isVisibleSearchResult)),
     onSelect: handleSearchSelect,
   };
   const onCreateTraining = () => setOverlay({ kind: "training-create" });

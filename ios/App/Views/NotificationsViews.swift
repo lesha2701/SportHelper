@@ -5,6 +5,8 @@ import SwiftUI
 struct NotificationBell: View {
     @Environment(AuthStore.self) private var auth
 
+    private var visibleUnread: Int { auth.notifications.items.filter { $0.isUnread && FeatureVisibility.notification($0) }.count }
+
     var body: some View {
         NavigationLink {
             NotificationsView()
@@ -14,9 +16,9 @@ struct NotificationBell: View {
                 .frame(width: 38, height: 38)
                 .background(Theme.surface, in: Circle())
                 .overlay(Circle().strokeBorder(Theme.border, lineWidth: 1))
-                .overlay(alignment: .topTrailing) { UnreadBadge(count: auth.notifications.unread) }
+                .overlay(alignment: .topTrailing) { UnreadBadge(count: visibleUnread) }
         }
-        .accessibilityLabel(auth.notifications.unread > 0 ? "Уведомления, непрочитанных: \(auth.notifications.unread)" : "Уведомления")
+        .accessibilityLabel(visibleUnread > 0 ? "Уведомления, непрочитанных: \(visibleUnread)" : "Уведомления")
         .accessibilityIdentifier("notifications.bell")
     }
 }
@@ -25,15 +27,17 @@ struct NotificationBell: View {
 struct NotificationsLink: View {
     @Environment(AuthStore.self) private var auth
 
+    private var visibleUnread: Int { auth.notifications.items.filter { $0.isUnread && FeatureVisibility.notification($0) }.count }
+
     var body: some View {
         NavigationLink(value: ProfileRoute.notifications) {
             HStack {
                 Label("Уведомления", systemImage: "bell")
                 Spacer()
-                if auth.notifications.unread > 0 {
-                    Text("\(auth.notifications.unread)").font(.caption.bold()).foregroundStyle(.white)
+                if visibleUnread > 0 {
+                    Text("\(visibleUnread)").font(.caption.bold()).foregroundStyle(.white)
                         .padding(.horizontal, 7).padding(.vertical, 2).background(Theme.primary, in: Capsule())
-                        .accessibilityLabel("Непрочитанных: \(auth.notifications.unread)")
+                        .accessibilityLabel("Непрочитанных: \(visibleUnread)")
                 }
             }
         }
@@ -81,13 +85,14 @@ struct NotificationsView: View {
                     Button("Повторить") { Task { await store.refresh() } }
                 }
             case .loaded(let items):
-                if items.isEmpty { empty } else { list(items) }
+                let visible = items.filter(FeatureVisibility.notification)
+                if visible.isEmpty { empty } else { list(visible) }
             }
         }
         .sagMainBar("Уведомления")
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                if store.unread > 0 {
+                if store.items.contains(where: { $0.isUnread && FeatureVisibility.notification($0) }) {
                     Button("Прочитать все") { Task { await store.markAllRead() } }.accessibilityIdentifier("notifications.readAll")
                 }
                 Button { destination = .settings } label: { Image(systemName: "gearshape") }
@@ -114,7 +119,7 @@ struct NotificationsView: View {
     }
 
     private var empty: some View {
-        ContentUnavailableView("Пока нет уведомлений", systemImage: "bell", description: Text("Здесь появятся напоминания, заявки и новости команд."))
+        ContentUnavailableView("Пока нет уведомлений", systemImage: "bell", description: Text("Здесь появятся напоминания о занятиях и заявки."))
             .accessibilityIdentifier("notifications.empty")
     }
 
@@ -196,7 +201,7 @@ struct NotificationSettingsView: View {
             }
             if let preferences = store.preferences {
                 Section {
-                    ForEach(preferences) { preference in
+                    ForEach(preferences.filter { FeatureVisibility.teams || ![.taskDeadline, .newTraining, .newMatch, .newTask, .chatTeam].contains($0.category) }) { preference in
                         Toggle(preference.category.settingsTitle, isOn: Binding(
                             get: { preference.enabled },
                             set: { value in Task { await store.set(preference.category, enabled: value) } }

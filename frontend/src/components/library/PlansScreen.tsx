@@ -1,5 +1,6 @@
 import { useHeadingAction, useHeadingActionVisible } from "../../hooks/useHeadingAction";
 import { useCallback, useEffect, useState } from "react";
+import { TEAM_FEATURES_VISIBLE } from "../../featureVisibility";
 import { listMyPlans, sharePlan, duplicatePlan } from "../../api/plans";
 import { listMyTeams } from "../../api/teams";
 import { ApiError } from "../../api/client";
@@ -87,10 +88,10 @@ function PlanDetailPanel({
             <span className={libStyles.detailStatValue}>{plan.exercises.length}</span>
             <span className={libStyles.detailStatLabel}>упражнений</span>
           </div>
-          <div className={libStyles.detailStatTile}>
+          {TEAM_FEATURES_VISIBLE && <div className={libStyles.detailStatTile}>
             <span className={libStyles.detailStatValue}>{sharedTeams.length}</span>
             <span className={libStyles.detailStatLabel}>{sharedTeams.length === 1 ? "команда" : "команд"}</span>
-          </div>
+          </div>}
         </div>
 
         {plan.exercises.length > 0 && (
@@ -107,7 +108,7 @@ function PlanDetailPanel({
           </div>
         )}
 
-        <div>
+        {TEAM_FEATURES_VISIBLE && <div>
           <span className={libStyles.detailSharedLabel}>Показано командам</span>
           <div className={libStyles.detailSharedRow} style={{ marginTop: 8 }}>
             {sharedTeams.map((t) => (
@@ -130,7 +131,7 @@ function PlanDetailPanel({
               ))}
             </div>
           )}
-        </div>
+        </div>}
 
         {error && <p className={profileStyles.error}>{error}</p>}
 
@@ -292,7 +293,7 @@ export function PlansScreen({ token, createRequest }: { token: string; createReq
                       </p>
                       <div className={libStyles.libCardFooter}>
                         <span>{count(plan.exercises.length, "упражнение", "упражнения", "упражнений")}</span>
-                        <span>{plan.sharedTeamIds.length > 0 ? count(plan.sharedTeamIds.length, "команда", "команды", "команд") : "личное"}</span>
+                        {TEAM_FEATURES_VISIBLE && <span>{plan.sharedTeamIds.length > 0 ? count(plan.sharedTeamIds.length, "команда", "команды", "команд") : "личное"}</span>}
                       </div>
                     </button>
                   ))}

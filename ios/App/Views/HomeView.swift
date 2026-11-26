@@ -33,7 +33,7 @@ struct HomeView: View {
                     AppTopBar { SearchButton(); NotificationBell() }
                     heading
                     FeaturedPostCard()
-                    if user.isCoach { coachContent } else { playerContent }
+                    if user.isCoach { if FeatureVisibility.teams { coachContent } else { coachWithoutTeam } } else { playerContent }
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
@@ -45,7 +45,7 @@ struct HomeView: View {
             // Coming back to the tab shows what changed meanwhile (a training scheduled in a team, one marked as held).
             .onChange(of: auth.router.tab) { _, tab in if tab == .home { Task { await reload() } } }
             .task(id: selectedTeam?.id) {
-                guard user.isCoach, let team = selectedTeam else { return }
+                guard FeatureVisibility.teams, user.isCoach, let team = selectedTeam else { return }
                 home.select(team.id)
                 await home.loadTeam(team.id)
             }
@@ -79,11 +79,11 @@ struct HomeView: View {
     }
 
     private func reload() async {
-        if case .loading = auth.teams.mine { await auth.teams.reloadMine() } else { await auth.teams.reloadMine() }
+        if FeatureVisibility.teams { await auth.teams.reloadMine() }
         async let events: Void = home.loadEvents()
         if user.isCoach {
             if staffTeams.isEmpty { await auth.bookings.reloadPending() }
-            if let team = selectedTeam { home.select(team.id); await home.loadTeam(team.id) }
+            if FeatureVisibility.teams, let team = selectedTeam { home.select(team.id); await home.loadTeam(team.id) }
         } else {
             await home.loadPlayer(user: user.id)
         }
@@ -101,18 +101,17 @@ struct HomeView: View {
         .accessibilityIdentifier("home.addPersonal")
         switch home.playerStats {
         case .loaded(let stats):
-            StatTiles([
-                (StatsFormat.rate(stats.attendanceRate), "Посещаемость"), ("\(stats.activityStreak)", "Серия посещений"),
-                ("\(stats.tasksCompleted)", "Заданий выполнено"), ("\(stats.tasksOverdue)", "Просрочено"),
-            ])
+            StatTiles(FeatureVisibility.teams
+                ? [(StatsFormat.rate(stats.attendanceRate), "Посещаемость"), ("\(stats.activityStreak)", "Серия посещений"), ("\(stats.tasksCompleted)", "Заданий выполнено"), ("\(stats.tasksOverdue)", "Просрочено")]
+                : [("\(stats.personalTrainingsCount)", "Личных тренировок"), ("\(stats.metrics.count)", "Показателей")])
             moreLink("Вся статистика", id: "home.myStats") { PlayerStatsView(userId: user.id) }
         case .failed(let message): problem(message)
         case .loading: ProgressView().frame(maxWidth: .infinity).padding()
         }
-        tasksCard
+        if FeatureVisibility.teams { tasksCard }
         weekCard
         upcomingCard
-        if let stats = home.playerStats.value {
+        if FeatureVisibility.teams, let stats = home.playerStats.value {
             matchesCard(stats.recentMatches().map { entry in
                 MatchLine(
                     id: entry.id, opponent: entry.opponentName,
@@ -184,17 +183,17 @@ struct HomeView: View {
             let today = LocalDate.today()
             let pending: String = if case .loaded(let list) = auth.bookings.pending { "\(list.count)" } else { "—" }
             StatTiles([
-                ("\(HomeLogic.comingThisWeek(events, today: today).count)", "Занятий на этой неделе"),
-                ("\(HomeLogic.upcoming(events, today: today).count)", "Событий в ближайшие 2 недели"),
+                ("\(HomeLogic.comingThisWeek(events.filter(FeatureVisibility.calendar), today: today).count)", "Занятий на этой неделе"),
+                ("\(HomeLogic.upcoming(events.filter(FeatureVisibility.calendar), today: today).count)", "Событий в ближайшие 2 недели"),
                 (pending, "Новых заявок"),
             ])
         }
         weekCard
         upcomingCard
-        DashboardCard("Команда") {
+        if FeatureVisibility.teams { DashboardCard("Команда") {
             Text("Создайте команду, чтобы видеть здесь посещаемость, нагрузку и матчи.").foregroundStyle(.secondary)
             Button("Создать команду") { auth.router.tab = .teams }.buttonStyle(.sag).accessibilityIdentifier("home.createTeam")
-        }
+        } }
     }
 
     private var teamSwitcher: some View {
@@ -273,8 +272,10 @@ struct HomeView: View {
         HStack(spacing: 10) {
             if let team = selectedTeam {
                 quickButton("Тренировка", "figure.run", id: "home.quick.training") { quick = .training(team) }
-                quickButton("Задание", "checklist", id: "home.quick.task") { quick = .task(team) }
-                quickButton("Матч", "sportscourt", id: "home.quick.match") { quick = .match(team) }
+                if FeatureVisibility.teams {
+                    quickButton("Задание", "checklist", id: "home.quick.task") { quick = .task(team) }
+                    quickButton("Матч", "sportscourt", id: "home.quick.match") { quick = .match(team) }
+                }
             }
         }
     }
@@ -299,10 +300,10 @@ struct HomeView: View {
     @ViewBuilder private var nextEventCard: some View {
         switch home.events {
         case .loaded(let events):
-            if let next = HomeLogic.nextEvent(in: events, today: .today()) {
+            if let next = HomeLogic.nextEvent(in: events.filter(FeatureVisibility.calendar), today: .today()) {
                 EventLink(event: next, identifier: "home.next") { HeroEventCard(event: next) }.buttonStyle(.plain)
             } else {
-                HeroEmptyCard(text: user.isCoach ? "Запланируйте тренировку или матч" : "Запишитесь на тренировку или дождитесь назначения от тренера")
+                HeroEmptyCard(text: user.isCoach ? "Добавьте тренировку или примите запись на занятие" : "Запишитесь на тренировку или создайте личную")
             }
         case .failed(let message): problem(message)
         case .loading: ProgressView().frame(maxWidth: .infinity).padding()
@@ -310,12 +311,12 @@ struct HomeView: View {
     }
 
     @ViewBuilder private var weekCard: some View {
-        if let events = home.events.value { WeekCard(events: events, today: .today()) }
+        if let events = home.events.value { WeekCard(events: events.filter(FeatureVisibility.calendar), today: .today()) }
     }
 
     @ViewBuilder private var upcomingCard: some View {
         if let events = home.events.value {
-            let list = HomeLogic.upcoming(events, today: .today())
+            let list = HomeLogic.upcoming(events.filter(FeatureVisibility.calendar), today: .today())
             // the first one is already the big card
             let rest = Array(list.dropFirst().prefix(4))
             if !rest.isEmpty {

@@ -3,6 +3,7 @@ import { ExercisesScreen } from "./ExercisesScreen";
 import { PlansScreen } from "./PlansScreen";
 import { TaskTemplatesScreen } from "./TaskTemplatesScreen";
 import styles from "../teams/teams.module.css";
+import { TEAM_FEATURES_VISIBLE } from "../../featureVisibility";
 
 type Tab = "exercises" | "plans" | "tasks";
 
@@ -20,15 +21,15 @@ export function LibraryScreen({ token, createRequest }: { token: string; createR
           <button type="button" className={tab === "plans" ? styles.realTabActive : styles.realTab} onClick={() => setTab("plans")}>
             Планы
           </button>
-          <button type="button" className={tab === "tasks" ? styles.realTabActive : styles.realTab} onClick={() => setTab("tasks")}>
+          {TEAM_FEATURES_VISIBLE && <button type="button" className={tab === "tasks" ? styles.realTabActive : styles.realTab} onClick={() => setTab("tasks")}>
             Задания
-          </button>
+          </button>}
         </div>
       </div>
 
       {tab === "exercises" && <ExercisesScreen token={token} createRequest={createRequest} />}
       {tab === "plans" && <PlansScreen token={token} createRequest={createRequest} />}
-      {tab === "tasks" && <TaskTemplatesScreen token={token} createRequest={createRequest} />}
+      {TEAM_FEATURES_VISIBLE && tab === "tasks" && <TaskTemplatesScreen token={token} createRequest={createRequest} />}
     </>
   );
 }

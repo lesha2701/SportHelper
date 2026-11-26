@@ -7,6 +7,7 @@ import { getPlayerStats } from "@/api/stats";
 import { useAuth } from "@/auth/AuthProvider";
 import { toFormError } from "@/lib/formError";
 import { useLoad } from "@/lib/useLoad";
+import { TEAM_FEATURES_VISIBLE } from "@/lib/featureVisibility";
 import { formatRuDate } from "@/shared/lib/dates";
 import { MATCH_RESULT_LABELS } from "@/shared/types/match";
 import { formatRate } from "@/shared/types/stats";
@@ -58,15 +59,17 @@ export default function StatsScreen() {
       <Stack.Screen options={{ headerShown: true, title: own ? "Моя статистика" : params.name ? `Статистика: ${params.name}` : "Статистика игрока" }} />
       <Screen header>
         <StatGrid>
-          <StatTile value={formatRate(s.attendanceRate)} label="посещаемость" />
-          <StatTile value={`${s.trainingsAttended}/${s.trainingsTotal}`} label="тренировок" />
-          <StatTile value={Math.round(s.trainingMinutes / 60)} label="часов тренировок" />
-          <StatTile value={s.activityStreak} label="дней подряд" />
-          <StatTile value={`${s.tasksCompleted}/${s.tasksTotal}`} label="заданий выполнено" />
-          <StatTile value={s.tasksOverdue} label="просрочено" />
+          {TEAM_FEATURES_VISIBLE && <StatTile value={formatRate(s.attendanceRate)} label="посещаемость" />}
+          {TEAM_FEATURES_VISIBLE && <StatTile value={`${s.trainingsAttended}/${s.trainingsTotal}`} label="тренировок" />}
+          {TEAM_FEATURES_VISIBLE && <StatTile value={Math.round(s.trainingMinutes / 60)} label="часов тренировок" />}
+          {TEAM_FEATURES_VISIBLE && <StatTile value={s.activityStreak} label="дней подряд" />}
+          {!TEAM_FEATURES_VISIBLE && <StatTile value={s.personalTrainingsCount} label="личных тренировок" />}
+          {!TEAM_FEATURES_VISIBLE && <StatTile value={s.metrics.length} label="показателей" />}
+          {TEAM_FEATURES_VISIBLE && <StatTile value={`${s.tasksCompleted}/${s.tasksTotal}`} label="заданий выполнено" />}
+          {TEAM_FEATURES_VISIBLE && <StatTile value={s.tasksOverdue} label="просрочено" />}
         </StatGrid>
 
-        <AiText title="Анализ прогресса (ИИ)" heading="Анализ прогресса" load={getProgressAnalysis} />
+        {TEAM_FEATURES_VISIBLE && <AiText title="Анализ прогресса (ИИ)" heading="Анализ прогресса" load={getProgressAnalysis} />}
 
         {s.personalRecords.length > 0 ? (
           <Card>
@@ -107,7 +110,7 @@ export default function StatsScreen() {
           <Button title="Добавить показатель" variant="secondary" onPress={() => router.push({ pathname: "/metric-new", params: { userId } })} />
         </Card>
 
-        {s.matchesHistory.length > 0 ? (
+        {TEAM_FEATURES_VISIBLE && s.matchesHistory.length > 0 ? (
           <Card>
             <Text variant="heading">Матчи</Text>
             {s.matchesHistory.map((m) => (
@@ -119,7 +122,7 @@ export default function StatsScreen() {
           </Card>
         ) : null}
 
-        {s.coachComments.length > 0 ? (
+        {TEAM_FEATURES_VISIBLE && s.coachComments.length > 0 ? (
           <Card>
             <Text variant="heading">Комментарии тренера</Text>
             {s.coachComments.map((c, i) => (

@@ -161,7 +161,7 @@ export function PlanForm({ token, initial, onSaved, onCancel }: PlanFormProps) {
               className={profileStyles.textarea}
               value={aiGoals}
               onChange={(e) => setAiGoals(e.target.value)}
-              placeholder="Например: развитие командной игры в обороне"
+              placeholder="Например: развитие выносливости и техники"
               maxLength={1000}
             />
             <p className={profileStyles.requiredHint}>

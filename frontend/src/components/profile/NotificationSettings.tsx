@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getNotificationPreferences, setNotificationPreference } from "../../api/notifications";
 import { ApiError } from "../../api/client";
 import { NOTIFICATION_CATEGORY_LABELS, type NotificationPreference } from "../../types/notification";
+import { TEAM_FEATURES_VISIBLE } from "../../featureVisibility";
 import styles from "./profile.module.css";
 
 export function NotificationSettings({ token }: { token: string }) {
@@ -36,7 +37,7 @@ export function NotificationSettings({ token }: { token: string }) {
     <div className={styles.card}>
       <h2 className={styles.title}>Уведомления</h2>
       {error && <p className={styles.error}>{error}</p>}
-      {preferences.map((preference) => (
+      {preferences.filter((preference) => TEAM_FEATURES_VISIBLE || !["task_deadline", "new_training", "new_match", "new_task", "chat_team"].includes(preference.category)).map((preference) => (
         <div className={styles.toggleRow} key={preference.category}>
           <div className={styles.toggleLabel}>
             <span className={styles.toggleTitle}>{NOTIFICATION_CATEGORY_LABELS[preference.category]}</span>

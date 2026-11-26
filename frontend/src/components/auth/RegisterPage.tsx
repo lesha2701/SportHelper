@@ -25,7 +25,7 @@ const SERVER_FIELD: Record<string, keyof FieldErrors> = {
 
 const ROLES: { value: Role; title: string; hint: string }[] = [
   { value: "player", title: "Я игрок", hint: "Ищу тренера, веду тренировки и статистику" },
-  { value: "coach", title: "Я тренер", hint: "Веду команды, публикую объявления и принимаю записи" },
+  { value: "coach", title: "Я тренер", hint: "Провожу занятия, публикую объявления и принимаю записи" },
 ];
 
 export function RegisterPage() {

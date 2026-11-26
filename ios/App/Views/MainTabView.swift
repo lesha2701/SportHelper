@@ -11,8 +11,8 @@ struct MainTabView: View {
     private var bar: [SagTabBar.Item] {
         var items = [
             SagTabBar.Item(tab: .home, title: "Главная", symbol: "house"),
-            SagTabBar.Item(tab: .teams, title: "Команды", symbol: "trophy", badge: auth.chatUnread.teamTotal),
         ]
+        if FeatureVisibility.teams { items.append(SagTabBar.Item(tab: .teams, title: "Команды", symbol: "trophy", badge: auth.chatUnread.teamTotal)) }
         if user.isCoach { items.append(SagTabBar.Item(tab: .library, title: "Библиотека", symbol: "book")) }
         items.append(SagTabBar.Item(tab: .calendar, title: "Календарь", symbol: "calendar"))
         if !user.isCoach { items.append(SagTabBar.Item(tab: .coaches, title: "Тренеры", symbol: "person.2")) }

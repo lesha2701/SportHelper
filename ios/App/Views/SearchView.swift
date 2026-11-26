@@ -52,7 +52,7 @@ struct SearchView: View {
             List {
                 switch outcome {
                 case .idle:
-                    Text("Введите хотя бы два символа: название команды, имя игрока или тренера, тренировку, матч, задание.")
+                    Text("Введите хотя бы два символа: имя тренера, тренировку или упражнение.")
                         .foregroundStyle(Theme.textSecondary).accessibilityIdentifier("search.hint")
                 case .searching:
                     ProgressView().frame(maxWidth: .infinity).listRowBackground(Color.clear)
@@ -128,7 +128,10 @@ struct SearchView: View {
         do {
             let found = try await auth.search.search(query)
             guard !Task.isCancelled else { return }
-            outcome = .found(SearchLogic.groups(found, isCoach: isCoach))
+            let visible = found.filter { result in
+                FeatureVisibility.teams || (![.team, .player, .match, .task].contains(result.type) && result.teamId == nil)
+            }
+            outcome = .found(SearchLogic.groups(visible, isCoach: isCoach))
         } catch let error as APIError {
             if !Task.isCancelled { outcome = .failed(error.message) }
         } catch {

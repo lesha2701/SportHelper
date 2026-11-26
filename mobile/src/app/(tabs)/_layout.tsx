@@ -3,6 +3,7 @@ import { Redirect, Tabs } from "expo-router";
 import { useState } from "react";
 import { completeOnboarding } from "@/api/users";
 import { useAuth } from "@/auth/AuthProvider";
+import { TEAM_FEATURES_VISIBLE } from "@/lib/featureVisibility";
 import { useProfile } from "@/profile/ProfileProvider";
 import { useTheme } from "@/theme/ThemeProvider";
 import { fonts } from "@/theme/tokens";
@@ -69,7 +70,9 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="home" options={{ title: "Главная", headerTitle: "SportArena", tabBarIcon: icon("home-outline") }} />
       <Tabs.Screen name="blog" options={{ title: "Статьи", tabBarIcon: icon("newspaper-outline"), headerShown: false }} />
-      <Tabs.Screen name="teams" options={{ href: null, title: "Команды" }} />
+      <Tabs.Protected guard={TEAM_FEATURES_VISIBLE}>
+        <Tabs.Screen name="teams" options={{ href: null, title: "Команды" }} />
+      </Tabs.Protected>
       <Tabs.Screen name="calendar" options={{ title: "Календарь", tabBarIcon: icon("calendar-outline") }} />
       <Tabs.Screen name="coaches" options={{ title: "Тренеры", tabBarIcon: icon("barbell-outline"), href: isCoach ? null : undefined }} />
       <Tabs.Screen name="library" options={{ title: "Библиотека", tabBarIcon: icon("library-outline"), href: isCoach ? undefined : null }} />

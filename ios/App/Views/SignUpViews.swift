@@ -203,7 +203,7 @@ struct RegisterView: View {
             Text("Кто вы? Роль выбирается один раз и потом не меняется")
                 .font(Theme.body(13, weight: .semibold, relativeTo: .subheadline)).foregroundStyle(Theme.text)
             roleCard(.player, title: "Я игрок", hint: "Ищу тренера, веду тренировки и статистику", symbol: "person")
-            roleCard(.coach, title: "Я тренер", hint: "Веду команды, публикую объявления и принимаю записи", symbol: "person.2")
+            roleCard(.coach, title: "Я тренер", hint: "Провожу занятия, публикую объявления и принимаю записи", symbol: "person.2")
             if let message = errors[.role] { Text(message).font(Theme.body(12)).foregroundStyle(Theme.danger) }
         }
     }

@@ -18,6 +18,7 @@ import dashStyles from "../dashboard/dashboard.module.css";
 import statsStyles from "./stats.module.css";
 import { navigateApp } from "../../appNav";
 import { pluralize } from "../../lib/plural";
+import { TEAM_FEATURES_VISIBLE } from "../../featureVisibility";
 import { TitleWithBack } from "../shared/BackArrow";
 
 const RING_RADIUS = 68;
@@ -101,7 +102,7 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
   };
 
   const hasActivity =
-    stats.trainingsTotal > 0 || stats.tasksTotal > 0 || stats.matchesHistory.length > 0 || stats.metrics.length > 0;
+    stats.personalTrainingsCount > 0 || stats.metrics.length > 0 || (TEAM_FEATURES_VISIBLE && (stats.trainingsTotal > 0 || stats.tasksTotal > 0 || stats.matchesHistory.length > 0));
 
   return (
     <div className={styles.screen}>
@@ -112,7 +113,7 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
       <div className={dashStyles.bento}>
         {hasActivity ? (
           <>
-        <div className={`${statsStyles.ringCard} ${dashStyles.span5}`}>
+        {TEAM_FEATURES_VISIBLE && <div className={`${statsStyles.ringCard} ${dashStyles.span5}`}>
           <div className={statsStyles.ringWrap}>
             <svg width="150" height="150" viewBox="0 0 150 150" className={statsStyles.ringSvg}>
               <circle cx="75" cy="75" r={RING_RADIUS} fill="none" stroke="var(--color-border-strong)" strokeWidth="14" />
@@ -138,12 +139,12 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
               {pluralize(stats.teamTrainingsCount, "тренировки", "тренировок", "тренировок")}
             </span>
           </div>
-        </div>
+        </div>}
 
         <div className={`${dashStyles.kpiRow} ${dashStyles.span7}`}>
-          <StatTile value={stats.activityStreak} label="Серия подряд" />
-          <StatTile value={`${stats.tasksCompleted}/${stats.tasksTotal}`} label="Заданий выполнено" />
-          <StatTile value={`${Math.round(stats.trainingMinutes / 60)} ч`} label="Тренировочное время" />
+          {TEAM_FEATURES_VISIBLE && <StatTile value={stats.activityStreak} label="Серия подряд" />}
+          {TEAM_FEATURES_VISIBLE && <StatTile value={`${stats.tasksCompleted}/${stats.tasksTotal}`} label="Заданий выполнено" />}
+          {TEAM_FEATURES_VISIBLE && <StatTile value={`${Math.round(stats.trainingMinutes / 60)} ч`} label="Тренировочное время" />}
           <StatTile value={stats.personalTrainingsCount} label="Личных тренировок" />
         </div>
           </>
@@ -151,7 +152,7 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
           <div className={`${dashStyles.card} ${dashStyles.span12}`}>
             <h3 className={dashStyles.cardTitle}>Статистика появится позже</h3>
             <p className={profileStyles.subtitle}>
-              Она соберётся после первых тренировок, матчей или отчётов по заданиям. Показатели можно добавлять и сейчас — ниже.
+              Она соберётся после первых тренировок. Показатели можно добавлять и сейчас — ниже.
             </p>
             {userId === myUserId && (
               <button type="button" className={profileStyles.buttonPrimary} onClick={() => navigateApp({ kind: "training-create" })}>
@@ -161,14 +162,14 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
           </div>
         )}
 
-        {userId === myUserId && (
+        {TEAM_FEATURES_VISIBLE && userId === myUserId && (
           <div className={`${statsStyles.aiCard} ${dashStyles.span4}`}>
             <div className={statsStyles.aiCardHead}>
               <Icon name="sparkles" size={18} />
               <span className={statsStyles.aiCardTitle}>Рекомендации ИИ</span>
             </div>
             {!aiRecommendation && (
-              <p className={profileStyles.subtitle}>ИИ проанализирует прогресс по тренировкам, заданиям и показателям.</p>
+              <p className={profileStyles.subtitle}>{TEAM_FEATURES_VISIBLE ? "ИИ проанализирует прогресс по тренировкам, заданиям и показателям." : "ИИ проанализирует прогресс по тренировкам и показателям."}</p>
             )}
             {aiRecommendation && <p className={profileStyles.subtitle}>{aiRecommendation}</p>}
             {aiError && <p className={profileStyles.error}>{aiError}</p>}
@@ -202,7 +203,7 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
           </div>
         )}
 
-        {stats.coachComments.length > 0 && (
+        {TEAM_FEATURES_VISIBLE && stats.coachComments.length > 0 && (
           <div className={`${dashStyles.card} ${dashStyles.span4}`}>
             <div className={dashStyles.cardHeader}>
               <h3 className={dashStyles.cardTitle}>Комментарии тренера</h3>
@@ -290,7 +291,7 @@ export function PlayerStatsScreen({ token, userId, onBack }: { token: string; us
           )}
         </div>
 
-        {stats.matchesHistory.length > 0 && (
+        {TEAM_FEATURES_VISIBLE && stats.matchesHistory.length > 0 && (
           <div className={`${dashStyles.card} ${dashStyles.span4}`}>
             <div className={dashStyles.cardHeader}>
               <h3 className={dashStyles.cardTitle}>История матчей</h3>

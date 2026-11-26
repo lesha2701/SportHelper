@@ -100,7 +100,7 @@ export function ClaimAccountPage() {
   return (
     <AuthLayout
       title={inspect.firstName ? `${inspect.firstName}, добро пожаловать` : "Перенос аккаунта"}
-      lead="Ваш аккаунт со всеми тренировками, командами и записями остаётся прежним. Укажите email и пароль — дальше вход будет как на обычном сайте."
+      lead="Ваш аккаунт со всеми тренировками и записями остаётся прежним. Укажите email и пароль — дальше вход будет как на обычном сайте."
     >
       <form className={styles.form} onSubmit={submit} noValidate>
         {formError && <Notice kind="danger">{formError}</Notice>}

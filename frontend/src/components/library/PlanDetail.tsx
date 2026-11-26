@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { TEAM_FEATURES_VISIBLE } from "../../featureVisibility";
 import { addPlanExercise, deletePlan, duplicatePlan, getPlan, removePlanExercise, sharePlan, unsharePlan } from "../../api/plans";
 import { listMyExercises } from "../../api/exercises";
 import { listMyTeams } from "../../api/teams";
@@ -218,7 +219,7 @@ export function PlanDetail({
         );
       })}
 
-      {isOwner && myCoachTeams.length > 0 && (
+      {TEAM_FEATURES_VISIBLE && isOwner && myCoachTeams.length > 0 && (
         <div className={profileStyles.card}>
           <h2 className={profileStyles.title}>Показать командам</h2>
           <p className={profileStyles.subtitle}>Участники увидят план как необязательный материал.</p>

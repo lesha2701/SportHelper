@@ -8,6 +8,7 @@ import type { NotificationCategory, NotificationItem } from "../../types/notific
 import profileStyles from "../profile/profile.module.css";
 import styles from "./notifications.module.css";
 import { TitleWithBack } from "../shared/BackArrow";
+import { isVisibleNotification } from "../../featureVisibility";
 
 const CATEGORY_ICON: Record<NotificationCategory, IconName> = {
   training_reminder: "calendar",
@@ -55,7 +56,7 @@ export function NotificationsScreen({
 
   useEffect(() => {
     listNotifications(token)
-      .then((items) => setState({ status: "ready", items }))
+      .then((items) => setState({ status: "ready", items: items.filter(isVisibleNotification) }))
       .catch((err: unknown) =>
         setState({ status: "error", message: err instanceof ApiError ? err.message : "Не удалось загрузить уведомления" }),
       );

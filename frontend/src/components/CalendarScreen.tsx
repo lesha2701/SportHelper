@@ -8,6 +8,7 @@ import { CALENDAR_EVENT_ICONS, type CalendarEvent, type CalendarEventType } from
 import styles from "./teams/teams.module.css";
 import profileStyles from "./profile/profile.module.css";
 import weekStyles from "./calendar.module.css";
+import { isVisibleCalendarEvent } from "../featureVisibility";
 
 const HOURS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
 const WEEK_ROW_HEIGHT = 52;
@@ -87,7 +88,7 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
   const load = useCallback(() => {
     setState({ status: "loading" });
     getCalendar(token, dateFrom, dateTo)
-      .then((events) => setState({ status: "ready", events }))
+      .then((events) => setState({ status: "ready", events: events.filter(isVisibleCalendarEvent) }))
       .catch((error: unknown) => {
         const message = error instanceof ApiError ? error.message : "Не удалось загрузить календарь";
         setState({ status: "error", message });
@@ -103,7 +104,7 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
     const end = new Date();
     end.setDate(end.getDate() + 60);
     getCalendar(token, toIso(start), toIso(end))
-      .then((events) => setOverdueCount(events.filter((event) => isEventOverdue(event, toIso(new Date()))).length))
+      .then((events) => setOverdueCount(events.filter((event) => isVisibleCalendarEvent(event) && isEventOverdue(event, toIso(new Date()))).length))
       .catch(() => {
         // Best-effort — the badge just omits a count on failure, the
         // "Просрочено" tab itself still refetches when opened.
@@ -215,7 +216,7 @@ export function CalendarScreen({ token, onOpenEvent, onCreateTraining }: Calenda
           description={
             mode === "overdue"
               ? "Все тренировки идут по плану."
-              : "Здесь появятся тренировки, матчи и дедлайны заданий."
+              : "Здесь появятся ваши тренировки и занятия."
           }
         />
         {mode !== "overdue" && onCreateTraining && (

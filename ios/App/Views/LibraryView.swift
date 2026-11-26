@@ -15,7 +15,7 @@ struct LibraryView: View {
         NavigationStack(path: $path) {
             VStack(spacing: 0) {
                 Picker("Раздел", selection: $section) {
-                    ForEach(Section.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(Section.allCases.filter { FeatureVisibility.teams || $0 != .templates }) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal)

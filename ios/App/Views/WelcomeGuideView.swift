@@ -11,7 +11,7 @@ struct WelcomeGuideView: View {
     let onFinish: () -> Void
 
     @State private var index = 0
-    private let steps = WelcomeGuide.steps
+    private let steps = WelcomeGuide.steps.filter { FeatureVisibility.teams || !["coach-team", "tasks"].contains($0.id) }
 
     private var step: WelcomeStep { steps[index] }
     private var isLast: Bool { index == steps.count - 1 }

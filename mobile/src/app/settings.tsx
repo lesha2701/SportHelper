@@ -12,6 +12,7 @@ import { Toggle } from "@/ui/Toggle";
 import { useAuth } from "@/auth/AuthProvider";
 import { toFormError } from "@/lib/formError";
 import { NOTIFICATION_CATEGORY_LABELS, type NotificationPreference } from "@/shared/types/notification";
+import { TEAM_FEATURES_VISIBLE } from "@/lib/featureVisibility";
 import { useTheme, type ThemePreference } from "@/theme/ThemeProvider";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
@@ -143,7 +144,7 @@ function NotificationSettings() {
     <Card>
       <Text variant="heading">Уведомления</Text>
       {error ? <Notice kind="danger">{error}</Notice> : null}
-      {prefs?.map((pref) => (
+      {prefs?.filter((pref) => TEAM_FEATURES_VISIBLE || !["task_deadline", "new_training", "new_match", "new_task", "chat_team"].includes(pref.category)).map((pref) => (
         <View key={pref.category} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <Text style={{ flex: 1 }}>{NOTIFICATION_CATEGORY_LABELS[pref.category]}</Text>
           <Toggle value={pref.enabled} disabled={busy === pref.category} onValueChange={() => void toggle(pref)} />

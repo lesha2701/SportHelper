@@ -169,8 +169,10 @@ struct ProfileView: View {
                 NavigationLink(value: ProfileRoute.myBookings) { Label("Мои брони", systemImage: "calendar.badge.clock") }
                     .accessibilityIdentifier("profile.myBookings")
             }
-            NavigationLink(value: ProfileRoute.myTasks) { Label("Мои задания", systemImage: "checklist") }
-                .accessibilityIdentifier("profile.myTasks")
+            if FeatureVisibility.teams {
+                NavigationLink(value: ProfileRoute.myTasks) { Label("Мои задания", systemImage: "checklist") }
+                    .accessibilityIdentifier("profile.myTasks")
+            }
             NavigationLink(value: ProfileRoute.blogFeed) { Label("Статьи", systemImage: "newspaper") }.accessibilityIdentifier("profile.blog")
             NavigationLink(value: ProfileRoute.myStats) { Label("Моя статистика", systemImage: "chart.bar") }
                 .accessibilityIdentifier("profile.stats")

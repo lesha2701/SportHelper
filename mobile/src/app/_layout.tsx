@@ -11,6 +11,7 @@ import { ProfileProvider } from "@/profile/ProfileProvider";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { fonts } from "@/theme/tokens";
 import { useActivityPing } from "@/lib/useActivityPing";
+import { TEAM_FEATURES_VISIBLE } from "@/lib/featureVisibility";
 import { ClientVersionGate } from "@/ui/ClientVersionGate";
 import { LoadingView } from "@/ui/StateViews";
 import { ToastProvider } from "@/ui/Toast";
@@ -45,25 +46,15 @@ function Routes() {
           <Stack.Screen name="profile-edit" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="guide" />
-          <Stack.Screen name="join" />
-          <Stack.Screen name="team/new" />
-          <Stack.Screen name="team/[id]" />
-          <Stack.Screen name="team/[id]/[section]" />
-          <Stack.Screen name="team/[id]/member/[userId]" />
           <Stack.Screen name="training/new" />
           <Stack.Screen name="training/[id]" />
           <Stack.Screen name="training/[id]/report" />
           <Stack.Screen name="workout/[id]" />
-          <Stack.Screen name="task/new" />
-          <Stack.Screen name="task/[id]" />
-          <Stack.Screen name="match/new" />
-          <Stack.Screen name="match/[id]" />
           <Stack.Screen name="notifications" />
           <Stack.Screen name="chat/[kind]/[id]" />
           <Stack.Screen name="stats" />
           <Stack.Screen name="metric-new" />
           <Stack.Screen name="search" />
-          <Stack.Screen name="my-tasks" />
           <Stack.Screen name="listing/[id]" />
           <Stack.Screen name="coach/[id]" />
           <Stack.Screen name="player/[id]" />
@@ -71,8 +62,6 @@ function Routes() {
           <Stack.Screen name="finance" />
           <Stack.Screen name="finance/withdraw" />
           <Stack.Screen name="listing/new" />
-          <Stack.Screen name="library/template/new" />
-          <Stack.Screen name="library/template/[id]" />
           <Stack.Screen name="my-listings" />
           <Stack.Screen name="match-requests" />
           <Stack.Screen name="match-offers" />
@@ -81,6 +70,20 @@ function Routes() {
           <Stack.Screen name="library/exercise/[id]" />
           <Stack.Screen name="library/plan/new" />
           <Stack.Screen name="library/plan/[id]" />
+          <Stack.Protected guard={TEAM_FEATURES_VISIBLE}>
+            <Stack.Screen name="join" />
+            <Stack.Screen name="team/new" />
+            <Stack.Screen name="team/[id]" />
+            <Stack.Screen name="team/[id]/[section]" />
+            <Stack.Screen name="team/[id]/member/[userId]" />
+            <Stack.Screen name="task/new" />
+            <Stack.Screen name="task/[id]" />
+            <Stack.Screen name="match/new" />
+            <Stack.Screen name="match/[id]" />
+            <Stack.Screen name="my-tasks" />
+            <Stack.Screen name="library/template/new" />
+            <Stack.Screen name="library/template/[id]" />
+          </Stack.Protected>
         </Stack.Protected>
         <Stack.Protected guard={signedIn}>
           <Stack.Screen name="help" />

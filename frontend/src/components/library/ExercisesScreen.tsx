@@ -1,5 +1,6 @@
 import { useHeadingAction, useHeadingActionVisible } from "../../hooks/useHeadingAction";
 import { useCallback, useEffect, useState } from "react";
+import { TEAM_FEATURES_VISIBLE } from "../../featureVisibility";
 import { listMyExercises, shareExercise } from "../../api/exercises";
 import { listMyTeams } from "../../api/teams";
 import { listMyPlans, addPlanExercise } from "../../api/plans";
@@ -128,7 +129,7 @@ function DetailPanel({
           </div>
         </div>
 
-        <div>
+        {TEAM_FEATURES_VISIBLE && <div>
           <span className={libStyles.detailSharedLabel}>Показано командам</span>
           <div className={libStyles.detailSharedRow} style={{ marginTop: 8 }}>
             {sharedTeams.map((t) => (
@@ -151,7 +152,7 @@ function DetailPanel({
               ))}
             </div>
           )}
-        </div>
+        </div>}
 
         {error && <p className={profileStyles.error}>{error}</p>}
 
@@ -347,9 +348,9 @@ export function ExercisesScreen({ token, createRequest }: { token: string; creat
                           <h2 className={libStyles.exerciseCardTitle}>{exercise.name}</h2>
                           <div className={libStyles.exerciseCardFooter}>
                             <span className={libStyles.exerciseCardCategory}>{exercise.sport}</span>
-                            <span className={libStyles.exerciseCardShared}>
+                            {TEAM_FEATURES_VISIBLE && <span className={libStyles.exerciseCardShared}>
                               {exercise.sharedTeamIds.length > 0 ? count(exercise.sharedTeamIds.length, "команда", "команды", "команд") : "личное"}
-                            </span>
+                            </span>}
                           </div>
                         </div>
                       </button>

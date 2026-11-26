@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { TEAM_FEATURES_VISIBLE } from "../../featureVisibility";
 import { BrandLogo } from "../shared/BrandLogo";
 import { Icon, type IconName } from "../shared/Icon";
 import styles from "./welcome.module.css";
@@ -71,12 +72,12 @@ const STEPS: Step[] = [
     id: "welcome",
     title: "Добро пожаловать в SportArenaGlobal",
     lead: "Всё для вашей спортивной жизни в одном месте.",
-    extra: "Управляйте командой, тренировками и прогрессом или находите личного тренера и записывайтесь на занятия. Дальше — коротко о том, что здесь есть.",
+    extra: "Находите тренера, записывайтесь на занятия и следите за своим прогрессом. Дальше — коротко о том, что здесь есть.",
     visual: () => (
       <div className={styles.hero}>
         <BrandLogo className={styles.heroMark} label="SportArenaGlobal" />
         <div className={styles.heroChips}>
-          <Tiles items={[{ icon: "users", label: "Команда" }, { icon: "dumbbell", label: "Тренировки" }, { icon: "calendar", label: "Календарь" }]} />
+          <Tiles items={[{ icon: "user", label: "Тренеры" }, { icon: "dumbbell", label: "Тренировки" }, { icon: "calendar", label: "Календарь" }]} />
         </div>
       </div>
     ),
@@ -85,16 +86,16 @@ const STEPS: Step[] = [
     id: "everything",
     kicker: "Для всех",
     title: "Всё важное — в одном месте",
-    lead: "Тренировки, матчи, задания и личные занятия собираются в одном приложении.",
+    lead: "Тренировки и личные занятия собираются в одном приложении.",
     extra: "Все важные события появляются в календаре и связаны со статистикой.",
     visual: () => (
       <div className={styles.bento}>
         <Tiles
           items={[
-            { icon: "trophy", label: "Команды" },
+            { icon: "user", label: "Тренеры" },
             { icon: "dumbbell", label: "Тренировки" },
-            { icon: "ball", label: "Матчи" },
-            { icon: "clipboard", label: "Задания" },
+            { icon: "award", label: "Прогресс" },
+            { icon: "book", label: "Планы" },
           ]}
         />
         <div className={`${styles.tile} ${styles.tileWide} ${styles.tileAccent}`}>
@@ -113,17 +114,17 @@ const STEPS: Step[] = [
   {
     id: "player",
     kicker: "Игроку",
-    title: "Ваша команда и ваш прогресс",
-    lead: "Следите за тренировками и матчами, выполняйте задания тренера и отслеживайте свой прогресс.",
+    title: "Ваши тренировки и прогресс",
+    lead: "Следите за занятиями и отслеживайте свой прогресс.",
     points: [
-      "Календарь собирает тренировки, матчи и дедлайны заданий по всем вашим командам.",
-      "Посещаемость, серия тренировок и выполненные задания складываются в вашу статистику.",
-      "В команду можно вступить по ссылке-приглашению от тренера.",
+      "Календарь собирает ваши тренировки и занятия с тренером.",
+      "Посещаемость и серия тренировок складываются в вашу статистику.",
+      "Тренера можно найти в каталоге и записаться на удобное время.",
       "Уведомления в приложении не дадут пропустить важное.",
     ],
     visual: () => (
       <div className={styles.bento}>
-        <Tiles items={[{ icon: "calendar", label: "Тренировки и матчи" }, { icon: "clipboard", label: "Задания тренера" }, { icon: "award", label: "Мой прогресс" }, { icon: "bell", label: "Уведомления" }]} />
+        <Tiles items={[{ icon: "calendar", label: "Тренировки" }, { icon: "user", label: "Тренеры" }, { icon: "award", label: "Мой прогресс" }, { icon: "bell", label: "Уведомления" }]} />
       </div>
     ),
   },
@@ -131,7 +132,7 @@ const STEPS: Step[] = [
     id: "solo",
     kicker: "Игроку",
     title: "Личные тренировки — для себя",
-    lead: "Тренироваться можно и без команды: создайте личную тренировку и ведите её сами.",
+    lead: "Создайте личную тренировку и ведите её сами.",
     points: [
       "Соберите список упражнений: с повторениями и подходами.",
       "Или выберите круговую тренировку: задайте число кругов и отдых между ними.",
@@ -168,11 +169,11 @@ const STEPS: Step[] = [
     points: [
       "Упражнение: описание, цель, подходы и повторения, техника, типичные ошибки, фото и видео.",
       "План: соберите упражнения в разминку, основную часть и заминку.",
-      "Привяжите план к тренировке — игроки увидят его прямо в занятии.",
-      "Упражнения и шаблоны заданий доступны во всех ваших командах.",
+      "Сохраняйте планы для будущих занятий.",
+      "Библиотека помогает быстро подготовить тренировку.",
     ],
     visual: () => (
-      <Flow items={[{ icon: "dumbbell", label: "Упражнение" }, { icon: "book", label: "План" }, { icon: "calendar", label: "Тренировка" }, { icon: "clipboard", label: "Задание" }]} />
+      <Flow items={[{ icon: "dumbbell", label: "Упражнение" }, { icon: "book", label: "План" }, { icon: "calendar", label: "Тренировка" }]} />
     ),
   },
   {
@@ -234,7 +235,7 @@ const STEPS: Step[] = [
     title: "ИИ и уведомления",
     lead: "ИИ подсказывает, а уведомления возвращают вас к нужному в нужный момент.",
     points: [
-      "ИИ: черновик плана и заданий, оценка тренировки, рекомендации игроку, сводка по команде.",
+      "ИИ: черновик плана, оценка тренировки и рекомендации игроку.",
       "Это подсказки — решение всегда за вами.",
       "Уведомления приходят в бота и в колокольчик; кнопка ведёт сразу на нужный экран.",
       "Что получать — настраивается в «Профиль → Настройки». Быстрый поиск — по ⌘K.",
@@ -281,7 +282,9 @@ const STEPS: Step[] = [
   },
 ];
 
-export const WELCOME_STEP_COUNT = STEPS.length;
+const VISIBLE_STEPS = STEPS.filter((step) => TEAM_FEATURES_VISIBLE || (step.id !== "coach-team" && step.id !== "tasks"));
+
+export const WELCOME_STEP_COUNT = VISIBLE_STEPS.length;
 
 /** Short, skippable welcome flow. A self-contained overlay — it never points at
  * real UI elements, so interface changes can't break it. Escape does NOT close
@@ -289,10 +292,10 @@ export const WELCOME_STEP_COUNT = STEPS.length;
 export function WelcomeGuide({ manual = false, roles, onFinish }: WelcomeGuideProps) {
   const [index, setIndex] = useState(0);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const last = index === STEPS.length - 1;
-  const step = STEPS[index]!;
+  const last = index === VISIBLE_STEPS.length - 1;
+  const step = VISIBLE_STEPS[index]!;
 
-  const next = () => setIndex((i) => Math.min(i + 1, STEPS.length - 1));
+  const next = () => setIndex((i) => Math.min(i + 1, VISIBLE_STEPS.length - 1));
   const back = () => setIndex((i) => Math.max(i - 1, 0));
 
   // Move focus to the new step's heading so keyboard and screen-reader users
@@ -303,7 +306,7 @@ export function WelcomeGuide({ manual = false, roles, onFinish }: WelcomeGuidePr
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "ArrowRight") setIndex((i) => Math.min(i + 1, STEPS.length - 1));
+      if (event.key === "ArrowRight") setIndex((i) => Math.min(i + 1, VISIBLE_STEPS.length - 1));
       else if (event.key === "ArrowLeft") setIndex((i) => Math.max(i - 1, 0));
     };
     document.addEventListener("keydown", onKeyDown);
@@ -321,8 +324,8 @@ export function WelcomeGuide({ manual = false, roles, onFinish }: WelcomeGuidePr
     <div className={styles.backdrop}>
       <div className={styles.panel} role="dialog" aria-modal="true" aria-labelledby="welcome-title">
         <div className={styles.topRow}>
-          <ol className={styles.dots} aria-label={`Шаг ${index + 1} из ${STEPS.length}`}>
-            {STEPS.map((s, i) => (
+          <ol className={styles.dots} aria-label={`Шаг ${index + 1} из ${VISIBLE_STEPS.length}`}>
+            {VISIBLE_STEPS.map((s, i) => (
               <li
                 key={s.id}
                 className={i === index ? `${styles.dot} ${styles.dotActive}` : i < index ? `${styles.dot} ${styles.dotDone}` : styles.dot}

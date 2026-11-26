@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { TEAM_FEATURES_VISIBLE } from "../../featureVisibility";
 import {
   deleteExercise,
   getExercise,
@@ -63,7 +64,7 @@ export function ExerciseDetail({
   useEffect(load, [load]);
 
   useEffect(() => {
-    if (!isOwner) return;
+    if (!TEAM_FEATURES_VISIBLE || !isOwner) return;
     listMyTeams(token)
       .then((teams) => setMyCoachTeams(teams.filter((t) => t.myRole === "head_coach" || t.myRole === "assistant_coach")))
       .catch(() => setMyCoachTeams([]));
@@ -251,7 +252,7 @@ export function ExerciseDetail({
         </div>
       )}
 
-      {isOwner && myCoachTeams.length > 0 && (
+      {TEAM_FEATURES_VISIBLE && isOwner && myCoachTeams.length > 0 && (
         <div className={profileStyles.card}>
           <h2 className={profileStyles.title}>Показать командам</h2>
           <p className={profileStyles.subtitle}>Участники увидят упражнение как необязательный материал.</p>

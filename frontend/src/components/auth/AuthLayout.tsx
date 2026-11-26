@@ -7,7 +7,7 @@ import styles from "./auth.module.css";
 
 const POINTS: { icon: IconName; text: string }[] = [
   { icon: "users", text: "Тренеры рядом: смотрите профили и записывайтесь на занятия" },
-  { icon: "calendar", text: "Один календарь тренировок, матчей и заданий" },
+  { icon: "calendar", text: "Все ваши тренировки и занятия в одном календаре" },
   { icon: "award", text: "Статистика и прогресс — видно, куда вы растёте" },
 ];
 
@@ -27,10 +27,10 @@ export function AuthLayout({ title, lead, wide, children }: { title: string; lea
             <p className={styles.pitchTitle}>
               Тренируйся <em>с планом.</em>
               <br />
-              Расти <em>с командой.</em>
+              Расти <em>с тренером.</em>
             </p>
             <p className={styles.pitchLead}>
-              Платформа для игроков и тренеров: расписание, записи на занятия, задания и статистика — в одном месте.
+              Платформа для игроков и тренеров: расписание, записи на занятия и статистика — в одном месте.
             </p>
             <ul className={styles.pitchList}>
               {POINTS.map((point) => (

@@ -93,7 +93,7 @@ struct ShareTeamsSection: View {
     private var teams: [Team] { auth.teams.mine.loadedTeams.filter(\.canManage) }
 
     var body: some View {
-        if !teams.isEmpty {
+        if FeatureVisibility.teams && !teams.isEmpty {
             Section {
                 ForEach(teams) { team in
                     Toggle(team.name, isOn: Binding(

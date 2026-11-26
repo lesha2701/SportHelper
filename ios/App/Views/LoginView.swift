@@ -149,7 +149,7 @@ struct LoginView: View {
             .font(Theme.body(15, weight: .semibold)).foregroundStyle(Theme.primary)
             .padding(.top, 2)
 
-            Text("Платформа для игроков и тренеров: расписание, записи на занятия, задания и статистика — в одном месте.")
+            Text("Платформа для игроков и тренеров: расписание, записи на занятия и статистика — в одном месте.")
                 .font(Theme.body(13)).foregroundStyle(Theme.textTertiary)
                 .padding(.top, 8)
         }

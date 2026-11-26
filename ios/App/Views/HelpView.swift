@@ -11,7 +11,7 @@ struct HelpView: View {
                 Text(HelpGuide.summary).font(.subheadline).foregroundStyle(.secondary)
                 WelcomeTourButton(ownRole: ownRole)
             }
-            ForEach(HelpGuide.sections) { section in
+            ForEach(HelpGuide.sections.filter { FeatureVisibility.teams || $0.id != "teams" }) { section in
                 Section {
                     if let intro = section.intro {
                         Text(intro).font(.subheadline).foregroundStyle(.secondary)

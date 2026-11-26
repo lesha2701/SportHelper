@@ -18,6 +18,7 @@ import type { Match } from "../../types/match";
 import styles from "./dashboard.module.css";
 import { WeekOverview } from "./WeekOverview";
 import { count } from "../../lib/plural";
+import { TEAM_FEATURES_VISIBLE, isVisibleCalendarEvent } from "../../featureVisibility";
 
 const COACH_STAFF_ROLES = new Set<string>(["head_coach", "assistant_coach"]);
 function toIso(d: Date): string {
@@ -79,8 +80,9 @@ export function CoachDashboard({
   const load = useCallback(() => {
     setState({ status: "loading" });
     const weekStart = toIso(startOfWeek(new Date()));
-    Promise.all([listMyTeams(token), getCalendar(token, weekStart, isoDatePlusDays(13))])
+    Promise.all([TEAM_FEATURES_VISIBLE ? listMyTeams(token) : Promise.resolve([] as Team[]), getCalendar(token, weekStart, isoDatePlusDays(13))])
       .then(([teams, events]) => {
+        events = events.filter(isVisibleCalendarEvent);
         const coachTeams = teams.filter((t) => t.myRole && COACH_STAFF_ROLES.has(t.myRole));
         if (coachTeams.length === 0) {
           setState({ status: "empty", events });
@@ -98,7 +100,7 @@ export function CoachDashboard({
   useEffect(load, [load]);
 
   useEffect(() => {
-    if (!selectedTeamId) return;
+    if (!TEAM_FEATURES_VISIBLE || !selectedTeamId) return;
     setStatsState({ status: "loading" });
     getTeamStats(token, selectedTeamId)
       .then((stats) => setStatsState({ status: "ready", stats }))
@@ -109,7 +111,7 @@ export function CoachDashboard({
   }, [token, selectedTeamId]);
 
   useEffect(() => {
-    if (!selectedTeamId) return;
+    if (!TEAM_FEATURES_VISIBLE || !selectedTeamId) return;
     setMatchesState({ status: "loading" });
     listTeamMatches(token, selectedTeamId)
       .then((matches) => setMatchesState({ status: "ready", matches }))
@@ -122,7 +124,7 @@ export function CoachDashboard({
   if (state.status === "error") {
     return <StateScreen kind="error" title="Не удалось загрузить главную" description={state.message} onRetry={load} />;
   }
-  if (state.status === "empty") {
+  if (state.status === "empty" || !TEAM_FEATURES_VISIBLE) {
     return <CoachWithoutTeam token={token} events={state.events} onOpenEvent={onOpenEvent} />;
   }
 
@@ -358,7 +360,7 @@ function NextEventCard({ nextEvent, onOpenEvent }: { nextEvent: CalendarEvent | 
         <div className={styles.heroTitleRow}>
           <div>
             <h2 className={styles.heroMainTitle}>Нет ближайших событий</h2>
-            <p className={styles.heroSubtitle}>Запланируйте тренировку или матч</p>
+            <p className={styles.heroSubtitle}>{TEAM_FEATURES_VISIBLE ? "Запланируйте тренировку или матч" : "Запланируйте тренировку"}</p>
           </div>
         </div>
       )}
