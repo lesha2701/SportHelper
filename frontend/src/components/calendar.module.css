@@ -1,5 +1,91 @@
-/* frontend/src/components/calendar.module.css
-   Desktop week time-grid for CalendarScreen's "Неделя" mode. */
+/* Calendar views: event list and desktop week grid. */
+.listEvent {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  min-height: 104px;
+  margin-top: 10px;
+  padding: 18px 22px;
+  border: 0;
+  border-left: 4px solid var(--event-color, var(--color-border));
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+}
+
+button.listEvent {
+  cursor: pointer;
+}
+
+button.listEvent:hover,
+button.listEvent:focus-visible {
+  background: var(--color-border);
+}
+
+button.listEvent:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.listEventTime {
+  flex: 0 0 76px;
+  color: var(--event-color, var(--color-text));
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.listEventDetails {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.listEventMeta {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.listEventTitle {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.listEventContext {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+@media (max-width: 560px) {
+  .listEvent {
+    gap: 12px;
+    min-height: 96px;
+    padding: 14px;
+  }
+
+  .listEventTime {
+    flex-basis: 56px;
+    font-size: 19px;
+  }
+
+  .listEventTitle {
+    font-size: 16px;
+  }
+}
+
 .weekLayout {
   display: flex;
   flex-direction: column;
