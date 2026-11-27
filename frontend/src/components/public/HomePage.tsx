@@ -51,15 +51,18 @@ export function HomePage() {
 
   return (
     <PublicShell>
-      <section className={styles.hero} aria-labelledby="hero-title">
-        <div>
-          <span className={styles.eyebrow}>Платформа для игроков и тренеров</span>
-          <h1 id="hero-title" className={styles.heroTitle}>
-            Тренируйся <em>с планом.</em> Расти <em>с тренером.</em>
-          </h1>
-          <p className={styles.heroLead}>
-            Находите тренеров, записывайтесь на занятия, ведите календарь и следите за прогрессом.
-          </p>
+      <section className={styles.ambassador} aria-labelledby="hero-title">
+        <div className={styles.ambassadorContent}>
+          <span className={styles.ambassadorEyebrow}>Амбассадор SportArenaGlobal</span>
+          <blockquote className={styles.ambassadorQuote}>
+            <h1 id="hero-title">
+              Хватит ждать — тренируйся <span className={styles.ambassadorAccent}>у лучших</span>
+            </h1>
+            <footer>
+              <strong>Сергей Карасёв</strong>
+              <span>Игрок ПБК «Зенит»</span>
+            </footer>
+          </blockquote>
           <div className={styles.ctaRow}>
             <Link to="/coaches" className={styles.cta}>
               Найти тренера
@@ -69,8 +72,16 @@ export function HomePage() {
             </Link>
           </div>
         </div>
-        <FeaturedPost placement="public" />
+        <img
+          className={styles.ambassadorPhoto}
+          src="/sergey-karasev.jpg"
+          alt="Сергей Карасёв"
+          width="1122"
+          height="1402"
+          loading="eager"
+        />
       </section>
+      <FeaturedPost placement="public" />
 
       <section className={styles.section} aria-labelledby="how-title">
         <div className={styles.sectionHead}>
