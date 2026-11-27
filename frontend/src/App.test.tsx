@@ -48,7 +48,7 @@ describe("a visitor without an account", () => {
   it("sees a real home page, not a login wall", async () => {
     open("/");
 
-    expect(await screen.findByRole("heading", { level: 1, name: /Тренируйся с планом/i })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: /Хватит ждать — тренируйся у лучших/i })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Найти тренера" }).getAttribute("href")).toBe("/coaches");
     expect(screen.getByRole("link", { name: "Создать аккаунт" }).getAttribute("href")).toBe("/register");
     const header = within(screen.getByRole("banner"));
@@ -112,7 +112,7 @@ describe("a visitor without an account", () => {
   it("an unknown address is sent to the home page", async () => {
     open("/no-such-page");
 
-    expect(await screen.findByRole("heading", { level: 1, name: /Тренируйся с планом/i })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: /Хватит ждать — тренируйся у лучших/i })).toBeTruthy();
     expect(here()).toBe("/");
   });
 
@@ -187,7 +187,7 @@ describe("the administration panel route", () => {
     asGuest();
     open("/admin");
 
-    expect(await screen.findByRole("heading", { level: 1, name: /Тренируйся с планом/i })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: /Хватит ждать — тренируйся у лучших/i })).toBeTruthy();
     expect(here()).toBe("/");
     expect(screen.queryByText("Такой страницы нет")).toBeNull();
     expect(screen.queryByText("ADMIN PANEL")).toBeNull();

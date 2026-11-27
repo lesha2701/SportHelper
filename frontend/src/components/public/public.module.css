@@ -120,20 +120,15 @@
 
 /* --- landing ---------------------------------------------------------------------------- */
 
-.hero {
-  display: grid;
-  gap: 32px;
-  padding: 24px 16px 40px;
-}
-
 .teaserAside {
   display: grid;
   justify-items: end;
   gap: 4px;
   align-self: center;
-  width: 100%;
+  width: calc(100% - 32px);
   max-width: 420px;
   min-width: 0;
+  margin: 0 auto 40px;
 }
 
 .articleTeaser {
@@ -193,37 +188,6 @@
   outline-offset: 2px;
 }
 
-.eyebrow {
-  display: inline-block;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-link);
-  margin-bottom: 16px;
-}
-
-.heroTitle {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(40px, 6vw, 76px);
-  line-height: 1.04;
-  text-transform: uppercase;
-  margin: 0 0 24px;
-  max-width: 9em;
-}
-
-.heroTitle em {
-  font-style: normal;
-  color: var(--color-primary);
-}
-
-.heroLead {
-  font-size: 17px;
-  line-height: 1.55;
-  max-width: 28em;
-  color: var(--color-text-secondary);
-  margin: 0;
-}
-
 .ctaRow {
   display: flex;
   flex-wrap: wrap;
@@ -274,7 +238,7 @@
 .ambassador {
   display: grid;
   overflow: hidden;
-  margin: 0 16px 40px;
+  margin: 24px 16px 40px;
   border-radius: 28px;
   color: #fff;
   background: #1b1d25;
@@ -310,7 +274,7 @@
   padding: 28px 0;
 }
 
-.ambassadorQuote p {
+.ambassadorQuote h1 {
   max-width: 11em;
   margin: 0 0 30px;
   font: 500 clamp(36px, 4.6vw, 64px)/1.12 var(--font-display);
@@ -335,29 +299,17 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
-.ambassadorLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 44px;
+.ambassador .ctaRow {
+  margin-top: 8px;
+}
+
+.ambassador .ctaGhost {
   color: #fff;
-  font-weight: 700;
-  text-decoration: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
 }
 
-.ambassadorLink:hover {
-  border-color: #ff4b50;
-}
-
-.ambassadorLink:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 4px;
-}
-
-.ambassadorLink span {
-  color: #ff4b50;
-  font-size: 20px;
+.ambassador .ctaGhost:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .ambassadorPhoto {
@@ -677,13 +629,9 @@
     padding: 20px 32px;
   }
 
-  .hero {
-    padding: 48px 32px 72px;
-  }
-
   .ambassador {
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-    margin: 0 32px 64px;
+    margin: 32px 32px 64px;
   }
 
   .ambassadorPhoto {
@@ -725,16 +673,5 @@
 
   .legal {
     padding: 28px 32px 48px;
-  }
-}
-
-@media (min-width: 900px) {
-  .hero:has(.teaserAside) {
-    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-    column-gap: clamp(40px, 6vw, 88px);
-  }
-
-  .teaserAside {
-    justify-self: end;
   }
 }
