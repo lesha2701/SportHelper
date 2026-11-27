@@ -729,7 +729,7 @@
 }
 
 @media (min-width: 900px) {
-  .hero {
+  .hero:has(.teaserAside) {
     grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
     column-gap: clamp(40px, 6vw, 88px);
   }

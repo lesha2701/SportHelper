@@ -30,27 +30,23 @@ export function FeaturedPost({ placement = "workspace" }: { placement?: "workspa
 
   if (!loaded) return null;
   if (placement === "public") {
+    if (!post) return null;
     return (
       <aside className={publicStyles.teaserAside} aria-label="Статьи">
-        <Link to="/blog" className={publicStyles.teaserAll}>
-          Все статьи <span aria-hidden="true">→</span>
-        </Link>
-        {post && (
-          <div className={publicStyles.articleTeaser}>
-            {post.coverFileId ? (
-              <AuthenticatedImage token="" fileId={post.coverFileId} alt="" className={publicStyles.teaserCover} thumb />
-            ) : import.meta.env.DEV && post.sport === "Футбол" ? (
-              <img src={footballPreview} alt="" className={publicStyles.teaserCover} />
-            ) : null}
-            <div className={publicStyles.teaserBody}>
-              <span className={publicStyles.teaserLabel}>Статья дня</span>
-              <h2 className={publicStyles.teaserTitle}>{post.title}</h2>
-              <Link to={`/blog/${post.id}`} className={publicStyles.teaserRead}>
-                Читать далее <span aria-hidden="true">→</span>
-              </Link>
-            </div>
+        <div className={publicStyles.articleTeaser}>
+          {post.coverFileId ? (
+            <AuthenticatedImage token="" fileId={post.coverFileId} alt="" className={publicStyles.teaserCover} thumb />
+          ) : import.meta.env.DEV && post.sport === "Футбол" ? (
+            <img src={footballPreview} alt="" className={publicStyles.teaserCover} />
+          ) : null}
+          <div className={publicStyles.teaserBody}>
+            <span className={publicStyles.teaserLabel}>Статья дня</span>
+            <h2 className={publicStyles.teaserTitle}>{post.title}</h2>
+            <Link to={`/blog/${post.id}`} className={publicStyles.teaserRead}>
+              Читать далее <span aria-hidden="true">→</span>
+            </Link>
           </div>
-        )}
+        </div>
       </aside>
     );
   }
