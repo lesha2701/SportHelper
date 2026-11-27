@@ -5,7 +5,7 @@
   flex: 1;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto 1fr; /* phones: a slim brand bar, the form takes the rest */
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 100vh;
   min-height: 100svh;
   background: var(--color-bg);
@@ -125,8 +125,29 @@
 
 .footerSlot {
   width: 100%;
-  max-width: 520px;
-  overflow: hidden;
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--color-border);
+}
+
+.footerSlot footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 24px;
+  padding: 12px 24px;
+}
+
+.footerSlot footer > div {
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  gap: 0 20px;
+}
+
+.footerSlot footer a {
+  min-height: 32px;
 }
 
 .card {
@@ -676,28 +697,24 @@
 @media (min-width: 960px) {
   .page {
     grid-template-columns: minmax(380px, 5fr) minmax(0, 6fr);
-    grid-template-rows: auto;
+    grid-template-rows: minmax(0, 1fr) auto;
   }
 
   .brand {
-    position: sticky;
-    top: 0;
-    align-self: start;
     padding: 36px 56px 56px;
-    height: 100vh;
-    height: 100svh;
   }
 
   .brandInner {
-    justify-content: space-between;
+    justify-content: flex-start;
   }
 
   .pitch {
     display: block;
+    margin-block: auto;
   }
 
   .main {
-    padding: 56px 24px 0;
+    padding: 56px 24px;
   }
 
   .title {

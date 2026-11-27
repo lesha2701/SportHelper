@@ -52,10 +52,10 @@ export function AuthLayout({ title, lead, wide, children }: { title: string; lea
           {lead && <p className={styles.lead}>{lead}</p>}
           {children}
         </div>
-        <div className={styles.footerSlot}>
-          <SiteFooter />
-        </div>
       </main>
+      <div className={styles.footerSlot}>
+        <SiteFooter />
+      </div>
     </div>
   );
 }
