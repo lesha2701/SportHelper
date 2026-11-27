@@ -33,22 +33,25 @@ function rowsUnder(title: string): string[] {
   return within(card).getAllByRole("button").map((b) => b.textContent ?? "");
 }
 
-describe("the coach's requests and bookings sit in the «Объявления» block", () => {
-  it("puts «Входящие заявки» and «Записи» under «Объявления», not under «Тренировки»", () => {
+describe("profile actions are grouped by purpose", () => {
+  it("keeps coach requests in «Объявления» and separates progress, account, and help", () => {
     summary({ activeMode: "coach", player: null, coach });
     const offers = rowsUnder("Объявления").join("|");
     expect(offers).toContain("Мои объявления");
     expect(offers).toContain("Входящие заявки");
     expect(offers).toContain("Записи");
-    const trainings = rowsUnder("Тренировки").join("|");
-    expect(trainings).not.toContain("Входящие заявки");
-    expect(trainings).not.toContain("Записи");
-    expect(trainings).toContain("Моя статистика");
+    expect(rowsUnder("Занятия и прогресс").join("|")).toContain("Моя статистика");
+    expect(rowsUnder("Аккаунт").join("|")).toContain("Настройки");
+    expect(rowsUnder("Аккаунт").join("|")).toContain("Уведомления");
+    expect(rowsUnder("Аккаунт").join("|")).toContain("Выйти из аккаунта");
+    expect(rowsUnder("Помощь и связь").join("|")).toContain("Помощь");
+    expect(rowsUnder("Помощь и связь").join("|")).toContain("Поддержка");
+    expect(screen.queryByRole("heading", { name: "Тренировки" })).toBeNull();
   });
 
-  it("keeps «Мои брони» in the player's own list", () => {
+  it("keeps «Мои брони» with the player's progress", () => {
     summary({ activeMode: "player", player, coach: null });
-    expect(screen.getByRole("button", { name: /Мои брони/ })).toBeTruthy();
+    expect(rowsUnder("Занятия и прогресс").join("|")).toContain("Мои брони");
     expect(screen.queryByRole("heading", { name: "Объявления" })).toBeNull();
   });
 });

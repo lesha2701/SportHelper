@@ -55,14 +55,12 @@ interface ActionRowDef {
 }
 
 /** One card of menu rows, built like the «Профиль тренера» card on the left: a title, a rule, then the rows. */
-function ActionCard({ title, rows }: { title?: string; rows: ActionRowDef[] }) {
+function ActionCard({ title, rows }: { title: string; rows: ActionRowDef[] }) {
   return (
     <div className={styles.actionCard}>
-      {title && (
-        <div className={styles.actionCardHead}>
-          <h2 className={styles.factsCardTitle}>{title}</h2>
-        </div>
-      )}
+      <div className={styles.actionCardHead}>
+        <h2 className={styles.factsCardTitle}>{title}</h2>
+      </div>
       <div className={styles.actionCardRows}>
         {rows.map((def) => (
           <ActionRow key={def.key} def={def} />
@@ -224,32 +222,37 @@ export function ProfileSummary({
     });
   }
 
-  const actionRows: ActionRowDef[] = [];
-  actionRows.push({ key: "stats", icon: "award", label: "Моя статистика", onClick: onOpenMyStats });
-  if (mode !== "coach") actionRows.push({ key: "bookings", icon: "calendar", label: "Мои брони", onClick: onOpenMyBookings });
-  actionRows.push({
+  const activityRows: ActionRowDef[] = [{ key: "stats", icon: "award", label: "Моя статистика", onClick: onOpenMyStats }];
+  if (mode !== "coach") activityRows.push({ key: "bookings", icon: "calendar", label: "Мои брони", onClick: onOpenMyBookings });
+
+  const accountRows: ActionRowDef[] = [{
     key: "notifications",
     icon: "bell",
     label: "Уведомления",
     badge: unreadNotifications,
     onClick: onOpenNotifications,
-  });
+  }];
+  accountRows.push({ key: "settings", icon: "settings", label: "Настройки", onClick: onOpenSettings });
+  accountRows.push({ key: "logout", icon: "log-out", label: "Выйти из аккаунта", onClick: () => void logout() });
+
+  const helpRows: ActionRowDef[] = [
+    { key: "help", icon: "book", label: "Помощь", onClick: onOpenHelp },
+    { key: "support", icon: "message", label: "Поддержка", onClick: onOpenSupport },
+  ];
+
+  const adminRows: ActionRowDef[] = [];
   if (authState.status === "ready" && authState.user.isAdmin) {
     // Shown only when the server says this account is an administrator; the server re-checks every admin request.
-    actionRows.push({ key: "admin", icon: "shield", label: "Админ-панель", onClick: () => navigate("/admin") });
+    adminRows.push({ key: "admin", icon: "shield", label: "Админ-панель", onClick: () => navigate("/admin") });
   }
-  actionRows.push({ key: "settings", icon: "settings", label: "Настройки", onClick: onOpenSettings });
-  actionRows.push({ key: "help", icon: "book", label: "Помощь", onClick: onOpenHelp });
-  actionRows.push({ key: "support", icon: "message", label: "Поддержка", onClick: onOpenSupport });
-  actionRows.push({ key: "logout", icon: "log-out", label: "Выйти из аккаунта", onClick: () => void logout() });
   // The role is fixed at registration: only administrators get a switch or a second profile.
   if (canSwitchRole) {
     if (profile.player && profile.coach) {
       // «Переключиться на …» is a button in the page header
     } else if (!profile.player) {
-      actionRows.push({ key: "create-player", icon: "plus", label: "Завести профиль игрока", onClick: () => onCreateOther("player") });
+      adminRows.push({ key: "create-player", icon: "plus", label: "Завести профиль игрока", onClick: () => onCreateOther("player") });
     } else if (!profile.coach) {
-      actionRows.push({ key: "create-coach", icon: "plus", label: "Завести профиль тренера", onClick: () => onCreateOther("coach") });
+      adminRows.push({ key: "create-coach", icon: "plus", label: "Завести профиль тренера", onClick: () => onCreateOther("coach") });
     }
   }
 
@@ -376,7 +379,10 @@ export function ProfileSummary({
 
         <div className={styles.summarySide}>
           {offerRows.length > 0 && <ActionCard title="Объявления" rows={offerRows} />}
-          <ActionCard title={offerRows.length > 0 ? "Тренировки" : undefined} rows={actionRows} />
+          <ActionCard title="Занятия и прогресс" rows={activityRows} />
+          <ActionCard title="Аккаунт" rows={accountRows} />
+          <ActionCard title="Помощь и связь" rows={helpRows} />
+          {adminRows.length > 0 && <ActionCard title="Администрирование" rows={adminRows} />}
         </div>
       </div>
     </div>

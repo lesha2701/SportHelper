@@ -94,17 +94,17 @@ describe("the role is fixed at registration", () => {
 });
 
 describe("a coach's profile", () => {
-  it("has a block «Объявления» with the listings and the catalogue, before the trainings", () => {
+  it("has a block «Объявления» with the listings and the catalogue, before progress", () => {
     summary({ activeMode: "coach", player: null, coach }, false);
 
     const offers = screen.getByRole("heading", { name: "Объявления" });
-    const trainings = screen.getByRole("heading", { name: "Тренировки" });
-    expect(offers.compareDocumentPosition(trainings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const progress = screen.getByRole("heading", { name: "Занятия и прогресс" });
+    expect(offers.compareDocumentPosition(progress) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const listings = screen.getByRole("button", { name: /Мои объявления/ });
     const catalogue = screen.getByRole("button", { name: /Каталог тренеров/ });
     expect(offers.compareDocumentPosition(listings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(listings.compareDocumentPosition(catalogue) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(catalogue.compareDocumentPosition(trainings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(catalogue.compareDocumentPosition(progress) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("gives a player no such block", () => {
