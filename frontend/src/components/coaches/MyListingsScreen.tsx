@@ -9,6 +9,7 @@ import type { CoachListing } from "../../types/coachListing";
 import profileStyles from "../profile/profile.module.css";
 import styles from "./coaches.module.css";
 import { TitleWithBack } from "../shared/BackArrow";
+import { count } from "../../lib/plural";
 
 type LoadState =
   | { status: "loading" }
@@ -89,6 +90,8 @@ export function MyListingsScreen({ token, onBack }: { token: string; onBack: () 
                   {listing.pricePerSession !== null ? `${listing.pricePerSession} ${listing.currency}` : "Цена не указана"}
                   {" · "}
                   {listing.isListed ? "Опубликовано" : "Черновик"}
+                  {" · "}
+                  {count(listing.viewsCount, "просмотр", "просмотра", "просмотров")}
                 </p>
               </div>
               <div className={styles.incomingActions}>

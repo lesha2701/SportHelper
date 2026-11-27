@@ -1,7 +1,7 @@
 // frontend/src/components/coaches/CoachMarketplaceScreen.tsx
 import { ProBadge } from "../shared/ProBadge";
-import { useEffect, useState } from "react";
-import { getListingProfile, listListings } from "../../api/coachListings";
+import { useEffect, useRef, useState } from "react";
+import { getListingProfile, listListings, recordListingView, setListingFavorite } from "../../api/coachListings";
 import { navigateApp } from "../../appNav";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
@@ -51,6 +51,8 @@ function ListingCardView({
   own = false,
   onOpen,
   onBook,
+  onFavorite,
+  favoritePending = false,
 }: {
   token: string;
   listing: CoachListingCard;
@@ -58,6 +60,8 @@ function ListingCardView({
   onOpen: () => void;
   /** Given where the card has no side panel with its own «Записаться» (phone, tablet): the card carries the button itself. */
   onBook?: () => void;
+  onFavorite?: () => void;
+  favoritePending?: boolean;
 }) {
   const format = [listing.offersOnline && "Онлайн", listing.offersOffline && "Очно"].filter(Boolean).join(" · ");
   const facts: { label: string; value: string }[] = [
@@ -84,6 +88,7 @@ function ListingCardView({
             {listing.coachIsPro && <ProBadge />}
           </h3>
           {own && <span className={styles.ownBadge}>Ваше объявление</span>}
+          {own && <span className={styles.viewCount}>{count(listing.viewsCount ?? 0, "просмотр", "просмотра", "просмотров")}</span>}
         </div>
         {listing.averageRating !== null && (
           <span className={styles.coachCardRating}>
@@ -123,6 +128,18 @@ function ListingCardView({
         </div>
       </div>
       </button>
+      {onFavorite && !own && (
+        <button
+          type="button"
+          className={listing.isFavorite ? `${styles.favoriteButton} ${styles.favoriteButtonOn}` : styles.favoriteButton}
+          aria-label={listing.isFavorite ? `Убрать из избранного: ${listing.title}` : `В избранное: ${listing.title}`}
+          aria-pressed={!!listing.isFavorite}
+          disabled={favoritePending}
+          onClick={onFavorite}
+        >
+          {listing.isFavorite ? "♥ В избранном" : "♡ В избранное"}
+        </button>
+      )}
       {onBook && !own && (
         <button type="button" className={`${profileStyles.buttonPrimary} ${styles.coachCardBook}`} onClick={onBook}>
           Записаться
@@ -256,6 +273,7 @@ export function CoachMarketplaceScreen({
   onRequireLogin,
   myUserId = null,
   canCreateListing = false,
+  canFavorite = false,
   createListingRequest = 0,
 }: {
   token: string;
@@ -272,6 +290,7 @@ export function CoachMarketplaceScreen({
   myUserId?: string | null;
   /** A coach can start a new listing from this tab. */
   canCreateListing?: boolean;
+  canFavorite?: boolean;
   /** On desktop the «Создать объявление» button sits in the page heading, outside this screen; each press raises this number. */
   createListingRequest?: number;
 }) {
@@ -297,6 +316,10 @@ export function CoachMarketplaceScreen({
   const [maxPriceText, setMaxPriceText] = useState("");
   const [minRating, setMinRating] = useState<number | undefined>(undefined);
   const [onlineOnly, setOnlineOnly] = useState(false);
+  const [favoriteOnly, setFavoriteOnly] = useState(false);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
+  const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null);
+  const loadGeneration = useRef(0);
   const [listingsLayout, setListingsLayout] = useState<ListingsLayout>(loadStoredLayout);
 
   const setLayout = (layout: ListingsLayout) => {
@@ -314,15 +337,47 @@ export function CoachMarketplaceScreen({
   const showDetailPanel = isDesktop && listingsLayout === "column";
 
   const load = (filters: CoachListingFilters) => {
+    const generation = ++loadGeneration.current;
     setState({ status: "loading" });
     listListings(token, filters)
-      .then((listings) =>
-        setState({ status: "ready", listings }),
-      )
+      .then((listings) => {
+        if (generation === loadGeneration.current) setState({ status: "ready", listings });
+      })
       .catch((err: unknown) => {
+        if (generation !== loadGeneration.current) return;
         const message = err instanceof ApiError ? err.message : "Не удалось загрузить список тренеров";
         setState({ status: "error", message });
       });
+  };
+
+  const openListing = (listing: CoachListingCard, next?: View) => {
+    if (next) setView(next);
+    else setSelectedId(listing.id);
+    void recordListingView(token, listing.id)
+      .then((viewsCount) => setState((current) => current.status === "ready"
+        ? { ...current, listings: current.listings.map((item) => item.id === listing.id ? { ...item, viewsCount } : item) }
+        : current))
+      .catch(() => {});
+  };
+
+  const toggleFavorite = async (listing: CoachListingCard) => {
+    if (favoritePendingId) return;
+    const next = !listing.isFavorite;
+    setFavoritePendingId(listing.id);
+    setFavoriteError(null);
+    try {
+      await setListingFavorite(token, listing.id, next);
+      setState((current) => current.status === "ready" ? {
+        ...current,
+        listings: current.listings
+          .filter((item) => !(favoriteOnly && item.id === listing.id && !next))
+          .map((item) => item.id === listing.id ? { ...item, isFavorite: next } : item),
+      } : current);
+    } catch (err) {
+      setFavoriteError(err instanceof ApiError ? err.message : "Не удалось изменить избранное");
+    } finally {
+      setFavoritePendingId(null);
+    }
   };
 
   useEffect(() => {
@@ -336,7 +391,7 @@ export function CoachMarketplaceScreen({
   };
 
   const applyFilters = (
-    overrides: Partial<{ location: string; minPriceText: string; maxPriceText: string; minRating?: number; onlineOnly: boolean }> = {},
+    overrides: Partial<{ location: string; minPriceText: string; maxPriceText: string; minRating?: number; onlineOnly: boolean; favoriteOnly: boolean }> = {},
   ) => {
     const next = {
       location: overrides.location ?? location,
@@ -344,6 +399,7 @@ export function CoachMarketplaceScreen({
       maxPrice: parsePrice(overrides.maxPriceText ?? maxPriceText),
       minRating: "minRating" in overrides ? overrides.minRating : minRating,
       onlineOnly: overrides.onlineOnly ?? onlineOnly,
+      favoriteOnly: overrides.favoriteOnly ?? favoriteOnly,
     };
     load({
       location: next.location.trim() || undefined,
@@ -351,6 +407,7 @@ export function CoachMarketplaceScreen({
       max_price: next.maxPrice,
       min_rating: next.minRating,
       format: next.onlineOnly ? "online" : undefined,
+      favorite_only: next.favoriteOnly,
     });
   };
 
@@ -360,6 +417,7 @@ export function CoachMarketplaceScreen({
     setMaxPriceText("");
     setMinRating(undefined);
     setOnlineOnly(false);
+    setFavoriteOnly(false);
     load({});
   };
 
@@ -409,6 +467,13 @@ export function CoachMarketplaceScreen({
           setView(view.coachUserId ? { screen: "coachProfile", coachUserId: view.coachUserId } : { screen: "list" })
         }
         ownUserId={myUserId}
+        canFavorite={canFavorite}
+        onFavoriteChange={(listingId, isFavorite) => setState((current) => current.status === "ready" ? {
+          ...current,
+          listings: current.listings
+            .filter((item) => !(favoriteOnly && item.id === listingId && !isFavorite))
+            .map((item) => item.id === listingId ? { ...item, isFavorite } : item),
+        } : current)}
         onBook={(listing) => (guest ? onRequireLogin?.(listing.id) : setView({ screen: "booking", listing }))}
       />
     );
@@ -505,6 +570,22 @@ export function CoachMarketplaceScreen({
       )}
 
       {tabs}
+
+      {canFavorite && (
+        <button
+          type="button"
+          className={favoriteOnly ? `${styles.favoriteFilter} ${styles.favoriteFilterOn}` : styles.favoriteFilter}
+          aria-pressed={favoriteOnly}
+          onClick={() => {
+            const next = !favoriteOnly;
+            setFavoriteOnly(next);
+            applyFilters({ favoriteOnly: next });
+          }}
+        >
+          {favoriteOnly ? "♥ Только избранные" : "♡ Только избранные"}
+        </button>
+      )}
+      {favoriteError && <p role="alert" className={styles.favoriteError}>{favoriteError}</p>}
 
       <div className={styles.marketplaceLayout}>
         <div className={styles.filterPanel}>
@@ -637,10 +718,10 @@ export function CoachMarketplaceScreen({
 
           {state.status === "loading" && <StateScreen kind="loading" title="Загрузка тренеров…" />}
           {state.status === "error" && (
-            <StateScreen kind="error" title="Не удалось загрузить тренеров" description={state.message} onRetry={() => load({})} />
+            <StateScreen kind="error" title="Не удалось загрузить тренеров" description={state.message} onRetry={() => applyFilters()} />
           )}
           {state.status === "ready" && state.listings.length === 0 && (
-            <StateScreen kind="empty" title="Пока никого нет" description="Объявления появятся здесь, когда тренеры их опубликуют." />
+            <StateScreen kind="empty" title={favoriteOnly ? "В избранном пока пусто" : "Пока никого нет"} description={favoriteOnly ? "Сохраните понравившееся объявление, и оно появится здесь." : "Объявления появятся здесь, когда тренеры их опубликуют."} />
           )}
           {state.status === "ready" && state.listings.length > 0 && (() => {
             const selected = state.listings.find((l) => l.id === selectedId) ?? state.listings[0]!;
@@ -653,16 +734,16 @@ export function CoachMarketplaceScreen({
                     token={token}
                     listing={listing}
                     own={!!myUserId && listing.coachUserId === myUserId}
+                    onFavorite={canFavorite && listing.coachUserId !== myUserId ? () => void toggleFavorite(listing) : undefined}
+                    favoritePending={favoritePendingId === listing.id}
                     onBook={
                       showDetailPanel
                         ? undefined
                         : () => (guest ? onRequireLogin?.(listing.id) : setView({ screen: "resumeBooking", listingId: listing.id, fromList: true }))
                     }
-                    onOpen={() =>
-                      showDetailPanel
-                        ? setSelectedId(listing.id)
-                        : setView({ screen: "coachProfile", coachUserId: listing.coachUserId })
-                    }
+                    onOpen={() => openListing(listing, showDetailPanel
+                      ? undefined
+                      : { screen: "coachProfile", coachUserId: listing.coachUserId })}
                   />
                 ))}
               </div>

@@ -269,6 +269,51 @@
   color: var(--color-text-secondary);
 }
 
+.favoriteFilter,
+.favoriteButton {
+  align-self: flex-start;
+  min-height: var(--control-height);
+  padding: 0 16px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: 600 14px/1.2 var(--font-body);
+  cursor: pointer;
+}
+
+.favoriteFilterOn,
+.favoriteButtonOn {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.favoriteFilter:hover,
+.favoriteButton:hover {
+  background: var(--color-surface-alt);
+}
+
+.favoriteFilter:focus-visible,
+.favoriteButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.favoriteButton:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.favoriteError {
+  color: var(--color-danger);
+  margin: 0;
+}
+
+.viewCount {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
 .resultsColumn {
   display: flex;
   flex-direction: column;

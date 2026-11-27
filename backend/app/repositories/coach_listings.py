@@ -26,7 +26,7 @@ _VISIBLE_VIDEO = "(SELECT hf.id FROM files hf WHERE hf.id = cl.video_file_id AND
 _LISTING_FIELDS = (
     "id, coach_user_id, title, description, is_listed, price_per_session, currency, "
     "offers_online, offers_offline, location, session_duration_minutes, photo_file_id, video_file_id, "
-    "(moderation_hidden_at IS NOT NULL) AS hidden_by_moderation, moderation_reason"
+    "views_count, (moderation_hidden_at IS NOT NULL) AS hidden_by_moderation, moderation_reason"
 )
 
 
@@ -234,6 +234,8 @@ def _card_row_to_dict(row: dict[str, Any], coach_rating: dict[str, Any], next_sl
         "offers_offline": row["offers_offline"],
         "photo_file_id": row["photo_file_id"],
         "next_available_slot": next_slot,
+        "views_count": row["views_count"],
+        "is_favorite": row["is_favorite"],
     }
 
 
@@ -249,6 +251,7 @@ async def list_listed(
     min_experience_years: int | None = None,
     viewer_user_id: UUID | None = None,
     admin_emails: Sequence[str] = (),
+    only_favorites: bool = False,
 ) -> list[dict[str, Any]]:
     """The marketplace catalogue. Administrators' listings (made for testing) are not shown to anybody but their own
     author: `admin_emails` is the lower-cased list from configuration, `viewer_user_id` the person looking (if signed in)."""
@@ -279,12 +282,18 @@ async def list_listed(
     elif training_format == "offline":
         conditions.append("cl.offers_offline = TRUE")
 
+    params.append(viewer_user_id)
+    viewer_param = f"${len(params)}::uuid"
+    favorite_sql = f"EXISTS (SELECT 1 FROM coach_listing_favorites cf WHERE cf.listing_id = cl.id AND cf.user_id = {viewer_param})"
+    if only_favorites:
+        conditions.append(favorite_sql)
+
     rows = await conn.fetch(
         f"""
         SELECT cl.id, cl.title, cl.description, cl.coach_user_id, cp.full_name AS coach_full_name, cp.is_pro AS coach_is_pro,
                u.photo_url AS coach_photo_url, cp.sport, cp.specialization, cp.experience_years,
                cl.price_per_session, cl.currency, cl.location, cl.offers_online, cl.offers_offline,
-               {_VISIBLE_PHOTO} AS photo_file_id
+               cl.views_count, {favorite_sql} AS is_favorite, {_VISIBLE_PHOTO} AS photo_file_id
         FROM coach_listings cl
         JOIN coach_profiles cp ON cp.user_id = cl.coach_user_id
         JOIN users u ON u.id = cl.coach_user_id
@@ -314,7 +323,7 @@ async def list_listed_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) -
         SELECT cl.id, cl.title, cl.description, cl.coach_user_id, cp.full_name AS coach_full_name, cp.is_pro AS coach_is_pro,
                u.photo_url AS coach_photo_url, cp.sport, cp.specialization, cp.experience_years,
                cl.price_per_session, cl.currency, cl.location, cl.offers_online, cl.offers_offline,
-               {_VISIBLE_PHOTO} AS photo_file_id
+               cl.views_count, FALSE AS is_favorite, {_VISIBLE_PHOTO} AS photo_file_id
         FROM coach_listings cl
         JOIN coach_profiles cp ON cp.user_id = cl.coach_user_id
         JOIN users u ON u.id = cl.coach_user_id
@@ -332,13 +341,15 @@ async def list_listed_for_coach(conn: asyncpg.Connection, coach_user_id: UUID) -
     return cards
 
 
-async def get_public_listing(conn: asyncpg.Connection, listing_id: UUID) -> dict[str, Any] | None:
+async def get_public_listing(conn: asyncpg.Connection, listing_id: UUID, viewer_user_id: UUID | None = None) -> dict[str, Any] | None:
     row = await conn.fetchrow(
         f"""
         SELECT cl.id, cl.title, cl.description, cl.coach_user_id, cp.full_name AS coach_full_name, cp.is_pro AS coach_is_pro,
                u.photo_url AS coach_photo_url, cp.sport, cp.specialization, cp.description AS coach_description,
                cp.experience_years, cl.price_per_session, cl.currency, cl.location, cl.offers_online,
-               cl.offers_offline, cl.session_duration_minutes, {_VISIBLE_PHOTO} AS photo_file_id,
+               cl.offers_offline, cl.session_duration_minutes, cl.views_count,
+               EXISTS (SELECT 1 FROM coach_listing_favorites cf WHERE cf.listing_id = cl.id AND cf.user_id = $2::uuid) AS is_favorite,
+               {_VISIBLE_PHOTO} AS photo_file_id,
                {_VISIBLE_VIDEO} AS video_file_id
         FROM coach_listings cl
         JOIN coach_profiles cp ON cp.user_id = cl.coach_user_id
@@ -346,6 +357,7 @@ async def get_public_listing(conn: asyncpg.Connection, listing_id: UUID) -> dict
         WHERE cl.id = $1 AND {PUBLIC_LISTING}
         """,
         listing_id,
+        viewer_user_id,
     )
     if row is None:
         return None
@@ -416,3 +428,34 @@ async def is_public(conn: asyncpg.Connection, listing_id: UUID) -> bool:
             listing_id,
         )
     )
+
+
+async def count_view(conn: asyncpg.Connection, listing_id: UUID, viewer_key: str) -> int:
+    """Count one explicit open per visitor and listing per day, atomically."""
+    async with conn.transaction():
+        inserted = await conn.fetchval(
+            "INSERT INTO coach_listing_views (listing_id, viewer_key, viewed_on) "
+            "VALUES ($1, $2, CURRENT_DATE) ON CONFLICT DO NOTHING RETURNING 1",
+            listing_id, viewer_key,
+        )
+        if inserted:
+            await conn.execute("UPDATE coach_listings SET views_count = views_count + 1 WHERE id = $1", listing_id)
+        return await conn.fetchval("SELECT views_count FROM coach_listings WHERE id = $1", listing_id)
+
+
+async def set_favorite(conn: asyncpg.Connection, listing_id: UUID, user_id: UUID, favorite: bool) -> None:
+    if favorite:
+        await conn.execute(
+            "INSERT INTO coach_listing_favorites (listing_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+            listing_id, user_id,
+        )
+    else:
+        await conn.execute(
+            "DELETE FROM coach_listing_favorites WHERE listing_id = $1 AND user_id = $2",
+            listing_id, user_id,
+        )
+
+
+async def purge_old_views(conn: asyncpg.Connection) -> None:
+    """Keep only recent pseudonymous viewer keys; the aggregate count remains."""
+    await conn.execute("DELETE FROM coach_listing_views WHERE viewed_on < CURRENT_DATE - 30")

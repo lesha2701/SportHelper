@@ -99,6 +99,7 @@ function filtersToQuery(filters: CoachListingFilters): string {
   if (filters.min_rating !== undefined) params.set("min_rating", String(filters.min_rating));
   if (filters.format) params.set("format", filters.format);
   if (filters.min_experience_years !== undefined) params.set("min_experience_years", String(filters.min_experience_years));
+  if (filters.favorite_only) params.set("favorite_only", "true");
   const qs = params.toString();
   return qs ? `?${qs}` : "";
 }
@@ -111,6 +112,15 @@ export async function listListings(token: string, filters: CoachListingFilters =
 export async function getListingProfile(token: string, listingId: string): Promise<CoachListingProfile> {
   const dto = await apiRequest<CoachListingProfileDto>(`/api/coach-listings/${listingId}`, { token });
   return mapCoachListingProfileDto(dto);
+}
+
+export async function recordListingView(token: string, listingId: string): Promise<number> {
+  const result = await apiRequest<{ views_count: number }>(`/api/coach-listings/${listingId}/view`, { method: "POST", token });
+  return result.views_count;
+}
+
+export async function setListingFavorite(token: string, listingId: string, favorite: boolean): Promise<void> {
+  await apiRequest(`/api/coach-listings/${listingId}/favorite`, { method: favorite ? "PUT" : "DELETE", token });
 }
 
 export async function getListingOpenSlots(

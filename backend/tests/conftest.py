@@ -2286,6 +2286,8 @@ def client(monkeypatch: pytest.MonkeyPatch):
 
     listings_store: dict = {}
     listing_availability_store: dict = {}  # listing_id -> list[window dict]
+    listing_favorites: set[tuple] = set()
+    listing_views: set[tuple] = set()
 
     async def fake_create_listing(conn, coach_user_id, *, title):
         listing_id = uuid4()
@@ -2303,6 +2305,7 @@ def client(monkeypatch: pytest.MonkeyPatch):
             "session_duration_minutes": None,
             "photo_file_id": None,
             "video_file_id": None,
+            "views_count": 0,
         }
         listings_store[listing_id] = record
         return dict(record)
@@ -2388,10 +2391,13 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(coach_listings_module, "replace_availability", fake_replace_listing_availability)
     # coach_listings_module.has_overlap is a plain function — not faked, runs for real in tests.
 
-    async def fake_list_listed(conn, *, sport=None, location=None, min_price=None, max_price=None, min_rating=None, training_format=None, min_experience_years=None, viewer_user_id=None, admin_emails=()):
+    async def fake_list_listed(conn, *, sport=None, location=None, min_price=None, max_price=None, min_rating=None, training_format=None, min_experience_years=None, viewer_user_id=None, admin_emails=(), only_favorites=False):
         cards = []
         for listing in listings_store.values():
             if not listing.get("is_listed"):
+                continue
+            is_favorite = (listing["id"], viewer_user_id) in listing_favorites
+            if only_favorites and not is_favorite:
                 continue
             profile = coach_store.get(listing["coach_user_id"])
             if profile is None:
@@ -2444,12 +2450,14 @@ def client(monkeypatch: pytest.MonkeyPatch):
                     "offers_offline": listing.get("offers_offline", False),
                     "photo_file_id": listing.get("photo_file_id"),
                     "next_available_slot": next_slot[0]["starts_at"] if next_slot else None,
+                    "views_count": listing["views_count"],
+                    "is_favorite": is_favorite,
                 }
             )
         return cards
 
-    async def fake_get_public_listing(conn, listing_id):
-        cards = await fake_list_listed(conn)
+    async def fake_get_public_listing(conn, listing_id, viewer_user_id=None):
+        cards = await fake_list_listed(conn, viewer_user_id=viewer_user_id)
         card = next((c for c in cards if c["id"] == listing_id), None)
         if card is None:
             return None
@@ -2500,6 +2508,22 @@ def client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(coach_listings_module, "get_public_listing", fake_get_public_listing)
     monkeypatch.setattr(coach_listings_module, "list_listed_for_coach", fake_list_listed_for_coach)
     monkeypatch.setattr(coach_listings_module, "compute_open_slots", fake_listing_compute_open_slots)
+
+    async def fake_count_listing_view(conn, listing_id, viewer_key):
+        key = (listing_id, viewer_key, session_time.wall_today())
+        if key not in listing_views:
+            listing_views.add(key)
+            listings_store[listing_id]["views_count"] += 1
+        return listings_store[listing_id]["views_count"]
+
+    async def fake_set_listing_favorite(conn, listing_id, user_id, favorite):
+        if favorite:
+            listing_favorites.add((listing_id, user_id))
+        else:
+            listing_favorites.discard((listing_id, user_id))
+
+    monkeypatch.setattr(coach_listings_module, "count_view", fake_count_listing_view)
+    monkeypatch.setattr(coach_listings_module, "set_favorite", fake_set_listing_favorite)
 
     # --- AI pre-session analysis of an athlete (consent + stored result) ----------
     import app.repositories.training_ai_analyses as analyses_module

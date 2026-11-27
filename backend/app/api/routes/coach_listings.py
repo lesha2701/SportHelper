@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
+import re
+import secrets
 from datetime import date, timedelta
 from uuid import UUID, uuid4
 
 import asyncpg
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, Depends, Request, Response, UploadFile
 
 from app.api.deps import get_current_user, get_optional_user, get_db, get_settings_dep
 from app.config import Settings
@@ -39,6 +43,34 @@ from app.services.uploads import (
 )
 
 router = APIRouter(prefix="/api/coach-listings", tags=["coach-listings"])
+
+
+def _view_cookie_name(settings: Settings) -> str:
+    return "__Host-sag_listing_viewer" if settings.secure_cookies else "sag_listing_viewer"
+
+
+def _viewer_key(request: Request, response: Response, user: dict | None, settings: Settings) -> str:
+    secret = settings.jwt_secret.encode()
+    if user:
+        identity = f"user:{user['id']}"
+    else:
+        raw = request.cookies.get(_view_cookie_name(settings), "")
+        visitor_id, _, signature = raw.partition(".")
+        expected = hmac.new(secret, visitor_id.encode(), hashlib.sha256).hexdigest()
+        if not re.fullmatch(r"[0-9a-f]{32}", visitor_id) or not hmac.compare_digest(signature, expected):
+            visitor_id = secrets.token_hex(16)
+            signature = hmac.new(secret, visitor_id.encode(), hashlib.sha256).hexdigest()
+            response.set_cookie(
+                _view_cookie_name(settings), f"{visitor_id}.{signature}", max_age=365 * 24 * 3600,
+                secure=settings.secure_cookies, httponly=True, samesite="lax", path="/",
+            )
+        identity = f"guest:{visitor_id}"
+    return hmac.new(secret, identity.encode(), hashlib.sha256).hexdigest()
+
+
+async def _require_player(conn: asyncpg.Connection, user: dict) -> None:
+    if await profiles_repo.get_player_profile(conn, user["id"]) is None:
+        raise APIError("player profile required", code="player_profile_required", status_code=403)
 
 
 def _require_coach_profile_error() -> APIError:
@@ -355,10 +387,15 @@ async def list_listings(
     min_rating: float | None = None,
     format: str | None = None,
     min_experience_years: int | None = None,
+    favorite_only: bool = False,
     user: dict | None = Depends(get_optional_user),
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> list[CoachListingCardOut]:
+    if favorite_only:
+        if user is None:
+            raise APIError("sign in to view favorites", code="authentication_required", status_code=401)
+        await _require_player(conn, user)
     cards = await listings_repo.list_listed(
         conn,
         sport=sport,
@@ -370,8 +407,50 @@ async def list_listings(
         min_experience_years=min_experience_years,
         viewer_user_id=user["id"] if user else None,
         admin_emails=settings.admin_emails_list,
+        only_favorites=favorite_only,
     )
     return [CoachListingCardOut(**c) for c in cards]
+
+
+@router.post("/{listing_id}/view")
+async def record_listing_view(
+    listing_id: UUID,
+    request: Request,
+    response: Response,
+    user: dict | None = Depends(get_optional_user),
+    conn: asyncpg.Connection = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> dict[str, int]:
+    if not await listings_repo.is_public(conn, listing_id):
+        raise NotFoundError("listing not found or not listed")
+    listing = await listings_repo.get_listing(conn, listing_id)
+    assert listing is not None
+    if user and listing["coach_user_id"] == user["id"]:
+        return {"views_count": listing["views_count"]}
+    return {"views_count": await listings_repo.count_view(conn, listing_id, _viewer_key(request, response, user, settings))}
+
+
+@router.put("/{listing_id}/favorite")
+async def add_favorite(
+    listing_id: UUID,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> dict[str, bool]:
+    await _require_player(conn, user)
+    if not await listings_repo.is_public(conn, listing_id):
+        raise NotFoundError("listing not found or not listed")
+    await listings_repo.set_favorite(conn, listing_id, user["id"], True)
+    return {"is_favorite": True}
+
+
+@router.delete("/{listing_id}/favorite", status_code=204, response_model=None)
+async def remove_favorite(
+    listing_id: UUID,
+    user: dict = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> None:
+    await _require_player(conn, user)
+    await listings_repo.set_favorite(conn, listing_id, user["id"], False)
 
 
 @router.get("/{listing_id}", response_model=CoachListingProfileOut)
@@ -380,7 +459,7 @@ async def get_listing_profile(
     user: dict | None = Depends(get_optional_user),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> CoachListingProfileOut:
-    profile = await listings_repo.get_public_listing(conn, listing_id)
+    profile = await listings_repo.get_public_listing(conn, listing_id, user["id"] if user else None)
     if profile is None:
         raise NotFoundError("listing not found or not listed")
     return CoachListingProfileOut(**profile)

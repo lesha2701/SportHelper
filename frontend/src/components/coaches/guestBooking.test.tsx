@@ -1,12 +1,14 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getListingProfile, listListings } from "../../api/coachListings";
+import { getListingProfile, listListings, recordListingView } from "../../api/coachListings";
 import type { CoachListingCard, CoachListingProfile } from "../../types/coachListing";
 import { CoachMarketplaceScreen } from "./CoachMarketplaceScreen";
 
 vi.mock("../../api/coachListings", () => ({
   listListings: vi.fn(),
   getListingProfile: vi.fn(),
+  recordListingView: vi.fn().mockResolvedValue(1),
+  setListingFavorite: vi.fn().mockResolvedValue(undefined),
   getListingOpenSlots: vi.fn(() => new Promise(() => {})),
 }));
 vi.mock("../../api/coaches", () => ({
@@ -65,6 +67,7 @@ describe("booking as a guest", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Записаться" }));
 
+    expect(recordListingView).toHaveBeenCalledWith("", "L1");
     expect(onRequireLogin).toHaveBeenCalledWith("L1");
     expect(screen.queryByText(/Запись:/)).toBeNull(); // the booking form never opens for a guest
   });

@@ -724,6 +724,7 @@ function MainContent({
               initialListingId={marketplaceStart?.listingId ?? null}
               initialBookListingId={marketplaceStart?.bookListingId ?? null}
               myUserId={myUserId}
+              canFavorite
             />
           )}
           {playerTab === "profile" && (

@@ -46,6 +46,7 @@ class CoachListingOut(BaseModel):
     session_duration_minutes: int | None
     photo_file_id: UUID | None
     video_file_id: UUID | None
+    views_count: int = 0
     # Set when a moderator took the listing off the public catalogue; the owner cannot switch it back on.
     hidden_by_moderation: bool = False
     moderation_reason: str | None = None
@@ -111,6 +112,8 @@ class CoachListingCardOut(BaseModel):
     offers_offline: bool
     photo_file_id: UUID | None
     next_available_slot: datetime | None = Field(description=WALL_CLOCK_DOC)
+    views_count: int = 0
+    is_favorite: bool = False
 
 
 class CoachListingProfileOut(CoachListingCardOut):
