@@ -431,24 +431,29 @@ function EventList({ events, onOpenEvent }: { events: CalendarEvent[]; onOpenEve
             const rowStyle = { "--event-color": EVENT_COLORS[event.type] } as CSSProperties;
             const rowContent = (
               <>
-                <span className={styles.eventIcon}>
-                  <Icon name={CALENDAR_EVENT_ICONS[event.type]} size={14} />
-                  {event.time ? event.time.slice(0, 5) : ""}
+                <span className={weekStyles.listEventTime}>
+                  {event.time ? event.time.slice(0, 5) : "—:—"}
                 </span>
-                <span className={profileStyles.rowValue}>
-                  {event.title}
-                  {event.teamName ? ` · ${event.teamName}` : ""}
-                  {isEventOverdue(event, todayIso) && (
-                    <span className={`${styles.badge} ${styles.badgeWarning}`} style={{ marginLeft: 6 }}>
-                      Просрочена
-                    </span>
-                  )}
+                <span className={weekStyles.listEventDetails}>
+                  <span className={weekStyles.listEventMeta}>
+                    <Icon name={CALENDAR_EVENT_ICONS[event.type]} size={16} />
+                    {EVENT_TYPE_LABELS[event.type]}
+                    {event.type === "training" && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        {isEventOverdue(event, todayIso) ? "Просрочена" : event.status === "completed" ? "Проведена" : event.status === "cancelled" ? "Отменена" : "Запланирована"}
+                      </>
+                    )}
+                  </span>
+                  <span className={weekStyles.listEventTitle}>{event.title}</span>
+                  {event.teamName && <span className={weekStyles.listEventContext}>{event.teamName}</span>}
                 </span>
+                {onOpenEvent && <Icon name="chevron-right" size={18} />}
               </>
             );
             if (!onOpenEvent) {
               return (
-                <div key={`${event.type}-${event.id}`} className={styles.eventRow} style={rowStyle}>
+                <div key={`${event.type}-${event.id}`} className={weekStyles.listEvent} style={rowStyle}>
                   {rowContent}
                 </div>
               );
@@ -457,7 +462,7 @@ function EventList({ events, onOpenEvent }: { events: CalendarEvent[]; onOpenEve
               <button
                 key={`${event.type}-${event.id}`}
                 type="button"
-                className={styles.eventRow}
+                className={weekStyles.listEvent}
                 style={rowStyle}
                 onClick={() => onOpenEvent(event)}
               >
