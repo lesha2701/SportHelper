@@ -34,6 +34,7 @@ PUBLIC_ROUTES = {
     # the public catalogue of coaches
     ("GET", "/api/coach-listings"),
     ("GET", "/api/coach-listings/{listing_id}"),
+    ("POST", "/api/coach-listings/{listing_id}/view"),  # public listings count guest views too
     ("GET", "/api/coach-listings/{listing_id}/slots"),
     ("GET", "/api/coaches/{coach_user_id}/profile"),
     ("GET", "/api/coaches/{coach_user_id}/listings"),

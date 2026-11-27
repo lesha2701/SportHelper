@@ -9341,6 +9341,16 @@
               ],
               "title": "Min Experience Years"
             }
+          },
+          {
+            "name": "favorite_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Favorite Only"
+            }
           }
         ],
         "responses": {
@@ -9923,6 +9933,149 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coach-listings/{listing_id}/view": {
+      "post": {
+        "tags": [
+          "coach-listings"
+        ],
+        "summary": "Record Listing View",
+        "operationId": "record_listing_view_api_coach_listings__listing_id__view_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listing_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Listing Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Record Listing View Api Coach Listings  Listing Id  View Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coach-listings/{listing_id}/favorite": {
+      "put": {
+        "tags": [
+          "coach-listings"
+        ],
+        "summary": "Add Favorite",
+        "operationId": "add_favorite_api_coach_listings__listing_id__favorite_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listing_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Listing Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Add Favorite Api Coach Listings  Listing Id  Favorite Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "coach-listings"
+        ],
+        "summary": "Remove Favorite",
+        "operationId": "remove_favorite_api_coach_listings__listing_id__favorite_delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listing_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Listing Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -15954,6 +16107,16 @@
             ],
             "title": "Next Available Slot",
             "description": "The session's wall-clock time on the platform's clock (SESSION_TIMEZONE, Europe/Moscow) written with a UTC label: 10:00Z means 10:00 in Moscow. Show its UTC hours as they are; do not convert it to the device's time zone, and do not compare it with the device's clock (use has_started / can_cancel)."
+          },
+          "views_count": {
+            "type": "integer",
+            "title": "Views Count",
+            "default": 0
+          },
+          "is_favorite": {
+            "type": "boolean",
+            "title": "Is Favorite",
+            "default": false
           }
         },
         "type": "object",
@@ -16164,6 +16327,11 @@
             ],
             "title": "Video File Id"
           },
+          "views_count": {
+            "type": "integer",
+            "title": "Views Count",
+            "default": 0
+          },
           "hidden_by_moderation": {
             "type": "boolean",
             "title": "Hidden By Moderation",
@@ -16345,6 +16513,16 @@
             ],
             "title": "Next Available Slot",
             "description": "The session's wall-clock time on the platform's clock (SESSION_TIMEZONE, Europe/Moscow) written with a UTC label: 10:00Z means 10:00 in Moscow. Show its UTC hours as they are; do not convert it to the device's time zone, and do not compare it with the device's clock (use has_started / can_cancel)."
+          },
+          "views_count": {
+            "type": "integer",
+            "title": "Views Count",
+            "default": 0
+          },
+          "is_favorite": {
+            "type": "boolean",
+            "title": "Is Favorite",
+            "default": false
           },
           "coach_description": {
             "anyOf": [
