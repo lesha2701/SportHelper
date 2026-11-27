@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { ProBadge } from "../shared/ProBadge";
 import { listListings } from "../../api/coachListings";
-import { FeaturedPost } from "../blog/FeaturedPost";
 import { Link } from "../Link";
 import { Icon } from "../shared/Icon";
 import type { CoachListingCard } from "../../types/coachListing";
@@ -81,8 +80,6 @@ export function HomePage() {
           loading="eager"
         />
       </section>
-      <FeaturedPost placement="public" />
-
       <section className={styles.section} aria-labelledby="how-title">
         <div className={styles.sectionHead}>
           <h2 id="how-title" className={styles.sectionTitle}>
