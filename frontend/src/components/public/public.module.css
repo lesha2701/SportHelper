@@ -282,6 +282,10 @@
   text-wrap: balance;
 }
 
+.ambassadorAccent {
+  color: #ff4b50;
+}
+
 .ambassadorQuote footer {
   display: grid;
   gap: 4px;

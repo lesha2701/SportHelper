@@ -55,7 +55,9 @@ export function HomePage() {
         <div className={styles.ambassadorContent}>
           <span className={styles.ambassadorEyebrow}>Амбассадор SportArenaGlobal</span>
           <blockquote className={styles.ambassadorQuote}>
-            <h1 id="hero-title">Хватит ждать — тренируйся у лучших</h1>
+            <h1 id="hero-title">
+              Хватит ждать — тренируйся <span className={styles.ambassadorAccent}>у лучших</span>
+            </h1>
             <footer>
               <strong>Сергей Карасёв</strong>
               <span>Игрок ПБК «Зенит»</span>
@@ -74,8 +76,8 @@ export function HomePage() {
           className={styles.ambassadorPhoto}
           src="/sergey-karasev.jpg"
           alt="Сергей Карасёв"
-          width="1024"
-          height="1280"
+          width="1122"
+          height="1402"
           loading="eager"
         />
       </section>
