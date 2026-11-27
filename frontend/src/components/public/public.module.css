@@ -271,6 +271,103 @@
   background: var(--color-surface-alt);
 }
 
+.ambassador {
+  display: grid;
+  overflow: hidden;
+  margin: 0 16px 40px;
+  border-radius: 28px;
+  color: #fff;
+  background: #1b1d25;
+}
+
+.ambassadorContent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: clamp(28px, 5vw, 64px);
+}
+
+.ambassadorEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.ambassadorEyebrow::before {
+  content: "";
+  width: 24px;
+  height: 3px;
+  background: #ff4b50;
+}
+
+.ambassadorQuote {
+  margin: auto 0;
+  padding: 28px 0;
+}
+
+.ambassadorQuote p {
+  max-width: 11em;
+  margin: 0 0 30px;
+  font: 500 clamp(36px, 4.6vw, 64px)/1.12 var(--font-display);
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.ambassadorQuote footer {
+  display: grid;
+  gap: 4px;
+  padding-left: 16px;
+  border-left: 3px solid #ff4b50;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.ambassadorQuote strong {
+  font-size: 17px;
+}
+
+.ambassadorQuote footer span {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.ambassadorLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.ambassadorLink:hover {
+  border-color: #ff4b50;
+}
+
+.ambassadorLink:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+}
+
+.ambassadorLink span {
+  color: #ff4b50;
+  font-size: 20px;
+}
+
+.ambassadorPhoto {
+  display: block;
+  width: 100%;
+  height: min(76vw, 420px);
+  object-fit: cover;
+  object-position: center 34%;
+}
+
 .section {
   padding: 24px 16px 40px;
 }
@@ -582,6 +679,17 @@
 
   .hero {
     padding: 48px 32px 72px;
+  }
+
+  .ambassador {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    margin: 0 32px 64px;
+  }
+
+  .ambassadorPhoto {
+    height: 100%;
+    min-height: 420px;
+    object-position: center 32%;
   }
 
   .section {

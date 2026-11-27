@@ -72,6 +72,30 @@ export function HomePage() {
         <FeaturedPost placement="public" />
       </section>
 
+      <section className={styles.ambassador} aria-label="Амбассадор SportArenaGlobal">
+        <div className={styles.ambassadorContent}>
+          <span className={styles.ambassadorEyebrow}>Амбассадор SportArenaGlobal</span>
+          <blockquote className={styles.ambassadorQuote}>
+            <p>Хватит ждать — тренируйся у лучших</p>
+            <footer>
+              <strong>Сергей Карасёв</strong>
+              <span>Игрок ПБК «Зенит»</span>
+            </footer>
+          </blockquote>
+          <Link to="/coaches" className={styles.ambassadorLink}>
+            Посмотреть тренеров <span aria-hidden="true">↗</span>
+          </Link>
+        </div>
+        <img
+          className={styles.ambassadorPhoto}
+          src="/sergey-karasev.jpg"
+          alt="Сергей Карасёв"
+          width="1024"
+          height="1280"
+          loading="lazy"
+        />
+      </section>
+
       <section className={styles.section} aria-labelledby="how-title">
         <div className={styles.sectionHead}>
           <h2 id="how-title" className={styles.sectionTitle}>
