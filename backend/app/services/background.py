@@ -34,6 +34,7 @@ from app.repositories import sessions as sessions_repo
 from app.repositories import tasks as tasks_repo
 from app.repositories import trainings as trainings_repo
 from app.repositories import users as users_repo
+from app.repositories import coach_listings as coach_listings_repo
 from app.services import email as email_service
 from app.services import email_templates
 from app.services import reconcile as reconcile_service
@@ -220,6 +221,7 @@ async def run_account_maintenance(conn: asyncpg.Connection, settings: Settings) 
         return
     _last_auth_cleanup = now
     await purge_stale_auth_data(conn)
+    await coach_listings_repo.purge_old_views(conn)
     await process_account_deletions(conn, settings)
 
 

@@ -63,6 +63,7 @@ export interface CoachListingDto {
   session_duration_minutes: number | null;
   photo_file_id: string | null;
   video_file_id: string | null;
+  views_count?: number;
 }
 
 export interface CoachListing {
@@ -79,6 +80,7 @@ export interface CoachListing {
   sessionDurationMinutes: number | null;
   photoFileId: string | null;
   videoFileId: string | null;
+  viewsCount: number;
 }
 
 export function mapCoachListingDto(dto: CoachListingDto): CoachListing {
@@ -96,6 +98,7 @@ export function mapCoachListingDto(dto: CoachListingDto): CoachListing {
     sessionDurationMinutes: dto.session_duration_minutes,
     photoFileId: dto.photo_file_id,
     videoFileId: dto.video_file_id,
+    viewsCount: dto.views_count ?? 0,
   };
 }
 
@@ -131,6 +134,8 @@ export interface CoachListingCardDto {
   offers_offline: boolean;
   photo_file_id: string | null;
   next_available_slot: string | null;
+  views_count?: number;
+  is_favorite?: boolean;
 }
 
 export interface CoachListingCard {
@@ -154,6 +159,8 @@ export interface CoachListingCard {
   offersOffline: boolean;
   photoFileId: string | null;
   nextAvailableSlot: string | null;
+  viewsCount?: number;
+  isFavorite?: boolean;
 }
 
 export function mapCoachListingCardDto(dto: CoachListingCardDto): CoachListingCard {
@@ -177,6 +184,8 @@ export function mapCoachListingCardDto(dto: CoachListingCardDto): CoachListingCa
     offersOffline: dto.offers_offline,
     photoFileId: dto.photo_file_id,
     nextAvailableSlot: dto.next_available_slot,
+    viewsCount: dto.views_count ?? 0,
+    isFavorite: dto.is_favorite ?? false,
   };
 }
 
@@ -252,4 +261,5 @@ export interface CoachListingFilters {
   min_rating?: number;
   format?: "online" | "offline";
   min_experience_years?: number;
+  favorite_only?: boolean;
 }

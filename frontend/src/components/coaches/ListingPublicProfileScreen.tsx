@@ -1,7 +1,7 @@
 // frontend/src/components/coaches/ListingPublicProfileScreen.tsx
 import { ProBadge } from "../shared/ProBadge";
 import { useEffect, useState } from "react";
-import { getListingProfile } from "../../api/coachListings";
+import { getListingProfile, recordListingView, setListingFavorite } from "../../api/coachListings";
 import { ApiError } from "../../api/client";
 import { StateScreen } from "../StateScreen";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
@@ -23,27 +23,56 @@ export function ListingPublicProfileScreen({
   onBack,
   onBook,
   ownUserId = null,
+  canFavorite = false,
+  onFavoriteChange,
 }: {
   token: string;
   listingId: string;
   onBack: () => void;
   /** The signed-in person: on their own listing there is no «Записаться». */
   ownUserId?: string | null;
+  canFavorite?: boolean;
+  onFavoriteChange?: (listingId: string, isFavorite: boolean) => void;
   onBook: (listing: CoachListingProfile) => void;
 }) {
   const [state, setState] = useState<
     { status: "loading" } | { status: "error"; message: string } | { status: "ready"; listing: CoachListingProfile }
   >({ status: "loading" });
+  const [favoritePending, setFavoritePending] = useState(false);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
   useEffect(() => {
     setState({ status: "loading" });
     getListingProfile(token, listingId)
-      .then((listing) => setState({ status: "ready", listing }))
+      .then((listing) => {
+        setState({ status: "ready", listing });
+        if (listing.coachUserId !== ownUserId) {
+          void recordListingView(token, listingId)
+            .then((viewsCount) => setState((current) => current.status === "ready" && current.listing.id === listingId
+              ? { status: "ready", listing: { ...current.listing, viewsCount } } : current))
+            .catch(() => {});
+        }
+      })
       .catch((err: unknown) => {
         const message = err instanceof ApiError ? err.message : "Не удалось загрузить объявление";
         setState({ status: "error", message });
       });
-  }, [token, listingId]);
+  }, [token, listingId, ownUserId]);
+
+  const toggleFavorite = async (listing: CoachListingProfile) => {
+    setFavoritePending(true);
+    setFavoriteError(null);
+    const next = !listing.isFavorite;
+    try {
+      await setListingFavorite(token, listing.id, next);
+      setState((current) => current.status === "ready" ? { status: "ready", listing: { ...current.listing, isFavorite: next } } : current);
+      onFavoriteChange?.(listing.id, next);
+    } catch (err) {
+      setFavoriteError(err instanceof ApiError ? err.message : "Не удалось изменить избранное");
+    } finally {
+      setFavoritePending(false);
+    }
+  };
 
   return (
     <div className={styles.listingScreen}>
@@ -175,6 +204,11 @@ export function ListingPublicProfileScreen({
               )}
 
               <div className={profileStyles.formActions}>
+                {canFavorite && listing.coachUserId !== ownUserId && (
+                  <button type="button" className={profileStyles.buttonSecondary} aria-pressed={!!listing.isFavorite} disabled={favoritePending} onClick={() => void toggleFavorite(listing)}>
+                    {listing.isFavorite ? "♥ В избранном" : "♡ В избранное"}
+                  </button>
+                )}
                 {listing.coachUserId !== ownUserId && (
                   <button type="button" className={profileStyles.buttonPrimary} onClick={() => onBook(listing)}>
                     Записаться
@@ -182,6 +216,7 @@ export function ListingPublicProfileScreen({
                 )}
                 <ReportButton targetType="listing" targetId={listing.id} ownerUserId={listing.coachUserId} label="Пожаловаться на объявление" />
               </div>
+              {favoriteError && <p role="alert" className={styles.favoriteError}>{favoriteError}</p>}
             </aside>
           </div>
         );

@@ -1,11 +1,13 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { listListings } from "../../api/coachListings";
+import { listListings, setListingFavorite } from "../../api/coachListings";
 import type { CoachListingCard } from "../../types/coachListing";
 import { CoachMarketplaceScreen } from "./CoachMarketplaceScreen";
 
 vi.mock("../../api/coachListings", () => ({
   listListings: vi.fn(),
+  recordListingView: vi.fn().mockResolvedValue(1),
+  setListingFavorite: vi.fn().mockResolvedValue(undefined),
   getListingProfile: vi.fn(),
   getListingOpenSlots: vi.fn(() => new Promise(() => {})),
 }));
@@ -83,5 +85,24 @@ describe("the coaches tab for everyone else", () => {
     await waitFor(() => expect(screen.getByText("Моё объявление")).toBeTruthy());
     expect(screen.getByText("Чужое объявление")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Создать объявление" })).toBeNull();
+  });
+
+  it("lets a player save a listing and filter the catalogue to favorites", async () => {
+    render(<CoachMarketplaceScreen token="t" myUserId="player-1" canFavorite />);
+    await screen.findByText("Чужое объявление");
+
+    fireEvent.click(screen.getByRole("button", { name: "В избранное: Чужое объявление" }));
+    await waitFor(() => expect(setListingFavorite).toHaveBeenCalledWith("t", "L2", true));
+    expect(screen.getByRole("button", { name: "Убрать из избранного: Чужое объявление" }).getAttribute("aria-pressed")).toBe("true");
+
+    vi.mocked(listListings).mockResolvedValueOnce([{ ...listing("L2", "other", "Чужое объявление"), isFavorite: true }]);
+    fireEvent.click(screen.getByRole("button", { name: /Только избранные/ }));
+    await waitFor(() => expect(listListings).toHaveBeenLastCalledWith("t", expect.objectContaining({ favorite_only: true })));
+    expect(await screen.findByText("Найдено 1 объявление")).toBeTruthy();
+    expect(screen.queryByText("Моё объявление")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Убрать из избранного: Чужое объявление" }));
+    await waitFor(() => expect(setListingFavorite).toHaveBeenCalledWith("t", "L2", false));
+    expect(await screen.findByText("В избранном пока пусто")).toBeTruthy();
   });
 });

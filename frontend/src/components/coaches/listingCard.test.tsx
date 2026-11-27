@@ -6,6 +6,7 @@ import { CoachMarketplaceScreen } from "./CoachMarketplaceScreen";
 
 vi.mock("../../api/coachListings", () => ({
   listListings: vi.fn(),
+  recordListingView: vi.fn().mockResolvedValue(1),
   getListingProfile: vi.fn(),
   getListingOpenSlots: vi.fn(() => new Promise(() => {})),
 }));
