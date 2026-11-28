@@ -97,6 +97,20 @@ async def decide(
         if row['status'] != 'pending':
             raise APIError('Заявка уже обработана.', code='bad_transition', status_code=409)
         cooldown = datetime.now(timezone.utc) + timedelta(days=30) if new_status == 'rejected' else None
+        if new_status == 'approved':
+            # Build the editable coach profile from the reviewed application.
+            # Evidence files and verification links stay in the private application.
+            description = '\n\n'.join(part for part in (
+                f"Опыт: {row['experience'].strip()}",
+                f"О себе: {row['about'].strip()}" if row['about'].strip() else '',
+            ) if part)
+            await conn.execute(
+                'INSERT INTO coach_profiles (user_id,full_name,sport,specialization,description) '
+                'VALUES ($1,$2,$3,$4,$5) ON CONFLICT (user_id) DO NOTHING',
+                row['user_id'], ' '.join(part for part in (row['first_name'], row['last_name']) if part),
+                row['sport'], row['qualification'], description or None,
+            )
+            await conn.execute("UPDATE users SET active_mode='coach' WHERE id=$1 AND active_mode IS NULL", row['user_id'])
         await conn.execute('UPDATE coach_applications SET status=$2,admin_note=$3,decided_by=$4,decided_at=now(),resubmit_after=$5,updated_at=now() WHERE id=$1', application_id, new_status, payload.note.strip() or None, ctx.user['id'], cooldown)
         await repo.record(conn, application_id, ctx.user['id'], new_status, payload.note.strip() or None)
         await admin_audit.record(conn, ctx.user['id'], f'coach_application_{new_status}', target_type='coach_application', target_id=application_id, reason=payload.note.strip() or None, before={'status': 'pending'}, after={'status': new_status})

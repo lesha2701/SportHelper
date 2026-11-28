@@ -76,23 +76,23 @@ export function CoachProfileForm({ initial, onSubmit, onCancel }: CoachProfileFo
           />
         </label>
         <label className={styles.field}>
-          <span className={styles.label}>Специализация</span>
+          <span className={styles.label}>Квалификация / специализация</span>
           <input
             className={styles.input}
             value={specialization}
             onChange={(e) => setSpecialization(e.target.value)}
-            maxLength={200}
+            maxLength={1000}
           />
         </label>
         </div>
 
         <label className={styles.field}>
-          <span className={styles.label}>Описание</span>
+          <span className={styles.label}>Опыт и о себе</span>
           <textarea
             className={styles.textarea}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            maxLength={1000}
+            maxLength={4100}
           />
         </label>
 

@@ -160,14 +160,23 @@ async def send_verification(
     user: dict[str, Any],
     email: str,
     next_path: str | None = None,
+    code_for_registration: bool = False,
 ) -> None:
-    token = await issue_token(
-        conn,
-        user_id=user["id"],
-        purpose="email_verify",
-        ttl=timedelta(hours=settings.email_verify_ttl_hours),
-        new_email=email,
-    )
+    if code_for_registration:
+        # An eight-digit code is entered in the same registration tab. The
+        # password chosen in that tab is still required by the API, protecting
+        # against registration of somebody else's address.
+        import secrets
+        token = f"{secrets.randbelow(100_000_000):08d}"
+        await tokens_repo.create(conn, user_id=user["id"], purpose="email_verify",
+                                 token_hash=hash_token(token),
+                                 expires_at=datetime.now(timezone.utc) + timedelta(hours=settings.email_verify_ttl_hours),
+                                 new_email=email)
+    else:
+        token = await issue_token(
+            conn, user_id=user["id"], purpose="email_verify",
+            ttl=timedelta(hours=settings.email_verify_ttl_hours), new_email=email,
+        )
     queue_email(
-        background, templates.verification_email(settings, email, user["first_name"], token, next_path), settings
+        background, templates.verification_email(settings, email, user["first_name"], token, next_path, code_for_registration), settings
     )

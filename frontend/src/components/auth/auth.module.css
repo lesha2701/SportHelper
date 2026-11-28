@@ -665,10 +665,10 @@
   margin: 0;
 }
 
-.coachEvidence label {
-  display: grid;
+.coachEvidence > label {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  font-weight: 600;
 }
 
 .coachEvidence textarea,
@@ -711,6 +711,10 @@
   .pitch {
     display: block;
     margin-block: auto;
+  }
+
+  .pageWide .pitch {
+    margin-block: 16px 0;
   }
 
   .main {

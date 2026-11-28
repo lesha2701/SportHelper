@@ -21822,7 +21822,7 @@
           },
           "sport": {
             "type": "string",
-            "maxLength": 50,
+            "maxLength": 100,
             "minLength": 1,
             "title": "Sport"
           },
@@ -21843,7 +21843,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 200
+                "maxLength": 1000
               },
               {
                 "type": "null"
@@ -21855,7 +21855,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 1000
+                "maxLength": 4100
               },
               {
                 "type": "null"

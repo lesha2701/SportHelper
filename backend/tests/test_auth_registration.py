@@ -276,6 +276,8 @@ def test_verification_email_contains_the_site_link_and_no_password(client) -> No
     register(client)
 
     mail = mails_to(client, "alice@example.com")[0]
+    assert "Код подтверждения:" in mail.text
+    assert len(link_token(mail)) == 8 and link_token(mail).isdigit()
     assert mail.text.count("http://localhost:5173/verify-email?token=") == 1
     assert PASSWORD not in mail.text and mail.html is not None and PASSWORD not in mail.html
 
