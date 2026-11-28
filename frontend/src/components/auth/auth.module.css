@@ -671,8 +671,7 @@
   gap: 8px;
 }
 
-.coachEvidence textarea,
-.coachEvidence input[type="file"] {
+.coachEvidence textarea {
   width: 100%;
   min-height: 80px;
   padding: 12px;
@@ -682,10 +681,6 @@
   color: var(--color-text);
   font: inherit;
   font-weight: 400;
-}
-
-.coachEvidence input[type="file"] {
-  min-height: 0;
 }
 
 @media (min-width: 560px) {

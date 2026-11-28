@@ -5,8 +5,8 @@
   width: 100%;
   min-height: var(--control-height);
   padding: 16px;
-  background: transparent;
-  border: 1.5px dashed var(--color-border-strong);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
   border-radius: 14px;
   position: relative;
   transition: border-color var(--transition-fast), background-color var(--transition-fast);
@@ -14,6 +14,12 @@
 
 .picker:hover {
   border-color: var(--color-primary);
+  background: var(--color-surface-alt);
+}
+
+.picker:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .pickerDisabled {
@@ -22,6 +28,7 @@
 
 .pickerDisabled:hover {
   border-color: var(--color-border-strong);
+  background: var(--color-surface);
 }
 
 .pickerIcon {
@@ -56,6 +63,23 @@
 .pickerHint {
   font-size: 12px;
   color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pickerAction {
+  flex: none;
+  border-radius: var(--radius-pill);
+  padding: 9px 14px;
+  background: var(--color-primary-glow);
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .pickerAction { padding: 8px 10px; }
 }
 
 .hiddenInput {

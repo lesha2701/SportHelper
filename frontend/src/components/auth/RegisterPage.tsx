@@ -5,6 +5,7 @@ import type { Role } from "../../types/user";
 import { loginUrl, safeNext, useLocation } from "../../router";
 import { Link } from "../Link";
 import { Icon } from "../shared/Icon";
+import { MultiFilePicker } from "../shared/FilePicker";
 import { AuthLayout } from "./AuthLayout";
 import { CheckEmailScreen } from "./CheckEmailScreen";
 import { Notice, PASSWORD_MIN_LENGTH, PasswordField, RequiredMark, SubmitButton, TextField } from "./fields";
@@ -267,7 +268,10 @@ export function RegisterPage() {
             <label><span className={styles.label}>Опыт работы<RequiredMark /></span><textarea required maxLength={2000} value={coachDetails.experience} onChange={(e) => setCoachDetails({ ...coachDetails, experience: e.target.value })} disabled={submitting} /></label>
             <label><span className={styles.label}>О себе</span><textarea maxLength={2000} value={coachDetails.about} onChange={(e) => setCoachDetails({ ...coachDetails, about: e.target.value })} disabled={submitting} /></label>
             <label><span className={styles.label}>Ссылки на сведения о вас (по одной HTTPS-ссылке в строке)</span><textarea value={coachDetails.links.join('\n')} onChange={(e) => setCoachDetails({ ...coachDetails, links: e.target.value.split('\n').map(v => v.trim()).filter(Boolean) })} disabled={submitting} /></label>
-            <label><span className={styles.label}>Документы<RequiredMark /> (PDF, JPG, PNG, WebP; до 3 файлов по 10 МБ)</span><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => setCoachDocuments(Array.from(e.target.files ?? []))} disabled={submitting} /></label>
+            <div className={styles.field}>
+              <span className={styles.label}>Документы<RequiredMark /> (PDF, JPG, PNG, WebP; до 3 файлов по 10 МБ)</span>
+              <MultiFilePicker label="Документы" accept=".pdf,.jpg,.jpeg,.png,.webp" files={coachDocuments} onSelect={setCoachDocuments} disabled={submitting} hint="Выберите документы о квалификации" />
+            </div>
             {errors.role && <p role="alert">{errors.role}</p>}
           </section>
         )}
