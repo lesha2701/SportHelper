@@ -39,10 +39,10 @@ class PlayerProfileOut(BaseModel):
 
 class CoachProfileIn(BaseModel):
     full_name: str = Field(min_length=1, max_length=100)
-    sport: str = Field(min_length=1, max_length=50)
+    sport: str = Field(min_length=1, max_length=100)
     experience_years: int | None = Field(default=None, ge=0, le=80)
-    specialization: str | None = Field(default=None, max_length=200)
-    description: str | None = Field(default=None, max_length=1000)
+    specialization: str | None = Field(default=None, max_length=1000)
+    description: str | None = Field(default=None, max_length=4100)
 
 
 class CoachProfileOut(BaseModel):

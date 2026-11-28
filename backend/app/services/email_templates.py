@@ -38,17 +38,19 @@ def _wrap_html(title: str, paragraphs: list[str], button: tuple[str, str] | None
 
 
 def verification_email(
-    settings: Settings, to: str, first_name: str, token: str, next_path: str | None = None
+    settings: Settings, to: str, first_name: str, token: str, next_path: str | None = None,
+    coach_code: bool = False,
 ) -> OutgoingEmail:
     url = _link(settings, "/verify-email", token, next_path)
     hours = settings.email_verify_ttl_hours
     paragraphs = [
         f"Здравствуйте, {first_name}!",
-        "Чтобы завершить регистрацию, подтвердите адрес электронной почты: на странице по ссылке нужно ввести пароль, "
-        "который вы указали при регистрации (если не помните — можно задать новый).",
-        f"Ссылка действует {hours} ч. и открывается один раз.",
+        (f"Код подтверждения: {token}. Введите его на странице регистрации, которую вы оставили открытой."
+         if coach_code else "Чтобы завершить регистрацию, подтвердите адрес электронной почты: на странице по ссылке нужно ввести пароль, "
+         "который вы указали при регистрации (если не помните — можно задать новый)."),
+        (f"Код действует {hours} ч. и используется один раз." if coach_code else f"Ссылка действует {hours} ч. и открывается один раз."),
     ]
-    text = "\n\n".join(paragraphs) + f"\n\nПодтвердить email: {url}\n\nЕсли вы не регистрировались — просто проигнорируйте письмо: без вашего подтверждения аккаунт не заработает."
+    text = "\n\n".join(paragraphs) + f"\n\n{('Если страница закрылась, откройте ссылку и введите выбранный при регистрации пароль: ' if coach_code else 'Подтвердить email: ')}{url}\n\nЕсли вы не регистрировались — просто проигнорируйте письмо: без вашего подтверждения аккаунт не заработает."
     return OutgoingEmail(
         to=to,
         subject=f"Подтвердите email — {_BRAND}",

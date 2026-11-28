@@ -2,7 +2,7 @@
 from __future__ import annotations
 import json
 
-from tests.auth_helpers import PASSWORD, register, register_payload, register_request, verify_latest
+from tests.auth_helpers import PASSWORD, link_token, register, register_payload, register_request, verify_latest
 
 
 def test_old_json_coach_registration_cannot_skip_review(client):
@@ -19,6 +19,22 @@ def test_coach_needs_a_real_document(client):
     wrong_file = client.post('/api/auth/register-coach', data={'payload': json.dumps(payload), 'details': '{"sport":"Теннис","qualification":"Лицензия","experience":"3 года"}'}, files=[('documents', ('fake.pdf', b'plain text', 'application/pdf'))])
     assert wrong_file.status_code == 422
     assert client.auth_store.find_by_email(payload['email']) is None
+
+
+def test_document_uses_file_signature_and_accepts_more_than_five_megabytes(client):
+    payload = register_payload(role='coach')
+    image = b'\xff\xd8\xff' + b'0' * (6 * 1024 * 1024)
+    response = client.post('/api/auth/register-coach', data={
+        'payload': json.dumps(payload),
+        'details': json.dumps({'sport': 'Теннис', 'qualification': 'Лицензия', 'experience': '3 года'}),
+    }, files=[('documents', ('license.jpg', image, 'application/octet-stream'))])
+    assert response.status_code == 201, response.text
+    too_large = client.post('/api/auth/register-coach', data={
+        'payload': json.dumps({**payload, 'email': 'second@example.com'}),
+        'details': json.dumps({'sport': 'Теннис', 'qualification': 'Лицензия', 'experience': '3 года'}),
+    }, files=[('documents', ('license.jpg', image + b'0' * (5 * 1024 * 1024), 'image/jpeg'))])
+    assert too_large.status_code == 422
+    assert too_large.json()['error']['code'] == 'document_too_large'
 
 
 def test_blank_qualification_cannot_create_an_application(client):
@@ -48,6 +64,16 @@ def test_verified_candidate_has_only_application_and_account_access(client):
     client.auth_store.coach_applications[candidate['id']]['status'] = 'approved'
     assert client.get('/api/auth/me').json()['coach_application_status'] == 'approved'
     assert client.get('/api/profile/me').status_code == 200
+
+
+def test_coach_email_code_still_requires_the_registration_password(client):
+    assert register(client, role='coach').status_code == 201
+    code = link_token(client.outbox[-1])
+    assert len(code) == 8 and code.isdigit()
+    assert code in client.outbox[-1].text
+    denied = client.post('/api/auth/verify-email', json={'token': code, 'password': 'wrong password'})
+    assert denied.status_code == 403
+    assert client.post('/api/auth/verify-email', json={'token': code, 'password': PASSWORD}).status_code == 200
 
 
 def test_player_registration_is_unchanged(client):

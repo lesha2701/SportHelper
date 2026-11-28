@@ -35,6 +35,18 @@ def _resubmit(candidate):
     }, files=[('documents', ('new.png', b'\x89PNG\r\n\x1a\nnew evidence', 'image/png'))])
 
 
+def test_six_megabyte_jpeg_is_saved_with_its_detected_type(world):
+    email = 'large-document@example.com'
+    image = b'\xff\xd8\xff' + b'0' * (6 * 1024 * 1024)
+    response = world.client.post('/api/auth/register-coach', data={
+        'payload': json.dumps(register_payload(role='coach', email=email)),
+        'details': json.dumps({'sport': 'Теннис', 'qualification': 'Лицензия', 'experience': 'Три года'}),
+    }, files=[('documents', ('license.jpg', image, 'application/octet-stream'))])
+    assert response.status_code == 201, response.text
+    assert sql_value(world.dsn, 'SELECT octet_length(content) FROM coach_application_documents WHERE application_id=(SELECT id FROM coach_applications WHERE user_id=(SELECT id FROM users WHERE email=$1))', email) == len(image)
+    assert sql_value(world.dsn, 'SELECT mime_type FROM coach_application_documents WHERE application_id=(SELECT id FROM coach_applications WHERE user_id=(SELECT id FROM users WHERE email=$1))', email) == 'image/jpeg'
+
+
 def test_review_request_more_reject_cooldown_and_approve(world):
     candidate = _candidate(world)
     application = candidate.ok('GET', '/api/coach-applications/mine')
@@ -71,5 +83,12 @@ def test_review_request_more_reject_cooldown_and_approve(world):
     })
     assert accepted['status'] == 'approved'
     assert candidate.call('GET', '/api/profile/me').status_code == 200
+    profile = candidate.ok('GET', '/api/profile/me')
+    assert profile['active_mode'] == 'coach'
+    assert profile['coach']['full_name'] == 'Алиса Иванова'
+    assert profile['coach']['sport'] == 'Теннис'
+    assert profile['coach']['specialization'] == 'КМС и лицензия'
+    assert 'Пять лет работы' in profile['coach']['description']
+    assert 'documents' not in profile['coach']
     assert candidate.ok('GET', '/api/auth/me')['coach_application_status'] == 'approved'
     assert sql_value(world.dsn, "SELECT count(*) FROM coach_application_events WHERE application_id=$1", app_id) == 6

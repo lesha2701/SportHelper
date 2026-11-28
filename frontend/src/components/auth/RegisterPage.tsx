@@ -53,7 +53,7 @@ export function RegisterPage() {
 
   if (sentTo) {
     // Everything typed stays in state, so "change the address" returns to a filled-in form.
-    return <CheckEmailScreen email={sentTo} next={next} coach={role === 'coach'} onChangeEmail={() => setSentTo(null)} />;
+    return <CheckEmailScreen email={sentTo} next={next} coach={role === 'coach'} confirmationPassword={role === 'coach' ? password : undefined} onChangeEmail={() => setSentTo(null)} />;
   }
 
   const chooseRole = (next: Role) => {
@@ -76,8 +76,8 @@ export function RegisterPage() {
     if (role === 'coach' && (!coachDetails.sport.trim() || !coachDetails.qualification.trim() || !coachDetails.experience.trim() || !coachDocuments.length)) {
       found.role = 'Заполните анкету тренера и приложите документ.';
     }
-    if (role === 'coach' && (coachDocuments.length > 3 || coachDocuments.some(file => file.size > 5 * 1024 * 1024))) {
-      found.role = 'Приложите не более трёх файлов размером до 5 МБ каждый.';
+    if (role === 'coach' && (coachDocuments.length > 3 || coachDocuments.some(file => file.size > 10 * 1024 * 1024))) {
+      found.role = 'Приложите не более трёх файлов размером до 10 МБ каждый.';
     }
     if (role === 'coach' && (coachDetails.links.length > 5 || coachDetails.links.some(link => !/^https:\/\/[^\s/]+/i.test(link)))) {
       found.role = 'Укажите не более пяти ссылок, каждая должна начинаться с https://.';
@@ -267,7 +267,7 @@ export function RegisterPage() {
             <label>Опыт работы *<textarea required maxLength={2000} value={coachDetails.experience} onChange={(e) => setCoachDetails({ ...coachDetails, experience: e.target.value })} disabled={submitting} /></label>
             <label>О себе<textarea maxLength={2000} value={coachDetails.about} onChange={(e) => setCoachDetails({ ...coachDetails, about: e.target.value })} disabled={submitting} /></label>
             <label>Ссылки на сведения о вас (по одной HTTPS-ссылке в строке)<textarea value={coachDetails.links.join('\n')} onChange={(e) => setCoachDetails({ ...coachDetails, links: e.target.value.split('\n').map(v => v.trim()).filter(Boolean) })} disabled={submitting} /></label>
-            <label>Документы * (PDF, JPG, PNG, WebP; до 3 файлов по 5 МБ)<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => setCoachDocuments(Array.from(e.target.files ?? []))} disabled={submitting} /></label>
+            <label>Документы * (PDF, JPG, PNG, WebP; до 3 файлов по 10 МБ)<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => setCoachDocuments(Array.from(e.target.files ?? []))} disabled={submitting} /></label>
             {errors.role && <p role="alert">{errors.role}</p>}
           </section>
         )}

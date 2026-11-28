@@ -144,6 +144,25 @@ describe("registration form", () => {
     expect(screen.getByText("alice@example.com")).toBeTruthy();
   });
 
+  it("confirms a coach's email with the mailed code without asking for the password again", async () => {
+    api.register.mockResolvedValue({ email: "alice@example.com" });
+    api.verifyEmail.mockResolvedValue({ email: "alice@example.com", session: { user, csrfToken: "csrf" } });
+    render(<RegisterPage />);
+    chooseRole(/Я тренер/);
+    fillRegistration();
+    fillCoachEvidence();
+    tickAll();
+    click("Зарегистрироваться");
+    await screen.findByText("Проверьте почту");
+
+    expect(screen.queryByLabelText("Пароль")).toBeNull();
+    type("Код из письма", "12345678");
+    click("Подтвердить почту");
+
+    await waitFor(() => expect(api.verifyEmail).toHaveBeenCalledWith("12345678", STRONG));
+    expect(signIn).toHaveBeenCalled();
+  });
+
   it("passes along where the person was heading, so the confirmation email can bring them back", async () => {
     api.register.mockResolvedValue({ email: "alice@example.com" });
     at("/register?next=%2F%3Fbook%3Dlisting-42");
