@@ -66,11 +66,11 @@ export function CheckEmailScreen({
         <Icon name="mail" size={30} />
       </div>
       <p className={styles.lead} style={{ margin: 0 }}>
-        {coach ? <>Мы отправили восьмизначный код на <span className={styles.address}>{email}</span>. Введите его ниже — заявка сразу появится на проверке.</> : <>Мы отправили письмо со ссылкой на <span className={styles.address}>{email}</span>. Откройте его, нажмите «Подтвердить email» и введите пароль — вы сразу попадёте в приложение. Ссылка действует 24 часа.</>}
+        {confirmationPassword ? <>Мы отправили восьмизначный код на <span className={styles.address}>{email}</span>. Введите его ниже — {coach ? 'заявка сразу появится на проверке' : 'вы сразу попадёте в приложение'}.</> : <>Мы отправили письмо со ссылкой на <span className={styles.address}>{email}</span>. Откройте его, нажмите «Подтвердить email» и введите пароль — вы сразу попадёте в приложение. Ссылка действует 24 часа.</>}
       </p>
 
       <div className={styles.stack}>
-        {coach && confirmationPassword && <form className={styles.form} onSubmit={confirmCode}>
+        {confirmationPassword && <form className={styles.form} onSubmit={confirmCode}>
           <TextField label="Код из письма" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{8}" maxLength={8} value={code} onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, 8))} required />
           <button type="submit" className={styles.primary} disabled={verifying || code.length !== 8}>{verifying ? 'Проверяем…' : 'Подтвердить почту'}</button>
         </form>}
@@ -79,7 +79,7 @@ export function CheckEmailScreen({
         <button type="button" className={styles.secondary} onClick={resend} disabled={sending || cooldown.remaining > 0}>
           {cooldown.remaining > 0 ? `Отправить ещё раз (${cooldown.remaining})` : sending ? "Отправляем…" : "Отправить письмо ещё раз"}
         </button>
-        {!coach && <Link to={`/login?email=${encodeURIComponent(email)}${next ? `&next=${encodeURIComponent(next)}` : ""}`} className={styles.primary}>Я подтвердил — войти</Link>}
+        {!confirmationPassword && <Link to={`/login?email=${encodeURIComponent(email)}${next ? `&next=${encodeURIComponent(next)}` : ""}`} className={styles.primary}>Я подтвердил — войти</Link>}
       </div>
 
       <p className={styles.footerLine}>

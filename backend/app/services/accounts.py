@@ -160,9 +160,9 @@ async def send_verification(
     user: dict[str, Any],
     email: str,
     next_path: str | None = None,
-    code_for_coach: bool = False,
+    code_for_registration: bool = False,
 ) -> None:
-    if code_for_coach:
+    if code_for_registration:
         # An eight-digit code is entered in the same registration tab. The
         # password chosen in that tab is still required by the API, protecting
         # against registration of somebody else's address.
@@ -178,5 +178,5 @@ async def send_verification(
             ttl=timedelta(hours=settings.email_verify_ttl_hours), new_email=email,
         )
     queue_email(
-        background, templates.verification_email(settings, email, user["first_name"], token, next_path, code_for_coach), settings
+        background, templates.verification_email(settings, email, user["first_name"], token, next_path, code_for_registration), settings
     )

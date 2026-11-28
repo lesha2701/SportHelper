@@ -163,6 +163,25 @@ describe("registration form", () => {
     expect(signIn).toHaveBeenCalled();
   });
 
+  it("confirms a player's email with the mailed code without asking for the password again", async () => {
+    api.register.mockResolvedValue({ email: "alice@example.com" });
+    api.verifyEmail.mockResolvedValue({ email: "alice@example.com", session: { user, csrfToken: "csrf" } });
+    render(<RegisterPage />);
+    chooseRole();
+    fillRegistration();
+    tickAll();
+    click("Зарегистрироваться");
+    await screen.findByText("Проверьте почту");
+
+    expect(screen.queryByLabelText("Пароль")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Я подтвердил — войти" })).toBeNull();
+    type("Код из письма", "12345678");
+    click("Подтвердить почту");
+
+    await waitFor(() => expect(api.verifyEmail).toHaveBeenCalledWith("12345678", STRONG));
+    expect(signIn).toHaveBeenCalled();
+  });
+
   it("passes along where the person was heading, so the confirmation email can bring them back", async () => {
     api.register.mockResolvedValue({ email: "alice@example.com" });
     at("/register?next=%2F%3Fbook%3Dlisting-42");
@@ -175,9 +194,7 @@ describe("registration form", () => {
 
     await screen.findByText("Проверьте почту");
     expect(api.register).toHaveBeenCalledWith(expect.objectContaining({ next: "/?book=listing-42" }));
-    expect(screen.getByRole("link", { name: "Я подтвердил — войти" }).getAttribute("href")).toBe(
-      "/login?email=alice%40example.com&next=%2F%3Fbook%3Dlisting-42",
-    );
+    expect(screen.getByLabelText("Код из письма")).toBeTruthy();
   });
 
   it("keeps what was typed when the server refuses, and offers sign-in for a taken email", async () => {

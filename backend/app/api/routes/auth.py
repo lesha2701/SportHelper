@@ -203,7 +203,7 @@ async def _register_impl(payload, request, background, conn, settings, applicati
                 ip_address=ip,
             )
 
-    await svc.send_verification(conn, background, settings, user, email, svc.safe_next(payload.next), code_for_coach=application is not None)
+    await svc.send_verification(conn, background, settings, user, email, svc.safe_next(payload.next), code_for_registration=True)
     return RegisterOut(email=email)
 
 
@@ -375,7 +375,7 @@ async def resend_verification(
         await svc.enforce_rate_limit(request, conn, settings, "resend-email", email, limit=3, window_seconds=3600)
         user = await users_repo.get_by_email(conn, email)
         if user is not None and user["email_verified_at"] is None and user.get("has_password"):
-            await svc.send_verification(conn, background, settings, user, email, svc.safe_next(payload.next), code_for_coach=user.get('preferred_role') == 'coach')
+            await svc.send_verification(conn, background, settings, user, email, svc.safe_next(payload.next), code_for_registration=user.get('preferred_role') in ('player', 'coach'))
     return MessageOut(message=_NEUTRAL_RESEND)
 
 

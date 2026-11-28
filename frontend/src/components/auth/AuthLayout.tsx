@@ -15,7 +15,7 @@ const POINTS: { icon: IconName; text: string }[] = [
  * (collapsed to a slim bar on phones) next to the form card. */
 export function AuthLayout({ title, lead, wide, children }: { title: string; lead?: ReactNode; wide?: boolean; children: ReactNode }) {
   return (
-    <div className={styles.page}>
+    <div className={wide ? `${styles.page} ${styles.pageWide}` : styles.page}>
       <aside className={styles.brand}>
         <div className={styles.brandInner}>
           <Link to="/" className={styles.brandHome} aria-label="SportArenaGlobal — на главную">
