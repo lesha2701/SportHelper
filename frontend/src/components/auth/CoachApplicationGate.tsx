@@ -3,6 +3,7 @@ import { myApplication, resubmitApplication, type Application, type ApplicationD
 import { useAuth } from '../../context/AuthContext';
 import { AccountSecurity } from '../profile/AccountSecurity';
 import { BrandLogo } from '../shared/BrandLogo';
+import { MultiFilePicker } from '../shared/FilePicker';
 import { SiteFooter } from '../shared/SiteFooter';
 import { Link } from '../Link';
 import styles from './coachApplicationGate.module.css';
@@ -75,7 +76,7 @@ export function CoachApplicationGate() {
             <label>Опыт <textarea required minLength={2} maxLength={2000} value={details.experience} onChange={e => setDetails({ ...details, experience: e.target.value })} /></label>
             <label>О себе <textarea maxLength={2000} value={details.about} onChange={e => setDetails({ ...details, about: e.target.value })} /></label>
             <label>Ссылки HTTPS, по одной в строке <textarea value={details.links.join('\n')} onChange={e => setDetails({ ...details, links: e.target.value.split('\n').map(v => v.trim()).filter(Boolean) })} /></label>
-            <label>Новые документы, если нужны (до 10 МБ каждый) <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={e => setFiles(Array.from(e.target.files ?? []))} /></label>
+            <div><span>Новые документы, если нужны (до 10 МБ каждый)</span><MultiFilePicker label="Новые документы" accept=".pdf,.jpg,.jpeg,.png,.webp" files={files} onSelect={setFiles} hint="PDF, JPG, PNG или WebP" /></div>
           </div><button className={styles.primary} disabled={busy}>{busy ? 'Отправляем…' : 'Отправить повторно'}</button></form>}
         </>}
       </div>}

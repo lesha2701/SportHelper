@@ -22,6 +22,7 @@ import { navigate } from "../../router";
 import type { CoachListing } from "../../types/coachListing";
 import { Link } from "../Link";
 import { AuthenticatedImage } from "../shared/AuthenticatedImage";
+import { MultiFilePicker } from "../shared/FilePicker";
 import { SportSelect } from "../shared/SportSelect";
 import { StateScreen } from "../StateScreen";
 import { PostBody, blocksLength, wrapSelection } from "./blogText";
@@ -135,13 +136,13 @@ export function PostEditor({ postId, feedUrl }: { postId: string | null; feedUrl
     });
   };
 
-  const addImages = async (files: FileList | null) => {
-    if (!files?.length) return;
+  const addImages = async (files: File[]) => {
+    if (!files.length) return;
     setUploading(true);
     setError(null);
     try {
       let next = images;
-      for (const file of Array.from(files)) {
+      for (const file of files) {
         if (next.length >= MAX_POST_IMAGES) break;
         next = [...next, await uploadPostImage(file)];
         setImages(next);
@@ -217,7 +218,7 @@ export function PostEditor({ postId, feedUrl }: { postId: string | null; feedUrl
           ))}
         </div>
         {images.length < MAX_POST_IMAGES && (
-          <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={uploading} onChange={(e) => { void addImages(e.target.files); e.target.value = ""; }} aria-label="Добавить фото" />
+          <MultiFilePicker label="Добавить фото" accept="image/jpeg,image/png,image/webp" disabled={uploading} onSelect={files => { void addImages(files); }} hint="JPG, PNG или WebP" />
         )}
         {uploading && <span className={styles.hint}>Загружаем…</span>}
       </div>

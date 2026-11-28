@@ -36,8 +36,8 @@
 .primary { width: fit-content; border: 0; border-radius: 999px; background: var(--color-primary-fill); color: var(--color-on-fill); padding: 15px 26px; font: inherit; font-weight: 700; cursor: pointer; }
 .primary:disabled, .secondary:disabled { opacity: .6; cursor: wait; }
 .fields { display: grid; gap: 18px; margin-bottom: 24px; }
-.fields label { display: grid; gap: 8px; font-weight: 600; }
-.fields input, .fields textarea { box-sizing: border-box; width: 100%; min-height: 46px; border: 1px solid var(--color-border); border-radius: 10px; padding: 12px; background: var(--color-bg); color: var(--color-text); font: inherit; }
+.fields label, .fields > div { display: grid; gap: 8px; font-weight: 600; }
+.fields > label > input, .fields textarea { box-sizing: border-box; width: 100%; min-height: 46px; border: 1px solid var(--color-border); border-radius: 10px; padding: 12px; background: var(--color-bg); color: var(--color-text); font: inherit; }
 .fields textarea { min-height: 100px; resize: vertical; }
 .error { color: var(--color-primary); }
 @media (max-width: 720px) { .header strong { font-size: 17px; } .content { padding-top: 22px; } .statusCard { align-items: flex-start; flex-wrap: wrap; } .statusCopy { flex-basis: calc(100% - 82px); } .secondary { width: 100%; } .details { grid-template-columns: 1fr; } }
