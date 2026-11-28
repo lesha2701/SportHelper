@@ -11,7 +11,8 @@ from fastapi import APIRouter, Depends, Request
 
 from app.api.deps import get_current_user, get_db, get_settings_dep
 from app.config import Settings
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
+from app.repositories import profiles as profiles_repo
 from app.repositories import support as support_repo
 from app.schemas.support import MySupportRequestOut, SupportCreatedOut, SupportReplyIn, SupportRequestIn
 from app.services import accounts as svc
@@ -32,6 +33,8 @@ async def create_request(
     conn: asyncpg.Connection = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> SupportCreatedOut:
+    if payload.kind == "venue_search" and not await profiles_repo.get_coach_profile(conn, user["id"]):
+        raise ForbiddenError("Заявку на подбор зала может отправить только тренер.", code="coach_required")
     await svc.enforce_rate_limit(request, conn, settings, "support", str(user["id"]), limit=_PER_HOUR, window_seconds=3600)
     if await support_repo.count_open(conn, user["id"]) >= support_repo.MAX_OPEN_PER_USER:
         raise ConflictError("У вас слишком много обращений без ответа. Дождитесь ответа на прежние.", code="too_many_open")

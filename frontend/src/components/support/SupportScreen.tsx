@@ -13,7 +13,7 @@ import { TitleWithBack } from "../shared/BackArrow";
 import profileStyles from "../profile/profile.module.css";
 import styles from "./support.module.css";
 
-const KINDS = Object.keys(SUPPORT_KIND_LABELS) as SupportKind[];
+const KINDS = (Object.keys(SUPPORT_KIND_LABELS) as SupportKind[]).filter((kind) => kind !== "venue_search");
 export const SUBJECT_MAX = 120;
 export const BODY_MAX = 3000;
 const SUBJECT_MIN = 3;
@@ -25,7 +25,7 @@ function formatWhen(iso: string): string {
 }
 
 /** «Поддержка»: write to the administrators (a question, a suggestion, a conflict, a problem) and read the answers. */
-export function SupportScreen({ onBack }: { onBack: () => void }) {
+export function SupportScreen({ onBack, venueSearch = false }: { onBack: () => void; venueSearch?: boolean }) {
   const [kind, setKind] = useState<SupportKind>("question");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -47,7 +47,8 @@ export function SupportScreen({ onBack }: { onBack: () => void }) {
 
   const cleanSubject = subject.trim().replace(/\s+/g, " ");
   const cleanBody = body.trim();
-  const valid = cleanSubject.length >= SUBJECT_MIN && cleanBody.length >= BODY_MIN;
+  const valid = cleanSubject.length >= (venueSearch ? 2 : SUBJECT_MIN) && cleanBody.length >= BODY_MIN;
+  const requests = venueSearch ? mine?.filter((request) => request.kind === "venue_search") : mine;
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -55,7 +56,11 @@ export function SupportScreen({ onBack }: { onBack: () => void }) {
     setSending(true);
     setError(null);
     try {
-      await createSupportRequest({ kind, subject: cleanSubject, body: cleanBody });
+      await createSupportRequest({
+        kind: venueSearch ? "venue_search" : kind,
+        subject: venueSearch ? `Подбор зала: ${cleanSubject}` : cleanSubject,
+        body: cleanBody,
+      });
       setSent(true);
       setSubject("");
       setBody("");
@@ -71,25 +76,27 @@ export function SupportScreen({ onBack }: { onBack: () => void }) {
     <div className={profileStyles.screen}>
       <div className={profileStyles.card}>
         <TitleWithBack onBack={onBack}>
-          <h1 className={profileStyles.pageHeading}>Поддержка</h1>
+          <h1 className={profileStyles.pageHeading}>{venueSearch ? "Подбор зала" : "Поддержка"}</h1>
         </TitleWithBack>
         <p className={profileStyles.subtitle}>
-          Есть вопрос, идея или что-то пошло не так? Напишите нам — мы прочитаем и ответим. Ответ придёт на почту и появится здесь, ниже.
+          {venueSearch
+            ? "Расскажите, какой зал нужен для тренировки. Ответ команды появится здесь."
+            : "Есть вопрос, идея или что-то пошло не так? Напишите нам — мы прочитаем и ответим. Ответ придёт на почту и появится здесь, ниже."}
         </p>
       </div>
 
       {sent ? (
         <div className={profileStyles.card} role="status">
-          <h2 className={styles.sectionTitle}>Спасибо! Мы получили ваше обращение</h2>
+          <h2 className={styles.sectionTitle}>{venueSearch ? "Заявка отправлена" : "Спасибо! Мы получили ваше обращение"}</h2>
           <p className={profileStyles.subtitle}>Обработаем его и ответим. Ответ придёт на вашу почту и появится в списке ниже.</p>
           <button type="button" className={profileStyles.buttonSecondary} onClick={() => setSent(false)}>
-            Написать ещё
+            {venueSearch ? "Новая заявка" : "Написать ещё"}
           </button>
         </div>
       ) : (
         <form className={profileStyles.card} onSubmit={submit}>
           <p className={profileStyles.requiredHint}>Поля со звёздочкой (*) обязательны для заполнения.</p>
-          <fieldset className={styles.kinds}>
+          {!venueSearch && <fieldset className={styles.kinds}>
             <legend className={profileStyles.label}>О чём вы хотите написать</legend>
             <div className={styles.kindGrid}>
               {KINDS.map((k) => (
@@ -105,17 +112,17 @@ export function SupportScreen({ onBack }: { onBack: () => void }) {
                 </button>
               ))}
             </div>
-          </fieldset>
+          </fieldset>}
 
           <label className={profileStyles.field}>
             <span className={profileStyles.label}>
-              Заголовок<span className={profileStyles.requiredMark}>*</span>
+              {venueSearch ? "Город" : "Заголовок"}<span className={profileStyles.requiredMark}>*</span>
             </span>
             <input
               className={profileStyles.input}
               value={subject}
-              maxLength={SUBJECT_MAX}
-              placeholder="Коротко: о чём речь"
+              maxLength={venueSearch ? 100 : SUBJECT_MAX}
+              placeholder={venueSearch ? "Например, Москва" : "Коротко: о чём речь"}
               onChange={(e) => setSubject(e.target.value)}
               disabled={sending}
             />
@@ -123,14 +130,14 @@ export function SupportScreen({ onBack }: { onBack: () => void }) {
 
           <label className={profileStyles.field}>
             <span className={profileStyles.label}>
-              Текст обращения<span className={profileStyles.requiredMark}>*</span>
+              {venueSearch ? "Какой зал нужен" : "Текст обращения"}<span className={profileStyles.requiredMark}>*</span>
             </span>
             <textarea
               className={profileStyles.textarea}
-              rows={7}
+              rows={venueSearch ? 4 : 7}
               value={body}
               maxLength={BODY_MAX}
-              placeholder="Опишите подробно: что случилось, что вы ожидали, на каком экране"
+              placeholder={venueSearch ? "Вид спорта, район, дата и время, бюджет" : "Опишите подробно: что случилось, что вы ожидали, на каком экране"}
               onChange={(e) => setBody(e.target.value)}
               disabled={sending}
             />
@@ -141,17 +148,17 @@ export function SupportScreen({ onBack }: { onBack: () => void }) {
 
           {error && <p className={profileStyles.error}>{error}</p>}
           <button type="submit" className={profileStyles.buttonPrimary} disabled={!valid || sending}>
-            {sending ? "Отправляем…" : "Отправить"}
+            {sending ? "Отправляем…" : venueSearch ? "Отправить заявку" : "Отправить"}
           </button>
         </form>
       )}
 
       {mineFailed && <p className={profileStyles.error}>Не удалось загрузить ваши обращения.</p>}
-      {mine !== null && mine.length > 0 && (
+      {!!requests?.length && (
         <div className={profileStyles.card}>
-          <h2 className={styles.sectionTitle}>Ваши обращения</h2>
+          <h2 className={styles.sectionTitle}>{venueSearch ? "Ваши заявки на подбор зала" : "Ваши обращения"}</h2>
           <ul className={styles.list}>
-            {mine.map((r) => (
+            {requests.map((r) => (
               <RequestItem key={r.id} request={r} onChanged={(updated) => setMine((list) => list && list.map((x) => (x.id === updated.id ? updated : x)))} />
             ))}
           </ul>

@@ -244,6 +244,7 @@ export default function ProfileScreen() {
 
       <View style={{ gap: 8 }}>
         {mode === "coach" ? <ListRow icon="people-outline" title="Подбор клиентов" onPress={() => router.push("/match-offers")} /> : null}
+        {mode === "coach" ? <ListRow icon="search-outline" title="Найти зал" onPress={() => router.push({ pathname: "/support", params: { kind: "venue_search" } })} /> : null}
         {mode === "coach" ? <ListRow icon="pricetag-outline" title="Мои объявления" onPress={() => router.push("/my-listings")} /> : null}
         {mode === "coach" ? (
           <ListRow icon="mail-unread-outline" title="Входящие заявки" badge={extra.data?.pending} onPress={() => router.push("/bookings")} />

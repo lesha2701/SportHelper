@@ -31,6 +31,26 @@ const fill = (subject: string, body: string) => {
 };
 
 describe("the support form", () => {
+  it("sends the city and venue details and shows only venue conversations in venue mode", async () => {
+    const subject = "Подбор зала: Москва";
+    const body = "Нужен крытый корт в субботу.";
+    vi.mocked(listMySupportRequests).mockResolvedValue([
+      answered,
+      { ...answered, id: "venue", kind: "venue_search", subject, body,
+        messages: [{ ...answered.messages[0]!, body: "Есть свободный корт в 16:00." }] },
+    ]);
+    render(<SupportScreen venueSearch onBack={() => {}} />);
+
+    expect(await screen.findByText("Есть свободный корт в 16:00.")).toBeTruthy();
+    expect(screen.queryByText(answered.subject)).toBeNull();
+    fireEvent.change(screen.getByLabelText(/Город/), { target: { value: " Москва " } });
+    fireEvent.change(screen.getByLabelText(/Какой зал нужен/), { target: { value: body } });
+    fireEvent.click(screen.getByRole("button", { name: "Отправить заявку" }));
+    await flush();
+    expect(createSupportRequest).toHaveBeenCalledWith({ kind: "venue_search", subject, body });
+    expect(screen.getByText("Заявка отправлена")).toBeTruthy();
+  });
+
   it("offers the kinds as buttons and sends the chosen one with the title and the text", async () => {
     render(<SupportScreen onBack={() => {}} />);
     await flush();

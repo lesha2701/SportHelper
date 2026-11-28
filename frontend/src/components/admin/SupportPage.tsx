@@ -9,6 +9,7 @@ import {
   type SupportRequestStatus,
 } from "../../api/admin";
 import { ApiError } from "../../api/client";
+import { SUPPORT_KIND_LABELS } from "../../api/support";
 import { useLocation } from "../../router";
 import { Link } from "../Link";
 import { Icon } from "../shared/Icon";
@@ -20,14 +21,6 @@ const ANSWER_MIN = 3;
 const ANSWER_MAX = 3000;
 
 export const SUPPORT_STATUS_LABELS: Record<SupportRequestStatus, string> = { new: "Новое", in_progress: "В работе", answered: "Отвечено", closed: "Закрыто" };
-export const SUPPORT_KIND_LABELS: Record<SupportRequestKind, string> = {
-  question: "Вопрос",
-  suggestion: "Предложение",
-  conflict: "Конфликт",
-  bug: "Ошибка в работе",
-  payment: "Оплата и деньги",
-  other: "Другое",
-};
 
 function StatusPill({ status }: { status: SupportRequestStatus }) {
   return <Pill tone={status === "new" ? "bad" : status === "in_progress" ? "warn" : status === "answered" ? "ok" : "neutral"}>{SUPPORT_STATUS_LABELS[status]}</Pill>;

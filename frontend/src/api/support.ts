@@ -1,6 +1,6 @@
 import { apiRequest } from "./client";
 
-export type SupportKind = "question" | "suggestion" | "conflict" | "bug" | "payment" | "other";
+export type SupportKind = "question" | "suggestion" | "conflict" | "bug" | "payment" | "other" | "venue_search";
 export type SupportStatus = "new" | "in_progress" | "answered" | "closed";
 
 export const SUPPORT_KIND_LABELS: Record<SupportKind, string> = {
@@ -10,6 +10,7 @@ export const SUPPORT_KIND_LABELS: Record<SupportKind, string> = {
   bug: "Ошибка в работе",
   payment: "Оплата и деньги",
   other: "Другое",
+  venue_search: "Подбор зала",
 };
 
 export const SUPPORT_STATUS_LABELS: Record<SupportStatus, string> = {

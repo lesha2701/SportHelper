@@ -38,7 +38,7 @@ export function ProfileScreen({
   const isAdmin = authState.status === "ready" && authState.user.isAdmin;
   const [editing, setEditing] = useState<ActiveMode | null>(null);
   const [showHelp, setShowHelp] = useState(false);
-  const [showSupport, setShowSupport] = useState(false);
+  const [support, setSupport] = useState<"general" | "venue_search" | null>(null);
   const [showSettings, setShowSettings] = useState(!!startInSettings);
   useEffect(() => {
     if (!startInSettings) return;
@@ -67,8 +67,8 @@ export function ProfileScreen({
     );
   }
 
-  if (showSupport) {
-    return <SupportScreen onBack={() => setShowSupport(false)} />;
+  if (support) {
+    return <SupportScreen key={support} venueSearch={support === "venue_search"} onBack={() => setSupport(null)} />;
   }
 
   if (showSettings) {
@@ -149,7 +149,7 @@ export function ProfileScreen({
       onCreateOther={(mode) => setEditing(mode)}
       onOpenMyStats={onOpenMyStats}
       onOpenHelp={() => setShowHelp(true)}
-      onOpenSupport={() => setShowSupport(true)}
+      onOpenSupport={(kind) => setSupport(kind ?? "general")}
       onOpenSettings={() => setShowSettings(true)}
       onOpenMarketplaceSettings={() => setShowMarketplaceSettings(true)}
       onOpenMyBookings={() => setShowMyBookings(true)}

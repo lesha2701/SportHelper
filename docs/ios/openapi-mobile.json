@@ -21035,7 +21035,8 @@
               "conflict",
               "bug",
               "payment",
-              "other"
+              "other",
+              "venue_search"
             ],
             "title": "Kind"
           },
@@ -24398,7 +24399,8 @@
               "conflict",
               "bug",
               "payment",
-              "other"
+              "other",
+              "venue_search"
             ],
             "title": "Kind"
           },
@@ -24439,7 +24441,8 @@
               "conflict",
               "bug",
               "payment",
-              "other"
+              "other",
+              "venue_search"
             ],
             "title": "Kind"
           },

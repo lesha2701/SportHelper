@@ -692,7 +692,7 @@ export async function createComplaint(input: {
 
 // --- support requests ----------------------------------------------------------------------------------------------------
 
-export type SupportRequestKind = "question" | "suggestion" | "conflict" | "bug" | "payment" | "other";
+export type SupportRequestKind = import("./support").SupportKind;
 export type SupportRequestStatus = "new" | "in_progress" | "answered" | "closed";
 
 export interface AdminSupportRequest {

@@ -26,7 +26,7 @@ interface ProfileSummaryProps {
   onCreateOther: (mode: ActiveMode) => void;
   onOpenMyStats: () => void;
   onOpenHelp: () => void;
-  onOpenSupport: () => void;
+  onOpenSupport: (kind?: "venue_search") => void;
   onOpenSettings: () => void;
   onOpenMarketplaceSettings: () => void;
   onOpenMyBookings: () => void;
@@ -214,6 +214,7 @@ export function ProfileSummary({
       offerRows.push({ key: "finance", icon: "wallet", label: "Финансы", onClick: () => navigateApp({ kind: "finance" }) });
     }
     offerRows.push({ key: "match-offers", icon: "users", label: "Подбор клиентов", onClick: () => navigateApp({ kind: "match-offers" }) });
+    offerRows.push({ key: "venue-search", icon: "search", label: "Найти зал", onClick: () => onOpenSupport("venue_search") });
     offerRows.push({
       key: "catalogue",
       icon: "users",
@@ -237,7 +238,7 @@ export function ProfileSummary({
 
   const helpRows: ActionRowDef[] = [
     { key: "help", icon: "book", label: "Помощь", onClick: onOpenHelp },
-    { key: "support", icon: "message", label: "Поддержка", onClick: onOpenSupport },
+    { key: "support", icon: "message", label: "Поддержка", onClick: () => onOpenSupport() },
   ];
 
   const adminRows: ActionRowDef[] = [];

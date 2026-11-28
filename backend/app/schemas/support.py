@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.admin import PersonOut
 
-SupportKind = Literal["question", "suggestion", "conflict", "bug", "payment", "other"]
+SupportKind = Literal["question", "suggestion", "conflict", "bug", "payment", "other", "venue_search"]
 SupportStatus = Literal["new", "in_progress", "answered", "closed"]
 
 

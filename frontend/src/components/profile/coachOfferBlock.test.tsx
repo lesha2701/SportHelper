@@ -40,6 +40,7 @@ describe("profile actions are grouped by purpose", () => {
     expect(offers).toContain("Мои объявления");
     expect(offers).toContain("Входящие заявки");
     expect(offers).toContain("Записи");
+    expect(offers).toContain("Найти зал");
     expect(rowsUnder("Занятия и прогресс").join("|")).toContain("Моя статистика");
     expect(rowsUnder("Аккаунт").join("|")).toContain("Настройки");
     expect(rowsUnder("Аккаунт").join("|")).toContain("Уведомления");
@@ -53,5 +54,6 @@ describe("profile actions are grouped by purpose", () => {
     summary({ activeMode: "player", player, coach: null });
     expect(rowsUnder("Занятия и прогресс").join("|")).toContain("Мои брони");
     expect(screen.queryByRole("heading", { name: "Объявления" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Найти зал" })).toBeNull();
   });
 });

@@ -41,6 +41,26 @@ def test_a_signed_in_person_can_write_with_any_kind_of_request(author, kind) -> 
     assert set(response.json()) == {"id", "status"} and response.json()["status"] == "new"
 
 
+def test_a_coach_can_request_a_venue_and_read_the_admin_reply(world, author) -> None:
+    assert _write(author, "venue_search").json()["error"]["code"] == "coach_required"
+    coach = Browser(world.client, "venue-coach@example.com", "Тренер", role="coach")
+    coach.ok("PUT", "/api/profile/coach", json={"full_name": "Тренер Тенниса", "sport": "Теннис"})
+    _write(author)
+
+    request = _write(coach, "venue_search", "Подбор зала: Москва", "Крытый корт в субботу после 15:00.")
+    assert request.status_code == 201, request.text
+    rid = request.json()["id"]
+    queue = _queue(world, kind="venue_search")
+    assert [item["id"] for item in queue["items"]] == [rid]
+
+    answer = "Нашли крытый корт у метро. Свободно с 16:00."
+    world.admin.ok("POST", f"/api/admin/support/{rid}/answer", json={"answer": answer})
+    mine = coach.ok("GET", "/api/support/mine")
+    assert mine[0]["id"] == rid and mine[0]["kind"] == "venue_search" and mine[0]["status"] == "answered"
+    assert mine[0]["messages"][0]["body"] == answer and mine[0]["messages"][0]["from_staff"] is True
+    assert all(item["id"] != rid for item in author.ok("GET", "/api/support/mine"))
+
+
 def test_the_text_is_stored_tidy_with_line_breaks_kept(world, author) -> None:
     _write(author, "suggestion", subject="   Тёмная   тема  ", body="  Первая строка   с пробелами\n\n\n\nВторая строка  ")
 
